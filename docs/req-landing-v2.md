@@ -26,7 +26,7 @@
 
 ### 1.2 Out of Scope (V1)
 - 배경 요소 동적 연출(실시간 업데이트): 비활성(강도 0/정지)
-- REQ-F-016 전체 이벤트 택소노미의 전면 구현
+- REQ-F-016 전체 이벤트 택소노미의 전면 구현(전역 requirements의 REQ-F-016 MUST는 V1에서 유예하고, 본문 11.2 최소 이벤트셋을 우선 적용)
 - Google Sheets 실연동(현재는 Fixture + Adapter)
 - 테스트/블로그 본문의 고도화 기능
 
@@ -75,6 +75,7 @@
 - 랜딩: `/{locale}`
 - 테스트 질문: `/{locale}/test/[variant]/question`
 - 블로그: `/{locale}/blog`
+- 블로그 카탈로그 CTA 진입 시 `?source=<cardId>` query를 부가한다.
 - 이력: `/{locale}/history`
 
 ### 3.2 Locale URL Integrity (MUST)
@@ -246,7 +247,7 @@
 ### 6.7 Missing Slot Handling
 - required 슬롯 누락 시 영역 제거 금지
 - required 값 누락 시 빈값 렌더(레이아웃 유지)
-- optional(`tags[]`) 비어도 자리 유지
+- optional(`tags[]`) 비어있으면 숨김
 
 ### 6.8 Unavailable Contract
 #### Blog
@@ -393,6 +394,9 @@
 - instruction 오버레이 확인 후:
   - 랜딩 유입(pre-answer 있음): Q2부터 시작
   - 딥링크 유입(pre-answer 없음): Q1부터 시작
+- 동일 variant 재진입에서 instruction이 생략되는 경우:
+  - 랜딩 유입(pre-answer 있음): choice A/B 선택 즉시 테스트 시작, 질문 진입은 Q2부터
+  - 딥링크 유입(pre-answer 없음): URL 진입 후 Q1부터 시작
 - 사용자는 테스트 중 Q1 재수정 가능
 - 결과는 최종 제출 Q1 기준
 
@@ -402,7 +406,8 @@
   - Mobile: full-screen overlay
 - 오버레이 활성 중 하위 입력 차단
 - variant 단위 instructionSeen 유지
-- 동일 variant 재진입 시 재표시하지 않음
+- 동일 variant의 최초 진입(랜딩/딥링크 공통)에서는 instruction 표시가 필수
+- 동일 variant 재진입 시 instruction은 재표시하지 않음
 
 ### 10.5 Pre-Answer Lifecycle
 - read와 consume 분리
@@ -421,6 +426,7 @@
 ## 11. Telemetry, Privacy, Data Source
 ### 11.1 Logging Scope (V1)
 - 목적: 랜딩→진입 안정성 + 테스트 시도/제출 최소 지표
+- 본 V1은 REQ-F-016 전체 이벤트 택소노미가 아니라 11.2의 최소 Event Set만 구현 대상으로 한다.
 - 기본 미수집:
   - 스크롤/hover/expanded 토글/tap 토글/tilt/조명 상호작용
   - unavailable hover/tap 시도
@@ -432,7 +438,7 @@
 
 ### 11.3 Transition Correlation
 - TRANSITIONING 중 중복 start 금지
-- 전환 종료는 complete 또는 fail 중 하나
+- 전환 종료는 complete/fail/cancel 중 하나(상호배타)
 - eventId/transitionId 매칭 필수
 - 상관키 생성 실패 시 대체키(세션 카운터) 허용
 
