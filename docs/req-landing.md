@@ -5,6 +5,7 @@
 - 반응형(Desktop/Tablet/Mobile)에서 그리드가 자연스럽게 재배치되며, i18n 문자열 길이 변화에도 레이아웃이 깨지지 않아야 한다.
 - 일부 카드는 unavailable(coming soon)로 노출될 수 있으며, 시각적으로 구분되되 탐색 흐름을 방해하지 않는다.
 - 이번 범위(버전 1)에서는 배경 요소(background elements)는 미구현 또는 정적(업데이트 0) 으로 둘 수 있다. 이 경우 본 문서의 배경 관련 항목은 ‘강도 0/정지’로 간주하며, 카드/콘텐츠 인터랙션 요구사항의 구현·QA를 우선한다. 추후 확장 시에만 배경 규칙을 활성화한다.
+- (이번 세션 확정) 시각 패키지는 버전 B 기준으로 적용하되, 배경 요소는 정적(강도 0/정지)으로 고정한다.
 
 ## 2) 화면 구조 명세 (레이아웃)
 
@@ -32,18 +33,34 @@
 ### 2.3 GNB 명세
 - 구성요소:
   - 좌측: CI(로고) (클릭 시 홈)
-  - 우측: 햄버거 메뉴 버튼(탭/클릭 영역 44x44px 이상)
   - 페이지 컨텍스트별 구성(필수 고정):
     - Desktop / 랜딩 페이지:
       - CI(홈) + 메뉴(테스트 이력, 블로그 링크 등) 전체 나열
+      - 우측 햄버거는 사용하지 않는다.
+      - 우측 끝에 설정 아이콘(1개)을 노출한다.
+      - 설정 레이어(아이콘 기준 앵커) 내부에 아래 2개 컨트롤만 노출한다.
+        1) 언어 토글: 현재 언어 텍스트만 표시(`EN` 또는 `KR`), 클릭 시 `EN ↔ KR` 전환
+        2) 테마 토글: 현재 테마 아이콘(라이트/다크) 표시, 클릭 시 `Light ↔ Dark` 전환
     - Desktop / 테스트 페이지:
       - CI + Timer Count + 테스트 이력 등(노출 정보 최소화)
     - Mobile / 랜딩 페이지:
       - CI + 햄버거 메뉴
+      - 햄버거 메뉴 최하단에 설정 컨트롤 2개를 분리 노출한다.
+        - 언어: 아이콘 + 현재값 텍스트(`EN`/`KR`), 탭 시 `EN ↔ KR` 순환 토글
+        - 테마: 아이콘 + 현재값 텍스트(`Light`/`Dark`), 탭 시 `Light ↔ Dark` 순환 토글
     - Mobile / 테스트 페이지:
       - 뒤로가기 + Timer Count
     - Mobile / 블로그 페이지:
       - 뒤로가기 + 햄버거 메뉴
+      - 햄버거 메뉴 최하단 설정 컨트롤 구성은 Mobile 랜딩과 동일하게 적용한다.
+
+- 언어/테마 상태 정책(필수 고정):
+  - 언어:
+    - Desktop은 설정 레이어 내부에서만 변경 가능하다(독립 언어 버튼 미사용).
+    - Mobile은 햄버거 메뉴 최하단 설정 컨트롤에서만 변경 가능하다.
+  - 테마:
+    - 최초 진입은 시스템 설정(`prefers-color-scheme`)을 따른다(`system-follow`).
+    - 사용자가 수동 토글한 이후에는 `light` 또는 `dark`를 localStorage에 고정 저장해 우선 적용한다.
 
 - 레이아웃/동작:
   - Sticky: top: 0
@@ -56,9 +73,18 @@
   - 전환 중 GNB 교체 타이밍(필수 고정):
     - 전환 중에는 GNB를 유지하고, 전환 완료 시점에 한 번에 목적 페이지 GNB로 교체한다.
     - 요소 구성이 달라지는 경우(예: Mobile 블로그 페이지의 ‘뒤로가기&햄버거’)도 동일 원칙을 적용한다.
+  - Desktop 설정 레이어 인터랙션:
+    - 열기: Hover 또는 Focus 또는 Click
+    - 닫기: `Esc` 또는 외부 클릭 또는 focus out
+  - Mobile 햄버거 메뉴 인터랙션:
+    - 기존 push(컨텐츠 밀어내기) 방식 금지
+    - `fixed` 오버레이 패널 + backdrop 방식으로 표시
+    - 오픈 상태에서 body scroll lock 적용
+    - 외부 탭(backdrop)으로 닫힘
 
 - 접근성:
   - 햄버거 버튼: aria-label 필수
+  - 설정 아이콘 버튼: aria-label 필수
   - 포커스 링: 키보드 탐색 시 명확히 표시
 
 ### 2.4 카드 그리드 명세
@@ -140,6 +166,12 @@
   - `thumbnailOrIcon` (필수)
   - `tags[]` (0~3개 노출)
 
+- Normal 썸네일 표시 규격(필수 고정):
+  - `thumbnailOrIcon`은 Normal 카드 상단에서 좌우 너비를 꽉 채우는 썸네일로 노출한다.
+  - 가로 폭: 카드 내부 콘텐츠 영역 기준 100%
+  - 비율: 고정 `16:9`
+  - 이미지 리사이즈 방식: `cover` 우선(잘림 허용), 왜곡 금지
+
 - 상태 배지(Available/Unavailable) 정책(필수 고정):
   - Normal 우측/상단의 `availabilityStatus` 배지(Available/Unavailable)는 사용하지 않는다.
   - 정지 상태에서 unavailable 여부를 별도 라벨로 노출하지 않는다(Desktop 기준).
@@ -152,12 +184,13 @@
 - Expanded 헤더(공통, 필수 고정)
   - `cardTitle`만 상단 헤더로 노출한다.
   - Expanded 헤더의 `cardTitle`은 Normal의 `cardTitle`과 **동일 값으로 고정**한다(불일치 금지).
-  - Expanded 상태에서는 Normal의 `thumbnailOrIcon`이 사라지고, 타이틀이 카드 상단으로 자연 이동한다.
+  - Expanded 상태에서 Normal 정보 중 유지되는 항목은 `cardTitle`만 허용한다.
+  - Expanded 상태에서는 Normal의 `cardSubtitle`, `thumbnailOrIcon`, `tags[]`는 모두 사라져야 한다.
 
 - Normal → Expanded 전환 모션(필수 고정)
   - 전환은 카드 Elevate + 확대(기본 120%)를 유지한 상태에서 레이아웃 전환으로 처리한다.
   - 전환 구성:
-    1) `thumbnailOrIcon`: fade-out + height collapse (권장 160~240ms)
+    1) Normal의 비타이틀 정보(`cardSubtitle`, `thumbnailOrIcon`, `tags[]`): fade-out + collapse (권장 160~240ms)
     2) `cardTitle`: 카드 최상단으로 이동 (권장 180~280ms)
     3) 상세 정보(`previewQuestion`/`summary`, CTA, `meta`): 순차 등장(stagger 40~80ms 간격, 항목당 120~220ms)
   - 구조 규칙:
@@ -271,6 +304,7 @@
 
 - 정의:
   - “Seamless continuation”은 랜딩 카드 Expanded에서의 선택이 **본 테스트 Q1 응답으로 연결**되고, 사용자는 본 테스트 흐름을 즉시 이어가는 것을 의미한다.
+- (이번 세션 범위 확정) 본 절은 랜딩 카드 CTA 구현에 한정하지 않고, 테스트 진입 후 분기 동작(랜딩 유입: instruction 확인 후 Q2 시작 / 딥링크 유입: instruction 확인 후 Q1 시작 / 전환 실패·취소 시 롤백)까지 포함한다.
 
 - 진입/진행 규칙:
   - Expanded에서 `answerChoiceA/B`를 선택하면, 선택 값은 **Q1 사전 응답(pre-answered)** 으로 저장된다.
@@ -282,11 +316,15 @@
   - 랜딩 유입 정의:
     - 랜딩 카드에서 Expanded 인터랙션 후(테스트 답변 CTA 또는 Read more CTA) 테스트로 진입한 케이스
   - 딥링크 유입 정의:
-    - 공유 URL/직접 URL 입력 등으로 `/test/[variant]/...`에 직접 진입한 케이스
+    - 공유 URL/직접 URL 입력 등으로 테스트 진입 URL에 직접 진입한 케이스
   - 분기 규칙:
     - 랜딩 유입/딥링크 유입 모두 instruction은 **페이지가 아닌 오버레이**로 표시한다.
     - 랜딩 유입(=Q1 사전 응답 존재): 오버레이 확인 후 Q2로 진행
     - 딥링크 유입(=Q1 사전 응답 없음): 오버레이 확인 후 Q1부터 진행
+  - 진입 URL 정합성 계약(필수 고정):
+    - locale 반영 책임은 라우팅 계층의 단일 책임으로 유지한다.
+    - locale 세그먼트 중복 등 비정상 진입 URL은 허용하지 않는다.
+    - 비정상 진입 URL이 감지되면 전환 실패로 처리하고, Q1 사전 응답은 롤백한다.
 
 - instruction 표시 형태(필수 고정):
   - Desktop: 화면 정중앙 카드형 오버레이
@@ -297,6 +335,11 @@
   - 랜딩 유입/딥링크 유입 모두, 동일 variant에서 instruction을 1회 확인하면 이후 재진입 시 재표시하지 않는다.
   - 이를 위한 variant 단위 `instructionSeen` 상태를 유지한다.
   - `[다시 보지 않기]` 등 UI 요소는 추후 구현 대상으로 두며, 이번 phase에서는 구현 필수가 아니다.
+  - pre-answered(Q1) 수명/소비 정책(필수 고정):
+    - pre-answered는 “조회(read)”와 “소비(consume)”를 분리해 처리한다.
+    - 조회 시 즉시 파기하지 않는다.
+    - consume(파기)은 테스트 진입이 확정된 시점 이후에만 수행한다.
+    - 랜딩 전환 상관키가 없는 유입에는 pre-answered를 적용하지 않는다(딥링크는 Q1 시작 유지).
 
 - 실패/취소(롤백) 규칙:
   - 전환 실패/취소 시 Q1 사전 응답은 롤백(없던 일) 처리한다.
@@ -331,6 +374,9 @@
     - 스크롤/입력 기반 상태 전이 잠금
     - 전환 시작 프레임 시각 상태 고정
     - GNB는 전환 완료 시점에 교체
+  - 상태 전이 결정성/멱등성(필수 고정):
+    - 동일 전환 상관키에 대한 상태 전이는 중복 실행되어도 같은 결과를 유지해야 한다.
+    - 재렌더/재마운트가 발생해도 시작 문항 결정(Q1/Q2)이 역전되면 안 된다.
 
 - GlobalOverride(전역 규칙/플래그)
   - `HOVER_LOCK(Desktop)`
@@ -351,6 +397,24 @@
 `INACTIVE` > `REDUCED_MOTION` > `TRANSITIONING` > `EXPANDED` > `HOVER_LOCK(Desktop)` > `TILTING` > `REST`
 
 > 참고: `FOCUSED`는 키보드 접근성 관점의 상태이며, 시각/모션 상태(`EXPANDED`/`TILTING`/`REST`)와의 결합 가능 여부 및 제약은 각 하위 규칙에서 명시한다.
+
+#### 3.0.1 SSR/Hydration 렌더 일관성 계약 (필수 고정)
+
+- 목적:
+  - 서버 렌더(SSR) 결과와 클라이언트 첫 렌더가 동일해야 하며, hydration mismatch를 방지한다.
+
+- 렌더 결정값 규칙(필수):
+  - SSR되는 Client Component의 초기 렌더 경로에서 다음 값을 직접 사용해 텍스트/속성 분기를 만들지 않는다:
+    - `localStorage` / `sessionStorage` / `window` 기반 값
+    - `Date.now()` / `Math.random()` / 비결정적 시간·난수 값
+  - 위 값은 **mount 이후 effect 단계에서만** 동기화한다.
+
+- 초기 상태 규칙(필수):
+  - 사용자 저장 상태(예: consent, 토글 상태) 기반 UI라도, SSR과 클라이언트 첫 렌더에서는 동일한 초기 표시를 사용한다.
+  - 초기 표시와 hydrate 이후 표시가 달라질 수 있는 경우, hydrate 전에는 중립/기본 표시를 사용한다.
+
+- 실패 기준(필수):
+  - 초기 진입 시(새로고침 포함) React hydration warning이 1건이라도 발생하면 릴리스 차단 이슈로 분류한다.
 
 ### 3.1 공통 효과
 
@@ -400,12 +464,13 @@
   - Normal → Expanded는 카드 Elevate + 확대(120%) + 콘텐츠 전환으로 구현한다.
   - 전환 중, 전환 후 카드 내부의 별도 outline 박스(내부 패널) 시각을 만들지 않는다.
   - 상태 전환 전/후는 Desktop/Mobile 모두 시각적으로 seamless 해야 한다.
+  - Expanded 진입 시 Normal 정보 중 `cardTitle`만 유지하고, 나머지 Normal 정보(`cardSubtitle`, `thumbnailOrIcon`, `tags[]`)는 제거한다.
 
 - Desktop
   - available 카드:
     - 트리거: `hover enter` 후 120~200ms 유지
     - 반응: `EXPANDED` 진입 + scale 1.2
-    - Normal 썸네일은 fade-out + collapse, 타이틀은 카드 상단으로 이동
+    - Normal 비타이틀 정보는 fade-out + collapse, 타이틀은 카드 상단으로 이동
     - 상세 정보/CTA는 stagger로 등장
   - unavailable 테스트 카드:
     - 해당 카드 hover/focus에서만 “Coming soon” 오버레이 표시
@@ -416,10 +481,17 @@
   - available 카드:
     - 트리거: `tap`
     - 반응: Normal → `EXPANDED` 진입 + (정의된 경우) full-bleed
-    - 닫기: Expanded 우측 상단 `X` 버튼으로만 닫힘
+    - 닫기: Expanded 우측 상단 `X` 버튼 또는 Expanded 카드 외부(backdrop) 탭으로 닫힘
   - unavailable 테스트 카드:
     - 기본 오버레이 유지
     - 탭으로 Expanded 토글/진입 불가
+
+- 모바일 상태 전이 검증 규칙(필수 고정)
+  - `ACTIVE & available & Normal`에서 카드 본문 탭 시, 해당 카드만 `EXPANDED`로 전이한다.
+  - `EXPANDED` 상태에서 `X` 탭 시, 해당 카드만 `Normal`로 복귀한다.
+  - `EXPANDED` 상태에서 카드 외부(backdrop) 탭 시, 해당 카드만 `Normal`로 복귀한다.
+  - `TRANSITIONING` 상태에서는 탭 입력으로 Expanded 상태를 변경하지 않는다.
+  - unavailable 카드는 어떤 경우에도 Expanded로 전이하지 않는다.
 
 - 전환 시작점(필수 고정)
   - 전환은 `EXPANDED` 상태에서 CTA 활성화 순간 시작
@@ -434,7 +506,7 @@
 - 복귀 정책
   - 랜딩 복귀 시 복원 필수: scrollY
   - 복원 비필수: 직전 Expanded 상태, prior focus
-  - Mobile에서 `X` 버튼으로 닫을 때는 Expanded 진입 직전의 스크롤 지점/카드 형태로 자연 복귀해야 한다.
+  - Mobile에서 `X` 또는 외부 탭으로 닫을 때는 Expanded 진입 직전의 스크롤 지점/카드 형태로 자연 복귀해야 한다.
 
 - Desktop 주의 집중 잠금(HOVER_LOCK)
   - 대상 카드 제외 카드 상호작용 차단
@@ -487,7 +559,10 @@
 
 - 반응:
   - 120% 확대
-  - 확대 기준점(transform-origin)은 카드 위치에 따라 유효 영역 침범을 피하도록 조정
+  - 확대 기준점(transform-origin) 고정 규칙:
+    - 좌측 끝 카드: `x=0%, y=0%`
+    - 우측 끝 카드: `x=100%, y=0%`
+    - 그 외 카드: `x=50%, y=0%`
   - Expanded 유지 동안 120% 상태 유지
 
 - 레이아웃/안정성 규칙:
@@ -496,6 +571,8 @@
   - 자동 보정은 Expanded 진입 시 1회 결정 후 고정
   - 전환 시작 이후 보정/스케일 재계산 금지
   - 전환 시작 이후 hover out 등으로 시각 상태 역전 금지
+  - 같은 row의 비대상 카드 크기 변화 금지(비대상 카드는 scale=1 유지)
+  - Expanded 대상 카드만 독립 레이어에서 transform되어야 하며, 형제 카드의 너비/높이/행 높이에 영향 주면 안 된다.
 
 ### 3.3 Mobile 전용
 
@@ -538,14 +615,17 @@
   - 전환 시작점은 “full-bleed된 Expanded 카드의 최종 외곽”
   - full-bleed 상태에서 page scroll lock
   - 모바일 Expanded 상태에서는 우측 상단 `X` 버튼을 필수 노출한다.
+  - Expanded 카드 외부 영역은 backdrop으로 처리한다.
 
 - 닫기 규칙(모바일 한정, 필수 고정)
-  - `X` 버튼 클릭 시에만 닫힘 처리한다.
+  - `X` 버튼 클릭 시 닫힘 처리한다.
+  - Expanded 카드 외부(backdrop) 탭 시 닫힘 처리한다.
   - 닫힘 시 해당 카드는 Normal 상태로 복귀해야 한다.
   - 닫힘 시점은 Expanded 진입 직전의 스크롤 지점/카드 위치/형태로 자연스럽게 되돌린다.
 
 - 제약
   - full-bleed 상태에서 다른 카드 상호작용 비활성 + scroll lock 유지
+  - unavailable 카드는 탭/외부탭 어떤 경우에도 Expanded 진입/닫기 토글 대상이 아니다.
 
 ### 3.4 텔레메트리/이벤트 로깅 요구사항(UX + 데이터 계약) (필수 고정)
 
@@ -570,6 +650,21 @@
 - 동의/옵트아웃(Consent) 정책:
   - 기본 수집, 사용자 거부 가능
   - 옵트아웃 시 익명 식별자 및 연결키 즉시 무효화, 이후 생성/전송 금지
+
+- Consent 초기화/동기화 상태 머신(필수 고정):
+  - 상태는 `UNKNOWN` → `OPTED_IN` 또는 `OPTED_OUT`으로 전이한다.
+  - SSR과 클라이언트 첫 렌더에서는 `UNKNOWN`을 기본으로 사용한다(저장소 직접 참조 금지).
+  - mount 이후 저장소 값을 읽어 최종 상태로 1회 동기화한다.
+
+- Consent와 UI 렌더 정합성(필수 고정):
+  - `UNKNOWN` 상태에서 consent 기반 라벨/aria-label은 SSR과 동일한 기본값으로 고정한다.
+  - `OPTED_IN/OPTED_OUT` 확정 후에만 on/off 라벨을 전환한다.
+
+- Consent와 이벤트 전송 정합성(필수 고정):
+  - `UNKNOWN` 상태에서는 이벤트를 즉시 전송하지 않고 유예한다.
+  - `OPTED_IN` 확정 시 유예 이벤트를 전송한다.
+  - `OPTED_OUT` 확정 시 유예 이벤트를 폐기한다.
+  - 옵트아웃 전환 시 익명 식별자/연결키 무효화와 전송 차단을 즉시 적용한다.
 
 - 이벤트 최소 세트:
   - Landing: 페이지 진입(1회)
@@ -596,6 +691,7 @@
 - 버전 1 범위(필수 고정):
   - 테스트 문항/카탈로그 데이터는 로컬 fixture를 사용한다.
   - fixture 기반 구현은 추후 데이터 소스 교체를 고려한 어댑터 구조를 전제로 한다.
+  - (이번 세션 확정) 구현 전략은 “Fixture + Adapter”로 고정하며, Google Sheets 연동 확장이 용이한 형태로 구현한다. - Google Sheet 연동을 고려해, Fixture 가 추후 쉽게 교체 가능한 형태로
 - 확장 참고:
   - Google Sheet 동기화 주기(예: 일 1~2회) 및 운영 동기화 정책은 본 문서에서 구현 요구로 강제하지 않는다.
   - 동기화/운영 규칙은 전역 요구사항 문서(`requirements.md`)의 관련 조항을 참조한다.
@@ -627,8 +723,50 @@
   - available 카드/CTA에만 `pointer`
   - unavailable 카드는 기본 커서 유지
 
+### 4.1 SSR/Hydration QA 체크 (필수)
+
+- 콘솔 오류 기준:
+  - 랜딩 첫 진입/새로고침 시 hydration mismatch warning 0건이어야 한다.
+
+- 상태 조합 기준:
+  - 다음 조합 모두에서 텍스트/aria-label의 초기 렌더 정합성을 확인한다.
+    - consent 저장값 없음
+    - consent = opted-in
+    - consent = opted-out
+  - 각 조합을 locale별(`en`, `ko`)로 반복 검증한다.
+
+- 설정 UI 검증(필수):
+  - Desktop:
+    - 설정 아이콘 Hover/Focus/Click으로 설정 레이어가 열려야 한다.
+    - `Esc`, 외부 클릭, focus out으로 설정 레이어가 닫혀야 한다.
+    - 언어 토글은 현재 언어 텍스트(`EN` 또는 `KR`)만 표시하고 클릭 시 반대 언어로 전환되어야 한다.
+    - 테마 토글은 아이콘으로 현재 테마를 표시하고 클릭 시 `Light ↔ Dark` 전환되어야 한다.
+  - Mobile:
+    - 햄버거 메뉴는 fixed 오버레이 + backdrop으로 열려야 하며 컨텐츠를 밀어내면 안 된다.
+    - 메뉴 오픈 중 body scroll lock이 적용되어야 한다.
+    - 메뉴 최하단의 언어/테마 컨트롤은 아이콘+현재값 텍스트로 표시되어야 한다.
+    - 언어/테마 컨트롤 탭 시 각 값이 순환 토글되어야 한다.
+    - backdrop 탭으로 메뉴가 닫혀야 한다.
+
+- 모바일 Expanded 상호작용 검증(필수):
+  - Normal 카드 탭 시 Expanded로 진입해야 한다.
+  - Expanded의 `X` 버튼 탭 시 Normal로 복귀해야 한다.
+  - Expanded 카드 외부(backdrop) 탭 시 Normal로 복귀해야 한다.
+  - unavailable 카드는 어떤 탭 입력에서도 Expanded로 전이하면 안 된다.
+
+- 랜딩→테스트 진입 정합성 QA(필수):
+  - 랜딩 카드 선택지 CTA로 진입 시 비정상 locale 중복 URL이 발생하지 않아야 한다.
+  - 랜딩 유입(pre-answered 존재)에서는 instruction 확인 후 첫 표시 문항이 Q2여야 한다.
+  - 딥링크 유입(pre-answered 없음)에서는 instruction 확인 후 Q1부터 시작해야 한다.
+  - 동일 시나리오에서 재렌더/재마운트가 발생해도 시작 문항이 Q2→Q1로 역전되면 안 된다.
+
+- 회귀 기준:
+  - SSR과 첫 클라이언트 렌더의 DOM 텍스트/속성이 달라질 수 있는 분기(저장소/시간/난수/환경 분기)가 새로 추가되면 PR 차단 대상으로 본다.
+  - 진입 URL 정합성과 pre-answered 수명/소비 정책을 위반하는 변경은 PR 차단 대상으로 본다.
+
 ## 5) 개선안 2~3버전 제시 (필수)
 버전 A/B/C는 서로 배타적인 전체 패키지이며, 한 번 선택되면 문서 1~4의 관련 파라미터/규칙은 선택한 버전으로 치환한다. 본 문서 본문(1~4)은 기본값으로 버전 B 기준으로 작성되었으며, 다른 버전을 선택할 경우 해당 섹션의 규칙을 버전 정의에 맞춰 적용한다.
+- (이번 세션 선택안) 버전 B를 채택하며, 배경 요소는 1장 목표 요약의 원칙에 따라 정적(강도 0/정지)으로 운용한다.
 
 ### 버전 A (보수적/구현 쉬움)
 - 레이아웃
