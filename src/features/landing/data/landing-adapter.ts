@@ -1,5 +1,5 @@
 import {landingFixture} from './landing-fixture';
-import type {CatalogCard} from '@/features/landing/types';
+import type {BlogCatalogCard, CatalogCard, TestCatalogCard} from '@/features/landing/types';
 
 export type CatalogLayoutConfig = {
   heroCount: number;
@@ -8,41 +8,74 @@ export type CatalogLayoutConfig = {
   gridGap: number;
 };
 
-function ensureRequiredSlots(card: CatalogCard): void {
-  const requiredFields = [
-    card.id,
-    card.cardTitle,
-    card.cardSubtitle,
-    card.thumbnailOrIcon,
-    card.type,
-    card.availability
-  ];
+const EMPTY_THUMBNAIL =
+  "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200'%3E%3Crect width='1200' height='200' fill='%23e9e4dc'/%3E%3C/svg%3E";
 
-  if (requiredFields.some((field) => field === undefined || field === null)) {
-    throw new Error(`Invalid landing fixture for card: ${card.id}`);
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function normalizeThumbnail(value: unknown): string {
+  const normalized = normalizeText(value).trim();
+  return normalized.length > 0 ? normalized : EMPTY_THUMBNAIL;
+}
+
+function normalizeTags(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
   }
 
+  return value
+    .map((item) => (typeof item === 'string' ? item : ''))
+    .filter((item) => item.length > 0)
+    .slice(0, 3);
+}
+
+function normalizeCatalogCard(card: CatalogCard): CatalogCard {
   if (card.type === 'test') {
-    const testRequired = [card.previewQuestion, card.answerChoiceA, card.answerChoiceB];
-    if (testRequired.some((field) => field === undefined || field === null)) {
-      throw new Error(`Invalid test card fixture for card: ${card.id}`);
-    }
+    const normalizedVariant = normalizeText(card.variant).trim();
+
+    const normalized: TestCatalogCard = {
+      ...card,
+      cardTitle: normalizeText(card.cardTitle),
+      cardSubtitle: normalizeText(card.cardSubtitle),
+      thumbnailOrIcon: normalizeThumbnail(card.thumbnailOrIcon),
+      tags: normalizeTags(card.tags),
+      previewQuestion: normalizeText(card.previewQuestion),
+      answerChoiceA: normalizeText(card.answerChoiceA),
+      answerChoiceB: normalizeText(card.answerChoiceB),
+      variant: normalizedVariant.length > 0 ? normalizedVariant : normalizeText(card.id),
+      meta: {
+        estimatedMinutes: Number.isFinite(card.meta.estimatedMinutes) ? card.meta.estimatedMinutes : 0,
+        shares: Number.isFinite(card.meta.shares) ? card.meta.shares : 0,
+        totalRuns: Number.isFinite(card.meta.totalRuns) ? card.meta.totalRuns : 0
+      }
+    };
+
+    return normalized;
   }
 
-  if (card.type === 'blog') {
-    if (card.summary === undefined || card.summary === null) {
-      throw new Error(`Invalid blog card fixture for card: ${card.id}`);
+  const normalized: BlogCatalogCard = {
+    ...card,
+    cardTitle: normalizeText(card.cardTitle),
+    cardSubtitle: normalizeText(card.cardSubtitle),
+    thumbnailOrIcon: normalizeThumbnail(card.thumbnailOrIcon),
+    tags: normalizeTags(card.tags),
+    summary: normalizeText(card.summary),
+    meta: {
+      readMinutes: Number.isFinite(card.meta.readMinutes) ? card.meta.readMinutes : 0,
+      shares: Number.isFinite(card.meta.shares) ? card.meta.shares : 0,
+      views: Number.isFinite(card.meta.views) ? card.meta.views : 0
     }
-  }
+  };
+
+  return normalized;
 }
 
 export function getCatalogCards(): CatalogCard[] {
   return landingFixture
     .filter((card) => !card.isDebug)
-    .map((card) => {
-      ensureRequiredSlots(card);
-      return card;
-    })
+    .map((card) => normalizeCatalogCard(card))
     .filter((card) => !(card.type === 'blog' && card.availability === 'unavailable'));
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import {useLocale, useTranslations} from 'next-intl';
+import {useTranslations} from 'next-intl';
 import {useRouter} from '@/i18n/navigation';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {CatalogCardView} from '@/features/landing/components/catalog-card';
@@ -28,9 +28,8 @@ import {lockBodyScroll, unlockBodyScroll} from '@/lib/body-lock';
 import {
   buildBlogRouteWithSource,
   buildTestQuestionRoute,
+  hasLocalePrefix,
   hasDuplicateLocaleSegment,
-  withLocalePrefix,
-  type SupportedLocale
 } from '@/lib/route-builder';
 import styles from './landing-page.module.css';
 
@@ -66,7 +65,6 @@ function createTransitionId(): string {
 
 export function LandingPage() {
   const t = useTranslations('landing');
-  const locale = useLocale() as SupportedLocale;
   const router = useRouter();
   const {emit} = useTelemetry();
 
@@ -111,21 +109,62 @@ export function LandingPage() {
       return;
     }
 
-    if (Date.now() - stalePending.startedAt < 350) {
-      return;
-    }
-
     emit('transition_cancel', {
       transitionId: stalePending.transitionId,
-      reason: 'stale_on_landing_return'
+      reason: 'landing_return_cancel'
     });
 
     if (stalePending.type === 'test' && stalePending.variant) {
       rollbackPreAnswer(stalePending.variant, stalePending.transitionId);
     }
 
+    if (routeTimeoutRef.current) {
+      window.clearTimeout(routeTimeoutRef.current);
+      routeTimeoutRef.current = null;
+    }
+
     clearPendingTransition();
+    setTransitioning(false);
+    unlockBodyScroll({force: true});
   }, [emit]);
+
+  useEffect(() => {
+    if (!transitioning) {
+      return;
+    }
+
+    const onPopState = () => {
+      const pending = getPendingTransition();
+
+      if (!pending) {
+        return;
+      }
+
+      emit('transition_cancel', {
+        transitionId: pending.transitionId,
+        reason: 'popstate_cancel'
+      });
+
+      if (pending.type === 'test' && pending.variant) {
+        rollbackPreAnswer(pending.variant, pending.transitionId);
+      }
+
+      if (routeTimeoutRef.current) {
+        window.clearTimeout(routeTimeoutRef.current);
+        routeTimeoutRef.current = null;
+      }
+
+      clearPendingTransition();
+      setTransitioning(false);
+      unlockBodyScroll({force: true});
+    };
+
+    window.addEventListener('popstate', onPopState);
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [emit, transitioning]);
 
   useEffect(() => {
     if (capability.width >= 768 || !expandedCardId) {
@@ -180,6 +219,10 @@ export function LandingPage() {
   }, []);
 
   const closeExpandedMobileCard = useCallback(() => {
+    if (transitioning) {
+      return;
+    }
+
     if (capability.width >= 768 || !expandedCardId) {
       setExpandedCardId(null);
       return;
@@ -192,7 +235,7 @@ export function LandingPage() {
       setMobileClosing(false);
       unlockBodyScroll();
     }, MOBILE_CLOSE_UNLOCK_MS);
-  }, [capability.width, expandedCardId]);
+  }, [capability.width, expandedCardId, transitioning]);
 
   const onExpandCard = useCallback(
     (cardId: string) => {
@@ -208,6 +251,10 @@ export function LandingPage() {
 
   const onCollapseCard = useCallback(
     (cardId: string) => {
+      if (transitioning) {
+        return;
+      }
+
       if (expandedCardId !== cardId) {
         return;
       }
@@ -219,11 +266,15 @@ export function LandingPage() {
 
       setExpandedCardId(null);
     },
-    [capability.width, closeExpandedMobileCard, expandedCardId]
+    [capability.width, closeExpandedMobileCard, expandedCardId, transitioning]
   );
 
   const onUnavailableActiveChange = useCallback(
     (cardId: string, active: boolean) => {
+      if (transitioning) {
+        return;
+      }
+
       if (capability.mode !== 'HOVER_MODE' || capability.width < 768) {
         return;
       }
@@ -236,7 +287,7 @@ export function LandingPage() {
 
       setUnavailableOverlayCardId((prev) => (prev === cardId ? null : prev));
     },
-    [capability.mode, capability.width]
+    [capability.mode, capability.width, transitioning]
   );
 
   const failTransition = useCallback(
@@ -287,9 +338,7 @@ export function LandingPage() {
         pathname = href.pathname;
       }
 
-      const prefixed = withLocalePrefix(locale, pathname);
-
-      if (hasDuplicateLocaleSegment(prefixed)) {
+      if (hasLocalePrefix(pathname) || hasDuplicateLocaleSegment(pathname)) {
         failTransition({
           transitionId,
           reason: 'locale_duplicate',
@@ -345,7 +394,7 @@ export function LandingPage() {
 
       window.setTimeout(() => {
         try {
-          router.push(href as never);
+          router.push(href);
         } catch {
           failTransition({
             transitionId,
@@ -355,7 +404,7 @@ export function LandingPage() {
         }
       }, TRANSITION_PUSH_DELAY_MS);
     },
-    [emit, failTransition, locale, pageState, router, transitioning]
+    [emit, failTransition, pageState, router, transitioning]
   );
 
   const onTriggerTestChoice = useCallback(
@@ -406,6 +455,7 @@ export function LandingPage() {
         showUnavailableOverlay={showUnavailableOverlay}
         interactionMode={capability.mode}
         pageState={pageState}
+        isTransitioning={transitioning}
         isMobile={capability.width < 768}
         transformOriginX={getOrigin(index, columns)}
         holdNormalHeightPx={

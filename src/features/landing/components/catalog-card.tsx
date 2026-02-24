@@ -14,6 +14,7 @@ type CatalogCardProps = {
   showUnavailableOverlay: boolean;
   interactionMode: InteractionMode;
   pageState: PageState;
+  isTransitioning: boolean;
   isMobile: boolean;
   transformOriginX: '0%' | '50%' | '100%';
   holdNormalHeightPx?: number;
@@ -32,6 +33,7 @@ function CatalogCardComponent({
   showUnavailableOverlay,
   interactionMode,
   pageState,
+  isTransitioning,
   isMobile,
   transformOriginX,
   holdNormalHeightPx,
@@ -49,9 +51,10 @@ function CatalogCardComponent({
   const isHoverMode = interactionMode === 'HOVER_MODE';
   const canInteract = pageState === 'ACTIVE' || pageState === 'REDUCED_MOTION';
   const shouldExpandOnClick = isAvailable && interactionMode === 'TAP_MODE';
+  const shouldIgnoreInput = isTransitioning || !canInteract;
 
   const triggerHoverExpand = () => {
-    if (!canInteract || !isHoverMode || !isAvailable || isMobile) {
+    if (shouldIgnoreInput || !isHoverMode || !isAvailable || isMobile) {
       return;
     }
 
@@ -74,6 +77,10 @@ function CatalogCardComponent({
   const handleMouseLeave = () => {
     clearHoverTimer();
 
+    if (isTransitioning) {
+      return;
+    }
+
     if (!isHoverMode || isMobile) {
       return;
     }
@@ -88,7 +95,7 @@ function CatalogCardComponent({
   };
 
   const handleMouseEnterUnavailable = () => {
-    if (!canInteract || isAvailable || isMobile || interactionMode !== 'HOVER_MODE') {
+    if (shouldIgnoreInput || isAvailable || isMobile || interactionMode !== 'HOVER_MODE') {
       return;
     }
 
@@ -109,11 +116,19 @@ function CatalogCardComponent({
       onMouseEnter={isAvailable ? triggerHoverExpand : handleMouseEnterUnavailable}
       onMouseLeave={handleMouseLeave}
       onFocus={() => {
+        if (isTransitioning) {
+          return;
+        }
+
         if (!isAvailable && interactionMode === 'HOVER_MODE' && !isMobile) {
           onUnavailableActiveChange(card.id, true);
         }
       }}
       onBlur={(event) => {
+        if (isTransitioning) {
+          return;
+        }
+
         if (!isAvailable && interactionMode === 'HOVER_MODE' && !isMobile) {
           const next = event.relatedTarget as Node | null;
           if (!event.currentTarget.contains(next)) {
@@ -142,7 +157,7 @@ function CatalogCardComponent({
           ['--motion-duration' as string]: pageState === 'REDUCED_MOTION' ? '180ms' : '220ms'
         }}
         onClick={() => {
-          if (!canInteract || !isAvailable) {
+          if (shouldIgnoreInput || !isAvailable) {
             return;
           }
 
@@ -151,7 +166,7 @@ function CatalogCardComponent({
           }
         }}
         onKeyDown={(event) => {
-          if (!isAvailable || !canInteract) {
+          if (!isAvailable || shouldIgnoreInput) {
             return;
           }
 
@@ -167,7 +182,7 @@ function CatalogCardComponent({
         }}
       >
         <div className={`${styles.titleRow} ${showExpanded && isMobile ? styles.mobileStickyHeader : ''}`}>
-          <h3 className={showExpanded && isMobile ? frontTitleClass : styles.title}>{card.cardTitle}</h3>
+          <h3 className={!showExpanded || isMobile ? frontTitleClass : styles.title}>{card.cardTitle}</h3>
           {showExpanded && isMobile ? (
             <button
               type="button"
@@ -184,7 +199,7 @@ function CatalogCardComponent({
         </div>
 
         {showExpanded ? (
-          <div className={styles.expandedBlock}>
+          <div className={`${styles.expandedBlock} ${isMobile ? styles.expandedBodyMobile : ''}`}>
             {card.type === 'test' ? (
               <>
                 <p className={styles.previewQuestion}>{card.previewQuestion}</p>

@@ -61,30 +61,43 @@ export function TestQuestionPage({variant}: TestQuestionPageProps) {
   const enteredAtRef = useRef<number>(0);
   const currentIndexRef = useRef(0);
   const attemptStartedRef = useRef(false);
+  const entryTransitionIdRef = useRef<string | null>(null);
+  const hasCorrelatedPreAnswerRef = useRef(false);
 
   useEffect(() => {
     unlockBodyScroll({force: true});
 
     const pending = getPendingTransition();
     if (pending?.type === 'test' && pending.variant === resolvedVariant.id) {
+      entryTransitionIdRef.current = pending.transitionId;
       emit('transition_complete', {
         transitionId: pending.transitionId,
         targetType: pending.type,
         cardId: pending.cardId
       });
       clearPendingTransition();
+      return;
     }
+
+    entryTransitionIdRef.current = null;
   }, [emit, resolvedVariant.id]);
 
   useEffect(() => {
     const ingressFlag = hasLandingIngressFlag(resolvedVariant.id);
     const seenInstruction = getInstructionSeen(resolvedVariant.id);
-    const preAnswer = readPreAnswer(resolvedVariant.id);
+    const correlatedTransitionId = ingressFlag ? entryTransitionIdRef.current : null;
+    const preAnswer = correlatedTransitionId ? readPreAnswer(resolvedVariant.id) : undefined;
+    const correlatedPreAnswer =
+      preAnswer && correlatedTransitionId && preAnswer.transitionId === correlatedTransitionId
+        ? preAnswer
+        : undefined;
 
     const initialAnswers = Array.from({length: totalQuestions}, () => null as BinaryChoiceCode | null);
-    if (preAnswer) {
-      initialAnswers[0] = preAnswer.answer;
+    if (correlatedPreAnswer) {
+      initialAnswers[0] = correlatedPreAnswer.answer;
     }
+
+    hasCorrelatedPreAnswerRef.current = Boolean(correlatedPreAnswer);
 
     const nextStartIndex = ingressFlag ? 1 : 0;
 
@@ -96,7 +109,10 @@ export function TestQuestionPage({variant}: TestQuestionPageProps) {
     if (seenInstruction) {
       setInstructionVisible(false);
       setStarted(true);
-      consumePreAnswer(resolvedVariant.id);
+      if (correlatedPreAnswer) {
+        consumePreAnswer(resolvedVariant.id);
+        hasCorrelatedPreAnswerRef.current = false;
+      }
 
       if (!attemptStartedRef.current) {
         attemptStartedRef.current = true;
@@ -153,7 +169,10 @@ export function TestQuestionPage({variant}: TestQuestionPageProps) {
   const selectedAtCurrent = answers[currentIndex];
 
   const beginAttemptFromInstruction = () => {
-    consumePreAnswer(resolvedVariant.id);
+    if (hasCorrelatedPreAnswerRef.current) {
+      consumePreAnswer(resolvedVariant.id);
+      hasCorrelatedPreAnswerRef.current = false;
+    }
     setInstructionSeen(resolvedVariant.id);
     setInstructionVisible(false);
     setStarted(true);

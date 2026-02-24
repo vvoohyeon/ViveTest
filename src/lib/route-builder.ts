@@ -1,19 +1,19 @@
-import type {Route} from 'next';
-
 export const appRoutes = {
-  landing: '/' as Route,
-  blog: '/blog' as Route,
-  history: '/history' as Route
+  landing: '/',
+  blog: '/blog',
+  history: '/history'
 };
 
-export type SupportedLocale = 'en' | 'kr';
+export type AppRoute = (typeof appRoutes)[keyof typeof appRoutes];
+export type LocalePrefix = 'en' | 'kr';
+export type TestQuestionRoute = `/test/${string}/question`;
 
-export function buildTestQuestionRoute(variant: string): Route {
-  return `/test/${variant}/question` as Route;
+export function buildTestQuestionRoute(variant: string): TestQuestionRoute {
+  return `/test/${variant}/question`;
 }
 
 export function buildBlogRouteWithSource(source: string): {
-  pathname: Route;
+  pathname: typeof appRoutes.blog;
   query: Record<string, string>;
 } {
   return {
@@ -26,10 +26,6 @@ export function hasDuplicateLocaleSegment(pathname: string): boolean {
   return /\/(en|kr)\/\1(\/|$)/.test(pathname);
 }
 
-export function withLocalePrefix(locale: SupportedLocale, pathname: string): string {
-  if (pathname === '/') {
-    return `/${locale}`;
-  }
-
-  return `/${locale}${pathname.startsWith('/') ? pathname : `/${pathname}`}`;
+export function hasLocalePrefix(pathname: string): boolean {
+  return /^\/(en|kr)(\/|$)/.test(pathname);
 }

@@ -31,6 +31,30 @@ function ThemeGlyph({resolvedTheme}: {resolvedTheme: 'light' | 'dark'}) {
   return <span aria-hidden>{resolvedTheme === 'dark' ? 'D' : 'L'}</span>;
 }
 
+function LanguageIcon() {
+  return (
+    <svg className={styles.mobileSettingIcon} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M2.7 10H17.3M10 2.7C11.8 4.6 13 7.2 13 10C13 12.8 11.8 15.4 10 17.3M10 2.7C8.2 4.6 7 7.2 7 10C7 12.8 8.2 15.4 10 17.3" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function ThemeIcon({resolvedTheme}: {resolvedTheme: 'light' | 'dark'}) {
+  return (
+    <svg className={styles.mobileSettingIcon} viewBox="0 0 20 20" fill="none" aria-hidden>
+      {resolvedTheme === 'dark' ? (
+        <path d="M13.8 3.8C9.9 4.4 7 7.9 7 11.9C7 14.3 8.1 16.5 9.8 17.9C6.1 17.8 3.1 14.8 3.1 11.1C3.1 7.1 6.4 3.8 10.4 3.8C11.6 3.8 12.8 4.1 13.8 4.6V3.8Z" fill="currentColor" />
+      ) : (
+        <>
+          <circle cx="10" cy="10" r="3.6" fill="currentColor" />
+          <path d="M10 2.2V4.1M10 15.9V17.8M17.8 10H15.9M4.1 10H2.2M15.5 4.5L14.1 5.9M5.9 14.1L4.5 15.5M15.5 15.5L14.1 14.1M5.9 5.9L4.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function useScrolledShadow(): boolean {
   const [scrolled, setScrolled] = useState(false);
 
@@ -60,6 +84,7 @@ export function SiteHeader({context, capability, timerSeconds = 0, disableIntera
 
   const isMobile = capability.isMobile;
   const hoverOpenEnabled = capability.isDesktop && capability.isHoverCapable;
+  const languageValueLabel = locale === 'en' ? t('languageEnglish') : t('languageKorean');
 
   const changeLocale = useCallback(() => {
     const nextLocale = locale === 'en' ? 'kr' : 'en';
@@ -324,13 +349,27 @@ export function SiteHeader({context, capability, timerSeconds = 0, disableIntera
                 </nav>
               </div>
               <div className={styles.mobileSettings}>
-                <button type="button" className={styles.mobileSettingButton} onClick={changeLocale}>
-                  <span>Lang {t('language')}</span>
-                  <span>{locale.toUpperCase()}</span>
+                <button
+                  type="button"
+                  className={styles.mobileSettingButton}
+                  onClick={changeLocale}
+                  aria-label={`${t('language')}: ${languageValueLabel}`}
+                >
+                  <span className={styles.mobileSettingContent}>
+                    <LanguageIcon />
+                    <span>{languageValueLabel}</span>
+                  </span>
                 </button>
-                <button type="button" className={styles.mobileSettingButton} onClick={toggleTheme}>
-                  <span>Mode {t('theme')}</span>
-                  <span>{resolvedTheme === 'dark' ? t('themeDark') : t('themeLight')}</span>
+                <button
+                  type="button"
+                  className={styles.mobileSettingButton}
+                  onClick={toggleTheme}
+                  aria-label={`${t('theme')}: ${resolvedTheme === 'dark' ? t('themeDark') : t('themeLight')}`}
+                >
+                  <span className={styles.mobileSettingContent}>
+                    <ThemeIcon resolvedTheme={resolvedTheme} />
+                    <span>{resolvedTheme === 'dark' ? t('themeDark') : t('themeLight')}</span>
+                  </span>
                 </button>
               </div>
             </aside>

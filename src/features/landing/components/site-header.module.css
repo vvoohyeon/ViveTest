@@ -164,8 +164,22 @@
   border-radius: 10px;
   background: color-mix(in srgb, var(--surface-strong) 70%, transparent);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 8px;
+}
+
+.mobileSettingContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobileSettingIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--ink-soft);
+  flex: 0 0 auto;
 }
 
 .timer {

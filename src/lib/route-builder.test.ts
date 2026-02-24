@@ -3,8 +3,8 @@ import {
   appRoutes,
   buildBlogRouteWithSource,
   buildTestQuestionRoute,
+  hasLocalePrefix,
   hasDuplicateLocaleSegment,
-  withLocalePrefix
 } from '@/lib/route-builder';
 
 describe('route-builder', () => {
@@ -28,8 +28,9 @@ describe('route-builder', () => {
     expect(hasDuplicateLocaleSegment('/en/blog')).toBe(false);
   });
 
-  it('prefixes locale exactly once', () => {
-    expect(withLocalePrefix('en', '/blog')).toBe('/en/blog');
-    expect(withLocalePrefix('kr', '/')).toBe('/kr');
+  it('checks locale-prefixed paths', () => {
+    expect(hasLocalePrefix('/en/blog')).toBe(true);
+    expect(hasLocalePrefix('/kr/test/vibe-core/question')).toBe(true);
+    expect(hasLocalePrefix('/blog')).toBe(false);
   });
 });
