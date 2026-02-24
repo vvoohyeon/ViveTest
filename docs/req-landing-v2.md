@@ -110,6 +110,16 @@
 - Desktop: `>=1024`
 - 구현은 `min-width` 기반 단순화
 
+### 4.2A Interaction Capability Gate (MUST)
+- 입력 인터랙션 모드는 뷰포트와 기기 capability를 함께 사용해 결정한다.
+- `width < 768`:
+  - capability와 무관하게 탭 기반 인터랙션만 사용한다(MUST).
+  - hover 기반 Expanded/overlay 트리거를 사용하지 않는다(MUST).
+- `width >= 768`:
+  - `hover: hover` && `pointer: fine` capability가 감지되면 hover 기반 인터랙션을 사용한다(MUST).
+  - 위 capability가 감지되지 않으면 탭 기반 인터랙션을 사용한다(MUST).
+- SSR/초기 렌더에서는 탭 기반으로 시작하고, mount 이후 capability 동기화로 모드를 확정한다(MUST).
+
 ### 4.3 Hero Area
 - 입력 없는 정보 영역
 - outline/border/stroke 없는 flat 표현
@@ -134,11 +144,13 @@
 - vertical gap `14~16px`
 
 ### 4.5 Card Height Policy
-- Normal 카드 높이는 콘텐츠 기반 compact(auto) 우선
-- 동일 row 내 equal-height stretch 적용(최대 높이로 맞춤)
-- row 간 높이는 독립 계산
-- Expanded(Desktop/Tablet)는 콘텐츠 기반 auto/hug를 기본으로 하며 고정 높이를 사용하지 않음
-- Expanded(Desktop/Tablet)는 in-flow reflow를 허용
+- Normal 카드는 콘텐츠 기반 compact(auto)를 기본으로 한다(MUST).
+- Normal 상태에서는 동일 row 내 equal-height stretch를 적용한다(MUST).
+- Expanded 높이 정책은 Desktop/Tablet에만 적용한다(MUST). Mobile은 1-column full-bleed 정책(Section 9.x)을 따른다.
+- Desktop/Tablet에서 카드 1개가 Expanded로 전환될 때 Expanded 카드만 콘텐츠 높이에 맞춰 유동적으로 증가한다(MUST).
+- Desktop/Tablet에서 같은 row의 비확장 카드는 Expanded 진입 시점의 Normal 높이를 유지한다(MUST).
+- 비확장 카드 주변의 여백/빈 공간은 허용한다(MAY).
+- Expanded(Desktop/Tablet)는 fixed height를 사용하지 않는다(MUST).
 - 불필요한 하단 빈 공간 금지
 
 ## 5. GNB Contract
@@ -161,24 +173,32 @@
 - 레이어 내부 컨트롤은 2개만 허용:
   - 언어 토글 (`EN ↔ KR`)
   - 테마 토글 (`Light ↔ Dark`)
-- 열기: hover/focus/click
+- Desktop(`>=1024`) 기본 열기 방식은 hover다(MUST).
+- 마우스/포인터 디바이스 감지 불가 환경에서는 focus/click 열기 fallback을 허용한다(MUST).
 - 닫기: Esc / outside click / focus out
+- focus out 닫힘은 Tab/Shift+Tab 모두 즉시 적용한다(MUST).
 - 트리거와 레이어 사이 hover gap 금지
-- hovered-out 방지용 닫힘 유예 `100~180ms` 권장
+- hovered-out 방지용 닫힘 유예 `100~180ms`는 hover 경로에만 적용한다(SHOULD).
 
 ### 5.4 Mobile / Landing
 - CI + 햄버거
 - 햄버거는 GNB 우측 끝에 배치(컨테이너 패딩 기준, Mobile 16px inset)
 - 햄버거는 fixed overlay + backdrop
+- backdrop은 확장된 메뉴 패널 외의 전체 viewport를 dimmed 처리한다(MUST).
 - body scroll lock 적용
 - backdrop 탭으로 닫힘
+- 닫힘 시 body scroll unlock은 close transition 종료 시점에 수행한다(MUST).
 - 최하단 설정 컨트롤 2개:
   - 언어: 아이콘 + 현재값 텍스트
   - 테마: 아이콘 + 현재값 텍스트
 
 ### 5.5 Test / Blog Context
 - Desktop Test: CI + Timer + 최소 메뉴
-- Mobile Test: Back + Timer
+- Mobile Test: Back + Timer만 제공한다(MUST).
+- Mobile Test에서 instruction/question/result 모든 상태에 동일한 GNB 구성을 유지한다(MUST).
+- Mobile Test Back 동작:
+  - 우선 `history.back` 수행(MUST)
+  - history 스택이 없으면 `/{locale}`로 fallback(MUST)
 - Mobile Blog: Back + 햄버거(최하단 설정 구성 동일, 햄버거 우측 끝 배치 규칙은 Landing과 동일)
 
 ### 5.6 Language / Theme State
@@ -215,7 +235,8 @@
 
 ### 6.4 Expanded Header
 - `cardTitle`만 유지
-- Normal의 subtitle/thumbnail/tags는 제거
+- Normal의 `subtitle/thumbnail/tags`는 Expanded에서 슬롯 자체를 제거한다(MUST).
+- Expanded에서 제거된 슬롯은 시각적으로 숨김이 아니라 미렌더링 또는 접근성 트리 비노출(`aria-hidden` 포함)이어야 한다(MUST).
 - front/back title 불일치 금지
 
 ### 6.5 Expanded Slots by Type
@@ -247,6 +268,7 @@
 - 상태 배지 텍스트 슬롯 미사용
 
 #### Expanded
+- Expanded에서 제거 대상인 `subtitle/thumbnail/tags`는 clamp 정책 적용 대상이 아니다(N/A).
 - Test:
   - previewQuestion: 줄바꿈 허용, truncate 금지
   - answerChoiceA/B: 줄바꿈 허용, truncate 금지
@@ -271,13 +293,13 @@
 - Expanded 진입 없음(포인터/터치/키보드 공통)
 - 표시: Normal 정보 + coming soon 오버레이만 허용
 
-#### Desktop
+#### Hover-capable Mode (`width >= 768` and hover-capability detected)
 - 해당 unavailable 카드 hover/focus일 때만 오버레이 노출
 - hover enter 후 `120~200ms` 유지 시 표시
 - hover/focus out 즉시 해제(0ms)
 - 글로벌 동시 오버레이 금지
 
-#### Mobile
+#### Tap Mode (`width < 768` or hover-capability not detected)
 - 기본 상태에서 오버레이 상시 표시
 - 탭 입력 추가 피드백/전환 없음
 
@@ -322,7 +344,8 @@
 - 동일 전환 상관키의 중복 실행은 동일 결과 유지
 - 재렌더/재마운트가 발생해도 Q1/Q2 시작 문항 역전 금지
 
-### 7.5 HOVER_LOCK
+### 7.5 HOVER_LOCK (Hover-capable Mode Only)
+- HOVER_LOCK은 hover-capable 모드에서만 활성화한다(MUST).
 - 트리거:
   - available 카드 Expanded
   - unavailable 카드 오버레이 활성
@@ -345,16 +368,23 @@
   - 상세 정보 stagger (`40~80ms` 간격, 항목당 `120~220ms`)
 - 내부 이중 박스 시각 금지
 
-### 8.2 Desktop Expanded
-- available hover enter `120~200ms` 후 Expanded
-- scale `1.1`
-- transform-origin:
-  - 좌측 끝 `0% 0%`
-  - 우측 끝 `100% 0%`
-  - 그 외 `50% 0%`
-- Expanded 유지 동안 `1.1` 고정
-- 비대상 카드 scale은 항상 1
-- Desktop에서는 Expanded 외부 backdrop/dim 효과를 사용하지 않음
+### 8.2 Expanded Trigger/Visual on `width >= 768`
+- hover-capable 모드:
+  - available hover enter `120~200ms` 후 Expanded
+- tap 모드(hover-capability 미감지):
+  - available 카드 탭 시 Expanded
+  - 탭은 hover를 대체하는 트리거이며, 전환 비주얼 계약은 동일하게 적용한다(MUST)
+
+- 공통 비주얼 계약:
+  - scale `1.1`
+  - transform-origin:
+    - 좌측 끝 `0% 0%`
+    - 우측 끝 `100% 0%`
+    - 그 외 `50% 0%`
+  - Expanded 유지 동안 `1.1` 고정
+  - 비대상 카드 scale은 항상 1
+  - Expanded 카드 본체 opacity는 항상 `1.0`
+  - Expanded 외부 backdrop/dim 효과를 사용하지 않음
 
 ### 8.3 Expanded Opacity
 - Expanded 카드 본체 opacity는 항상 `1.0`
@@ -365,7 +395,8 @@
   - Test: answerChoiceA/B
   - Blog: Read more
 
-### 9.1 Entry / Exit
+### 9.1 Entry / Exit (`width < 768` only)
+- 본 9.1~9.4는 Mobile 전용 규칙이다.
 - available 카드 탭 시 탭된 해당 카드만 Expanded
 - Expanded는 카드의 in-flow 위치를 유지하며 상단으로 재배치(top jump)하지 않음
 - Expanded 헤더는 `title + X` 1행 구조
@@ -378,7 +409,7 @@
 - 닫힘 시 해당 카드만 Normal 복귀
 - 닫힘 후 Expanded 직전 scroll/위치/형태로 자연 복귀
 
-### 9.2 Full-Bleed
+### 9.2 Full-Bleed (`width < 768` only)
 - in-flow full-bleed
 - 카드 폭: `100vw`
 - 컨테이너 패딩 상쇄
@@ -388,14 +419,14 @@
 - 자동 viewport 보정 스크롤 금지(엄격 위치 유지)
 - 다른 카드 상호작용 비활성
 
-### 9.3 Layer Order (MUST)
+### 9.3 Layer Order (MUST, `width < 768` only)
 - `GNB > Expanded 카드 > backdrop > 기타 카드`
 - backdrop은 Expanded 카드를 덮지 않음
 - Expanded 카드는 항상 하이라이트/불투명/상호작용 가능
 - dim 처리는 Expanded 외부 영역에만 적용
 - X 버튼은 backdrop보다 상위 레이어에 위치하고 항상 클릭 가능
 
-### 9.4 Unavailable on Mobile
+### 9.4 Unavailable on Mobile (`width < 768` only)
 - unavailable 카드는 Expanded 진입/닫기 토글 대상이 아님
 
 ## 10. Landing → Destination Handshake (Test/Blog)
@@ -410,15 +441,19 @@
 - 비필수 복원: 마지막 Expanded 상태, prior focus
 
 ### 10.3 Test Q1 Pre-Answer Contract
+- 본 계약은 Test 카드에만 적용한다(MUST). Blog 카드에는 적용하지 않는다(MUST).
 - Test card Expanded에서 choice A/B 선택 시:
   - 선택값은 Q1 pre-answer로 저장
+  - `variant + session` 단위 랜딩 유입 플래그를 기록
   - `/test/[variant]/question` 진입
-- instruction 오버레이 확인 후:
-  - 랜딩 유입(pre-answer 있음): Q2부터 시작
-  - 딥링크 유입(pre-answer 없음): Q1부터 시작
+- instruction 오버레이 확인 전/후 시작 문항 규칙:
+  - 랜딩 유입 플래그가 있으면 instruction seen 여부와 무관하게 Q2부터 시작한다(MUST).
+  - 랜딩 유입 플래그가 없으면 Q1부터 시작한다(MUST).
+- 진행 표시 규칙:
+  - 랜딩 유입 플래그가 있으면 instruction Start 이전에도 `Question 2 of N`으로 표시한다(MUST).
 - 동일 variant 재진입에서 instruction이 생략되는 경우:
-  - 랜딩 유입(pre-answer 있음): choice A/B 선택 즉시 테스트 시작, 질문 진입은 Q2부터
-  - 딥링크 유입(pre-answer 없음): URL 진입 후 Q1부터 시작
+  - 랜딩 유입 플래그가 있으면 즉시 테스트 시작하며 Q2부터 진입한다(MUST).
+  - 랜딩 유입 플래그가 없으면 Q1부터 시작한다(MUST).
 - 사용자는 테스트 중 Q1 재수정 가능
 - 결과는 최종 제출 Q1 기준
 
@@ -430,16 +465,22 @@
 - variant 단위 instructionSeen 유지
 - 동일 variant의 최초 진입(랜딩/딥링크 공통)에서는 instruction 표시가 필수
 - 동일 variant 재진입 시 instruction은 재표시하지 않음
+- instructionSeen 여부는 시작 문항(Q1/Q2) 결정 조건이 아니다(MUST). 시작 문항은 10.3의 랜딩 유입 플래그 규칙으로만 결정한다(MUST).
 
 ### 10.5 Pre-Answer Lifecycle
 - read와 consume 분리
 - read 시 즉시 파기 금지
-- consume은 테스트 진입 확정 후 수행
+- consume은 instruction Start click 직후 수행한다(MUST).
+- instruction 생략 경로에서는 Start click과 동등한 내부 test_start action 시점에 즉시 consume한다(MUST).
 - 랜딩 전환 상관키 없는 유입에 pre-answer 적용 금지
 
 ### 10.6 Failure / Cancel Rollback
 - 전환 실패/취소 시 pre-answer 롤백
 - 테스트 시도는 성립하지 않은 것으로 간주
+- QA 최소 액션 케이스(3개, MUST):
+  - 케이스 1: 랜딩 CTA 직후 사용자 취소(뒤로가기/중단) 시 pre-answer 롤백
+  - 케이스 2: locale_duplicate로 전환 실패 시 pre-answer 롤백
+  - 케이스 3: 목적지 라우트 진입 실패(타임아웃/로드 실패) 시 pre-answer 롤백
 
 ### 10.7 Question Dwell Time
 - 포그라운드 여부와 무관하게 경과시간 포함
@@ -469,6 +510,7 @@
 - SSR/첫 렌더는 UNKNOWN 고정
 - mount 후 저장소 동기화 1회
 - UNKNOWN 중 이벤트는 유예
+- 동의 UI 도입 전까지 기본 확정값은 `OPTED_IN`으로 처리한다(MUST).
 - OPTED_IN 확정 시 유예 전송
 - OPTED_OUT 확정 시 유예 폐기
 - 옵트아웃 즉시 익명 식별자/연결키 무효화 및 전송 차단
@@ -492,6 +534,16 @@
 ### 11.7 Data Source
 - V1: 로컬 fixture 사용
 - Fixture + Adapter 구조 필수(추후 Sheets 교체 대비)
+- 랜딩 fixture 최소 구성:
+  - Test 카드 `4개 이상`(MUST)
+  - Blog 카드 `3개 이상`(MUST)
+  - unavailable Test 카드 `2개 이상`(MUST)
+  - unavailable Blog 카드 `0개`(MUST)
+- fixture 다양성 케이스는 최소 다음을 포함한다(MUST):
+  - 긴 텍스트 케이스
+  - 빈 tags 케이스
+  - debug/sample fixture 케이스
+- fixture에서 required 슬롯 누락값은 허용하지 않는다(MUST).
 - Sheets 주기/운영 정책은 본문 강제 범위 아님
 
 ## 12. SSR/Hydration, Performance, QA Gates
@@ -529,37 +581,46 @@
 - 위 검사 중 1건이라도 실패하면 릴리스 차단
 
 #### Settings UI
-- Desktop 설정 레이어:
-  - hover/focus/click open
+- Playwright에서 Desktop 설정 레이어 열림 규칙 검증:
+  - Desktop 기본 경로는 hover open
+  - 마우스/포인터 감지 불가 환경 fallback으로 focus/click open
+- Playwright에서 Desktop 설정 레이어 닫힘 규칙 검증:
   - Esc/outside/focus out close
-  - 트리거↔레이어 이동 시 의도치 않은 닫힘 없음
-  - 언어/테마 실제 변경 가능
-- Mobile 햄버거:
+  - Tab/Shift+Tab으로 focus out 시 즉시 close
+- Playwright에서 Mobile 햄버거 검증:
   - fixed overlay + backdrop
-  - body scroll lock
+  - dimmed 영역이 메뉴 패널 외 전체 viewport를 덮음
+  - body scroll lock 적용
   - backdrop 탭 닫힘
+  - close transition 종료 시 body scroll unlock
   - Landing/Blog 공통으로 GNB 우측 끝 배치(컨테이너 패딩 기준 Mobile 16px inset)
 
 #### Card / Expanded
-- Normal 탭 → Expanded 진입
-- X/backdrop 탭 → Normal 복귀
+- 트리거 모드 검증:
+  - `width < 768`: capability 무관 탭 기반 Expanded만 동작
+  - `width >= 768` + hover-capability 감지: hover 기반 Expanded 동작
+  - `width >= 768` + hover-capability 미감지: 탭 기반 Expanded 동작
+- `width >= 768`에서 탭 기반 fallback 시 전환 비주얼 계약(8.2 공통 비주얼 계약) 동일 적용
 - unavailable 카드 Expanded 전이 금지
-- 썸네일 비율 `6:1`
-- Normal compact + row equal-height
-- Normal tags 영역은 항상 1줄 슬롯 유지(0개여도 영역 유지), 빈 tag chip 렌더 금지
-- Expanded(Desktop/Tablet)는 auto/hug + in-flow reflow, 고정 높이 금지
-- Expanded meta는 non-interactive flat fill(outline/border/stroke 없음)
-- Expanded 본체 opacity `1.0` 유지
+- unavailable 오버레이 노출 규칙:
+  - hover-capable 모드: hover/focus 시에만 노출
+  - tap 모드: 기본 상시 노출
 - Desktop HOVER_LOCK 중 비대상 카드 dim/backdrop 금지 + 비대상 카드 `tabIndex=-1`
-- Mobile Expanded는 탭한 카드 위치 유지(top jump 금지), page scroll lock + 카드 내부 scroll 허용
-- Mobile Expanded header의 X 버튼은 title과 같은 행 우측 끝에 sticky로 유지
+- `width < 768` Expanded는 탭한 카드 위치 유지(top jump 금지), page scroll lock + 카드 내부 scroll 허용
+- `width < 768` Expanded header의 X 버튼은 title과 같은 행 우측 끝에 sticky로 유지
 
 #### Transition / Test Handshake
-- 랜딩 CTA(테스트/블로그)와 GNB 링크(홈/이력/블로그) 진입 시 locale 중복 URL(`/en/en/...`, `/kr/kr/...`)이 생성되지 않는다.
-- 랜딩 유입은 instruction 후 Q2 시작
-- 딥링크 유입은 instruction 후 Q1 시작
-- 재렌더/재마운트에도 Q2→Q1 역전 없음
-- 실패 시 pre-answer 롤백 확인
+- Playwright에서 랜딩 CTA(테스트/블로그) 및 GNB 링크 진입 시 locale 중복 URL(`/en/en/...`, `/kr/kr/...`)이 0건임을 확인
+- Playwright에서 Test 카드 A/B 선택 시 `variant+session` 랜딩 유입 플래그 기록 확인
+- Playwright에서 랜딩 유입 플래그 존재 시 instruction seen 여부와 무관하게 Q2 시작 확인
+- Playwright에서 랜딩 유입 플래그 존재 시 instruction Start 이전 진행표시가 `Question 2 of N`인지 확인
+- Playwright에서 딥링크 유입(랜딩 유입 플래그 없음) 시 Q1 시작 확인
+- Playwright에서 pre-answer consume 시점이 instruction Start click 직후인지 확인
+- Playwright에서 재렌더/재마운트에도 Q2→Q1 역전이 없는지 확인
+- Playwright에서 롤백 3케이스 검증:
+  - 사용자 취소(뒤로가기/중단)
+  - locale_duplicate 실패
+  - 목적지 라우트 진입 실패(타임아웃/로드 실패)
 
 ---
 
