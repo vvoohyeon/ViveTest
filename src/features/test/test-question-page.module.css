@@ -1,0 +1,135 @@
+.page {
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: clamp(16px, 2.6vw, 24px) clamp(20px, 2.2vw, 24px) 40px;
+}
+
+.panel {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.progress {
+  margin: 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.prompt {
+  margin: 0;
+  font-size: clamp(1.2rem, 2.4vw, 1.4rem);
+  line-height: 1.35;
+}
+
+.optionList {
+  display: grid;
+  gap: 8px;
+}
+
+.optionButton {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--surface-strong) 76%, transparent);
+  text-align: left;
+  cursor: pointer;
+}
+
+.optionSelected {
+  background: color-mix(in srgb, var(--accent) 24%, var(--surface));
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actionButton {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--surface-strong) 80%, transparent);
+  cursor: pointer;
+}
+
+.actionPrimary {
+  background: color-mix(in srgb, var(--accent) 26%, var(--surface));
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resultPanel {
+  background: color-mix(in srgb, var(--surface-strong) 78%, transparent);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.resultTitle {
+  margin: 0;
+}
+
+.resultText {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.instructionOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+  background: rgba(0, 0, 0, 0.4);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.instructionCard {
+  width: min(640px, 92vw);
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+}
+
+.instructionTitle {
+  margin: 0;
+}
+
+.instructionBody {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding-inline: 16px;
+  }
+
+  .instructionOverlay {
+    padding: 0;
+  }
+
+  .instructionCard {
+    width: 100vw;
+    min-height: 100dvh;
+    border-radius: 0;
+    justify-content: center;
+  }
+}

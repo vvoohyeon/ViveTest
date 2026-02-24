@@ -1,0 +1,50 @@
+{
+  "common": {
+    "brand": "VibeTest",
+    "history": "이력",
+    "blog": "블로그",
+    "themeLight": "라이트",
+    "themeDark": "다크",
+    "language": "언어",
+    "theme": "테마",
+    "comingSoon": "곧 공개",
+    "close": "닫기",
+    "openSettings": "설정 열기",
+    "openMenu": "메뉴 열기",
+    "closeMenu": "메뉴 닫기",
+    "back": "뒤로",
+    "start": "시작",
+    "minutes": "분"
+  },
+  "landing": {
+    "title": "짧고 선명한 테스트",
+    "subtitle": "카드를 펼친 뒤, 명시적 CTA로만 진입합니다.",
+    "testEstimated": "예상 시간",
+    "testShares": "공유 횟수",
+    "testRuns": "누적 테스트",
+    "blogRead": "읽기 시간",
+    "blogShares": "공유 횟수",
+    "blogViews": "조회수",
+    "readMore": "자세히 보기"
+  },
+  "test": {
+    "instructionTitle": "시작 전 안내",
+    "instructionBody": "솔직하게 답해주세요. 테스트 중 Q1 수정이 가능합니다.",
+    "start": "시작",
+    "questionOf": "질문 {current} / {total}",
+    "next": "다음",
+    "prev": "이전",
+    "submit": "제출",
+    "timer": "경과 {seconds}초",
+    "resultTitle": "테스트 완료",
+    "resultBody": "최종 제출 시점 응답으로 결과가 계산됩니다."
+  },
+  "blog": {
+    "title": "블로그 페이지",
+    "source": "진입 카드: {source}"
+  },
+  "history": {
+    "title": "이력 셸",
+    "body": "V1 범위에서는 최소 라우트 셸만 제공합니다."
+  }
+}

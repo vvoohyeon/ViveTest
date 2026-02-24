@@ -1,0 +1,213 @@
+.wrapper {
+  position: relative;
+  min-width: 0;
+}
+
+.shell {
+  position: relative;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  min-height: 100%;
+  transform-origin: var(--origin-x, 50%) 0%;
+  transition:
+    transform var(--motion-duration, 220ms) ease,
+    box-shadow var(--motion-duration, 220ms) ease;
+  opacity: 1;
+}
+
+.available {
+  cursor: pointer;
+}
+
+.unavailable {
+  cursor: default;
+}
+
+.disabledByLock {
+  pointer-events: none;
+}
+
+.expandedDesktop {
+  transform: scale(1.1);
+  z-index: 20;
+  opacity: 1;
+}
+
+.expandedMobile {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  border-radius: 10px;
+  z-index: 1300;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 1.02rem;
+  line-height: 1.3;
+  margin: 0;
+  min-width: 0;
+}
+
+.titleClamp {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.closeButton {
+  border: 0;
+  background: color-mix(in srgb, var(--surface-strong) 80%, transparent);
+  border-radius: 9px;
+  padding: 6px 10px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.mobileStickyHeader {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  padding-top: 2px;
+  z-index: 4;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thumbnail {
+  width: 100%;
+  aspect-ratio: 6 / 1;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+}
+
+.tags {
+  min-height: 30px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.tag {
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-strong) 76%, transparent);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expandedBlock {
+  display: grid;
+  gap: 12px;
+}
+
+.previewQuestion {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.answerButtons {
+  display: grid;
+  gap: 8px;
+}
+
+.answerButton,
+.primaryButton {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--ink);
+}
+
+.primaryButton {
+  text-align: center;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metaItem {
+  background: color-mix(in srgb, var(--surface-strong) 76%, transparent);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.metaLabel,
+.metaValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.metaLabel {
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+}
+
+.metaValue {
+  font-size: 0.89rem;
+}
+
+.summary {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.52);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell {
+    transition-duration: 180ms;
+  }
+}

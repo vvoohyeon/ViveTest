@@ -1,0 +1,66 @@
+.page {
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-inline: clamp(20px, 2.2vw, 24px);
+}
+
+.content {
+  padding-top: clamp(16px, 2.6vw, 24px);
+  padding-bottom: 40px;
+  display: grid;
+  gap: clamp(24px, 3.2vw, 40px);
+}
+
+.heroInfo {
+  display: grid;
+  gap: 8px;
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: clamp(1.8rem, 3.4vw, 2.8rem);
+  line-height: 1.08;
+}
+
+.heroSubtitle {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--ink-soft);
+}
+
+.grid {
+  display: grid;
+  align-items: start;
+}
+
+.mobileBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.transitionOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+  background: rgba(0, 0, 0, 0.12);
+  pointer-events: auto;
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding-inline: 16px;
+  }
+
+  .content {
+    gap: 24px;
+  }
+}

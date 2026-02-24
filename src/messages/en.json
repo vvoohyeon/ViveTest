@@ -1,0 +1,50 @@
+{
+  "common": {
+    "brand": "VibeTest",
+    "history": "History",
+    "blog": "Blog",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "language": "Language",
+    "theme": "Theme",
+    "comingSoon": "Coming Soon",
+    "close": "Close",
+    "openSettings": "Open settings",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "back": "Back",
+    "start": "Start",
+    "minutes": "min"
+  },
+  "landing": {
+    "title": "Short tests with sharp signals",
+    "subtitle": "Pick a card, reveal details, and enter only through explicit CTA.",
+    "testEstimated": "Estimated",
+    "testShares": "Shares",
+    "testRuns": "Total runs",
+    "blogRead": "Read time",
+    "blogShares": "Shares",
+    "blogViews": "Views",
+    "readMore": "Read more"
+  },
+  "test": {
+    "instructionTitle": "Before you begin",
+    "instructionBody": "Answer honestly. You can revise Q1 later during the test.",
+    "start": "Start",
+    "questionOf": "Question {current} of {total}",
+    "next": "Next",
+    "prev": "Previous",
+    "submit": "Submit",
+    "timer": "Elapsed {seconds}s",
+    "resultTitle": "Test completed",
+    "resultBody": "Your final result is derived from the latest answers."
+  },
+  "blog": {
+    "title": "Blog entry",
+    "source": "Opened from: {source}"
+  },
+  "history": {
+    "title": "History shell",
+    "body": "This route is intentionally minimal in V1."
+  }
+}
