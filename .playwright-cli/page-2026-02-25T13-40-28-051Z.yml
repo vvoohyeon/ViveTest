@@ -1,0 +1,234 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "VibeTest" [ref=e5] [cursor=pointer]:
+          - /url: /en
+        - button "Open menu" [ref=e6] [cursor=pointer]: "|||"
+    - main [ref=e7]:
+      - generic [ref=e8]:
+        - region "Hero" [ref=e9]:
+          - heading "Short tests with sharp signals" [level=1] [ref=e10]
+          - paragraph [ref=e11]: Pick a card, reveal details, and enter only through explicit CTA.
+        - region "Main cards" [ref=e12]:
+          - article [ref=e13]:
+            - button "Vibe Core Compass Balanced baseline read for daily collaboration patterns. core quick" [ref=e14] [cursor=pointer]:
+              - heading "Vibe Core Compass" [level=3] [ref=e16]
+              - generic [ref=e17]:
+                - generic [ref=e18]:
+                  - paragraph [ref=e19]: Balanced baseline read for daily collaboration patterns.
+                  - generic [ref=e20]:
+                    - generic [ref=e21]: core
+                    - generic [ref=e22]: quick
+                - generic:
+                  - paragraph: You walk into a crowded room first. What do you do?
+                - generic:
+                  - generic:
+                    - button [disabled]: Find one person and start a direct conversation.
+                    - button [disabled]: Scan the room first and let the mood settle.
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Estimated
+                      - paragraph: 3 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "421"
+                    - generic:
+                      - paragraph: Total runs
+                      - paragraph: "5089"
+          - article [ref=e23]:
+            - button "Spark Balance Index Read how you move between speed and certainty under pressure. stress decision" [ref=e24] [cursor=pointer]:
+              - heading "Spark Balance Index" [level=3] [ref=e26]
+              - generic [ref=e27]:
+                - generic [ref=e28]:
+                  - paragraph [ref=e29]: Read how you move between speed and certainty under pressure.
+                  - generic [ref=e30]:
+                    - generic [ref=e31]: stress
+                    - generic [ref=e32]: decision
+                - generic:
+                  - paragraph: You walk into a crowded room first. What do you do?
+                - generic:
+                  - generic:
+                    - button [disabled]: Find one person and start a direct conversation.
+                    - button [disabled]: Scan the room first and let the mood settle.
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Estimated
+                      - paragraph: 4 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "285"
+                    - generic:
+                      - paragraph: Total runs
+                      - paragraph: "3120"
+          - article [ref=e33]:
+            - button "Focus Flow Trace Measures your attention cadence in long-form work sessions." [ref=e34] [cursor=pointer]:
+              - heading "Focus Flow Trace" [level=3] [ref=e36]
+              - generic [ref=e37]:
+                - paragraph [ref=e39]: Measures your attention cadence in long-form work sessions.
+                - generic:
+                  - paragraph: You walk into a crowded room first. What do you do?
+                - generic:
+                  - generic:
+                    - button [disabled]: Find one person and start a direct conversation.
+                    - button [disabled]: Scan the room first and let the mood settle.
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Estimated
+                      - paragraph: 5 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "132"
+                    - generic:
+                      - paragraph: Total runs
+                      - paragraph: "1764"
+          - article [ref=e41]:
+            - button "Story Wave Navigator For Deeply Reflective Team Communication In Ambiguous Meetings Long-text fixture case for truncation and responsive line-control checks. long-title qa" [ref=e42] [cursor=pointer]:
+              - heading "Story Wave Navigator For Deeply Reflective Team Communication In Ambiguous Meetings" [level=3] [ref=e44]
+              - generic [ref=e45]:
+                - generic [ref=e46]:
+                  - paragraph [ref=e47]: Long-text fixture case for truncation and responsive line-control checks.
+                  - generic [ref=e48]:
+                    - generic [ref=e49]: long-title
+                    - generic [ref=e50]: qa
+                - generic:
+                  - paragraph: You walk into a crowded room first. What do you do?
+                - generic:
+                  - generic:
+                    - button [disabled]: Find one person and start a direct conversation.
+                    - button [disabled]: Scan the room first and let the mood settle.
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Estimated
+                      - paragraph: 4 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "88"
+                    - generic:
+                      - paragraph: Total runs
+                      - paragraph: "950"
+          - article [ref=e51]:
+            - group [disabled] [ref=e52]:
+              - heading "Orbit Shadow Draft" [level=3] [ref=e54]
+              - generic [ref=e55]:
+                - generic [ref=e56]:
+                  - paragraph [ref=e57]: Reserved for next release batch.
+                  - generic [ref=e59]: soon
+                - generic:
+                  - paragraph: You walk into a crowded room first. What do you do?
+                - generic:
+                  - generic:
+                    - button [disabled]: Find one person and start a direct conversation.
+                    - button [disabled]: Scan the room first and let the mood settle.
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Estimated
+                      - paragraph: 4 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "0"
+                    - generic:
+                      - paragraph: Total runs
+                      - paragraph: "0"
+              - generic: Coming Soon
+          - article [ref=e60]:
+            - group [disabled] [ref=e61]:
+              - heading "Pulse Matrix Pilot" [level=3] [ref=e63]
+              - generic [ref=e64]:
+                - generic [ref=e65]:
+                  - paragraph [ref=e66]: Reserved for next release batch.
+                  - generic [ref=e68]: soon
+                - generic:
+                  - paragraph: You walk into a crowded room first. What do you do?
+                - generic:
+                  - generic:
+                    - button [disabled]: Find one person and start a direct conversation.
+                    - button [disabled]: Scan the room first and let the mood settle.
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Estimated
+                      - paragraph: 4 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "0"
+                    - generic:
+                      - paragraph: Total runs
+                      - paragraph: "0"
+              - generic: Coming Soon
+          - article [ref=e69]:
+            - 'button "Speed vs Depth: Choosing the Right Tempo How teams avoid false urgency without slowing output. team delivery" [ref=e70] [cursor=pointer]':
+              - 'heading "Speed vs Depth: Choosing the Right Tempo" [level=3] [ref=e72]'
+              - generic [ref=e73]:
+                - generic [ref=e74]:
+                  - paragraph [ref=e75]: How teams avoid false urgency without slowing output.
+                  - generic [ref=e76]:
+                    - generic [ref=e77]: team
+                    - generic [ref=e78]: delivery
+                - generic:
+                  - paragraph: "Fast teams are not always hurried teams. The strongest cadence comes from explicit tradeoffs: where to go fast, where to absorb uncertainty, and where to pause before irreversible choices."
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Read time
+                      - paragraph: 6 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "203"
+                    - generic:
+                      - paragraph: Views
+                      - paragraph: "2140"
+                - generic:
+                  - button [disabled]: Read more
+          - article [ref=e79]:
+            - button "Feedback Patterns That Keep Momentum A compact protocol for critique in active delivery cycles." [ref=e80] [cursor=pointer]:
+              - heading "Feedback Patterns That Keep Momentum" [level=3] [ref=e82]
+              - generic [ref=e83]:
+                - paragraph [ref=e85]: A compact protocol for critique in active delivery cycles.
+                - generic:
+                  - paragraph: Feedback quality is mostly choreography. Teams improve when they time critique to decision points, separate judgment from direction, and close loops with one explicit next step.
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Read time
+                      - paragraph: 5 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "149"
+                    - generic:
+                      - paragraph: Views
+                      - paragraph: "1672"
+                - generic:
+                  - button [disabled]: Read more
+          - article [ref=e87]:
+            - button "Quiet Systems for Noisy Weeks Reduce context churn while preserving situational awareness. ops focus ritual" [ref=e88] [cursor=pointer]:
+              - heading "Quiet Systems for Noisy Weeks" [level=3] [ref=e90]
+              - generic [ref=e91]:
+                - generic [ref=e92]:
+                  - paragraph [ref=e93]: Reduce context churn while preserving situational awareness.
+                  - generic [ref=e94]:
+                    - generic [ref=e95]: ops
+                    - generic [ref=e96]: focus
+                    - generic [ref=e97]: ritual
+                - generic:
+                  - paragraph: When priorities churn, high-performing teams do less reactive work by default. They maintain a light decision ledger, enforce interruption windows, and force explicit ownership handoffs.
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Read time
+                      - paragraph: 4 min
+                    - generic:
+                      - paragraph: Shares
+                      - paragraph: "112"
+                    - generic:
+                      - paragraph: Views
+                      - paragraph: "1234"
+                - generic:
+                  - button [disabled]: Read more
+  - button "Open Next.js Dev Tools" [ref=e103] [cursor=pointer]:
+    - img [ref=e104]

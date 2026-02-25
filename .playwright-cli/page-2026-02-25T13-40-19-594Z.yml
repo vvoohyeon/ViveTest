@@ -1,0 +1,29 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e103] [cursor=pointer]:
+    - img [ref=e104]
+  - alert [ref=e144]
+  - generic [ref=e164]:
+    - banner [ref=e165]:
+      - generic [ref=e166]:
+        - link "VibeTest" [ref=e167] [cursor=pointer]:
+          - /url: /en
+        - generic [ref=e168]: 0s
+        - link "History" [ref=e170] [cursor=pointer]:
+          - /url: /en/history
+    - main [ref=e171]:
+      - generic [ref=e172]:
+        - paragraph [ref=e173]: Question 2 of 5
+        - heading "A deadline moves up by two days. Your first response?" [level=1] [ref=e174]
+        - generic [ref=e175]:
+          - button "Restructure priorities and lock execution quickly." [ref=e176] [cursor=pointer]
+          - button "Check risks first, then adjust with a buffer plan." [ref=e177] [cursor=pointer]
+        - generic [ref=e178]:
+          - button "Previous" [ref=e179] [cursor=pointer]
+          - button "Next" [disabled] [ref=e180]
+          - button "Submit" [disabled] [ref=e181]
+    - dialog "Before you begin" [ref=e182]:
+      - generic [ref=e183]:
+        - heading "Before you begin" [level=2] [ref=e184]
+        - paragraph [ref=e185]: Question 2 of 5
+        - paragraph [ref=e186]: Answer honestly. You can revise Q1 later during the test.
+        - button "Start" [ref=e187] [cursor=pointer]
