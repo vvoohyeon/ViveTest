@@ -1,10 +1,9 @@
-# Landing Requirements v2 (Normalized)
+# Landing Requirements
 
 ## 0. Document Meta
 - 문서 목적:
   - 랜딩페이지 구현 요구를 단일 해석 가능한 형태로 정규화한다.
   - 반복/충돌/중복 기술을 제거하고, 구현 및 QA 기준을 분리한다.
-- 본 문서는 `docs/req-landing.md`의 유효 요구를 보존해 재구성한 v2 문서다.
 - 우선순위:
   1) 본 문서의 본문(Section 1~12)
   2) `docs/requirements.md`의 전역 제약
