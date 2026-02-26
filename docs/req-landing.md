@@ -13,6 +13,14 @@
   - `SHOULD`: 권장
   - `MAY`: 선택
 
+### 0.1 Spec Synchronization Rule (MUST)
+- 단일 UI 정책 변경(예: title clamp↔wrap, top-align↔center-align)은 연관 섹션을 동일 변경셋에서 동시 수정한다(MUST).
+- 최소 동기화 대상:
+  - title/텍스트 정책 변경 시: 6.4, 6.6, 9.1, 12.4
+  - 전환/핸드셰이크 정책 변경 시: 7.x, 10.x, 11.2~11.3, 12.4
+- 본문 조항 간 충돌이 발견되면 구현을 중지하고 충돌 섹션/문구를 명시해 해소한다(MUST).
+- QA 체크리스트(12.4)가 본문과 불일치하면 릴리스 차단으로 간주한다(MUST).
+
 ## 1. Scope & Non-Goals
 ### 1.1 In Scope (V1)
 - 랜딩 카탈로그(테스트/블로그 혼합) UI 및 반응형 레이아웃
@@ -58,10 +66,12 @@
 - `typedRoutes: true` 기준으로 구현한다.
 - `router.push/replace` 및 `Link href`에 임의 문자열 직접 연결을 금지한다.
 - 동적 경로(`/test/[variant]/question` 등)는 RouteBuilder(또는 typed route helper)에서만 생성한다.
+- typed routing 우회용 타입 단언(`as Route`, `as never`, `as unknown as Route`)을 금지한다(MUST).
 - locale 주입 전략은 단일 방식으로 고정하며 혼용을 금지한다. V1은 i18n 라우팅 계층이 locale prefix를 주입하는 방식을 사용한다.
-- 위 전략에서 RouteBuilder는 locale-free 경로만 생성한다(예: `/test/[variant]/question`, `/blog`, `/history`).
+- RouteBuilder는 locale-free 경로만 생성한다(예: `/test/[variant]/question`, `/blog`, `/history`).
 - `/${locale}` 수동 문자열 결합 또는 locale 포함 경로를 RouteBuilder 입력값으로 전달하는 것을 금지한다.
 - `/en/en/...`, `/kr/kr/...` 패턴이 내부 링크/네비게이션에서 1건이라도 확인되면 blocking 결함으로 처리한다.
+- RouteBuilder 반환값은 typedRoutes와 호환되는 타입으로 선언해야 하며, 런타임 캐스팅으로 보정하지 않는다(MUST).
 
 ### 2.4 i18n Routing Entry (MUST)
 - Next.js 16 기준으로 `middleware.ts` 대신 `proxy.ts`를 사용한다.
@@ -145,12 +155,15 @@
 ### 4.5 Card Height Policy
 - Normal 카드는 콘텐츠 기반 compact(auto)를 기본으로 한다(MUST).
 - Normal 상태에서는 동일 row 내 equal-height stretch를 적용한다(MUST).
+- equal-height stretch 구현 시 row 컨테이너에 `align-items: start`를 사용하지 않는다(MUST).
+- 카드 shell은 Normal 상태에서 row stretch를 수용해야 한다(`min-height: 100%` 또는 동등 규칙)(MUST).
 - Expanded 높이 정책은 Desktop/Tablet에만 적용한다(MUST). Mobile은 1-column full-bleed 정책(Section 9.x)을 따른다.
 - Desktop/Tablet에서 카드 1개가 Expanded로 전환될 때 Expanded 카드만 콘텐츠 높이에 맞춰 유동적으로 증가한다(MUST).
-- Desktop/Tablet에서 같은 row의 비확장 카드는 Expanded 진입 시점의 Normal 높이를 유지한다(MUST).
+- Desktop/Tablet에서 같은 row의 비확장 카드는 Expanded 진입 시점의 Normal 높이 snapshot을 유지한다(MUST).
+- snapshot 해제는 Expanded 종료 직후 1회만 수행한다(MUST).
 - 비확장 카드 주변의 여백/빈 공간은 허용한다(MAY).
 - Expanded(Desktop/Tablet)는 fixed height를 사용하지 않는다(MUST).
-- 불필요한 하단 빈 공간 금지
+- 불필요한 하단 빈 공간 금지.
 
 ## 5. GNB Contract
 ### 5.1 Common
@@ -260,11 +273,13 @@
 
 ### 6.6 Text Clamp Policy
 #### Normal
-- title: 1줄 + truncate
-- subtitle: 1줄 + truncate
-- tags 영역: 항상 1줄 슬롯 고정
-- tags chip: 각 1줄 + truncate, wrap 금지
-- 상태 배지 텍스트 슬롯 미사용
+- title: 줄바꿈 허용, truncate/ellipsis 금지(MUST).
+- title 행의 수직 정렬은 top(`align-items: flex-start`)으로 유지한다(MUST).
+- title의 수평 기준은 좌측 정렬을 유지한다(MUST).
+- subtitle: 1줄 + truncate(MUST).
+- tags 영역: 항상 1줄 슬롯 고정.
+- tags chip: 각 1줄 + truncate, wrap 금지.
+- 상태 배지 텍스트 슬롯 미사용.
 
 #### Expanded
 - Expanded에서 제거 대상인 `subtitle/thumbnail/tags`는 clamp 정책 적용 대상이 아니다(N/A).
@@ -278,10 +293,12 @@
   - primaryCTA: 1줄 + truncate
 
 ### 6.7 Missing Slot Handling
-- required 슬롯 누락 시 영역 제거 금지
-- required 값 누락 시 빈값 렌더(레이아웃 유지)
-- optional(`tags[]`)은 값이 없어도 tags 컨테이너를 유지(1줄 높이 고정)
-- tags chip은 정의된 값만 렌더(빈 chip 강제 렌더 금지)
+- required 슬롯 누락 시 영역 제거 금지(MUST).
+- required 값 누락 시 빈값 렌더(레이아웃 유지)(MUST).
+- adapter는 required 누락에서 throw하지 않고 normalize + default 삽입으로 처리한다(MUST).
+- optional(`tags[]`)은 값이 없어도 tags 컨테이너를 유지(1줄 높이 고정)(MUST).
+- tags chip은 정의된 값만 렌더(빈 chip 강제 렌더 금지).
+- fixture에서 required 누락은 여전히 금지(11.7). 단, 런타임 안전성은 adapter가 방어해야 한다(MUST).
 
 ### 6.8 Unavailable Contract
 #### Blog
@@ -330,14 +347,17 @@
 
 ### 7.3 Page Reactions
 - INACTIVE:
-  - 입력 기반 카드 반응 중지
-  - HOVER_LOCK 비활성
+  - 입력 기반 카드 반응 중지(MUST)
+  - HOVER_LOCK 비활성(MUST)
+  - 카드 상태 변경 이벤트(`mouseenter/mouseleave/pointerout/focus/blur`)는 상태 mutation 없이 no-op 처리(MUST)
 - ACTIVE 복귀:
-  - 짧은 램프업 후 정상화
+  - INACTIVE를 거친 뒤 ACTIVE 복귀 시 입력 잠금 램프업 `120~180ms` 적용(MUST, 기본 140ms)
+  - 램프업 동안 카드 확장/축소/오버레이 변경 금지(MUST)
 - TRANSITIONING:
-  - 스크롤/입력 잠금
-  - 시작 프레임 시각 상태 고정
-  - GNB는 완료 시 교체
+  - 스크롤/입력 잠금(MUST)
+  - 시작 프레임 시각/상태 고정(MUST)
+  - `mouseleave/pointerout/focusout`로 인한 collapse/leave 반응 금지(MUST)
+  - GNB는 완료 시 교체(MUST)
 
 ### 7.4 Determinism / Idempotency
 - 동일 전환 상관키의 중복 실행은 동일 결과 유지
@@ -360,12 +380,16 @@
 
 ## 8. Expanded Motion & Visual Contract
 ### 8.1 Core Motion
-- Normal→Expanded:
-  - Elevate + scale `1.1`
-  - 비타이틀 정보 fade-out + collapse (`160~240ms` 권장)
-  - title 상단 이동 (`180~280ms` 권장)
-  - 상세 정보 stagger (`40~80ms` 간격, 항목당 `120~220ms`)
-- 내부 이중 박스 시각 금지
+- 본 섹션의 시간 범위는 권장이 아니라 검증 대상이다(MUST).
+- Normal→Expanded 시퀀스(MUST):
+  - Phase A: 비타이틀 정보 fade-out + collapse (`160~240ms`)
+  - Phase B: title 상단 이동 (`180~280ms`)
+  - Phase C: 상세 정보 stagger (항목 간 `40~80ms`, 항목당 `120~220ms`)
+- 시퀀스 제약(MUST):
+  - Phase A/B는 전환 시작 프레임에서 즉시 개시 가능
+  - Phase C는 상세 블록이 활성 상태가 된 뒤에만 시작
+  - 항목 순서는 DOM 순서와 일치해야 한다
+- 내부 이중 박스 시각 금지.
 
 ### 8.2 Expanded Trigger/Visual on `width >= 768`
 - hover-capable 모드:
@@ -398,10 +422,10 @@
 - 본 9.1~9.4는 Mobile 전용 규칙이다.
 - available 카드 탭 시 탭된 해당 카드만 Expanded
 - Expanded는 카드의 in-flow 위치를 유지하며 상단으로 재배치(top jump)하지 않음
-- Expanded 헤더는 `title + X` 1행 구조
-- title은 1줄 고정 + truncate
-- X 버튼은 헤더 우측 끝, title과 동일 높이에서 수직 중앙 정렬
-- X 버튼은 카드 내부 스크롤 중에도 카드 상단 헤더에 sticky로 유지
+- Expanded 헤더는 `title + X` 구조를 유지한다.
+- title은 줄바꿈 허용, truncate/ellipsis 금지(MUST).
+- title은 헤더 상단 기준 정렬(top align)로 표시한다(MUST).
+- X 버튼은 헤더 우측 끝에 고정하고, 카드 내부 스크롤 중에도 상단 sticky를 유지한다(MUST).
 - 닫기:
   - X 버튼
   - 카드 외부(backdrop) 탭
@@ -409,14 +433,16 @@
 - 닫힘 후 Expanded 직전 scroll/위치/형태로 자연 복귀
 
 ### 9.2 Full-Bleed (`width < 768` only)
-- in-flow full-bleed
-- 카드 폭: `100vw`
-- 컨테이너 패딩 상쇄
-- 전환 애니메이션 `220~360ms`
-- full-bleed 동안 page scroll lock
-- Expanded 카드 내부 스크롤 허용 (화면 높이를 벗어날 때에만)
-- 자동 viewport 보정 스크롤 금지(엄격 위치 유지)
-- 다른 카드 상호작용 비활성
+- in-flow full-bleed.
+- 카드 폭: `100vw`.
+- 컨테이너 패딩 상쇄.
+- 전환 애니메이션 `220~360ms`(검증 대상).
+- full-bleed 동안 page scroll lock(MUST).
+- Expanded 구조는 `header(auto) + body(minmax(0, 1fr))`로 분리한다(MUST).
+- header(`title + X`)는 sticky 유지(MUST).
+- 내부 스크롤은 body 영역에서만 허용한다(MUST). 콘텐츠가 viewport를 넘지 않으면 스크롤이 없어야 한다(MUST).
+- 자동 viewport 보정 스크롤 금지(엄격 위치 유지)(MUST).
+- 다른 카드 상호작용 비활성(MUST).
 
 ### 9.3 Layer Order (MUST, `width < 768` only)
 - `GNB > Expanded 카드 > backdrop > 기타 카드`
@@ -436,8 +462,11 @@
 - 다른 카드 상호작용 금지
 
 ### 10.2 Return Restoration
-- 필수 복원: `scrollY`
-- 비필수 복원: 마지막 Expanded 상태, prior focus
+- 필수 복원: `scrollY`(MUST).
+- 저장 시점: 랜딩 CTA에 의해 전환 시작이 확정된 직후, 라우팅 호출 이전(MUST).
+- 복원 시점: 랜딩 재진입 mount 직후 1회 consume + `window.scrollTo({top, behavior:'auto'})` 수행(MUST).
+- 복원 데이터는 단발 consume 후 즉시 제거한다(MUST).
+- 비필수 복원: 마지막 Expanded 상태, prior focus.
 
 ### 10.3 Test Q1 Pre-Answer Contract
 - 본 계약은 Test 카드에만 적용한다(MUST). Blog 카드에는 적용하지 않는다(MUST).
@@ -467,19 +496,23 @@
 - instructionSeen 여부는 시작 문항(Q1/Q2) 결정 조건이 아니다(MUST). 시작 문항은 10.3의 랜딩 유입 플래그 규칙으로만 결정한다(MUST).
 
 ### 10.5 Pre-Answer Lifecycle
-- read와 consume 분리
-- read 시 즉시 파기 금지
-- consume은 instruction Start click 직후 수행한다(MUST).
-- instruction 생략 경로에서는 Start click과 동등한 내부 test_start action 시점에 즉시 consume한다(MUST).
-- 랜딩 전환 상관키 없는 유입에 pre-answer 적용 금지
+- read와 consume 분리(MUST).
+- read 시 즉시 파기 금지(MUST).
+- consume은 instruction Start click 직후 수행(MUST).
+- instruction 생략 경로에서는 Start click과 동등한 내부 `test_start` action 시점에 즉시 consume(MUST).
+- 랜딩 전환 상관키(transition correlation + landing ingress flag) 없는 유입에 pre-answer 적용 금지(MUST).
+- 적용/소비 대상은 Test 카드에 한정, Blog 카드에는 적용 금지(MUST).
 
 ### 10.6 Failure / Cancel Rollback
-- 전환 실패/취소 시 pre-answer 롤백
-- 테스트 시도는 성립하지 않은 것으로 간주
+- 전환 실패/취소 시 pre-answer 롤백(MUST).
+- 전환 종료 이벤트는 `complete/fail/cancel` 중 정확히 1회(상호배타)(MUST).
+- 전환이 시작되었으면 지속시간과 무관하게 반드시 종료 이벤트로 정리해야 한다(MUST).
+- `short transition(<N ms) 조기 return` 등으로 cancel/fail 정리를 생략하는 구현 금지(MUST).
+- 정리 시 pending transition/state/flag/body lock 누수 금지(MUST).
 - QA 최소 액션 케이스(3개, MUST):
-  - 케이스 1: 랜딩 CTA 직후 사용자 취소(뒤로가기/중단) 시 pre-answer 롤백
-  - 케이스 2: locale_duplicate로 전환 실패 시 pre-answer 롤백
-  - 케이스 3: 목적지 라우트 진입 실패(타임아웃/로드 실패) 시 pre-answer 롤백
+  - 케이스 1: 랜딩 CTA 직후 사용자 취소(뒤로가기/중단)
+  - 케이스 2: locale_duplicate로 전환 실패
+  - 케이스 3: 목적지 라우트 진입 실패(타임아웃/로드 실패)
 
 ### 10.7 Question Dwell Time
 - 포그라운드 여부와 무관하게 경과시간 포함
@@ -550,9 +583,10 @@
 - 초기 렌더 경로에서 다음 분기 금지:
   - localStorage/sessionStorage/window
   - Date.now/Math.random/비결정 시간값
-- 위 금지는 useState initializer, provider default, context init에도 동일 적용
-- 중립 초기 상태 사용(예: consent UNKNOWN)
-- hydration warning 1건이라도 발생 시 릴리스 차단
+- 위 금지는 useState initializer, provider default, context init에도 동일 적용.
+- 중립 초기 상태 사용(예: consent UNKNOWN).
+- hydration warning 1건이라도 발생 시 릴리스 차단.
+- hydration warning 0건은 자동화 로그 기반으로 증명해야 한다(MUST). 수동 확인만으로 PASS 처리 금지.
 
 ### 12.2 Reduced Motion / Performance
 - prefers-reduced-motion:
@@ -569,6 +603,10 @@
 - unavailable 카드 기본 커서
 
 ### 12.4 Release QA Checklist
+- 릴리스 게이트 기본 명령은 `npm run qa:gate`로 고정한다(MUST).
+- `qa:gate`는 최소 `npm run build && npm run test && npm run test:e2e:smoke`를 포함해야 한다(MUST).
+- 위 체인 중 1건이라도 실패하면 릴리스 차단(MUST).
+
 #### SSR / Build
 - hydration mismatch warning 0건
 - typedRoutes 활성 상태에서 `npm run build` 통과
