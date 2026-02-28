@@ -68,7 +68,6 @@
 2. Section 5 Routing & Layout Contract
 3. Section 6~13 기능 계약
 4. Section 15 Exception Registry (명시된 예외 범위에 한함)
-5. Section 16 Open Questions (비규범, 확정 전 구현 기준 아님)
 
 ### 3.2 Single-change Synchronization
 **Rule**: 단일 UI 정책 변경은 연관 섹션을 동일 변경셋으로 동시 갱신해야 한다.
@@ -76,10 +75,10 @@
 **Implementation Notes**:
 - title/truncate/wrap 정책 변경 시 Section 6, 8, 9, 14를 동기화한다.
 - 전환/핸드셰이크 변경 시 Section 7, 8, 12, 13, 14를 동기화한다.
-- 라우팅/locale 정책 변경 시 Section 5, 13, 14, 16을 동기화한다.
+- 라우팅/locale 정책 변경 시 Section 5, 13, 14를 동기화한다.
 
 ### 3.3 Ambiguity Handling
-**Rule**: 구현자가 단일 해석을 확정할 수 없으면 릴리스를 멈추고 Section 16에 정책 옵션을 등록한 뒤 확정한다.
+**Rule**: 구현자가 단일 해석을 확정할 수 없으면 릴리스를 멈추고 해당 섹션에 정책 옵션/선택 근거를 추가한 뒤 확정한다.
 
 ---
 
@@ -444,27 +443,22 @@
 - full-bleed 동안 page scroll lock을 적용한다.
 - 다른 카드 상호작용을 비활성화한다.
 - unavailable 카드는 Expanded 진입/닫기 토글 대상이 아니다.
-
-**Verification**:
-1. Automated: 모바일에서 닫기 경로(X/backdrop)와 자연 복귀를 검증한다.
-2. Automated: content-fit 높이 전이 overshoot `0건`을 검증한다.
-3. Automated: 내부 스크롤 영역이 body로 제한되는지 검증한다.
-
-### 8.6 Transition Start Trigger (Landing→Destination)
-**Rule**: 라우팅 전환 시작은 Expanded의 유효 CTA 활성화 시점에만 허용한다.
-- Test: answerChoiceA/B
-- Blog: Read more
-
-### 8.7 Mobile Layer Order (`width<768`)
-**Rule**: Mobile Expanded 레이어 순서는 아래 규칙으로 고정한다.
-- `GNB > Expanded 카드 > backdrop > 기타 카드`
+- 레이어 순서는 `GNB > Expanded 카드 > backdrop > 기타 카드`로 고정한다.
 - backdrop은 Expanded 카드를 덮으면 안 된다.
 - Expanded 카드는 항상 불투명/상호작용 가능 상태를 유지해야 한다.
 - dim 처리는 Expanded 외부 영역에만 적용한다.
 - X 버튼은 backdrop보다 상위 레이어에 위치하고 항상 클릭 가능해야 한다.
 
 **Verification**:
-1. Automated: z-index/포인터 타깃 검증으로 레이어 순서를 확인한다.
+1. Automated: 모바일에서 닫기 경로(X/backdrop)와 자연 복귀를 검증한다.
+2. Automated: content-fit 높이 전이 overshoot `0건`을 검증한다.
+3. Automated: 내부 스크롤 영역이 body로 제한되는지 검증한다.
+4. Automated: z-index/포인터 타깃 검증으로 모바일 레이어 순서를 확인한다.
+
+### 8.6 Transition Start Trigger (Landing→Destination)
+**Rule**: 라우팅 전환 시작은 Expanded의 유효 CTA 활성화 시점에만 허용한다.
+- Test: answerChoiceA/B
+- Blog: Read more
 
 ---
 
@@ -509,14 +503,9 @@
 - Desktop(>=1024): capability 기반 모드 + hover 기본 경로
 
 ### 10.2 GNB by Context
-**Rule**:
-- Landing Desktop: 설정 레이어 hover 기본
-- Landing Mobile: 햄버거 overlay + backdrop + scroll lock
-- Test Mobile: Back + Timer만 유지
-- Blog Mobile: Back + 햄버거
+**Rule**: GNB 컨텍스트 규칙은 Section 6.4를 단일 소스로 따른다(중복 정의 금지).
 
-**Verification**:
-1. Automated: breakpoint별 GNB 요소 존재/행동을 E2E로 검증한다.
+**Verification**: breakpoint별 GNB 요소 존재/행동 검증은 Section 6.4 검증셋에 포함한다.
 
 ---
 
@@ -707,18 +696,13 @@
 - 랜딩 재진입 mount 직후 1회 복원 후 즉시 consume
 
 ### 13.9 Not-found Handling
-**Rule**:
-- segment 내부 invalid는 segment not-found
-- 라우팅 트리 외 unmatched는 global not-found
-- duplicate locale prefix는 global unmatched 경로로 처리
-- locale 없는 경로는 허용 목록만 리다이렉트하고 나머지는 global unmatched 404로 처리
+**Rule**: Not-found 정책의 단일 소스는 Section 5.3/5.5를 따른다(중복 정의 금지).
 
 **Verification**:
 1. Automated: ingress flag/시작 문항/Q2 진행표시 규칙을 검증한다.
 2. Automated: consume 시점이 Start 직후(또는 test_start)인지 검증한다.
 3. Automated: rollback 3케이스와 종료 이벤트 상호배타성을 검증한다.
 4. Automated: dwell time 누적 계산(재방문 포함)을 검증한다.
-5. Automated: locale-less 비허용 경로가 리다이렉트되지 않고 404로 귀결되는지 검증한다.
 
 ---
 
@@ -745,52 +729,13 @@
 10. locale-less 처리: 허용 목록만 리다이렉트, 비허용 경로 404 검증
 
 ### 14.3 Detailed QA Matrix (Release Blocking)
-**Rule**: 아래 항목 중 1건이라도 실패하면 릴리스를 차단한다.
-
-**SSR / Build**
-1. hydration mismatch warning `0건`.
-2. typedRoutes 활성 상태에서 `build` 통과.
-3. 동적 경로가 RouteBuilder를 경유하는지 확인.
-4. i18n 엔트리 `proxy.ts` 단일 책임 유지 확인.
-5. RouteBuilder 단위검증에서 `landing/blog/history/question` 생성 결과가 단일 locale prefix 규칙을 만족하는지 확인.
-6. E2E에서 Home/History/Blog 링크 이동 URL의 `/en/en`, `/kr/kr` 패턴 `0건`.
-7. E2E에서 카드 CTA 이동 URL의 `/en/en`, `/kr/kr` 패턴 `0건`.
-8. `useSearchParams()` 사용 컴포넌트의 Suspense 경계 누락으로 인한 CSR bailout 경고 `0건`.
-
-**Settings UI**
-1. Desktop 설정 레이어: hover open + 포인터 미감지 환경 focus/click fallback 검증.
-2. Desktop 설정 레이어: `Esc/outside/focus out` 닫힘 + Tab/Shift+Tab 즉시 닫힘 검증.
-3. Mobile 햄버거: fixed overlay/backdrop/body scroll lock/backdrop 닫힘/close transition 종료 후 unlock 검증.
-4. Landing/Blog 공통으로 햄버거 우측 끝 배치(Mobile 16px inset) 검증.
-
-**Card / Expanded**
-1. capability gate(`width<768` 탭 전용, `width>=768` capability 분기) 검증.
-2. unavailable 카드 Expanded 전이 금지 검증.
-3. unavailable 오버레이 노출 규칙(hover-capable 지연 노출, tap 상시 노출) 검증.
-4. HOVER_LOCK 키보드 분기(`tabIndex`, Tab 포커스, Enter/Space 차단, `aria-disabled`) 검증.
-5. Mobile Expanded의 top jump 금지, sticky `title+X`, 내부 scroll/body 분리, page scroll lock 검증.
-6. Desktop/Tablet Expanded에서 same-row 비확장 카드 높이 불변 + y-position 오차 `0px` 검증.
-7. Expanded shell 110% 적용(내부만 확대 금지) + crop `0건` 검증.
-8. handoff에서 마지막 카드만 Expanded, 직전 pending transition 즉시 취소 검증.
-9. handoff 케이스는 최소 viewport `1024`, `1280` 모두 검증.
-10. Expanded→Normal 구간 non-increasing 위반 프레임 `0건` 검증.
-11. rapid hover sweep에서 uncaught runtime error `0건` 검증.
-
-**Transition / Test Handshake**
-1. 랜딩 CTA 및 GNB 링크 진입 시 locale 중복 URL `0건`.
-2. Test A/B 선택 시 `variant+session` ingress flag 기록 확인.
-3. ingress flag 존재 시 instruction seen과 무관한 Q2 시작 확인.
-4. ingress flag 존재 시 Start 이전 진행표시 `Question 2 of N` 확인.
-5. ingress flag 없는 딥링크 유입 시 Q1 시작 확인.
-6. pre-answer consume 시점(Start 직후 또는 instruction 생략 경로 `test_start`) 검증.
-7. 재렌더/재마운트 후 Q2→Q1 역전 `0건`.
-8. rollback 3케이스(사용자 취소, locale duplicate, 목적지 진입 실패) 검증.
-
-**Privacy / Consent**
-1. `consent_state=UNKNOWN/OPTED_OUT` 상태에서 클라이언트 텔레메트리 네트워크 전송 `0건`.
-2. 동의 UI가 없는 V1 기본 상태에서 전송 `0건`.
-3. 동의 UI 도입 이후 `OPTED_IN` 선택 시에만 유예 큐 전송 발생.
-4. 랜덤 소스 불가 환경에서 `session_id` 미생성 + 전송 `0건`.
+**Rule**: 아래 핵심 블로킹 체크 중 1건이라도 실패하면 릴리스를 차단한다.
+1. SSR/Hydration: warning `0건`, typedRoutes build PASS, `useSearchParams()` Suspense 경계 위반 `0건` (Section 5, 11).
+2. Routing/i18n: single locale prefix, duplicate prefix `0건`, `proxy.ts` 단일 책임, locale-less allowlist/404 분기 PASS (Section 5, 13).
+3. Settings UI: Desktop 설정 레이어 open/close/fallback, Mobile overlay/backdrop/scroll lock PASS (Section 6, 10).
+4. Card/Expanded: capability gate, unavailable 가드, HOVER_LOCK 키보드 분기, same-row 안정성 `0px`, shell scale/crop, handoff 안정성 PASS (Section 6, 7, 8, 9).
+5. Transition/Test Handshake: ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, Q2→Q1 역전 `0건` PASS (Section 12, 13).
+6. Privacy/Consent: `UNKNOWN/OPTED_OUT` 전송 `0건`, `OPTED_IN`에서만 전송, 랜덤 소스 불가 환경 전송 차단 PASS (Section 12, 15).
 
 ---
 
@@ -813,39 +758,6 @@
 2. Manual: production build에서 404 화면/상태코드 확인.
 
 ### EX-002: 동의 UI 도입 전 기본 `OPTED_OUT` (전송 금지)
-**Exception**: consent UI가 없을 때 기본 확정값을 `OPTED_OUT`으로 둔다. (`UNKNOWN` 유지 대안도 전송 금지는 동일)
-
-**Why Needed**: 동의 없는 비필수 클라이언트 텔레메트리 전송의 규제/정책 리스크를 회피한다.
-
-**Risk**: V1 기간 동안 클라이언트 분석 지표가 제한될 수 있다.
-
-**Guardrails**:
-- `OPTED_OUT/UNKNOWN` 구간에서 클라이언트 이벤트 전송을 금지한다.
-- strictly-necessary 범위의 비식별 서버 집계만 허용한다.
-- 동의 UI 도입 이후 `OPTED_IN`에서만 유예 큐 전송을 허용한다.
-
-**Verification**:
-1. Automated: `OPTED_OUT/UNKNOWN`에서 네트워크 전송 `0건`을 보장한다.
-2. Automated: `OPTED_IN` 선택 시에만 큐 전송이 발생하는지 검증한다.
-
----
-
-## 16. Open Questions / Deferred Decisions
-
-### 16.1 Status
-**Rule**: 본 문서 기준으로 라우팅/locale 관련 택1 정책은 확정되었으므로, 현재 미해결 Open Question은 없다.
-
----
-
-## 17. Change Log (This Refactor)
-
-1. 문서를 규칙/계약/검증 중심 17개 섹션으로 전면 재구성했다.
-2. 라우팅/레이아웃을 정적 루트 + locale 중첩 구조로 고정하고, `proxy.ts` 단일 책임과 404 이원화 전략을 명문화했다.
-3. Expanded 110%를 **Card Shell 기준**으로 재정의하고 내부 콘텐츠만 확대되는 구현을 금지했다.
-4. Title 최상단 고정(Normal/Expanded), tags terminal 슬롯, tags 하단 동적 여백 금지 규칙을 고정했다.
-5. HOVER_LOCK 키보드 모드 분기(`tabIndex`, `aria-disabled`, `Enter/Space` 차단)를 규격화했다.
-6. Telemetry 필수/금지 필드, 1-based index, 전환 상관키 계약을 명시했다.
-7. 표준 충돌 가능 항목을 Exception Registry로 격리하고 리스크/가드레일/검증을 추가했다.
-8. `/` locale 결정 정책을 V2에서 `쿠키 -> Accept-Language -> defaultLocale`로 확정했다.
-9. locale 없는 경로 처리 정책을 V2에서 “허용 목록 리다이렉트 + 비허용 404”로 확정했다.
-10. v2 대비 퇴행 위험 구간(GNB, handoff 모션, telemetry 경계, handshake 검증, 상세 QA 매트릭스)을 보강했다.
+**Exception**: consent UI 도입 전 기본 확정값은 `OPTED_OUT`으로 운용한다.
+**Why Needed**: 동의 없는 비필수 클라이언트 텔레메트리 전송 리스크를 차단하기 위함.
+**Guardrails/Verification**: `OPTED_OUT/UNKNOWN` 전송 `0건`, strictly-necessary 서버 집계만 허용, `OPTED_IN`에서만 유예 큐 전송(Section 12.1, 12.4 검증 기준 준용).
