@@ -44,27 +44,6 @@
   min-width: 0;
 }
 
-.desktopExpandedPlaceholder {
-  min-width: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.desktopOverlayLayer {
-  position: absolute;
-  inset: 0;
-  z-index: 1200;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.desktopExpandedOverlayCard {
-  position: absolute;
-  pointer-events: auto;
-  z-index: 2;
-  height: auto;
-}
-
 .mobileBackdrop {
   position: fixed;
   inset: 0;

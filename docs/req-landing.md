@@ -161,9 +161,13 @@
 - Desktop/Tablet에서 카드 1개가 Expanded로 전환될 때 Expanded 카드만 콘텐츠 높이에 맞춰 유동적으로 증가한다(MUST).
 - Desktop/Tablet에서 같은 row의 비확장 카드는 Expanded 진입 시점의 Normal 높이 snapshot을 유지한다(MUST).
 - snapshot 해제는 Expanded 종료 직후 1회만 수행한다(MUST).
-- Desktop/Tablet Expanded는 상위 레이어(Portal 또는 동등한 out-of-flow 레이어)에서 렌더링하여 row track 재계산을 유발하지 않아야 한다(MUST).
-- Expanded 카드가 이동한 원래 슬롯은 transparent placeholder로 snapshot 높이를 유지해야 한다(MUST).
-- Expanded는 단일 DOM 인스턴스를 유지해야 하며, Normal+Expanded 이중 렌더(동일 카드 2개 가시화)를 금지한다(MUST).
+- Desktop/Tablet Expanded는 동일 레이아웃 컨텍스트 내 out-of-flow(`position:absolute` 또는 동등 방식)로 전환하여 row track 재계산을 유발하지 않아야 한다(MUST).
+- Portal 기반 레이어 이동은 본 문서 기준에서 사용하지 않는다(MUST NOT).
+- Expanded 카드의 원래 슬롯은 transparent spacer 역할로 snapshot 높이를 유지해야 한다(MUST).
+- Expanded는 단일 DOM 인스턴스를 유지해야 하며, 언마운트/재마운트 없이 동일 DOM 이동으로 처리한다(MUST).
+- Normal+Expanded 이중 렌더(동일 카드 2개 가시화)를 금지한다(MUST).
+- 높이 snapshot은 `getBoundingClientRect().height` raw 값을 사용하며 반올림/올림/내림(`Math.round/ceil/floor`)을 금지한다(MUST).
+- Expanded 진입/유지/해제 동안 비확장 row의 수직 위치 오차는 `0px`로 고정한다(MUST).
 - 비확장 카드 주변의 여백/빈 공간은 허용한다(MAY).
 - Expanded(Desktop/Tablet)는 fixed height를 사용하지 않는다(MUST).
 - 불필요한 하단 빈 공간 금지.
@@ -390,9 +394,11 @@
 ### 8.1 Core Motion
 - 본 섹션의 시간 범위는 권장이 아니라 검증 대상이다(MUST).
 - Normal→Expanded 시퀀스(MUST):
-  - Phase A: 비타이틀 정보 fade-out + collapse (`200ms`)
-  - Phase B: title 상단 이동 (`200ms`)
-  - Phase C: 상세 정보 reveal (`200ms`, stagger delay `40/100/160ms` 유지)
+  - Phase A: 비타이틀 정보 fade-out + collapse (`280ms`)
+  - Phase B: title 상단 이동 (`280ms`)
+  - Phase C: 상세 정보 reveal (`280ms`, stagger delay `40/100/160ms` 유지)
+- Normal←Expanded(일반 leave/close)도 동일 축/곡선을 사용해 대칭적으로 복귀한다(MUST).
+- 단, handoff 경로에서는 직전 카드의 이탈 전이를 즉시 종료(0ms)하고 마지막 hover 대상만 전이를 수행한다(MUST).
 - 시퀀스 제약(MUST):
   - Phase A/B는 전환 시작 프레임에서 즉시 개시 가능
   - Phase C는 상세 블록이 활성 상태가 된 뒤에만 시작
@@ -405,7 +411,7 @@
 ### 8.2 Expanded Trigger/Visual on `width >= 768`
 - hover-capable 모드:
   - available hover enter `120~200ms` 후 Expanded
-  - hover leave로 카드 영역을 완전히 벗어나면 즉시(0ms) collapse한다(MUST).
+  - hover leave로 카드 영역을 완전히 벗어나면 collapse 전이를 수행한다(MUST).
   - 카드 간 handoff 시 직전 카드의 pending/진행 transition은 즉시 취소하고 마지막 hover 카드만 Expanded로 진입한다(MUST).
 - tap 모드(hover-capability 미감지):
   - available 카드 탭 시 Expanded
@@ -456,6 +462,10 @@
 - 카드 폭: `100vw`.
 - 컨테이너 패딩 상쇄.
 - 전환 애니메이션 `220~360ms`(검증 대상).
+- V1 기준값은 `280ms`를 사용한다(MUST).
+- spring/overshoot(탄성 튐) 효과를 금지한다(MUST).
+- 모바일 외곽 컨테이너 높이 전이는 content-fit 목표 높이까지 단조 증가/감소(monotonic)해야 하며 overshoot를 허용하지 않는다(MUST).
+- content-fit 높이 계산은 런타임 실측(`from px -> to px -> auto`) 또는 동등 정확도의 방식으로 수행해야 한다(MUST).
 - full-bleed 동안 page scroll lock(MUST).
 - Expanded 구조는 `header(auto) + body(minmax(0, 1fr))`로 분리한다(MUST).
 - header(`title + X`)는 sticky 유지(MUST).
@@ -665,7 +675,10 @@
 - Desktop HOVER_LOCK 중 비대상 카드 dim/backdrop 금지 + 비대상 카드 `tabIndex=-1`
 - `width < 768` Expanded는 탭한 카드 위치 유지(top jump 금지), page scroll lock + 카드 내부 scroll 허용
 - `width < 768` Expanded header의 X 버튼은 title과 같은 행 우측 끝에 sticky로 유지
+- `width < 768` Expanded 외곽 높이 전이에서 spring/overshoot가 발생하지 않아야 하며, content-fit 범위를 초과하는 튐이 없어야 한다(MUST).
 - `width >= 768`에서 한 카드 Expanded 시 같은 row 비확장 카드 높이는 변하지 않아야 한다(MUST).
+- `width >= 768`에서 Expanded 진입/유지/해제 동안 비확장 row의 y-position 변화가 `0px`인지 확인한다(MUST).
+- `width >= 768`에서 Expanded 대상 카드는 단일 DOM 인스턴스로 유지되어야 하며 remount 없이 상태 전이를 보여야 한다(MUST).
 - `width >= 768`에서 빠른 hover 이동(Row1→Row2, Same-row 포함) 시 마지막 hover 카드만 최종 Expanded여야 한다(MUST).
 - `width >= 768`에서 직전 hover 카드의 pending transition은 즉시 취소되어야 한다(MUST).
 - Row1→Row2 빠른 hover handoff 케이스는 최소 viewport `1024`와 `1280`에서 모두 검증한다(MUST).

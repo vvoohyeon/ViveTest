@@ -42,12 +42,14 @@ test.describe('Card interaction and mobile expanded smoke @smoke', () => {
         return {
           scrollHeight: element.scrollHeight,
           clientHeight: element.clientHeight,
-          overflowY: style.overflowY
+          overflowY: style.overflowY,
+          transitionTimingFunction: style.transitionTimingFunction
         };
       });
 
       await expectBodyScrollLock(page, true);
       expect(['auto', 'scroll']).toContain(innerScrollState.overflowY);
+      expect(innerScrollState.transitionTimingFunction).toContain('ease-in-out');
       scrollContainerConfigured = true;
 
       if (innerScrollState.scrollHeight > innerScrollState.clientHeight + 1) {
@@ -74,9 +76,27 @@ test.describe('Card interaction and mobile expanded smoke @smoke', () => {
     await page.goto('/en?__e2e_mode=hover');
 
     const testCard = page.locator('article').filter({hasText: 'Vibe Core Compass'}).first();
+    const belowRowCard = page.locator('article').filter({hasText: 'Speed vs Depth: Choosing the Right Tempo'}).first();
     await expect(testCard).toBeVisible();
+    await expect(belowRowCard).toBeVisible();
 
+    const beforeBelowTop = await belowRowCard.evaluate((node) => (node as HTMLElement).offsetTop);
     await testCard.hover();
+    await page.waitForTimeout(320);
+
+    const shellTransition = await testCard.locator('[role="button"]').first().evaluate((node) => {
+      const style = window.getComputedStyle(node as HTMLElement);
+      return {
+        duration: style.transitionDuration,
+        timing: style.transitionTimingFunction
+      };
+    });
+    const afterBelowTop = await belowRowCard.evaluate((node) => (node as HTMLElement).offsetTop);
+
+    expect(shellTransition.duration.includes('0.28s') || shellTransition.duration.includes('280ms')).toBeTruthy();
+    expect(shellTransition.timing).toContain('ease-in-out');
+    expect(afterBelowTop - beforeBelowTop).toBe(0);
+
     await expect(
       page.getByRole('button', {name: 'Find one person and start a direct conversation.', exact: true})
     ).toBeVisible();
@@ -114,7 +134,7 @@ test.describe('Card interaction and mobile expanded smoke @smoke', () => {
       await firstHoverCard.hover();
       await page.waitForTimeout(30);
       await lastHoverCard.hover();
-      await page.waitForTimeout(240);
+      await page.waitForTimeout(340);
 
       await expect(page.locator('[role="button"][aria-expanded="true"]')).toHaveCount(1);
       await expect(firstHoverCard.locator('[role="button"][aria-expanded="true"]')).toHaveCount(0);

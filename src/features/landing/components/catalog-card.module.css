@@ -2,6 +2,7 @@
   position: relative;
   min-width: 0;
   height: 100%;
+  overflow: visible;
 }
 
 .shell {
@@ -15,10 +16,9 @@
   min-height: 100%;
   transform-origin: var(--origin-x, 50%) 0%;
   transition:
-    transform var(--motion-duration, 200ms) ease-in-out,
-    box-shadow var(--motion-duration, 200ms) ease-in-out,
+    transform var(--motion-duration, 280ms) ease-in-out,
+    box-shadow var(--motion-duration, 280ms) ease-in-out,
     border-radius var(--full-bleed-duration, 280ms) ease-in-out,
-    max-height var(--full-bleed-duration, 280ms) ease-in-out,
     margin var(--full-bleed-duration, 280ms) ease-in-out,
     width var(--full-bleed-duration, 280ms) ease-in-out;
   opacity: 1;
@@ -37,9 +37,18 @@
 }
 
 .expandedDesktop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   transform: scale(1.1);
   z-index: 20;
   opacity: 1;
+  height: auto;
+}
+
+.collapsingDesktop {
+  pointer-events: none;
 }
 
 .expandedMobile {
@@ -59,7 +68,7 @@
   justify-content: space-between;
   gap: 8px;
   transform: translateY(0);
-  transition: transform 200ms ease-in-out;
+  transition: transform var(--motion-duration, 280ms) ease-in-out;
 }
 
 .titleRowExpanded {
@@ -128,9 +137,9 @@
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 200ms ease-in-out,
-    max-height 200ms ease-in-out,
-    transform 200ms ease-in-out;
+    opacity var(--motion-duration, 280ms) ease-in-out,
+    max-height var(--motion-duration, 280ms) ease-in-out,
+    transform var(--motion-duration, 280ms) ease-in-out;
 }
 
 .frontContentOpen {
@@ -168,9 +177,9 @@
   transform: translateY(8px);
   pointer-events: none;
   transition:
-    opacity 200ms ease-in-out,
-    max-height 200ms ease-in-out,
-    transform 200ms ease-in-out;
+    opacity var(--motion-duration, 280ms) ease-in-out,
+    max-height var(--motion-duration, 280ms) ease-in-out,
+    transform var(--motion-duration, 280ms) ease-in-out;
 }
 
 .expandedBlockOpen {
@@ -191,8 +200,8 @@
   opacity: 0;
   transform: translateY(10px);
   transition:
-    opacity 200ms ease-in-out,
-    transform 200ms ease-in-out;
+    opacity var(--motion-duration, 280ms) ease-in-out,
+    transform var(--motion-duration, 280ms) ease-in-out;
 }
 
 .expandedBlockOpen .detailItem {
@@ -217,6 +226,15 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+.instantMotion .shell,
+.instantMotion .titleRow,
+.instantMotion .frontContent,
+.instantMotion .expandedBlock,
+.instantMotion .detailItem {
+  transition-duration: 0ms !important;
+  transition-delay: 0ms !important;
 }
 
 .previewQuestion {

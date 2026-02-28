@@ -1,6 +1,6 @@
 'use client';
 
-import {memo, type CSSProperties} from 'react';
+import {memo, type CSSProperties, useLayoutEffect, useRef, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import Image from 'next/image';
 import type {BinaryChoiceCode} from '@/features/test/data/test-fixture';
@@ -18,9 +18,11 @@ type CatalogCardProps = {
   isMobile: boolean;
   transformOriginX: '0%' | '50%' | '100%';
   normalHeightPx?: number;
+  keepDesktopExpandedLayer?: boolean;
   isHoverLockActive: boolean;
   isHoverLockTarget: boolean;
   allowTabFocusWhileHoverLocked: boolean;
+  forceInstantTransition?: boolean;
   wrapperClassName?: string;
   wrapperStyle?: CSSProperties;
   onExpand: (cardId: string) => void;
@@ -46,9 +48,11 @@ function CatalogCardComponent({
   isMobile,
   transformOriginX,
   normalHeightPx,
+  keepDesktopExpandedLayer = false,
   isHoverLockActive,
   isHoverLockTarget,
   allowTabFocusWhileHoverLocked,
+  forceInstantTransition = false,
   wrapperClassName,
   wrapperStyle,
   onExpand,
@@ -75,6 +79,27 @@ function CatalogCardComponent({
   const showExpanded = isExpanded && isAvailable;
   const expandedControlTabIndex = showExpanded ? 0 : -1;
   const ariaDisabled = !isAvailable || isLockedNonTarget;
+  const expandedBlockRef = useRef<HTMLDivElement | null>(null);
+  const [mobileExpandedMaxHeight, setMobileExpandedMaxHeight] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!isMobile) {
+      setMobileExpandedMaxHeight(null);
+      return;
+    }
+
+    const element = expandedBlockRef.current;
+    if (!element) {
+      return;
+    }
+
+    const raf = window.requestAnimationFrame(() => {
+      const target = showExpanded ? element.scrollHeight : 0;
+      setMobileExpandedMaxHeight(target);
+    });
+
+    return () => window.cancelAnimationFrame(raf);
+  }, [card.id, isMobile, showExpanded]);
   const combinedWrapperStyle: CSSProperties = {
     ...(normalHeightPx && !isMobile ? {height: `${normalHeightPx}px`} : {}),
     ...wrapperStyle
@@ -83,7 +108,13 @@ function CatalogCardComponent({
   return (
     <article
       data-catalog-card-root="true"
-      className={[styles.wrapper, wrapperClassName ?? ''].filter(Boolean).join(' ')}
+      className={[
+        styles.wrapper,
+        forceInstantTransition ? styles.instantMotion : '',
+        wrapperClassName ?? ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
       ref={(element) => onRegisterElement(card.id, element)}
       onMouseEnter={() => {
         if (isTransitioning || isMobile || !isHoverMode) {
@@ -102,8 +133,10 @@ function CatalogCardComponent({
           return;
         }
 
-        const relatedTarget = event.relatedTarget as Element | null;
-        const handoffToAnotherCard = Boolean(relatedTarget?.closest('[data-catalog-card-root="true"]'));
+        const relatedTarget = event.relatedTarget;
+        const handoffToAnotherCard =
+          relatedTarget instanceof Element &&
+          relatedTarget.closest('[data-catalog-card-root="true"]') !== null;
 
         if (isAvailable) {
           onHoverLeaveAvailable(card.id, handoffToAnotherCard);
@@ -144,14 +177,15 @@ function CatalogCardComponent({
           styles.shell,
           isAvailable ? styles.available : styles.unavailable,
           shouldDisableByHoverLock ? styles.disabledByLock : '',
-          showExpanded && !isMobile ? styles.expandedDesktop : '',
+          (showExpanded || keepDesktopExpandedLayer) && !isMobile ? styles.expandedDesktop : '',
+          keepDesktopExpandedLayer && !showExpanded && !isMobile ? styles.collapsingDesktop : '',
           showExpanded && isMobile ? styles.expandedMobile : ''
         ]
           .filter(Boolean)
           .join(' ')}
         style={{
           ['--origin-x' as string]: transformOriginX,
-          ['--motion-duration' as string]: pageState === 'REDUCED_MOTION' ? '180ms' : '200ms',
+          ['--motion-duration' as string]: pageState === 'REDUCED_MOTION' ? '180ms' : '280ms',
           ['--full-bleed-duration' as string]: '280ms'
         }}
         onClick={() => {
@@ -233,6 +267,7 @@ function CatalogCardComponent({
           </div>
 
           <div
+            ref={expandedBlockRef}
             className={[
               styles.expandedBlock,
               showExpanded ? styles.expandedBlockOpen : styles.expandedBlockClosed,
@@ -241,6 +276,7 @@ function CatalogCardComponent({
               .filter(Boolean)
               .join(' ')}
             aria-hidden={!showExpanded}
+            style={isMobile && mobileExpandedMaxHeight !== null ? {maxHeight: `${mobileExpandedMaxHeight}px`} : undefined}
           >
             {card.type === 'test' ? (
               <>

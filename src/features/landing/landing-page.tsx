@@ -2,7 +2,6 @@
 
 import {useTranslations} from 'next-intl';
 import {useRouter} from '@/i18n/navigation';
-import {createPortal} from 'react-dom';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {CatalogCardView} from '@/features/landing/components/catalog-card';
 import {SiteHeader} from '@/features/landing/components/site-header';
@@ -41,14 +40,9 @@ const TRANSITION_PUSH_DELAY_MS = 180;
 const MOBILE_CLOSE_UNLOCK_MS = 240;
 const ACTIVE_RAMP_LOCK_MS = 140;
 const HOVER_EXPAND_DELAY_MS = 150;
+const DESKTOP_COLLAPSE_LAYER_MS = 280;
 
 type ForcedTransitionOutcome = 'cancel' | 'locale_duplicate' | 'route_entry_timeout';
-
-type OverlayPlacement = {
-  top: number;
-  left: number;
-  width: number;
-};
 
 function readE2EForcedTransitionOutcome(): ForcedTransitionOutcome | null {
   if (typeof window === 'undefined' || !window.navigator.webdriver) {
@@ -98,8 +92,6 @@ export function LandingPage() {
   const capability = useInteractionMode();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const slotElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
   const cardElementsRef = useRef<Record<string, HTMLElement | null>>({});
 
   const containerWidth = useContainerWidth(containerRef);
@@ -110,13 +102,14 @@ export function LandingPage() {
   );
 
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
-  const [expandedOverlayPlacement, setExpandedOverlayPlacement] = useState<OverlayPlacement | null>(null);
   const [unavailableOverlayCardId, setUnavailableOverlayCardId] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
   const [activeRampLocked, setActiveRampLocked] = useState(false);
   const [mobileClosing, setMobileClosing] = useState(false);
   const [keyboardModeActive, setKeyboardModeActive] = useState(false);
-  const [desktopOverlayHost, setDesktopOverlayHost] = useState<HTMLDivElement | null>(null);
+  const [instantCollapseCardId, setInstantCollapseCardId] = useState<string | null>(null);
+  const [desktopCollapsingCardId, setDesktopCollapsingCardId] = useState<string | null>(null);
+  const [expandedSnapshotHeight, setExpandedSnapshotHeight] = useState<number | undefined>(undefined);
 
   const routeTimeoutRef = useRef<number | null>(null);
   const activeRampTimerRef = useRef<number | null>(null);
@@ -124,6 +117,8 @@ export function LandingPage() {
   const hoverIntentTokenRef = useRef(0);
   const hoverIntentCardIdRef = useRef<string | null>(null);
   const handoffCardIdRef = useRef<string | null>(null);
+  const instantCollapseFrameRef = useRef<number | null>(null);
+  const desktopCollapseTimerRef = useRef<number | null>(null);
   const hadInactiveSinceMountRef = useRef(false);
 
   const [normalHeights, setNormalHeights] = useState<Record<string, number>>({});
@@ -131,7 +126,6 @@ export function LandingPage() {
 
   const pageState = usePageState(transitioning);
   const shouldIgnorePageInput = transitioning || pageState === 'INACTIVE' || activeRampLocked;
-  const isDesktopTablet = capability.width >= 768;
   const isDesktopHoverMode = capability.mode === 'HOVER_MODE' && capability.width >= 768;
 
   const hoverLockTargetId =
@@ -146,24 +140,17 @@ export function LandingPage() {
     capability.width >= 768 &&
     pageState !== 'INACTIVE';
 
-  const cardGridMeta = useMemo(() => {
-    const meta = new Map<string, {index: number; columns: number}>();
-
-    heroCards.forEach((card, index) => {
-      meta.set(card.id, {index, columns: layout.heroColumns});
-    });
-
-    mainCards.forEach((card, index) => {
-      meta.set(card.id, {index, columns: layout.mainColumns});
-    });
-
-    return meta;
-  }, [heroCards, layout.heroColumns, layout.mainColumns, mainCards]);
-
   const clearHoverIntentTimer = useCallback(() => {
     if (hoverIntentTimerRef.current) {
       window.clearTimeout(hoverIntentTimerRef.current);
       hoverIntentTimerRef.current = null;
+    }
+  }, []);
+
+  const clearDesktopCollapseTimer = useCallback(() => {
+    if (desktopCollapseTimerRef.current) {
+      window.clearTimeout(desktopCollapseTimerRef.current);
+      desktopCollapseTimerRef.current = null;
     }
   }, []);
 
@@ -174,29 +161,41 @@ export function LandingPage() {
     handoffCardIdRef.current = null;
   }, [clearHoverIntentTimer]);
 
-  const computeOverlayPlacement = useCallback(
-    (cardId: string): OverlayPlacement | null => {
-      if (capability.width < 768) {
-        return null;
+  const markInstantCollapse = useCallback((cardId: string) => {
+    setInstantCollapseCardId(cardId);
+
+    if (instantCollapseFrameRef.current) {
+      window.cancelAnimationFrame(instantCollapseFrameRef.current);
+      instantCollapseFrameRef.current = null;
+    }
+
+    instantCollapseFrameRef.current = window.requestAnimationFrame(() => {
+      setInstantCollapseCardId((prev) => (prev === cardId ? null : prev));
+      instantCollapseFrameRef.current = null;
+    });
+  }, []);
+
+  const beginDesktopCollapse = useCallback(
+    (cardId: string, instant: boolean) => {
+      clearDesktopCollapseTimer();
+
+      if (instant) {
+        setDesktopCollapsingCardId(null);
+        setExpandedCardId(null);
+        setExpandedSnapshotHeight(undefined);
+        return;
       }
 
-      const slotElement = slotElementsRef.current[cardId];
-      const contentElement = contentRef.current;
+      setDesktopCollapsingCardId(cardId);
+      setExpandedCardId(null);
 
-      if (!slotElement || !contentElement) {
-        return null;
-      }
-
-      const slotRect = slotElement.getBoundingClientRect();
-      const contentRect = contentElement.getBoundingClientRect();
-
-      return {
-        top: Math.round(slotRect.top - contentRect.top),
-        left: Math.round(slotRect.left - contentRect.left),
-        width: Math.round(slotRect.width)
-      };
+      desktopCollapseTimerRef.current = window.setTimeout(() => {
+        setDesktopCollapsingCardId((prev) => (prev === cardId ? null : prev));
+        setExpandedSnapshotHeight(undefined);
+        desktopCollapseTimerRef.current = null;
+      }, DESKTOP_COLLAPSE_LAYER_MS);
     },
-    [capability.width]
+    [clearDesktopCollapseTimer]
   );
 
   const commitExpand = useCallback(
@@ -209,22 +208,23 @@ export function LandingPage() {
         return false;
       }
 
-      setUnavailableOverlayCardId(null);
-
       if (capability.width >= 768) {
-        const placement = computeOverlayPlacement(cardId);
-
-        if (!placement) {
+        const element = cardElementsRef.current[cardId];
+        if (!element) {
           return false;
         }
 
-        setExpandedOverlayPlacement(placement);
+        setExpandedSnapshotHeight(element.getBoundingClientRect().height);
       }
 
+      clearDesktopCollapseTimer();
+      setDesktopCollapsingCardId(null);
+      setUnavailableOverlayCardId(null);
+      setInstantCollapseCardId(null);
       setExpandedCardId(cardId);
       return true;
     },
-    [capability.width, computeOverlayPlacement, normalHeightsReady, shouldIgnorePageInput]
+    [capability.width, clearDesktopCollapseTimer, normalHeightsReady, shouldIgnorePageInput]
   );
 
   useEffect(() => {
@@ -378,10 +378,13 @@ export function LandingPage() {
     }
 
     resetHoverIntentState();
+    clearDesktopCollapseTimer();
+    setDesktopCollapsingCardId(null);
     setExpandedCardId(null);
-    setExpandedOverlayPlacement(null);
     setUnavailableOverlayCardId(null);
-  }, [pageState, resetHoverIntentState]);
+    setInstantCollapseCardId(null);
+    setExpandedSnapshotHeight(undefined);
+  }, [clearDesktopCollapseTimer, pageState, resetHoverIntentState]);
 
   useEffect(() => {
     if (capability.width >= 768 || !expandedCardId) {
@@ -398,11 +401,14 @@ export function LandingPage() {
   useEffect(() => {
     if (capability.width < 768) {
       resetHoverIntentState();
+      clearDesktopCollapseTimer();
+      setDesktopCollapsingCardId(null);
       setUnavailableOverlayCardId(null);
-      setExpandedOverlayPlacement(null);
+      setInstantCollapseCardId(null);
       setNormalHeightsReady(false);
+      setExpandedSnapshotHeight(undefined);
     }
-  }, [capability.width, resetHoverIntentState]);
+  }, [capability.width, clearDesktopCollapseTimer, resetHoverIntentState]);
 
   useEffect(() => {
     if (capability.width < 768 || expandedCardId) {
@@ -418,7 +424,7 @@ export function LandingPage() {
           return;
         }
 
-        nextHeights[card.id] = Math.ceil(element.getBoundingClientRect().height);
+        nextHeights[card.id] = element.getBoundingClientRect().height;
       });
 
       setNormalHeights(nextHeights);
@@ -435,30 +441,6 @@ export function LandingPage() {
   }, [cards, capability.width, expandedCardId, layout.heroColumns, layout.mainColumns]);
 
   useEffect(() => {
-    if (!isDesktopTablet || !expandedCardId) {
-      return;
-    }
-
-    const syncPlacement = () => {
-      const nextPlacement = computeOverlayPlacement(expandedCardId);
-
-      if (!nextPlacement) {
-        return;
-      }
-
-      setExpandedOverlayPlacement(nextPlacement);
-    };
-
-    const raf = window.requestAnimationFrame(syncPlacement);
-    window.addEventListener('resize', syncPlacement);
-
-    return () => {
-      window.cancelAnimationFrame(raf);
-      window.removeEventListener('resize', syncPlacement);
-    };
-  }, [computeOverlayPlacement, expandedCardId, isDesktopTablet, layout.heroColumns, layout.mainColumns]);
-
-  useEffect(() => {
     return () => {
       if (routeTimeoutRef.current) {
         window.clearTimeout(routeTimeoutRef.current);
@@ -469,9 +451,13 @@ export function LandingPage() {
       if (hoverIntentTimerRef.current) {
         window.clearTimeout(hoverIntentTimerRef.current);
       }
+      if (instantCollapseFrameRef.current) {
+        window.cancelAnimationFrame(instantCollapseFrameRef.current);
+      }
+      clearDesktopCollapseTimer();
       unlockBodyScroll({force: true});
     };
-  }, []);
+  }, [clearDesktopCollapseTimer]);
 
   const closeExpandedMobileCard = useCallback(() => {
     if (shouldIgnorePageInput) {
@@ -480,7 +466,7 @@ export function LandingPage() {
 
     if (capability.width >= 768 || !expandedCardId) {
       setExpandedCardId(null);
-      setExpandedOverlayPlacement(null);
+      setExpandedSnapshotHeight(undefined);
       return;
     }
 
@@ -488,7 +474,7 @@ export function LandingPage() {
 
     window.setTimeout(() => {
       setExpandedCardId(null);
-      setExpandedOverlayPlacement(null);
+      setExpandedSnapshotHeight(undefined);
       setMobileClosing(false);
       unlockBodyScroll();
     }, MOBILE_CLOSE_UNLOCK_MS);
@@ -518,10 +504,9 @@ export function LandingPage() {
       }
 
       resetHoverIntentState();
-      setExpandedCardId(null);
-      setExpandedOverlayPlacement(null);
+      beginDesktopCollapse(cardId, false);
     },
-    [capability.width, closeExpandedMobileCard, expandedCardId, resetHoverIntentState, shouldIgnorePageInput]
+    [beginDesktopCollapse, capability.width, closeExpandedMobileCard, expandedCardId, resetHoverIntentState, shouldIgnorePageInput]
   );
 
   const onHoverEnterAvailable = useCallback(
@@ -582,11 +567,16 @@ export function LandingPage() {
       handoffCardIdRef.current = handoffToAnotherCard ? cardId : null;
 
       if (expandedCardId === cardId) {
-        setExpandedCardId(null);
-        setExpandedOverlayPlacement(null);
+        if (handoffToAnotherCard) {
+          markInstantCollapse(cardId);
+          beginDesktopCollapse(cardId, true);
+          return;
+        }
+
+        beginDesktopCollapse(cardId, false);
       }
     },
-    [clearHoverIntentTimer, expandedCardId, isDesktopHoverMode, shouldIgnorePageInput]
+    [beginDesktopCollapse, clearHoverIntentTimer, expandedCardId, isDesktopHoverMode, markInstantCollapse, shouldIgnorePageInput]
   );
 
   const onHoverEnterUnavailable = useCallback(
@@ -596,11 +586,14 @@ export function LandingPage() {
       }
 
       resetHoverIntentState();
-      setExpandedCardId(null);
-      setExpandedOverlayPlacement(null);
+      if (expandedCardId) {
+        beginDesktopCollapse(expandedCardId, true);
+      } else {
+        setExpandedSnapshotHeight(undefined);
+      }
       setUnavailableOverlayCardId(cardId);
     },
-    [isDesktopHoverMode, resetHoverIntentState, shouldIgnorePageInput]
+    [beginDesktopCollapse, expandedCardId, isDesktopHoverMode, resetHoverIntentState, shouldIgnorePageInput]
   );
 
   const onHoverLeaveUnavailable = useCallback(
@@ -627,15 +620,18 @@ export function LandingPage() {
 
       if (active) {
         resetHoverIntentState();
-        setExpandedCardId(null);
-        setExpandedOverlayPlacement(null);
+        if (expandedCardId) {
+          beginDesktopCollapse(expandedCardId, true);
+        } else {
+          setExpandedSnapshotHeight(undefined);
+        }
         setUnavailableOverlayCardId(cardId);
         return;
       }
 
       setUnavailableOverlayCardId((prev) => (prev === cardId ? null : prev));
     },
-    [capability.mode, capability.width, resetHoverIntentState, shouldIgnorePageInput]
+    [beginDesktopCollapse, capability.mode, capability.width, expandedCardId, resetHoverIntentState, shouldIgnorePageInput]
   );
 
   const failTransition = useCallback(
@@ -801,7 +797,10 @@ export function LandingPage() {
   const renderCard = (card: CatalogCard, index: number, columns: number) => {
     const isUnavailable = card.availability === 'unavailable';
     const isExpanded = !isUnavailable && expandedCardId === card.id;
-    const isDesktopExpanded = isExpanded && capability.width >= 768;
+    const isDesktopCollapsing =
+      capability.width >= 768 &&
+      desktopCollapsingCardId === card.id &&
+      !isExpanded;
 
     const tapModeOverlayVisible = capability.mode === 'TAP_MODE' || capability.width < 768;
     const showUnavailableOverlay = isUnavailable
@@ -816,19 +815,16 @@ export function LandingPage() {
       capability.width >= 768 &&
       hoverLockTargetId !== card.id;
 
-    if (isDesktopExpanded) {
-      const placeholderHeight = normalHeights[card.id];
-      return (
-        <article
-          className={styles.desktopExpandedPlaceholder}
-          style={placeholderHeight ? {height: `${placeholderHeight}px`} : undefined}
-          aria-hidden
-        />
-      );
-    }
+    const shouldFreezeHeight =
+      capability.width >= 768 &&
+      (card.id === expandedCardId || isDesktopCollapsing);
+
+    const frozenNormalHeight = normalHeights[card.id] ?? expandedSnapshotHeight;
+    const frozenHeight = isExpanded ? expandedSnapshotHeight ?? normalHeights[card.id] : frozenNormalHeight;
 
     return (
       <CatalogCardView
+        key={card.id}
         card={card}
         isExpanded={isExpanded}
         shouldDisableByHoverLock={shouldDisableByHoverLock}
@@ -838,14 +834,12 @@ export function LandingPage() {
         isTransitioning={transitioning}
         isMobile={capability.width < 768}
         transformOriginX={getOrigin(index, columns)}
-        normalHeightPx={
-          capability.width >= 768 && expandedCardId
-            ? normalHeights[card.id]
-            : undefined
-        }
+        normalHeightPx={shouldFreezeHeight ? frozenHeight : undefined}
+        keepDesktopExpandedLayer={isDesktopCollapsing}
         isHoverLockActive={isHoverLockActive}
         isHoverLockTarget={hoverLockTargetId === card.id}
         allowTabFocusWhileHoverLocked={keyboardModeActive}
+        forceInstantTransition={instantCollapseCardId === card.id}
         onExpand={onExpandCard}
         onCollapse={onCollapseCard}
         onHoverEnterAvailable={onHoverEnterAvailable}
@@ -862,55 +856,12 @@ export function LandingPage() {
     );
   };
 
-  const expandedDesktopCard =
-    expandedCardId && capability.width >= 768
-      ? cards.find((card) => card.id === expandedCardId && card.availability === 'available')
-      : undefined;
-
-  const expandedDesktopMeta = expandedCardId ? cardGridMeta.get(expandedCardId) : undefined;
-
-  const desktopOverlayCard =
-    expandedDesktopCard && expandedOverlayPlacement && expandedDesktopMeta ? (
-      <CatalogCardView
-        card={expandedDesktopCard}
-        isExpanded
-        shouldDisableByHoverLock={false}
-        showUnavailableOverlay={false}
-        interactionMode={capability.mode}
-        pageState={pageState}
-        isTransitioning={transitioning}
-        isMobile={false}
-        transformOriginX={getOrigin(expandedDesktopMeta.index, expandedDesktopMeta.columns)}
-        isHoverLockActive={isHoverLockActive}
-        isHoverLockTarget
-        allowTabFocusWhileHoverLocked={keyboardModeActive}
-        onExpand={onExpandCard}
-        onCollapse={onCollapseCard}
-        onHoverEnterAvailable={onHoverEnterAvailable}
-        onHoverLeaveAvailable={onHoverLeaveAvailable}
-        onHoverEnterUnavailable={onHoverEnterUnavailable}
-        onHoverLeaveUnavailable={onHoverLeaveUnavailable}
-        onUnavailableActiveChange={onUnavailableActiveChange}
-        onTriggerTestChoice={onTriggerTestChoice}
-        onTriggerBlogReadMore={onTriggerBlogReadMore}
-        onRegisterElement={() => {
-          // Overlay card is rendered out of flow. Normal-height measurement is done on in-grid cards.
-        }}
-        wrapperClassName={styles.desktopExpandedOverlayCard}
-        wrapperStyle={{
-          top: `${expandedOverlayPlacement.top}px`,
-          left: `${expandedOverlayPlacement.left}px`,
-          width: `${expandedOverlayPlacement.width}px`
-        }}
-      />
-    ) : null;
-
   return (
     <div className={styles.page}>
       <SiteHeader context="landing" capability={capability} disableInteractions={transitioning} />
 
       <main className={styles.container} ref={containerRef}>
-        <div className={styles.content} ref={contentRef}>
+        <div className={styles.content}>
           <section className={styles.heroInfo} aria-label="Hero">
             <h1 className={styles.heroTitle} data-display>
               {t('title')}
@@ -928,13 +879,7 @@ export function LandingPage() {
               aria-label="Hero cards"
             >
               {heroCards.map((card, index) => (
-                <div
-                  key={card.id}
-                  className={styles.cardSlot}
-                  ref={(element) => {
-                    slotElementsRef.current[card.id] = element;
-                  }}
-                >
+                <div key={card.id} className={styles.cardSlot}>
                   {renderCard(card, index, layout.heroColumns)}
                 </div>
               ))}
@@ -950,26 +895,11 @@ export function LandingPage() {
             aria-label="Main cards"
           >
             {mainCards.map((card, index) => (
-              <div
-                key={card.id}
-                className={styles.cardSlot}
-                ref={(element) => {
-                  slotElementsRef.current[card.id] = element;
-                }}
-              >
+              <div key={card.id} className={styles.cardSlot}>
                 {renderCard(card, index, layout.mainColumns)}
               </div>
             ))}
           </section>
-
-          <div
-            className={styles.desktopOverlayLayer}
-            ref={(element) => {
-              setDesktopOverlayHost(element);
-            }}
-          />
-
-          {desktopOverlayHost && desktopOverlayCard ? createPortal(desktopOverlayCard, desktopOverlayHost) : null}
         </div>
       </main>
 
