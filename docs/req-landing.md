@@ -155,20 +155,24 @@
 ### 4.5 Card Height Policy
 - Normal 카드는 콘텐츠 기반 compact(auto)를 기본으로 한다(MUST).
 - Normal 상태에서는 동일 row 내 equal-height stretch를 적용한다(MUST).
-- equal-height stretch 구현 시 row 컨테이너에 `align-items: start`를 사용하지 않는다(MUST).
+- row equal-height stretch를 깨뜨리는 축 정렬 설정을 금지한다(MUST).
 - 카드 shell은 Normal 상태에서 row stretch를 수용해야 한다(`min-height: 100%` 또는 동등 규칙)(MUST).
 - Expanded 높이 정책은 Desktop/Tablet에만 적용한다(MUST). Mobile은 1-column full-bleed 정책(Section 9.x)을 따른다.
 - Desktop/Tablet에서 카드 1개가 Expanded로 전환될 때 Expanded 카드만 콘텐츠 높이에 맞춰 유동적으로 증가한다(MUST).
 - Desktop/Tablet에서 같은 row의 비확장 카드는 Expanded 진입 시점의 Normal 높이 snapshot을 유지한다(MUST).
 - snapshot 해제는 Expanded 종료 직후 1회만 수행한다(MUST).
-- Desktop/Tablet Expanded는 동일 레이아웃 컨텍스트 내 out-of-flow(`position:absolute` 또는 동등 방식)로 전환하여 row track 재계산을 유발하지 않아야 한다(MUST).
-- Portal 기반 레이어 이동은 본 문서 기준에서 사용하지 않는다(MUST NOT).
-- Expanded 카드의 원래 슬롯은 transparent spacer 역할로 snapshot 높이를 유지해야 한다(MUST).
-- Expanded는 단일 DOM 인스턴스를 유지해야 하며, 언마운트/재마운트 없이 동일 DOM 이동으로 처리한다(MUST).
-- Normal+Expanded 이중 렌더(동일 카드 2개 가시화)를 금지한다(MUST).
-- 높이 snapshot은 `getBoundingClientRect().height` raw 값을 사용하며 반올림/올림/내림(`Math.round/ceil/floor`)을 금지한다(MUST).
+- Normal baseline(height snapshot) 재측정은 레이아웃 안정 구간에서만 수행해야 한다(MUST).
+- 다음 상태 중 하나라도 활성인 동안에는 baseline 재측정을 금지한다(MUST): Expanded 활성, handoff 정리 중, instant 종료 처리 중.
+- handoff 연쇄 구간에서 baseline이 중간 프레임 값으로 갱신되어 row 안정성이 깨지는 것을 금지한다(MUST).
+- 카드 A(Expanded)에서 카드 B로 연속 hover handoff가 발생해도, 카드 A의 Normal 복귀 과정 때문에 같은 row의 비대상 카드 하단에 추가 빈 공간이 생기면 안 된다(MUST).
+- handoff 직후부터 카드 B 전이 완료(settled, 7.4) 시점까지, 같은 row 비대상 카드의 하단 경계선(bottom edge)은 handoff 직전 Normal baseline 대비 `0px` 오차를 유지해야 한다(MUST).
+- 동일 구간에서 비대상 카드는 "카드 내부 콘텐츠와 카드 외곽 컨테이너 사이의 추가 하단 빈 영역"이 새로 생기지 않아야 한다(MUST).
+- Expanded 전환 방식은 같은 row 비확장 카드의 row track 재계산을 유발하지 않아야 한다(MUST).
+- 전환 중 동일 카드가 Normal/Expanded로 동시에 보이는 상태를 금지한다(MUST).
+- 높이 계산/보간은 시각적 오차로 row 안정성을 깨뜨리면 안 된다(MUST).
 - Expanded 진입/유지/해제 동안 비확장 row의 수직 위치 오차는 `0px`로 고정한다(MUST).
-- 비확장 카드 주변의 여백/빈 공간은 허용한다(MAY).
+- Expanded 카드가 다른 row 위를 시각적으로 덮는 것은 허용한다(MAY).
+- 같은 row 비확장 카드의 하단 추가 빈 공간 생성은 허용하지 않는다(MUST).
 - Expanded(Desktop/Tablet)는 fixed height를 사용하지 않는다(MUST).
 - 불필요한 하단 빈 공간 금지.
 
@@ -369,6 +373,9 @@
 ### 7.4 Determinism / Idempotency
 - 동일 전환 상관키의 중복 실행은 동일 결과 유지
 - 재렌더/재마운트가 발생해도 Q1/Q2 시작 문항 역전 금지
+- 전이 완료(settled) 기준은 시간(ms)이 아니라 상태 기준으로 정의한다(MUST):
+  - 목표 Card/Page 상태가 확정되고
+  - 동일 사용자 입력 없이 추가 상태 변형(확장/축소/오버레이/레이아웃 변화)이 더 이상 발생하지 않는 시점
 
 ### 7.5 HOVER_LOCK (Hover-capable Mode Only)
 - HOVER_LOCK은 hover-capable 모드에서만 활성화한다(MUST).
@@ -384,11 +391,15 @@
   - 비대상 카드가 키보드 모드로 포커스 가능 상태일 때 `aria-disabled=true`를 부여한다(MUST)
   - 비대상 Expanded 진입 차단
 - 해제:
-  - 대상 종료 시 즉시(0ms)
-  - 카드 간 handoff 즉시 허용
+  - 카드 간 handoff는 즉시 허용한다(MUST).
+  - `0ms` 즉시 종료는 handoff의 "직전 카드 이탈"에만 허용한다(MUST).
+  - handoff 외 종료는 8.1의 일반 복귀 모션 규칙을 따른다(MUST).
 - 키보드 모드 전환:
   - `Tab/Shift+Tab` 입력 감지 시 진입(MUST)
   - `pointermove/mousedown/wheel` 중 하나 감지 시 즉시 종료(MUST)
+- 이벤트 안전성:
+  - hover/handoff 판정 과정은 이벤트 객체 편차(`relatedTarget` 부재/비-Element/DOM 외부 대상)에서도 런타임 예외 없이 동작해야 한다(MUST).
+  - hover enter/leave 이벤트의 도착 순서가 역전되거나 지연되어도 최종 상태는 결정적으로 동일해야 한다(MUST).
 
 ## 8. Expanded Motion & Visual Contract
 ### 8.1 Core Motion
@@ -398,7 +409,12 @@
   - Phase B: title 상단 이동 (`280ms`)
   - Phase C: 상세 정보 reveal (`280ms`, stagger delay `40/100/160ms` 유지)
 - Normal←Expanded(일반 leave/close)도 동일 축/곡선을 사용해 대칭적으로 복귀한다(MUST).
+- Expanded→Normal 전환에서 카드 외곽 높이는 "일시적 과증가(spike)" 없이 목표 Normal 높이로 수렴해야 한다(MUST).
+- Expanded→Normal 전환 동안 카드 외곽 높이는 단조 감소 또는 정체(non-increasing)여야 하며, 전환 시작 시점 높이를 초과하는 프레임을 허용하지 않는다(MUST).
 - 단, handoff 경로에서는 직전 카드의 이탈 전이를 즉시 종료(0ms)하고 마지막 hover 대상만 전이를 수행한다(MUST).
+- `0ms` 전이는 handoff 시 "직전 카드 이탈" 경로에만 허용한다(MUST).
+- 다음 경로에서 `0ms` 전이를 금지한다(MUST): 동일 카드 일반 leave/close, 최종 hover 대상의 진입 전이, tap 기반 일반 전이.
+- 보조 잠금 상태(HOVER_LOCK 등)는 비대상 카드 반응 차단에만 사용하며, 대상 카드의 core motion을 무효화하면 안 된다(MUST).
 - 시퀀스 제약(MUST):
   - Phase A/B는 전환 시작 프레임에서 즉시 개시 가능
   - Phase C는 상세 블록이 활성 상태가 된 뒤에만 시작
@@ -407,12 +423,16 @@
   - Expanded 관련 transition curve는 `ease-in-out` 계열로 통일한다
   - spring/overshoot(탄성 튐) 효과를 금지한다
 - 내부 이중 박스 시각 금지.
+- Motion parameter 관리 원칙:
+  - Desktop/Mobile 공통으로 사용하는 duration/easing/stagger는 단일 규격에서 관리한다(MUST).
+  - 플랫폼별 예외는 본문에 명시된 항목(예: Mobile full-bleed 시간 범위)으로만 제한한다(MUST).
 
 ### 8.2 Expanded Trigger/Visual on `width >= 768`
 - hover-capable 모드:
   - available hover enter `120~200ms` 후 Expanded
   - hover leave로 카드 영역을 완전히 벗어나면 collapse 전이를 수행한다(MUST).
   - 카드 간 handoff 시 직전 카드의 pending/진행 transition은 즉시 취소하고 마지막 hover 카드만 Expanded로 진입한다(MUST).
+  - 카드 간 handoff(카드 A -> 카드 B)에서는 카드 A가 "중간 잔여 상태(scale 잔류/높이 잔류/빈 공간 잔류)" 없이 즉시 Normal 정착해야 하며, 해당 과정에서 같은 row 비대상 카드 하단 여백이 증가하면 안 된다(MUST).
 - tap 모드(hover-capability 미감지):
   - available 카드 탭 시 Expanded
   - 탭은 hover를 대체하는 트리거이며, 전환 비주얼 계약은 동일하게 적용한다(MUST)
@@ -672,16 +692,24 @@
 - unavailable 오버레이 노출 규칙:
   - hover-capable 모드: hover/focus 시에만 노출
   - tap 모드: 기본 상시 노출
-- Desktop HOVER_LOCK 중 비대상 카드 dim/backdrop 금지 + 비대상 카드 `tabIndex=-1`
+- Desktop HOVER_LOCK 검증:
+  - 비대상 카드 dim/backdrop 금지
+  - 키보드 모드가 아닐 때 비대상 카드 `tabIndex=-1`
+  - 키보드 모드에서는 비대상 카드 Tab 포커스 허용 + Enter/Space 활성화 차단
 - `width < 768` Expanded는 탭한 카드 위치 유지(top jump 금지), page scroll lock + 카드 내부 scroll 허용
 - `width < 768` Expanded header의 X 버튼은 title과 같은 행 우측 끝에 sticky로 유지
 - `width < 768` Expanded 외곽 높이 전이에서 spring/overshoot가 발생하지 않아야 하며, content-fit 범위를 초과하는 튐이 없어야 한다(MUST).
 - `width >= 768`에서 한 카드 Expanded 시 같은 row 비확장 카드 높이는 변하지 않아야 한다(MUST).
 - `width >= 768`에서 Expanded 진입/유지/해제 동안 비확장 row의 y-position 변화가 `0px`인지 확인한다(MUST).
-- `width >= 768`에서 Expanded 대상 카드는 단일 DOM 인스턴스로 유지되어야 하며 remount 없이 상태 전이를 보여야 한다(MUST).
+- `width >= 768`에서 Expanded 대상 카드는 전환 중 동일 카드가 이중 가시화되지 않고 연속 전이로 보여야 한다(MUST).
 - `width >= 768`에서 빠른 hover 이동(Row1→Row2, Same-row 포함) 시 마지막 hover 카드만 최종 Expanded여야 한다(MUST).
 - `width >= 768`에서 직전 hover 카드의 pending transition은 즉시 취소되어야 한다(MUST).
 - Row1→Row2 빠른 hover handoff 케이스는 최소 viewport `1024`와 `1280`에서 모두 검증한다(MUST).
+- Same-row handoff(카드1→카드2)에서 비대상 카드 하단 추가 빈 공간이 `0px`인지 검증한다(MUST).
+- Same-row handoff에서 handoff 직전 baseline 대비 전이 완료(settled, 7.4) 시점의 비대상 카드 bottom edge 오차가 `0px`인지 검증한다(MUST).
+- Expanded→Normal 전환 구간에서 대상 카드 외곽 높이가 전환 시작 높이보다 커지는 프레임이 `0건`인지 검증한다(MUST).
+- rapid hover sweep(연속 hover in/out, row 교차 이동)에서 uncaught runtime error가 0건인지 검증한다(MUST).
+- same-card hover in/out에서는 core motion이 유지되고(0ms 강제 금지), handoff 경로에서만 직전 카드 즉시 종료가 적용되는지 검증한다(MUST).
 
 #### Transition / Test Handshake
 - Playwright에서 랜딩 CTA(테스트/블로그) 및 GNB 링크 진입 시 locale 중복 URL(`/en/en/...`, `/kr/kr/...`)이 0건임을 확인
@@ -741,3 +769,9 @@
 | Expanded opacity | 1.0 fixed |
 | Mobile full-bleed transition | 220~360ms |
 | Reduced motion transition | 150~220ms |
+
+## Appendix D. Implementation Notes (Non-Normative)
+- 본 부록은 권장 구현 힌트이며, 본문(MUST/SHOULD/MAY)보다 우선하지 않는다.
+- same-row 안정성 확보를 위해 Expanded/Collapse 동안 원래 카드 슬롯의 기하(높이/위치)를 안정적으로 유지하는 방식이 유리하다.
+- 레이어 이동/좌표계 분리 방식(예: 별도 루트 사용)은 동기화 복잡도를 높일 수 있으므로 주의한다.
+- 높이 실측 기반 접근을 사용할 경우 과도한 반올림/보정은 1px 급 점프를 유발할 수 있으므로 시각 안정성을 우선한다.
