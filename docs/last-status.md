@@ -69,3 +69,39 @@
 ## Notes (TODO only when uncertain)
 - TODO: 적용된 롤백 기준 커밋 해시가 확정되면 이 문서에 갱신.
 - TODO: `package.json`에 Node/npm 엔진 계약이 추가되면 이 문서에 반영.
+
+## Post-Reset Delta (2026-03-03)
+
+### Operator Note (Important for next LLM agent)
+- 이 문서(`docs/last-status.md`) 내용은 세션 중 일부 롤백/수정 이력이 있었고, 본 섹션은 그 이후의 최신 보정 기록이다.
+- 다음 세션 에이전트는 본 섹션을 기준으로 현재 워크트리 상태를 해석한다.
+- 특히 "문서도 롤백되었을 수 있음"을 전제로, 아래 Delta를 우선 확인한 뒤 구현/정리 작업을 이어간다.
+
+### Reset Execution Summary
+- 이번 리셋은 **전체 삭제가 아닌 선택 삭제(partial reset)** 로 수행되었다.
+- `docs` 폴더 하위 파일은 운영자 지시에 따라 **전부 보존**했다(삭제 0건).
+- 코드 영역에서는 오류 연관 구현물(`src/features/**`)과 부가 유틸 일부를 제거하고, KEEP 엔트리 페이지는 placeholder 골격으로 정리했다.
+
+### KEEP_REUSE Added in this reset
+- `docs/last-status.md`: 다음 세션 인수인계를 위한 스냅샷/Delta 기록.
+- `docs/requirements.md`: SSOT 보조 전역 제약 참고 문서로 보존.
+
+### Deleted by Error Mapping (Error 1~9)
+- Error 1/2/2-1/3/4/5/6/7 연관 삭제:
+  - `src/features/landing/**`
+- Error 8/9 연관 삭제:
+  - `src/features/gnb/**`
+- Error 7/8/9 및 전환 연관 하위 의존 삭제:
+  - `src/features/blog/**`
+  - `src/features/history/**`
+  - `src/features/test/**`
+  - `src/features/telemetry/**`
+  - `src/features/ui/theme/**`
+- 재구현 시 재정의 예정 유틸 삭제:
+  - `src/lib/format/number.ts`
+  - `src/lib/routes/locale-switch.ts`
+
+### Next Reimplementation Boundaries (carry-over)
+- `src/app/[locale]/**`는 현재 placeholder만 유지한다. 기능 로직 재도입은 SSOT 섹션 단위로 진행한다.
+- 라우팅/i18n/404/typed-routes 골격(`src/proxy.ts`, `src/i18n/**`, `src/lib/routes/route-builder.ts`)은 유지하고, 비기능적인 구조 안정성을 우선한다.
+- 리셋 범위에서는 테스트/이력/텔레메트리/카드 인터랙션 구현을 복원하지 않는다.

@@ -1,7 +1,6 @@
 import {notFound} from 'next/navigation';
 
 import {isLocale} from '@/config/site';
-import {buildLocalizedPath, RouteBuilder} from '@/lib/routes/route-builder';
 
 export default async function HistoryPage({
   params
@@ -15,10 +14,9 @@ export default async function HistoryPage({
   }
 
   return (
-    <main>
+    <main className="placeholder-shell">
       <h1>History Placeholder</h1>
-      <p>This page is intentionally minimal after reset.</p>
-      <a href={buildLocalizedPath(RouteBuilder.landing(), locale)}>Back to landing</a>
+      <p>{`Locale: ${locale}`}</p>
     </main>
   );
 }

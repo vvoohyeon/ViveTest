@@ -5,7 +5,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'VibeTest',
-  description: 'Reset baseline app'
+  description: 'Reset baseline placeholder'
 };
 
 export default function RootLayout({children}: {children: ReactNode}) {

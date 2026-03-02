@@ -1,6 +1,6 @@
-import {isLocale} from '@/config/site';
-import {buildLocalizedPath, RouteBuilder} from '@/lib/routes/route-builder';
 import {notFound} from 'next/navigation';
+
+import {isLocale} from '@/config/site';
 
 export default async function BlogPage({
   params
@@ -13,13 +13,10 @@ export default async function BlogPage({
     notFound();
   }
 
-  const routePath = buildLocalizedPath(RouteBuilder.blog(), locale);
-
   return (
-    <main>
+    <main className="placeholder-shell">
       <h1>Blog Placeholder</h1>
-      <p>Current route: {routePath}</p>
-      <a href={buildLocalizedPath(RouteBuilder.landing(), locale)}>Back to landing</a>
+      <p>{`Locale: ${locale}`}</p>
     </main>
   );
 }

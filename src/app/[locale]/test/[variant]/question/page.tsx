@@ -1,7 +1,6 @@
 import {notFound} from 'next/navigation';
 
 import {isLocale} from '@/config/site';
-import {buildLocalizedPath, RouteBuilder} from '@/lib/routes/route-builder';
 
 export default async function QuestionPage({
   params
@@ -14,14 +13,15 @@ export default async function QuestionPage({
     notFound();
   }
 
-  const routePath = buildLocalizedPath(RouteBuilder.question(variant), locale);
+  if (!/^[a-z0-9-]+$/u.test(variant)) {
+    notFound();
+  }
 
   return (
-    <main>
+    <main className="placeholder-shell">
       <h1>Question Placeholder</h1>
-      <p>Variant: {variant}</p>
-      <p>Current route: {routePath}</p>
-      <a href={buildLocalizedPath(RouteBuilder.landing(), locale)}>Back to landing</a>
+      <p>{`Locale: ${locale}`}</p>
+      <p>{`Variant: ${variant}`}</p>
     </main>
   );
 }
