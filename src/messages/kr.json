@@ -1,1 +1,57 @@
-{}
+{
+  "gnb": {
+    "home": "홈",
+    "history": "이력",
+    "blog": "블로그",
+    "settings": "설정",
+    "language": "언어",
+    "theme": "테마",
+    "light": "라이트",
+    "dark": "다크",
+    "menu": "메뉴",
+    "menuAria": "메뉴 열기",
+    "closeMenuAria": "메뉴 닫기",
+    "close": "닫기",
+    "back": "뒤로",
+    "backAria": "뒤로 가기",
+    "timerPlaceholder": "00:00"
+  },
+  "landing": {
+    "heroTitle": "한 번의 흐름으로 내 작업 리듬 찾기",
+    "heroBody": "이용 가능한 테스트와 블로그를 하나의 카탈로그에서 확인합니다. 카드를 확장하고 액션을 선택하면 결정적인 전환으로 목적지로 이동합니다.",
+    "comingSoon": "출시 예정",
+    "closeExpandedAria": "확장 카드 닫기",
+    "close": "닫기",
+    "metaEstimated": "예상 시간",
+    "metaShares": "공유 수",
+    "metaAttempts": "누적 참여",
+    "metaReadTime": "읽기 시간",
+    "metaViews": "조회 수",
+    "readMore": "더 읽기"
+  },
+  "test": {
+    "progress": "총 {total}문항 중 {current}번",
+    "prev": "이전",
+    "next": "다음",
+    "submit": "제출",
+    "resultLabel": "최종 결과",
+    "resultBody": "최종 제출 시점의 답변(수정된 1번 포함)으로 결과가 계산됩니다.",
+    "goHome": "랜딩으로",
+    "goHistory": "이력 보기",
+    "instructionTitle": "시작 전 안내",
+    "instructionBody": "각 문항에서 하나를 선택하세요. 제출 전에는 이전 문항으로 돌아가 답변을 수정할 수 있습니다.",
+    "start": "시작"
+  },
+  "blog": {
+    "selected": "선택된 글",
+    "allArticles": "전체 글"
+  },
+  "history": {
+    "title": "로컬 결과 이력",
+    "body": "완료된 실행은 각각 독립 항목으로 저장됩니다(최신순, 최대 50개).",
+    "clearAll": "전체 삭제",
+    "goHome": "홈으로",
+    "open": "열기",
+    "delete": "삭제"
+  }
+}

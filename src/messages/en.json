@@ -1,1 +1,57 @@
-{}
+{
+  "gnb": {
+    "home": "Home",
+    "history": "History",
+    "blog": "Blog",
+    "settings": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "menu": "Menu",
+    "menuAria": "Open menu",
+    "closeMenuAria": "Close menu",
+    "close": "Close",
+    "back": "Back",
+    "backAria": "Go back",
+    "timerPlaceholder": "00:00"
+  },
+  "landing": {
+    "heroTitle": "Find your working rhythm in one pass",
+    "heroBody": "Available tests and engineering blog notes live in a single catalog. Expand a card, choose an action, and move forward with one deterministic handoff.",
+    "comingSoon": "Coming Soon",
+    "closeExpandedAria": "Close expanded card",
+    "close": "Close",
+    "metaEstimated": "Est. time",
+    "metaShares": "Shares",
+    "metaAttempts": "Total attempts",
+    "metaReadTime": "Read time",
+    "metaViews": "Views",
+    "readMore": "Read more"
+  },
+  "test": {
+    "progress": "Question {current} of {total}",
+    "prev": "Previous",
+    "next": "Next",
+    "submit": "Submit",
+    "resultLabel": "Final Result",
+    "resultBody": "Result is computed from your final answers, including any updated Q1 choice.",
+    "goHome": "Back to landing",
+    "goHistory": "Open history",
+    "instructionTitle": "Before we start",
+    "instructionBody": "Read each question and choose one answer. You can revisit and revise earlier answers before final submit.",
+    "start": "Start"
+  },
+  "blog": {
+    "selected": "Selected article",
+    "allArticles": "All articles"
+  },
+  "history": {
+    "title": "Local Result History",
+    "body": "Each completed run is stored as an independent entry (newest first, max 50).",
+    "clearAll": "Clear all",
+    "goHome": "Go home",
+    "open": "Open",
+    "delete": "Delete"
+  }
+}
