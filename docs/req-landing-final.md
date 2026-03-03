@@ -270,6 +270,8 @@
 - 같은 row equal-height 보정 잔여 높이는 `tags` 상단에서만 허용한다.
 - Desktop Normal에서 잔여 높이 보정은 같은 row의 더 높은 카드에 맞추는 불가피한 경우에만 허용한다.
 - optional tags 값이 없어도 `tags` 슬롯 1줄 높이는 유지해야 한다.
+- Desktop/Tablet Normal settled에서 row 보정이 필요하지 않은 카드는 `thumbnail` 다음 가시 슬롯이 즉시 `tags`여야 하며, 두 슬롯 사이 빈 구간 생성을 금지한다.
+- Desktop/Tablet Normal settled에서 row 보정이 필요한 카드만 `tags` 상단 보정 공간을 가질 수 있다.
 - Expanded 높이 정책은 Desktop/Tablet에만 적용하고 Mobile은 full-bleed 규칙을 따른다.
 - Desktop/Tablet Expanded는 fixed height를 금지한다.
 - Desktop Expanded settled에서 카드 높이는 시각 최외곽 기준 content-fit이어야 하며 하단 잔여 공간을 허용하지 않는다.
@@ -277,9 +279,11 @@
 - snapshot 해제는 Expanded 종료 직후 1회만 허용한다.
 - baseline(height snapshot) 재측정은 레이아웃 안정 구간에서만 허용한다.
 - Expanded 활성, handoff 정리 중, instant 종료 처리 중에는 baseline 재측정을 금지한다.
-- Expanded 활성 또는 handoff 정리 중 비대상 row의 top/bottom 오차는 snapshot 대비 `0px`여야 한다.
+- Expanded 활성 또는 handoff 정리 중 활성 카드 이외 모든 카드의 top/bottom/outer height 오차는 snapshot 대비 `0px`여야 한다.
+- Row 1에서 성립하는 비대상 카드 안정 규칙(top/bottom/outer height 불변)은 Desktop/Tablet의 모든 row(row 2+)에 동일하게 적용해야 한다.
 - Expanded 활성 중 layout 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤에만 baseline/배치를 재측정할 수 있다.
 - handoff 직후부터 대상 카드 settled 시점까지 비대상 카드 bottom edge 오차는 baseline 대비 `0px`여야 한다.
+- handoff(row A→B)에서 row A snapshot은 row B settled 직후에만 해제할 수 있다.
 - 전환 중 동일 카드가 Normal/Expanded로 동시에 보이면 안 된다.
 - Expanded 카드가 다른 row 위를 시각적으로 덮는 것은 허용한다.
 - same-row 비확장 카드 하단 추가 빈 공간 생성은 금지한다.
@@ -289,8 +293,11 @@
 1. Automated: Desktop Normal settled에서 same-row 카드 하단 기준선 오차 `0px`를 검증한다.
 2. Automated: Expanded 전환 중 dual-visibility(동일 카드 이중 가시화) `0건`을 검증한다.
 3. Automated: 초기 렌더/미세 리사이즈 후 Desktop Normal 하단 정렬 규칙이 동일하게 유지되는지 검증한다.
-4. Automated: Expanded/handoff 활성 중 모든 비대상 row의 top/bottom 오차 `0px`를 검증한다.
-5. Automated: Expanded 활성 중 폭 변경 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다.
+4. Automated: Desktop/Tablet Normal settled에서 row 보정 불필요 카드의 `thumbnail -> tags` 빈 구간 생성 `0건`을 검증한다.
+5. Automated: Expanded/handoff 활성 중 모든 비대상 카드의 top/bottom/outer height 오차 `0px`를 검증한다.
+6. Automated: row 1과 row 2+에서 동일한 비대상 카드 안정 규칙이 유지되는지 검증한다.
+7. Automated: Expanded 활성 중 폭 변경 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다.
+8. Automated: handoff(row A→B)에서 row A snapshot 해제가 row B settled 이후에만 발생하는지 검증한다.
 
 ### 6.8 Normal Thumbnail & Expanded Slot Semantics
 **Rule**: Normal 썸네일 규격과 Expanded 타입별 슬롯 의미론은 아래 규칙으로 고정한다.
@@ -453,7 +460,10 @@
 - Desktop/Tablet Expanded `scale=1.1`은 **Card Shell 전체**에 적용
 - 내부 콘텐츠만 확대하는 구현 금지
 - Expanded 전 구간(진입/유지/해제)에서 title/body/CTA/meta crop 0건
-- transform-origin: 좌측 끝 `0% 0%`, 우측 끝 `100% 0%`, 그 외 `50% 0%`
+- transform-origin 판정은 Expanded 시작 시점의 settled row 경계를 기준으로 수행해야 한다.
+- transform-origin: 해당 row의 첫 카드 `0% 0%`, 마지막 카드 `100% 0%`, 그 외 `50% 0%`.
+- row에 카드가 1개인 경우 해당 카드는 row 첫 카드로 간주해 `0% 0%`를 적용한다.
+- row 경계 판정에 고정 인덱스(예: 특정 순번 카드)를 사용하면 안 된다.
 - Expanded 카드 opacity는 항상 `1.0`
 - Desktop/Tablet에서 Expanded 카드는 GNB와 Settings 레이어를 제외한 카드 레이어 중 최상위여야 하며, 인접 카드에 의해 가려지면 안 된다.
 - 다중 Expanded는 금지하며, 활성 Expanded 카드는 항상 1개여야 한다.
@@ -461,6 +471,8 @@
 **Verification**:
 1. Automated: 스크린샷 기반으로 shell 스케일 적용과 crop 0건을 검증한다.
 2. Automated: Desktop/Tablet에서 인접 카드 가림 현상 `0건`과 Expanded hit-target 우선순위를 검증한다.
+3. Automated: Desktop/Tablet의 Wide/Medium/Narrow 및 hero/main 연속 배치에서 row-edge transform-origin 판정 정확성을 검증한다.
+4. Automated: row 단일 카드 케이스에서 transform-origin `0% 0%` 적용을 검증한다.
 
 ### 8.5 Mobile Expanded (`width<768`)
 **Rule**: Mobile Expanded는 in-flow full-bleed와 닫기/스크롤/레이어 규칙을 준수해야 한다.
@@ -469,10 +481,13 @@
 - 단일 pointer/touch 시퀀스에서 동일 카드 상태 전이는 최대 1회만 허용한다.
 - collapsed 카드의 유효 탭으로 OPENING이 시작된 동일 시퀀스에서 즉시 CLOSING으로 역전되는 전이를 금지한다.
 - Expanded는 in-flow 위치를 유지하며 top jump를 금지한다.
+- Expanded 시작부터 닫힘 완료까지 활성 카드 상단 y-anchor(뷰포트 기준)는 편차 없이 유지되어야 한다.
 - Expanded 헤더는 `title + X` 구조를 유지한다.
 - 헤더(`title + X`)는 카드 최상단 첫 행에 위치해야 한다.
 - title은 줄바꿈 허용, truncate/ellipsis 금지, top align 유지.
-- X 버튼은 헤더 우측 끝 고정 + sticky 유지.
+- X 버튼은 아이콘 `X` 단일 표현으로 고정하며 헤더 우측 끝에 sticky로 유지한다.
+- X 버튼은 OPENING 시작 시점부터 CLOSING 종료 직전까지 항상 시각 노출되어야 한다.
+- CLOSING 동안 X 버튼은 시각적으로 유지하되 비활성 상태여야 한다.
 - 닫기 경로는 `X 버튼` 또는 `카드 외부(backdrop) 탭`만 허용한다.
 - 닫힘 후 Expanded 직전 scroll/위치/형태로 자연 복귀해야 한다.
 - Expanded 진입 직전 Normal 카드 외곽 높이 snapshot을 기록하고, 닫힘 완료 시 해당 snapshot 높이로 `0px` 오차 복귀를 강제한다.
@@ -498,6 +513,7 @@
 - Mobile Expanded 내부 상호작용 우선순위는 `CTA(응답 A/B, Read more) > X 버튼 > 카드 외부 영역`으로 고정한다.
 - Mobile Expanded 내부 비-CTA 영역 탭은 no-op이어야 하며, 닫기/전환을 유발하면 안 된다.
 - Mobile tap 판정은 보수적으로 처리하며, 미세 이동이 감지된 입력은 scroll gesture로 분류해 카드 open/close 전이를 시작하면 안 된다.
+- 위 y-anchor 규칙은 카드 인덱스/스크롤 위치/콘텐츠 길이에 따른 예외를 허용하지 않는다.
 
 **Verification**:
 1. Automated: 모바일에서 닫기 경로(X/backdrop)와 자연 복귀를 검증한다.
@@ -509,6 +525,9 @@
 7. Automated: OPENING 중 닫기 입력이 OPEN settled 직후 queue-close 1회로만 처리되는지 검증한다.
 8. Automated: 모바일 close 완료 시 pre-entry snapshot 높이 복원 오차 `0px`를 검증한다.
 9. Automated: 미세 이동 gesture가 scroll로 분류되어 카드 open/close 전이를 시작하지 않는지 검증한다.
+10. Automated: 카드 인덱스 전 구간에서 X 버튼의 시각 노출 상태를 OPENING/OPEN/CLOSING 전 구간으로 검증한다.
+11. Automated: CLOSING 동안 X 버튼 비활성 상태와 추가 닫기 입력 무시를 검증한다.
+12. Automated: 카드 인덱스/스크롤 위치/콘텐츠 길이 조합에서 활성 카드 상단 y-anchor(뷰포트 기준) 편차 `0px`를 검증한다.
 
 ### 8.6 Transition Start Trigger (Landing→Destination)
 **Rule**: 라우팅 전환 시작은 Expanded의 유효 CTA 활성화 시점에만 허용한다.
@@ -772,6 +791,10 @@
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
 8. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).
 9. Privacy/Consent: `UNKNOWN/OPTED_OUT` 전송 `0건`, `OPTED_IN`에서만 전송, 랜덤 소스 불가 환경 전송 차단 PASS (Section 12, 15).
+10. Normal Slot Compaction: Desktop/Tablet Normal settled에서 row 보정 불필요 카드의 `thumbnail -> tags` 빈 구간 생성 `0건` PASS (Section 6.7).
+11. Row-edge Origin: Desktop/Tablet Wide/Medium/Narrow 및 hero/main 연속 배치에서 row-edge transform-origin 판정 정확성 PASS (Section 6.2, 8.4).
+12. Row Stability Consistency: row 1과 row 2+에서 비대상 카드 top/bottom/outer height 오차 `0px`, handoff의 row A snapshot 해제 시점(row B settled 이후) PASS (Section 6.7, 8.2, 8.3).
+13. Mobile Anchor & Close Control: 카드 인덱스/스크롤 위치/콘텐츠 길이 조합에서 활성 카드 상단 y-anchor(뷰포트 기준) 편차 `0px`, X 버튼 전 구간 노출 및 CLOSING 비활성 PASS (Section 8.5, 9.1).
 
 ---
 
