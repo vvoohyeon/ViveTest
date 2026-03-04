@@ -25,6 +25,7 @@
 - [ ] Enforce GNB context contracts end-to-end (Desktop settings open/close fallback + trigger-layer gap `0px` + focus-out close `<=1 frame`, Mobile overlay/backdrop/scroll lock, Mobile Test back fallback, History=Blog context) (`§6.4`, `§10.2`, `§14.3-3`, `§14.3-7`).
 - [ ] Enforce card slot order and Expanded slot removal contract (`§6.5`, `§6.8`).
 - [ ] Enforce text/wrap/truncate/clamp policy by slot (`§6.6`).
+- [ ] Enforce subtitle-only single-line truncation with visible ellipsis and block overflow-driven inline-size contamination (card/row width + sibling-slot width unchanged) (`§6.6`, `§6.8`, `§14.3-4`).
 - [ ] Enforce Expanded meta formatting/localization contracts (no abbreviated counts, locale switch + default fallback correctness) (`§6.8`).
 - [ ] Enforce theme coverage on Landing/Test/Blog/History for both Normal/Expanded, light/dark matrix quality gate (`§6.9`, `§14.3-8`).
 
@@ -34,6 +35,7 @@
 - [ ] Apply and verify `thumbnail -> tags` two-level spacing model with `base_gap + comp_gap` measurement (`§6.7`, `§14.3-10`, `§14.3-11`).
 - [ ] Keep `base spacing` non-zero across Desktop/Tablet/Mobile and aligned with title-subtitle-thumbnail rhythm (`§6.7`, `§14.3-10`).
 - [ ] Allow compensation spacing only on cards requiring row equalization (`§6.7`).
+- [ ] For Desktop/Tablet settled rows, keep non-comp cards at `comp_gap=0` with extra residual `thumbnail -> tags` gap `0` (`§6.7`, `§14.3-10`).
 - [ ] Determine compensation-need using row-local Normal natural height comparison (row-index independent) (`§6.7`, `§14.3-11`).
 - [ ] Preserve row1/row2+ non-target stability consistency in Expanded/handoff paths (`§6.7`, `§14.3-11`).
 - [ ] Enforce empty-tags contract: tags slot height is preserved by container metrics while rendered chip count remains `0` (no placeholder/blank chip) (`§6.7`, `§13.1`, `§14.3-10`).
@@ -46,8 +48,9 @@
 - [ ] Implement keyboard sequential expansion override across all viewports (`§7.6`).
 - [ ] Apply capability gate split for hover-capable vs tap mode (`§8.1`).
 - [ ] Implement Desktop/Tablet trigger timing, cancel, and handoff behavior with single global timer + intent token + execution-time target revalidation (`§8.2`, `§14.3-13`).
+- [ ] Classify handoff only on entering another available card; unavailable entry must never be treated as handoff (`§8.2`, `§14.3-13`).
 - [ ] Enforce hover-out collapse independence from other-card hover, using live boundary decision and 100~180ms close window (`§8.2`, `§14.3-13`).
-- [ ] Keep core motion phase/timing symmetry and no forbidden 0ms paths outside handoff exception (`§8.3`).
+- [ ] Keep core motion phase/timing symmetry and no forbidden 0ms paths outside handoff exception; enforce handoff source `0ms` + target standard motion split for pointer and keyboard paths (`§7.6`, `§8.3`, `§14.3-13`).
 - [ ] Enforce shell-scale/readability/origin policy including single-card-row origin (`§8.4`).
 
 ## 5. Mobile Expanded Lifecycle
@@ -57,6 +60,7 @@
 - [ ] Keep X visible in OPENING/OPEN/CLOSING and disabled during CLOSING (`§8.5`).
 - [ ] Enforce viewport y-anchor zero drift across index/scroll/content combinations (`§8.5`).
 - [ ] Enforce title baseline zero drift at Mobile Expanded settled state (`§8.5`, `§14.3-14`).
+- [ ] Enforce mobile pre-open snapshot lifecycle (sequence당 1회 생성, 재기록 금지) and allow `NORMAL` terminal only after pre-open height restore `0px` completion (`§8.5`, `§14.3-14`).
 - [ ] Keep CTA priority over close/outside and non-CTA internal no-op (`§8.5`).
 
 ## 6. Accessibility / Responsive / Performance
@@ -84,6 +88,9 @@
 ## 8. Release Blocking Matrix Traceability
 - [ ] Map implementation checks to all release-blocking items 1~19 and fail release when any blocker lacks at least one automated assertion mapping (`§14.3`, `§14.4`).
 - [ ] Explicitly include new blockers: normal spacing model, row consistency, underfilled-row alignment, hover-out collapse independence, mobile title baseline stability (`§14.3-10`~`§14.3-14`).
+- [ ] Ensure blocker #4 explicitly includes overflow-driven inline-size contamination `0건` checks (card/row + sibling slots) (`§14.3-4`).
+- [ ] Ensure blocker #13 includes available-only handoff classification and source `0ms`/target standard motion split (`§14.3-13`, `§7.6`, `§8.2`, `§8.3`).
+- [ ] Ensure blocker #14 includes `NORMAL` terminal gating by pre-open height restoration completion (`§14.3-14`, `§8.5`).
 
 ## 9. Verification Gate
 - [ ] Keep release gate contract fixed: `qa:gate` includes minimum `build && test && test:e2e:smoke`, and release pass requires consecutive 3/3 (`§14.1`).
