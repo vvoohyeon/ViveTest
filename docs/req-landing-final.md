@@ -59,9 +59,34 @@
 - underfilled 마지막 row 정렬/예외 정책 변경 시 Section 6.2, 14.3을 동기화한다.
 - Desktop hover-out collapse 경계/유예 정책 변경 시 Section 8.2, 14.3을 동기화한다.
 - Mobile Expanded 내부 title baseline 정책 변경 시 Section 8.5, 14.3을 동기화한다.
+- 전환 종료 이벤트(`complete|fail|cancel`) 시점/상호배타/필수필드 변경 시 Section 8.6, 12.1, 12.2, 13.3, 13.6, 14.3을 동기화한다.
+- fail/cancel rollback cleanup set 변경 시 Section 13.3, 13.6, 14.3을 동기화한다.
+- missing-slot(tags empty) 정책 변경 시 Section 6.7, 13.1, 14.3을 동기화한다.
+- `final_submit` payload 스키마 변경 시 Section 12.2, 12.3, 13.7, 14.3을 동기화한다.
+- Desktop settings 열기/닫기/gap 정책 변경 시 Section 6.4, 10.2, 14.3을 동기화한다.
+- return restoration(`scrollY`) 정책 변경 시 Section 13.8, 14.3을 동기화한다.
 
 ### 3.3 Ambiguity Handling
 **Rule**: 구현자가 단일 해석을 확정할 수 없으면 릴리스를 멈추고 해당 섹션에 정책 옵션/선택 근거를 추가한 뒤 확정한다.
+
+### 3.3.1 Ambiguity Registry (Release-stop)
+**Rule**: 아래 항목은 단일 해석이 보장되지 않으면 릴리스를 중단하고 옵션 비교/선택 근거를 문서에 고정한다.
+
+1. AR-001 Transition Terminal Timing
+- Option A: `transition_complete`를 라우팅 호출 직후 허용
+- Option B: `transition_complete`를 destination ready(목적지 진입 + 목적지 컨텍스트 확정) 이후에만 허용
+- Selected: Option B
+- Reason: `start:1 -> terminal:1` 상호배타 종료와 rollback 경계를 동시에 결정적으로 고정한다.
+
+2. AR-002 Empty Tags Slot Policy
+- Option A: 빈 chip/placeholder로 1줄 높이를 유지
+- Option B: tags container 자체 높이로 1줄 유지, chip은 0개 렌더
+- Selected: Option B
+- Reason: `빈 chip 강제 렌더 금지(Section 13.1)`와 `tags 슬롯 높이 유지(Section 6.7)`를 동시에 충족한다.
+
+**Verification**:
+1. Manual: 모호성 발생 시 Option/Selected/Reason 3요소 기록 여부를 확인한다.
+2. Automated: AR 항목 미기록 상태에서 관련 정책 변경이 있으면 문서 게이트를 FAIL 처리한다.
 
 ## 4. Global Invariants (Absolute)
 
@@ -191,6 +216,9 @@
 - Desktop 설정 레이어: Tab/Shift+Tab 기반 focus out 닫힘은 즉시 적용한다.
 - Desktop 설정 레이어: 트리거와 레이어 사이 hover gap을 금지한다.
 - Desktop 설정 레이어: hovered-out 방지용 닫힘 유예 `100~180ms`는 hover 경로에만 허용한다.
+- Desktop 설정 레이어: 트리거와 레이어 사이 실효 hover gap은 `0px`여야 한다.
+- Desktop 설정 레이어: focus out 닫힘 허용 지연은 `<=1 frame`으로 고정한다.
+- Desktop 설정 레이어: `Esc`/outside click/focus out 경로에는 hover 유예를 적용하면 안 된다.
 - Mobile Landing: CI + 햄버거, 햄버거는 우측 끝(Mobile `16px` inset) 고정.
 - Mobile Landing: fixed overlay + backdrop, backdrop은 메뉴 패널 외 전체 viewport를 dimmed 처리한다.
 - Mobile Landing/Blog/History: 햄버거 확장 패널은 solid 표면으로 표시하고, 패널 외부 영역은 불투명 dim backdrop으로 처리한다.
@@ -213,6 +241,8 @@
 1. Automated: Playwright에서 Desktop hover open/fallback open, Esc/outside/focus out close를 검증한다.
 2. Automated: Playwright에서 Mobile overlay/backdrop/scroll lock/unlock 타이밍을 검증한다.
 3. Automated: Mobile Test Back의 history fallback 동작을 검증한다.
+4. Automated: Desktop 설정 트리거↔레이어 경계 이동에서 hover gap crossing으로 닫힘이 발생하지 않음을 검증한다.
+5. Automated: Desktop focus out 닫힘 지연이 `<=1 frame`이며 hover 유예가 적용되지 않음을 검증한다.
 
 ### 6.5 Card Slot Order Contract
 **Rule**: 슬롯 순서와 존재 규칙은 고정한다.
@@ -257,6 +287,10 @@
 - `보정 간격`은 same-row equal-height 보정이 필요한 카드에서만 허용한다.
 - `보정 필요` 판정은 해당 row의 Normal 자연 높이 비교 결과를 기준으로 수행해야 하며, row index(Row 1/Row 2+)에 따라 판정 규칙이 달라지면 안 된다.
 - Desktop/Tablet Normal settled에서 row 보정이 불필요한 카드는 `보정 간격=0`이어야 하며, 보정이 필요한 카드만 `tags` 상단 보정 공간을 가질 수 있다.
+- `base_gap`은 Normal 상태의 `thumbnail 하단`과 `tags container 상단` 시각 거리로 정의한다.
+- `comp_gap`은 `actual_gap - base_gap`으로 정의하며, row equal-height 보정 대상 카드에서만 `comp_gap>0`을 허용한다.
+- row 보정 불필요 카드의 `comp_gap`은 `0px`여야 한다.
+- tags 값이 비어 있는 경우에도 tags 슬롯 1줄 높이는 container 규격으로 유지해야 하며, placeholder chip/공백 chip/pseudo spacer를 사용하면 안 된다.
 - Expanded 높이 정책은 Desktop/Tablet에만 적용하고 Mobile은 full-bleed 규칙을 따른다.
 - Desktop/Tablet Expanded는 fixed height를 금지한다.
 - Desktop Expanded settled에서 카드 높이는 시각 최외곽 기준 content-fit이어야 하며 하단 잔여 공간을 허용하지 않는다.
@@ -284,6 +318,9 @@
 8. Automated: handoff(row A→B)에서 row A snapshot 해제가 row B settled 이후에만 발생하는지 검증한다.
 9. Automated: Desktop/Tablet/Mobile에서 `thumbnail -> tags` 기본 간격이 비-0으로 유지되고, `title -> subtitle -> thumbnail` 기본 간격과 동일 기준인지 검증한다.
 10. Automated: row 1과 row 2+에서 `보정 필요` 판정이 동일 규칙으로 동작하는지 검증한다.
+11. Automated: breakpoint별 `base_gap>0`을 computed 거리 기준으로 검증한다.
+12. Automated: row 보정 불필요 카드의 `comp_gap=0`을 검증한다.
+13. Automated: empty-tags fixture에서 chip 개수 `0`과 tags 슬롯 높이 유지를 동시에 검증한다.
 
 ### 6.8 Normal Thumbnail & Expanded Slot Semantics
 **Rule**: Normal 썸네일 규격과 Expanded 타입별 슬롯 의미론은 아래 규칙으로 고정한다.
@@ -330,13 +367,14 @@
 
 ### 7.3 Guard Rules
 **Rule**:
-- INACTIVE: 입력 기반 카드 반응 중지, HOVER_LOCK 비활성, enter/leave/focus 이벤트 no-op
+- INACTIVE: 입력 기반 카드 반응 중지, HOVER_LOCK 비활성, enter/leave/focus/click/keydown 기반 카드 상태 변경 no-op
 - ACTIVE 복귀: 입력 램프업 `120~180ms`(기본 140), 램프업 중 확장/축소/오버레이 변경 금지
 - TRANSITIONING: 스크롤/입력 잠금, 시작 프레임 상태 고정, leave/focusout collapse 금지
 
 **Verification**:
 1. Automated: 상태 전이 단위 테스트로 guard 조건을 검증한다.
 2. Automated: E2E에서 탭 전환 중 입력 차단을 검증한다.
+3. Automated: ACTIVE 램프업 구간에서 Expanded/Collapse/Overlay 변형 시작 `0건`을 검증한다.
 
 ### 7.4 Determinism
 **Rule**: 상태 전이는 입력 순서/이벤트 편차와 무관하게 결정적으로 동일해야 한다.
@@ -384,6 +422,20 @@
 2. Automated: Expanded 카드 내부 포커스 순회(입력 요소 순서) 후 다음 카드로 이동되는지 검증한다.
 3. Automated: Shift+Tab 역순 탐색에서 동일 규칙이 성립하는지 검증한다.
 
+### 7.7 State Conformance Gate
+**Rule**:
+- PageState/CardState/Override 허용 전이 집합을 벗어나는 전이는 금지한다.
+- Section 7.2 우선순위 위반 전이 결과를 금지한다.
+- 동일 입력 시퀀스 재실행에서 최종 settled 상태는 항상 동일해야 한다.
+
+**Implementation Notes**:
+- 본 게이트는 선언적 상태 규칙을 테스트 가능한 전이 단언으로 고정하기 위한 계약이다.
+- 본 게이트 실패는 UI 가시 동작 정상 여부와 무관하게 릴리스를 차단한다.
+
+**Verification**:
+1. Automated: 허용/금지 전이 테이블 테스트를 수행한다.
+2. Automated: 이벤트 순서 교란/지연 시나리오에서도 동일 최종 settled 상태를 검증한다.
+
 ---
 
 ## 8. Interaction & Motion Spec
@@ -417,6 +469,9 @@
 1. Automated: handoff 시 직전 카드 pending transition 취소 여부를 검증한다.
 2. Automated: 마지막 hover 카드만 최종 Expanded인지 검증한다.
 3. Automated: Expanded 상태에서 포인터가 비카드 영역으로 이탈할 때(다른 카드 hover 없이) 허용 유예 범위 내 Normal 복귀가 수행되는지 검증한다.
+4. Automated: hover intent 스케줄러가 전역 단일 timer + intent token으로 동작하는지 검증한다.
+5. Automated: 새 hover 진입 시 이전 예약이 즉시 취소되고, 실행 직전 대상 재검증 불일치 시 no-op 처리되는지 검증한다.
+6. Automated: hover leave collapse가 다른 카드 hover 여부와 무관하게 최신 경계 판정으로 수행되는지 검증한다.
 
 ### 8.3 Core Motion Contract
 **Rule**: Expanded core motion은 시간/곡선/단조성/예외 경로를 엄격히 준수해야 한다.
@@ -514,6 +569,12 @@
 5. Automated: Mobile Expanded settled 상태에서 활성 카드 본체 dim/tint `0%`를 검증한다.
 6. Automated: 모바일 CTA 우선순위(`CTA > X > outside`) 및 내부 non-CTA no-op를 검증한다.
 7. Automated: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`를 검증한다.
+8. Automated: 단일 pointer/touch sequence당 상태 전이가 최대 1회인지 검증한다.
+9. Automated: OPENING 중 닫기 입력이 OPEN settled 직후 queue-close 1회로만 처리되는지 검증한다.
+10. Automated: CLOSING 중 추가 open/close 입력이 무시되는지 검증한다.
+11. Automated: full-bleed 구간 전체에서 page scroll lock 유지 및 종료 시점 unlock을 검증한다.
+12. Automated: Expanded 시작부터 종료까지 y-anchor drift `0px`를 검증한다.
+13. Automated: 모바일 CTA 우선순위 경합 상황에서 `CTA > X > outside` 순서로 귀결되는지 검증한다.
 
 ### 8.6 Transition Start Trigger (Landing→Destination)
 **Rule**: 라우팅 전환 시작은 Expanded의 유효 CTA 활성화 시점에만 허용한다.
@@ -539,6 +600,8 @@
 ### 9.2 Disabled Semantics
 **Rule**:
 - CTA/클릭 가능한 컨트롤은 기본적으로 시맨틱 요소(`<button>`, `<a>`)를 사용한다.
+- 카드 확장/진입을 유발하는 1차 트리거는 반드시 시맨틱 컨트롤(`<button>`, `<a>`)이어야 한다.
+- 비시맨틱 컨테이너 단독 활성화 트리거를 금지한다.
 - unavailable Test 카드의 진입 불가는 시맨틱으로 표현해야 한다.
 - `<button>` 기반 진입 컨트롤은 `disabled`를 우선 사용한다.
 - 포커스는 허용하되 활성만 차단해야 하는 경우에만 `aria-disabled="true"`를 사용한다.
@@ -557,6 +620,7 @@
 1. Manual: 키보드-only 탐색으로 focus 이동/활성화 차단을 확인한다.
 2. Automated: axe-core + Playwright 키보드 시나리오를 수행한다.
 3. Automated: 오버레이 활성 상태에서 포커스 스타일과 `cardTitle` 식별 가능 여부를 스크린샷 검증한다.
+4. Automated: 카드 확장/진입 1차 트리거가 시맨틱 요소로만 구성되는지 DOM 감사로 검증한다.
 
 ---
 
@@ -616,11 +680,15 @@
 ### 12.2 Transition Correlation & Required Fields
 **Rule**: 전환 이벤트는 상관키 일관성과 중복 방지 규칙을 준수해야 한다.
 - `TRANSITIONING` 상태에서 중복 start를 금지한다.
-- 시작된 전환은 반드시 `complete|fail|cancel` 중 하나로 종료되어야 한다.
+- `transition_id` 기준 이벤트 수는 `start=1`, `terminal(complete|fail|cancel)=1`로 고정한다.
+- 시작된 전환은 반드시 `complete|fail|cancel` 중 하나로 종료되어야 하며 terminal 중복을 금지한다.
+- `transition_complete`는 destination ready(목적지 라우트 진입 완료 + 목적지 컨텍스트 확정) 이후에만 허용한다.
 - `event_id`와 `transition_id` 매칭은 필수다.
 - 상관키 생성 실패 시 세션 카운터 기반 대체키를 허용한다.
 - 공통 필수 필드(전송 이벤트 기준): `event_id`, `session_id`, `ts_ms(UTC)`, `locale`, `route`, `consent_state`.
 - 전환 필수 필드: `transition_id`, `source_card_id`, `target_route`, `result_reason(실패/취소 시)`.
+- `transition_fail`/`transition_cancel`은 `result_reason` 필수다.
+- 조기 return/중단 여부와 무관하게 시작된 전환은 terminal 이벤트로 반드시 종료되어야 한다.
 - 테스트 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`.
 
 ### 12.3 Payload Boundaries
@@ -628,8 +696,11 @@
 - 금지: 원문 질문/답변 텍스트, 자유입력 텍스트, PII/지문성 식별자(IP, fingerprint).
 - 응답은 의미 코드만 기록한다.
 - question index는 1-based 고정이다.
-- final submit에는 최종 응답 + 문항별 누적 체류시간을 기록한다.
-- Q1 값은 최종 제출 시점 값을 기준으로 한다.
+- `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`, `final_q1_response`.
+- `final_submit`에는 최종 응답 + 문항별 누적 체류시간을 기록한다.
+- `final_responses`는 문항별 의미 코드 맵이어야 하며 원문 질문/답변 텍스트를 포함하면 안 된다.
+- Q1 값은 최종 제출 시점 값(`final_q1_response`)을 기준으로 한다.
+- `final_submit`의 `question_index_1based`는 최종 문항 index(1-based)여야 한다.
 
 ### 12.4 Consent State Machine
 **Rule**: consent는 `UNKNOWN -> OPTED_IN | OPTED_OUT` 상태 머신으로 관리한다.
@@ -667,7 +738,9 @@
 ### 13.1 Missing Slot Handling
 **Rule**:
 - required 슬롯 누락 시 영역 제거 금지, 빈값으로 레이아웃 유지
-- 빈 chip 강제 렌더 금지
+- tags 값이 비어 있어도 tags 슬롯 1줄 높이는 유지해야 한다.
+- tags 값이 비어 있는 경우 chip 렌더 개수는 `0`이어야 한다.
+- 빈 chip 강제 렌더 및 placeholder/공백문자 chip 렌더를 금지한다.
 
 ### 13.2 Unavailable Handling
 **Rule**:
@@ -684,8 +757,10 @@
 - 전환 중 다른 카드 상호작용을 금지한다.
 - source GNB는 목적지 진입 완료 전까지 유지한다.
 - destination GNB는 목적지 진입 완료 시점에 1회 교체한다.
+- `transition_complete`는 destination ready 이전에 발생하면 안 된다.
 - 전환 종료 이벤트는 `complete|fail|cancel` 중 정확히 1회만 발생해야 한다.
 - 실패/취소 시 pre-answer 및 pending 상태를 롤백해야 한다.
+- 실패/취소 cleanup set은 pre-answer, ingress flag, pending transition/state, interaction lock, body lock, queued close 상태를 모두 포함해야 하며 부분 정리를 금지한다.
 - fail/cancel/rollback 계약은 모바일 CTA 우선순위 보완 여부와 무관하게 항상 동일하게 유지해야 한다.
 
 ### 13.4 Test Q1 Pre-answer & Instruction Start Rule
@@ -736,7 +811,9 @@
 **Rule**:
 - 필수 복원 대상은 `scrollY`
 - 저장 시점은 라우팅 호출 직전
-- 랜딩 재진입 mount 직후 1회 복원 후 즉시 consume
+- 랜딩 재진입 mount 직후 `1회` 복원 후 즉시 consume
+- 동일 재진입에서 중복 복원을 금지한다.
+- 복원 과정에서 자동 viewport 보정 스크롤을 금지한다.
 
 **Verification**:
 1. Automated: ingress flag/시작 문항/Q2 진행표시 규칙을 검증한다.
@@ -759,18 +836,33 @@
 **Rule**: 아래 핵심 블로킹 체크 중 1건이라도 실패하면 릴리스를 차단한다.
 1. SSR/Hydration: warning `0건`, typedRoutes build PASS, `useSearchParams()` Suspense 경계 위반 `0건` (Section 5, 11).
 2. Routing/i18n: single locale prefix, duplicate prefix `0건`, `proxy.ts` 단일 책임, locale-less allowlist/404 분기 PASS (Section 5, 13).
-3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, Mobile overlay/backdrop/scroll lock, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
+3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, trigger-layer gap `0px`, focus out close `<=1 frame`, hover 유예 hover-only, Mobile overlay/backdrop/scroll lock, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
 4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Expanded/handoff 활성 중 grid plan freeze, 폭 변경 시 강제 종료 후 재계산, 모든 비대상 row top/bottom 오차 `0px`, Desktop Normal same-row bottom edge `0px`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, shell scale/crop PASS (Section 6, 7, 8, 9).
-5. Keyboard/A11y: 카드 Shell focus 경계, Tab 순차 Expanded override, 카드 내부 포커스 순회, Esc 우선순위 해제, aria 규칙 PASS (Section 7, 9).
-6. Transition/Test Handshake: ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, Q2→Q1 역전 `0건`, Blog article 식별자 전달, Mobile lifecycle atomicity(`OPENING -> OPEN -> CLOSING -> NORMAL`), single sequence 상태 전이 1회, OPENING close queue 처리, CLOSING 인터럽트 무시, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op PASS (Section 8, 12, 13).
+5. Keyboard/A11y: 카드 Shell focus 경계, Tab 순차 Expanded override, 카드 내부 포커스 순회, Esc 우선순위 해제, aria 규칙, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 9).
+6. Transition/Test Handshake: ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, Q2→Q1 역전 `0건`, Blog article 식별자 전달, `start=1 -> terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, Mobile lifecycle atomicity(`OPENING -> OPEN -> CLOSING -> NORMAL`), single sequence 상태 전이 1회, OPENING close queue 처리, CLOSING 인터럽트 무시, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op, return scroll 복원 1회+즉시 consume PASS (Section 8, 12, 13).
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
 8. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).
 9. Privacy/Consent: `UNKNOWN/OPTED_OUT` 전송 `0건`, `OPTED_IN`에서만 전송, 랜덤 소스 불가 환경 전송 차단 PASS (Section 12, 15).
-10. Normal Spacing Model: Desktop/Tablet/Mobile Normal에서 `thumbnail -> tags` 기본 간격 비-0 유지, 보정 불필요 카드의 `보정 간격=0`, 보정 필요 카드만 추가 보정 간격 허용 PASS (Section 6.7).
-11. Row 1/Row 2+ Consistency: `보정 필요` 판정이 row index와 무관하게 동일 규칙(해당 row의 Normal 자연 높이 비교 결과)으로 적용되는지 PASS (Section 6.7).
+10. Normal Spacing Model: Desktop/Tablet/Mobile Normal에서 `thumbnail -> tags` 기본 간격 비-0 유지, 보정 불필요 카드의 `보정 간격=0`, 보정 필요 카드만 추가 보정 간격 허용, empty-tags에서 chip `0개` + 슬롯 높이 유지 PASS (Section 6.7, 13.1).
+11. Row 1/Row 2+ Consistency: `보정 필요` 판정이 row index와 무관하게 동일 규칙(해당 row의 Normal 자연 높이 비교 결과)으로 적용되고, row index 기반 우회 신호 사용 `0건` PASS (Section 6.7).
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
-13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀 PASS (Section 8.2).
-14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px` PASS (Section 8.5).
+13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정 PASS (Section 8.2).
+14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, full-bleed 구간 scroll lock window PASS (Section 8.5).
+15. Transition Terminal Correlation: 각 `transition_id`에서 `start=1`, `terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, fail/cancel `result_reason` 필수 PASS (Section 12.2, 13.3).
+16. Rollback Cleanup Closure: fail/cancel 3케이스에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
+17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
+18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses`, `final_q1_response` 포함) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).
+19. Traceability Closure: Section 14.3 모든 블로킹 항목이 최소 1개 이상의 자동 단언과 매핑되어야 하며, 미매핑 `0건` PASS (Section 14.4).
+
+### 14.4 Release Traceability Closure
+**Rule**:
+- Section 14.3의 각 release-blocking 항목은 최소 1개 이상의 automated assertion에 매핑되어야 한다.
+- 매핑 누락/불일치/stale reference가 1건이라도 존재하면 릴리스를 차단한다.
+- Section 3.2 동기화 대상 정책 변경 시 traceability 매핑도 동일 변경셋에서 갱신해야 한다.
+
+**Verification**:
+1. Automated: blocker item ↔ automated assertion 매핑 정합성 검사를 수행한다.
+2. Manual: 릴리스 리뷰에서 매핑 표 샘플링 검수를 수행한다.
 
 ---
 
