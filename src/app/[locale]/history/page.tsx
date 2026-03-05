@@ -1,6 +1,9 @@
 import {notFound} from 'next/navigation';
+import {getTranslations} from 'next-intl/server';
 
 import {isLocale} from '@/config/site';
+import {PageShell} from '@/features/landing/shell';
+import {RouteBuilder} from '@/lib/routes/route-builder';
 
 export default async function HistoryPage({
   params
@@ -13,10 +16,15 @@ export default async function HistoryPage({
     notFound();
   }
 
+  const t = await getTranslations({locale, namespace: 'history'});
+
   return (
-    <main className="placeholder-shell">
-      <h1>History Placeholder</h1>
-      <p>{`Locale: ${locale}`}</p>
-    </main>
+    <PageShell locale={locale} context="history" currentRoute={RouteBuilder.history()}>
+      <section className="landing-shell-card">
+        <h1>{t('title')}</h1>
+        <p>{`Locale: ${locale}`}</p>
+        <p>{t('body')}</p>
+      </section>
+    </PageShell>
   );
 }

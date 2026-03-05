@@ -21,8 +21,8 @@
 - [ ] Implement Desktop/Tablet/Mobile grid plan and row composition (`§6.2`).
 - [ ] Enforce underfilled last-row start alignment on Desktop+Tablet and prevent width fill/stretch (`§6.2`, `§14.3-12`).
 - [ ] Treat underfilled final-row residual space as explicit allowed exception only (`§6.2`).
-- [ ] Keep Hero visual baseline as non-input informational block (`§6.3`).
-- [ ] Enforce GNB context contracts end-to-end (Desktop settings open/close fallback + trigger-layer gap `0px` + focus-out close `<=1 frame`, Mobile overlay/backdrop/scroll lock, Mobile Test back fallback, History=Blog context) (`§6.4`, `§10.2`, `§14.3-3`, `§14.3-7`).
+- [x] Keep Hero visual baseline as non-input informational block (`§6.3`).
+- [x] Enforce GNB context contracts end-to-end (Desktop settings open/close fallback + trigger-layer gap `0px` + focus-out close `<=1 frame`, Mobile overlay/backdrop/scroll lock, Mobile Test back fallback, History=Blog context) (`§6.4`, `§10.2`, `§14.3-3`, `§14.3-7`).
 - [ ] Enforce card slot order and Expanded slot removal contract (`§6.5`, `§6.8`).
 - [ ] Enforce text/wrap/truncate/clamp policy by slot (`§6.6`).
 - [ ] Enforce subtitle-only single-line truncation with visible ellipsis and block overflow-driven inline-size contamination (card/row width + sibling-slot width unchanged) (`§6.6`, `§6.8`, `§14.3-4`).

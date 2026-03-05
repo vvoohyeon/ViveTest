@@ -1,5 +1,29 @@
 :root {
   color-scheme: light dark;
+  --bg: #f5f7f7;
+  --ink: #161a20;
+  --surface: rgb(247 249 250 / 92%);
+  --surface-divider: rgb(22 26 32 / 14%);
+  --surface-shadow: 0 6px 18px rgb(12 16 24 / 12%);
+  --chip-bg: rgb(22 26 32 / 6%);
+  --chip-border: rgb(22 26 32 / 16%);
+  --panel-solid: #ffffff;
+  --link-ink: #0f1218;
+  --muted-ink: rgb(22 26 32 / 76%);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1218;
+  --ink: #eff2f8;
+  --surface: rgb(18 23 30 / 92%);
+  --surface-divider: rgb(233 238 247 / 18%);
+  --surface-shadow: 0 8px 20px rgb(0 0 0 / 32%);
+  --chip-bg: rgb(238 244 255 / 14%);
+  --chip-border: rgb(238 244 255 / 26%);
+  --panel-solid: #121821;
+  --link-ink: #f2f6ff;
+  --muted-ink: rgb(239 242 248 / 80%);
 }
 
 * {
@@ -14,9 +38,12 @@ body {
 
 body {
   min-height: 100vh;
-  background: Canvas;
-  color: CanvasText;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(circle at 20% -10%, rgb(31 181 143 / 12%), transparent 34%),
+    radial-gradient(circle at 78% 0%, rgb(52 119 255 / 14%), transparent 38%),
+    var(--bg);
+  color: var(--ink);
+  font-family: 'Avenir Next', 'Noto Sans KR', 'Segoe UI', sans-serif;
   line-height: 1.5;
 }
 
@@ -29,7 +56,288 @@ textarea {
 }
 
 a {
-  color: inherit;
+  color: var(--link-ink);
+  text-decoration: none;
+}
+
+.page-shell {
+  min-height: 100vh;
+}
+
+.page-shell-main {
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: 80px 16px 24px;
+}
+
+@media (width >= 768px) {
+  .page-shell-main {
+    padding: 88px 24px 32px;
+  }
+}
+
+.landing-hero {
+  display: grid;
+  gap: 12px;
+  padding: 20px 0 16px;
+}
+
+.landing-hero h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.landing-hero p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--muted-ink);
+}
+
+.landing-shell-card {
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel-solid) 90%, transparent);
+  box-shadow: 0 14px 30px rgb(11 15 22 / 10%);
+  padding: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.landing-shell-card h1,
+.landing-shell-card h2,
+.landing-shell-card p {
+  margin: 0;
+}
+
+.landing-shell-card p {
+  color: var(--muted-ink);
+}
+
+.gnb-shell {
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.gnb-shell[data-elevated='true'] {
+  box-shadow: var(--surface-shadow);
+}
+
+.gnb-shell[data-elevated='false'] {
+  border-bottom: 1px solid var(--surface-divider);
+}
+
+.gnb-inner {
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.gnb-desktop {
+  display: none;
+  height: 64px;
+}
+
+.gnb-mobile {
+  display: flex;
+  height: 56px;
+}
+
+.gnb-column {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.gnb-column-leading {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.gnb-column-center {
+  flex: 1;
+  justify-content: center;
+}
+
+.gnb-column-trailing {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.gnb-ci-link {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.gnb-desktop-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gnb-desktop-links a {
+  font-size: 0.96rem;
+  color: var(--muted-ink);
+}
+
+.gnb-desktop-links a:hover {
+  color: var(--link-ink);
+}
+
+.gnb-settings-root {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.gnb-settings-trigger,
+.gnb-menu-trigger,
+.gnb-back-button {
+  border: 1px solid var(--chip-border);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--link-ink);
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.gnb-settings-trigger:hover,
+.gnb-menu-trigger:hover,
+.gnb-back-button:hover {
+  background: color-mix(in srgb, var(--chip-bg) 78%, var(--panel-solid));
+}
+
+.gnb-settings-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 244px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--surface-divider);
+  border-radius: 12px;
+  background: var(--panel-solid);
+  box-shadow: 0 16px 28px rgb(11 15 22 / 20%);
+}
+
+.gnb-settings-panel[hidden] {
+  display: none;
+}
+
+.gnb-settings-row {
+  display: grid;
+  gap: 8px;
+}
+
+.gnb-settings-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--muted-ink);
+  text-transform: uppercase;
+}
+
+.gnb-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gnb-chip {
+  border: 1px solid var(--chip-border);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--link-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.gnb-chip[aria-pressed='true'] {
+  background: color-mix(in srgb, #2f73ff 22%, var(--chip-bg));
+  border-color: color-mix(in srgb, #2f73ff 52%, var(--chip-border));
+}
+
+.gnb-chip:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.gnb-desktop-timer,
+.gnb-mobile-timer {
+  margin: 0;
+  color: var(--muted-ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.gnb-mobile-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+}
+
+.gnb-mobile-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(4 6 10 / 74%);
+  transition: opacity 180ms ease;
+}
+
+.gnb-mobile-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(87vw, 340px);
+  height: 100vh;
+  background: var(--panel-solid);
+  border-left: 1px solid var(--surface-divider);
+  box-shadow: -8px 0 26px rgb(0 0 0 / 22%);
+  padding: 72px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transform: translateX(0);
+  opacity: 1;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+.gnb-mobile-layer[data-state='closing'] .gnb-mobile-backdrop {
+  opacity: 0;
+}
+
+.gnb-mobile-layer[data-state='closing'] .gnb-mobile-panel {
+  transform: translateX(12px);
+  opacity: 0;
+}
+
+.gnb-mobile-links {
+  display: grid;
+  gap: 14px;
+}
+
+.gnb-mobile-links a {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.gnb-mobile-settings {
+  margin-top: auto;
+  display: grid;
+  gap: 12px;
 }
 
 .nf-shell {
@@ -48,4 +356,18 @@ a {
   gap: 12px;
   padding: 24px;
   text-align: center;
+}
+
+@media (width >= 768px) {
+  .gnb-inner {
+    padding-inline: 24px;
+  }
+
+  .gnb-desktop {
+    display: flex;
+  }
+
+  .gnb-mobile {
+    display: none;
+  }
 }
