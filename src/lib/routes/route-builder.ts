@@ -1,5 +1,3 @@
-import type {AppLocale} from '@/config/site';
-
 export type LocaleFreeRoute =
   | {
       pathname: '/';
@@ -47,18 +45,6 @@ export const RouteBuilder = {
     };
   }
 };
-
-export function buildLocalizedPath(route: LocaleFreeRoute, locale: AppLocale): string {
-  if (route.pathname === '/') {
-    return `/${locale}`;
-  }
-
-  if (route.pathname === '/test/[variant]/question') {
-    return `/${locale}/test/${route.params.variant}/question`;
-  }
-
-  return `/${locale}${route.pathname}`;
-}
 
 export function buildLocaleFreePath(route: LocaleFreeRoute): string {
   if (route.pathname === '/test/[variant]/question') {
