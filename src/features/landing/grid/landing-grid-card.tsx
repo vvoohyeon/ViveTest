@@ -12,6 +12,7 @@ const metaValueFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0
 });
 const thumbnailDataUriCache = new Map<string, string>();
+const SPACING_PRECISION_SCALE = 10000;
 
 export type LandingCardVisualState = 'normal' | 'expanded';
 export type LandingCardInteractionMode = 'hover' | 'tap';
@@ -44,6 +45,10 @@ interface LandingGridCardProps {
   sequence?: number;
 }
 
+function roundSpacing(value: number): number {
+  return Math.round(value * SPACING_PRECISION_SCALE) / SPACING_PRECISION_SCALE;
+}
+
 function resolveSpacingContract(spacing: LandingCardSpacingContract | undefined): LandingCardSpacingContract {
   if (!spacing) {
     return {
@@ -56,16 +61,16 @@ function resolveSpacingContract(spacing: LandingCardSpacingContract | undefined)
   }
 
   const baseGapPx = Number.isFinite(spacing.baseGapPx)
-    ? Math.max(1, Math.round(spacing.baseGapPx * 100) / 100)
+    ? Math.max(1, roundSpacing(spacing.baseGapPx))
     : LANDING_CARD_BASE_GAP_PX;
   const compGapPx = Number.isFinite(spacing.compGapPx)
-    ? Math.max(0, Math.round(spacing.compGapPx * 100) / 100)
+    ? Math.max(0, roundSpacing(spacing.compGapPx))
     : 0;
   const naturalHeightPx = Number.isFinite(spacing.naturalHeightPx)
-    ? Math.max(0, Math.round(spacing.naturalHeightPx * 100) / 100)
+    ? Math.max(0, roundSpacing(spacing.naturalHeightPx))
     : 0;
   const rowMaxNaturalHeightPx = Number.isFinite(spacing.rowMaxNaturalHeightPx)
-    ? Math.max(0, Math.round(spacing.rowMaxNaturalHeightPx * 100) / 100)
+    ? Math.max(0, roundSpacing(spacing.rowMaxNaturalHeightPx))
     : 0;
 
   return {

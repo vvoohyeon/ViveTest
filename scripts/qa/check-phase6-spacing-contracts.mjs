@@ -74,14 +74,26 @@ if (fileExists('src/app/globals.css')) {
 
   const cardBlock = readCssBlock(css, '.landing-grid-card');
   const contentBlock = readCssBlock(css, '.landing-grid-card-content');
+  const tagsGapBlock = readCssBlock(css, '.landing-grid-card-tags-gap');
   const tagsBlock = readCssBlock(css, '.landing-grid-card-tags');
+  const landingCardPseudoSelectorPattern =
+    /\.landing-grid-card(?:-[a-z0-9-]+)?[^\{]*::(?:before|after)\s*\{/iu;
+  const fillerFlexPattern = /(flex-grow\s*:\s*1|flex\s*:\s*1(?:\s|;|$)|flex\s*:\s*\d+(?:\.\d+)?\s+1\s+)/u;
 
   if (/margin-top\s*:\s*auto/u.test(cardBlock) || /margin-top\s*:\s*auto/u.test(contentBlock) || /margin-top\s*:\s*auto/u.test(tagsBlock)) {
-    fail('Auto spacer pattern (margin-top:auto) is not allowed for landing grid cards.');
+    fail('Auto spacer pattern (margin-top:auto) is not allowed for landing grid cards (Blocker #10/#11).');
   }
 
   if (/space-between/u.test(contentBlock)) {
-    fail('Auto space distribution (space-between) is not allowed for landing card compensation.');
+    fail('Auto space distribution (space-between) is not allowed for landing card compensation (Blocker #10/#11).');
+  }
+
+  if (fillerFlexPattern.test(contentBlock) || fillerFlexPattern.test(tagsGapBlock) || fillerFlexPattern.test(tagsBlock)) {
+    fail('Filler flex pattern (flex-grow/flex:1) is not allowed for landing card compensation (Blocker #10/#11).');
+  }
+
+  if (landingCardPseudoSelectorPattern.test(css)) {
+    fail('Pseudo spacer pattern (::before/::after on landing card selectors) is not allowed (Blocker #10/#11).');
   }
 }
 
@@ -96,6 +108,12 @@ if (fileExists('tests/e2e/grid-smoke.spec.ts')) {
   const e2eSpec = read('tests/e2e/grid-smoke.spec.ts');
   if (!/base-gap and comp-gap follow row-local compensation rule for row1 and row2\+/u.test(e2eSpec)) {
     fail('Grid smoke must verify row-local base_gap + comp_gap contract in Phase 6.');
+  }
+  if (!/contentBottom\s*-\s*metric\.tagsBottom/u.test(e2eSpec)) {
+    fail('Grid smoke must assert tags-bottom residual convergence using direct geometry in Phase 6.');
+  }
+  if (!/rowBaseGapFromGeometry/u.test(e2eSpec)) {
+    fail('Grid smoke must derive base gap from geometry instead of only data attributes in Phase 6.');
   }
 }
 

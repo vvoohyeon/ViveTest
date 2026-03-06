@@ -1,6 +1,7 @@
 export const LANDING_CARD_BASE_GAP_PX = 8;
 
 const ROW_HEIGHT_EPSILON_PX = 0.5;
+const SPACING_PRECISION_SCALE = 10000;
 
 export interface RowNaturalMeasurement {
   cardId: string;
@@ -38,8 +39,8 @@ function normalizeCoordinate(value: number): number {
   return value;
 }
 
-function roundToTwo(value: number): number {
-  return Math.round(value * 100) / 100;
+function roundToPrecision(value: number): number {
+  return Math.round(value * SPACING_PRECISION_SCALE) / SPACING_PRECISION_SCALE;
 }
 
 export function deriveNaturalHeightFromGeometry(measurement: RowNaturalGeometryMeasurement): RowNaturalMeasurement {
@@ -51,7 +52,7 @@ export function deriveNaturalHeightFromGeometry(measurement: RowNaturalGeometryM
 
   return {
     cardId: measurement.cardId,
-    naturalHeight: roundToTwo(naturalHeight)
+    naturalHeight: roundToPrecision(naturalHeight)
   };
 }
 
@@ -77,10 +78,10 @@ export function buildRowCompensationModel(
     const needsComp = delta > ROW_HEIGHT_EPSILON_PX;
     return {
       cardId: measurement.cardId,
-      naturalHeight: roundToTwo(measurement.naturalHeight),
-      rowMaxNaturalHeight: roundToTwo(rowMaxNaturalHeight),
+      naturalHeight: roundToPrecision(measurement.naturalHeight),
+      rowMaxNaturalHeight: roundToPrecision(rowMaxNaturalHeight),
       needsComp,
-      compGap: needsComp ? roundToTwo(delta) : 0
+      compGap: needsComp ? roundToPrecision(delta) : 0
     };
   });
 }

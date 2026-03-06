@@ -185,60 +185,71 @@ test.describe('Phase 4 grid smoke', () => {
       const rowCards = rows.nth(rowIndex).locator('[data-testid="landing-grid-card"]');
       const rowCardCount = await rowCards.count();
       expect(rowCardCount).toBeGreaterThan(0);
-      const rowMetrics: Array<{
-        needsComp: boolean;
-        compGap: number;
-        naturalFromGeometry: number;
-      }> = [];
-
-      for (let index = 0; index < rowCardCount; index += 1) {
-        const card = rowCards.nth(index);
-        const baseGap = Number.parseFloat((await card.getAttribute('data-base-gap')) ?? '0');
-        const compGap = Number.parseFloat((await card.getAttribute('data-comp-gap')) ?? '0');
-        const naturalHeight = Number.parseFloat((await card.getAttribute('data-natural-height')) ?? '0');
-        const needsComp = (await card.getAttribute('data-needs-comp')) === 'true';
-
-        expect(baseGap).toBeGreaterThan(0);
-
-        const geometry = await card.evaluate((element) => {
-          const content = element.querySelector('.landing-grid-card-content');
-          const tags = element.querySelector('[data-slot="tags"]');
-          if (!content || !tags) {
+      const rowMetrics = await rowCards.evaluateAll((cardElements) =>
+        cardElements.map((cardElement) => {
+          const content = cardElement.querySelector('.landing-grid-card-content');
+          const thumbnail = cardElement.querySelector('[data-slot="thumbnailOrIcon"]');
+          const tags = cardElement.querySelector('[data-slot="tags"]');
+          if (!content || !thumbnail || !tags) {
             return null;
           }
 
+          const cardRect = cardElement.getBoundingClientRect();
           const contentRect = content.getBoundingClientRect();
+          const thumbnailRect = thumbnail.getBoundingClientRect();
           const tagsRect = tags.getBoundingClientRect();
+
           return {
+            id: cardElement.getAttribute('data-card-id') ?? '',
+            cardBottom: cardRect.bottom,
             contentTop: contentRect.top,
-            tagsBottom: tagsRect.bottom
+            contentBottom: contentRect.bottom,
+            thumbnailBottom: thumbnailRect.bottom,
+            tagsTop: tagsRect.top,
+            tagsBottom: tagsRect.bottom,
+            baseGapAttr: Number.parseFloat(cardElement.getAttribute('data-base-gap') ?? '0') || 0,
+            compGapAttr: Number.parseFloat(cardElement.getAttribute('data-comp-gap') ?? '0') || 0,
+            needsCompAttr: cardElement.getAttribute('data-needs-comp') === 'true'
           };
-        });
-        expect(geometry).not.toBeNull();
-        const naturalFromGeometry = Math.max(0, (geometry?.tagsBottom ?? 0) - (geometry?.contentTop ?? 0) - compGap);
-        expect(Math.abs(naturalHeight - naturalFromGeometry)).toBeLessThanOrEqual(1);
+        })
+      );
 
-        rowMetrics.push({needsComp, compGap, naturalFromGeometry});
+      const settledMetrics = rowMetrics.filter((metric): metric is NonNullable<(typeof rowMetrics)[number]> => metric !== null);
+      expect(settledMetrics).toHaveLength(rowCardCount);
 
-        const tagsGapHeight = await card
-          .locator('.landing-grid-card-tags-gap')
-          .evaluate((element) => Number.parseFloat(getComputedStyle(element).getPropertyValue('height')));
-        expect(Math.abs(tagsGapHeight - (baseGap + compGap))).toBeLessThanOrEqual(1);
+      const rowBottom = settledMetrics[0]?.cardBottom ?? 0;
+      const rowBaseGapFromGeometry = Math.min(...settledMetrics.map((metric) => metric.tagsTop - metric.thumbnailBottom));
+      expect(rowBaseGapFromGeometry).toBeGreaterThan(0);
+
+      const derivedMetrics = settledMetrics.map((metric) => {
+        const compFromGeometry = Math.max(0, metric.tagsTop - metric.thumbnailBottom - rowBaseGapFromGeometry);
+        const naturalFromGeometry = Math.max(0, metric.tagsBottom - metric.contentTop - compFromGeometry);
+        return {
+          ...metric,
+          compFromGeometry,
+          naturalFromGeometry
+        };
+      });
+
+      for (const metric of derivedMetrics) {
+        expect(Math.abs(metric.cardBottom - rowBottom)).toBeLessThanOrEqual(1);
+        expect(Math.abs(metric.contentBottom - metric.tagsBottom)).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(metric.baseGapAttr - rowBaseGapFromGeometry)).toBeLessThanOrEqual(1);
+        expect(Math.abs(metric.compGapAttr - metric.compFromGeometry)).toBeLessThanOrEqual(1);
+        expect(metric.compFromGeometry).toBeGreaterThanOrEqual(0);
       }
 
-      const rowMaxNaturalFromGeometry = rowMetrics.reduce(
-        (maxValue, metric) => Math.max(maxValue, metric.naturalFromGeometry),
-        0
-      );
-      for (const metric of rowMetrics) {
+      const rowMaxNaturalFromGeometry = Math.max(...derivedMetrics.map((metric) => metric.naturalFromGeometry));
+
+      for (const metric of derivedMetrics) {
         const delta = rowMaxNaturalFromGeometry - metric.naturalFromGeometry;
+
         if (delta > 0.5) {
-          expect(metric.needsComp).toBe(true);
-          expect(metric.compGap).toBeGreaterThan(0);
-          expect(Math.abs(metric.compGap - delta)).toBeLessThanOrEqual(1);
+          expect(metric.compFromGeometry).toBeGreaterThan(0);
+          expect(metric.needsCompAttr).toBe(true);
         } else {
-          expect(metric.needsComp).toBe(false);
-          expect(Math.abs(metric.compGap)).toBeLessThanOrEqual(0.05);
+          expect(Math.abs(metric.compFromGeometry)).toBeLessThanOrEqual(0.05);
+          expect(metric.needsCompAttr).toBe(false);
         }
       }
     }
