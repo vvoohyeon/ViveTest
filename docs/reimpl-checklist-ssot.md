@@ -23,10 +23,10 @@
 - [x] Treat underfilled final-row residual space as explicit allowed exception only (`§6.2`).
 - [x] Keep Hero visual baseline as non-input informational block (`§6.3`).
 - [x] Enforce GNB context contracts end-to-end (Desktop settings open/close fallback + trigger-layer gap `0px` + focus-out close `<=1 frame`, Mobile overlay/backdrop/scroll lock, Mobile Test back fallback, History=Blog context) (`§6.4`, `§10.2`, `§14.3-3`, `§14.3-7`).
-- [ ] Enforce card slot order and Expanded slot removal contract (`§6.5`, `§6.8`).
-- [ ] Enforce text/wrap/truncate/clamp policy by slot (`§6.6`).
-- [ ] Enforce subtitle max-2-line truncation with visible ellipsis and block overflow-driven inline-size contamination (card/row width + sibling-slot width unchanged) (`§6.6`, `§6.8`, `§14.3-4`).
-- [ ] Enforce Expanded meta formatting/localization contracts (no abbreviated counts, locale switch + default fallback correctness) (`§6.8`).
+- [x] Enforce card slot order and Expanded slot removal contract (`§6.5`, `§6.8`).
+- [x] Enforce text/wrap/truncate/clamp policy by slot (`§6.6`).
+- [x] Enforce subtitle max-2-line truncation with visible ellipsis and block overflow-driven inline-size contamination (card/row width + sibling-slot width unchanged) (`§6.6`, `§6.8`, `§14.3-4`).
+- [x] Enforce Expanded meta formatting/localization contracts (no abbreviated counts, locale switch + default fallback correctness) (`§6.8`).
 - [ ] Enforce theme coverage on Landing/Test/Blog/History for both Normal/Expanded, light/dark matrix quality gate (`§6.9`, `§14.3-8`).
 
 ## 3. Normal Height / Spacing Contracts

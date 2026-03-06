@@ -1,8 +1,11 @@
 'use client';
 
 import {type CSSProperties, useEffect, useMemo, useRef, useState} from 'react';
+import {useLocale, useTranslations} from 'next-intl';
 
+import {defaultLocale, isLocale} from '@/config/site';
 import type {LandingCard} from '@/features/landing/data';
+import {LandingGridCard} from '@/features/landing/grid/landing-grid-card';
 import {buildLandingGridPlan, resolveLandingAvailableWidth} from '@/features/landing/grid/layout-plan';
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
@@ -23,9 +26,22 @@ function readViewportWidth(): number {
 
 export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
   const previousPlanKeyRef = useRef<string | null>(null);
+  const localeFromContext = useLocale();
+  const t = useTranslations('landing');
+  const locale = isLocale(localeFromContext) ? localeFromContext : defaultLocale;
 
   const [viewportWidth, setViewportWidth] = useState<number>(readViewportWidth);
+  const [interactionMode, setInteractionMode] = useState<'hover' | 'tap'>('tap');
   const availableWidth = useMemo(() => resolveLandingAvailableWidth(viewportWidth), [viewportWidth]);
+  const cardCopy = {
+    comingSoon: t('comingSoon'),
+    metaEstimated: t('metaEstimated'),
+    metaShares: t('metaShares'),
+    metaAttempts: t('metaAttempts'),
+    metaReadTime: t('metaReadTime'),
+    metaViews: t('metaViews'),
+    readMore: t('readMore')
+  };
 
   const plan = useMemo(
     () =>
@@ -64,6 +80,25 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
         window.cancelAnimationFrame(frame);
       }
       window.removeEventListener('resize', scheduleSync);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const query = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+    const syncInteractionMode = () => {
+      setInteractionMode(query.matches ? 'hover' : 'tap');
+    };
+
+    syncInteractionMode();
+    query.addEventListener('change', syncInteractionMode);
+
+    return () => {
+      query.removeEventListener('change', syncInteractionMode);
     };
   }, []);
 
@@ -116,18 +151,14 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
               const sequence = row.startIndex + offset;
 
               return (
-                <article
+                <LandingGridCard
                   key={card.id}
-                  className="landing-grid-card"
-                  data-testid="landing-grid-card"
-                  data-card-id={card.id}
-                  data-card-seq={sequence}
-                  data-card-type={card.type}
-                  data-card-availability={card.availability}
-                >
-                  <h2 className="landing-grid-card-title">{card.title}</h2>
-                  <p className="landing-grid-card-subtitle">{card.subtitle}</p>
-                </article>
+                  card={card}
+                  locale={locale}
+                  interactionMode={interactionMode}
+                  sequence={sequence}
+                  copy={cardCopy}
+                />
               );
             })}
           </div>

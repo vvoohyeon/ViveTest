@@ -136,4 +136,123 @@ test.describe('Phase 4 grid smoke', () => {
     expect(heroClamp).toBe('2');
     expect(mainClamp).toBe('2');
   });
+
+  test('@smoke subtitle overflow does not contaminate card or sibling slot inline sizes', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const shortCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const longCard = page.locator('[data-card-id="test-rhythm-b"]');
+    await expect(shortCard).toHaveCount(1);
+    await expect(longCard).toHaveCount(1);
+
+    const widthMetrics = await Promise.all(
+      [shortCard, longCard].map(async (cardLocator) => {
+        const cardWidth = await cardLocator.evaluate((element) => element.getBoundingClientRect().width);
+        const thumbnailWidth = await cardLocator
+          .locator('[data-slot="thumbnailOrIcon"]')
+          .evaluate((element) => element.getBoundingClientRect().width);
+        const tagsWidth = await cardLocator
+          .locator('[data-slot="tags"]')
+          .evaluate((element) => element.getBoundingClientRect().width);
+
+        return {cardWidth, thumbnailWidth, tagsWidth};
+      })
+    );
+
+    const [shortMetrics, longMetrics] = widthMetrics;
+    expect(Math.abs(shortMetrics.cardWidth - longMetrics.cardWidth)).toBeLessThanOrEqual(1);
+    expect(Math.abs(shortMetrics.thumbnailWidth - longMetrics.thumbnailWidth)).toBeLessThanOrEqual(1);
+    expect(Math.abs(shortMetrics.tagsWidth - longMetrics.tagsWidth)).toBeLessThanOrEqual(1);
+
+    const row0 = page.getByTestId('landing-grid-row-0');
+    const rowClientWidth = await row0.evaluate((element) => element.clientWidth);
+    const rowScrollWidth = await row0.evaluate((element) => element.scrollWidth);
+    expect(Math.abs(rowClientWidth - rowScrollWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('@smoke normal card slot order and unavailable overlay contract', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const emptyTagsCard = page.locator('[data-card-id="test-debug-sample"]');
+    await expect(emptyTagsCard).toHaveAttribute('data-card-state', 'normal');
+
+    const orderedSlots = await emptyTagsCard.evaluate((element) => {
+      const content = element.querySelector('.landing-grid-card-content');
+      if (!content) {
+        return [];
+      }
+
+      return Array.from(content.children)
+        .map((slotElement) => slotElement.getAttribute('data-slot'))
+        .filter((value): value is string => value !== null);
+    });
+
+    expect(orderedSlots).toEqual(['cardTitle', 'cardSubtitle', 'thumbnailOrIcon', 'tags']);
+    await expect(emptyTagsCard.locator('[data-slot="tags"] .landing-grid-card-tag-item')).toHaveCount(0);
+
+    const minHeight = await emptyTagsCard
+      .locator('[data-slot="tags"]')
+      .evaluate((element) => getComputedStyle(element).getPropertyValue('min-height').trim());
+    expect(minHeight).toBe('28px');
+
+    const thumbnailRatio = await emptyTagsCard
+      .locator('[data-slot="thumbnailOrIcon"]')
+      .evaluate((element) => element.clientWidth / Math.max(1, element.clientHeight));
+    expect(thumbnailRatio).toBeGreaterThan(5.5);
+    expect(thumbnailRatio).toBeLessThan(6.5);
+
+    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    await expect(unavailableCard).toHaveAttribute('data-card-availability', 'unavailable');
+    await expect(unavailableCard).toHaveAttribute('data-interaction-mode', 'hover');
+    await expect(unavailableCard.locator('[data-slot="unavailableOverlay"]')).toHaveCount(1);
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(180);
+    const overlay = unavailableCard.locator('[data-slot="unavailableOverlay"]');
+    const defaultOpacity = parseFloat(
+      await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
+    );
+    expect(defaultOpacity).toBeLessThanOrEqual(0.05);
+    await unavailableCard.hover();
+    await page.waitForTimeout(180);
+    const hoveredOpacity = parseFloat(
+      await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
+    );
+    expect(hoveredOpacity).toBeGreaterThanOrEqual(0.95);
+    await expect(unavailableCard.locator('[data-slot="cardTitle"]')).toBeVisible();
+  });
+
+  test('@smoke unavailable overlay is always visible in tap mode', async ({page}) => {
+    await page.addInitScript(() => {
+      const originalMatchMedia = window.matchMedia.bind(window);
+      window.matchMedia = (query: string) => {
+        if (query === '(hover: hover) and (pointer: fine)') {
+          return {
+            media: query,
+            matches: false,
+            onchange: null,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => false,
+            addListener: () => {},
+            removeListener: () => {}
+          } as MediaQueryList;
+        }
+
+        return originalMatchMedia(query);
+      };
+    });
+
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    await expect(unavailableCard).toHaveAttribute('data-interaction-mode', 'tap');
+    const overlay = unavailableCard.locator('[data-slot="unavailableOverlay"]');
+    const opacity = parseFloat(
+      await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
+    );
+    expect(opacity).toBeGreaterThanOrEqual(0.95);
+  });
 });

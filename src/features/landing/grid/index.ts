@@ -1,5 +1,7 @@
 export {LandingCatalogGrid, LANDING_GRID_PLAN_CHANGED_EVENT} from '@/features/landing/grid/landing-catalog-grid';
 export {LandingCatalogGridLoader} from '@/features/landing/grid/landing-catalog-grid-loader';
+export {getDefaultCardCopy, LandingGridCard} from '@/features/landing/grid/landing-grid-card';
+export type {LandingCardCopy, LandingCardVisualState} from '@/features/landing/grid/landing-grid-card';
 export {
   buildLandingGridPlan,
   CONTAINER_MAX_WIDTH,
