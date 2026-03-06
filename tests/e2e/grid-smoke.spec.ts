@@ -171,6 +171,79 @@ test.describe('Phase 4 grid smoke', () => {
     expect(Math.abs(rowClientWidth - rowScrollWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('@smoke base-gap and comp-gap follow row-local compensation rule for row1 and row2+', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    await expect(page.getByTestId('landing-grid-card').first()).toBeVisible();
+
+    const rows = page.locator('[data-testid^="landing-grid-row-"]');
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(1);
+
+    for (let rowIndex = 0; rowIndex < Math.min(2, rowCount); rowIndex += 1) {
+      const rowCards = rows.nth(rowIndex).locator('[data-testid="landing-grid-card"]');
+      const rowCardCount = await rowCards.count();
+      expect(rowCardCount).toBeGreaterThan(0);
+      const rowMetrics: Array<{
+        needsComp: boolean;
+        compGap: number;
+        naturalFromGeometry: number;
+      }> = [];
+
+      for (let index = 0; index < rowCardCount; index += 1) {
+        const card = rowCards.nth(index);
+        const baseGap = Number.parseFloat((await card.getAttribute('data-base-gap')) ?? '0');
+        const compGap = Number.parseFloat((await card.getAttribute('data-comp-gap')) ?? '0');
+        const naturalHeight = Number.parseFloat((await card.getAttribute('data-natural-height')) ?? '0');
+        const needsComp = (await card.getAttribute('data-needs-comp')) === 'true';
+
+        expect(baseGap).toBeGreaterThan(0);
+
+        const geometry = await card.evaluate((element) => {
+          const content = element.querySelector('.landing-grid-card-content');
+          const tags = element.querySelector('[data-slot="tags"]');
+          if (!content || !tags) {
+            return null;
+          }
+
+          const contentRect = content.getBoundingClientRect();
+          const tagsRect = tags.getBoundingClientRect();
+          return {
+            contentTop: contentRect.top,
+            tagsBottom: tagsRect.bottom
+          };
+        });
+        expect(geometry).not.toBeNull();
+        const naturalFromGeometry = Math.max(0, (geometry?.tagsBottom ?? 0) - (geometry?.contentTop ?? 0) - compGap);
+        expect(Math.abs(naturalHeight - naturalFromGeometry)).toBeLessThanOrEqual(1);
+
+        rowMetrics.push({needsComp, compGap, naturalFromGeometry});
+
+        const tagsGapHeight = await card
+          .locator('.landing-grid-card-tags-gap')
+          .evaluate((element) => Number.parseFloat(getComputedStyle(element).getPropertyValue('height')));
+        expect(Math.abs(tagsGapHeight - (baseGap + compGap))).toBeLessThanOrEqual(1);
+      }
+
+      const rowMaxNaturalFromGeometry = rowMetrics.reduce(
+        (maxValue, metric) => Math.max(maxValue, metric.naturalFromGeometry),
+        0
+      );
+      for (const metric of rowMetrics) {
+        const delta = rowMaxNaturalFromGeometry - metric.naturalFromGeometry;
+        if (delta > 0.5) {
+          expect(metric.needsComp).toBe(true);
+          expect(metric.compGap).toBeGreaterThan(0);
+          expect(Math.abs(metric.compGap - delta)).toBeLessThanOrEqual(1);
+        } else {
+          expect(metric.needsComp).toBe(false);
+          expect(Math.abs(metric.compGap)).toBeLessThanOrEqual(0.05);
+        }
+      }
+    }
+  });
+
   test('@smoke normal card slot order and unavailable overlay contract', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');

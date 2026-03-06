@@ -30,15 +30,15 @@
 - [ ] Enforce theme coverage on Landing/Test/Blog/History for both Normal/Expanded, light/dark matrix quality gate (`§6.9`, `§14.3-8`).
 
 ## 3. Normal Height / Spacing Contracts
-- [ ] Enforce Normal compact + same-row equal-height stretch (`§6.7`).
-- [ ] Keep tags terminal slot and forbid dynamic space under tags (`§6.7`).
-- [ ] Apply and verify `thumbnail -> tags` two-level spacing model with `base_gap + comp_gap` measurement (`§6.7`, `§14.3-10`, `§14.3-11`).
-- [ ] Keep `base spacing` non-zero across Desktop/Tablet/Mobile and aligned with title-subtitle-thumbnail rhythm (`§6.7`, `§14.3-10`).
-- [ ] Allow compensation spacing only on cards requiring row equalization (`§6.7`).
-- [ ] For Desktop/Tablet settled rows, keep non-comp cards at `comp_gap=0` with extra residual `thumbnail -> tags` gap `0` (`§6.7`, `§14.3-10`).
-- [ ] Determine compensation-need using row-local Normal natural height comparison (row-index independent) (`§6.7`, `§14.3-11`).
+- [x] Enforce Normal compact + same-row equal-height stretch (`§6.7`).
+- [x] Keep tags terminal slot and forbid dynamic space under tags (`§6.7`).
+- [x] Apply and verify `thumbnail -> tags` two-level spacing model with `base_gap + comp_gap` measurement (`§6.7`, `§14.3-10`, `§14.3-11`).
+- [x] Keep `base spacing` non-zero across Desktop/Tablet/Mobile and aligned with title-subtitle-thumbnail rhythm (`§6.7`, `§14.3-10`).
+- [x] Allow compensation spacing only on cards requiring row equalization (`§6.7`).
+- [x] For Desktop/Tablet settled rows, keep non-comp cards at `comp_gap=0` with extra residual `thumbnail -> tags` gap `0` (`§6.7`, `§14.3-10`).
+- [x] Determine compensation-need using row-local Normal natural height comparison (row-index independent) (`§6.7`, `§14.3-11`).
 - [ ] Preserve row1/row2+ non-target stability consistency in Expanded/handoff paths (`§6.7`, `§14.3-11`).
-- [ ] Enforce empty-tags contract: tags slot height is preserved by container metrics while rendered chip count remains `0` (no placeholder/blank chip) (`§6.7`, `§13.1`, `§14.3-10`).
+- [x] Enforce empty-tags contract: tags slot height is preserved by container metrics while rendered chip count remains `0` (no placeholder/blank chip) (`§6.7`, `§13.1`, `§14.3-10`).
 
 ## 4. State Model / Desktop-Tablet Interaction
 - [ ] Implement page/card state sets and fixed priority ordering (`§7.1`, `§7.2`).

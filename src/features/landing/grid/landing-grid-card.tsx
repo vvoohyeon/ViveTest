@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import type {CSSProperties} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import type {LandingCard} from '@/features/landing/data';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
+import {LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
 
 const metaValueFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0
@@ -13,6 +15,14 @@ const thumbnailDataUriCache = new Map<string, string>();
 
 export type LandingCardVisualState = 'normal' | 'expanded';
 export type LandingCardInteractionMode = 'hover' | 'tap';
+
+export interface LandingCardSpacingContract {
+  baseGapPx: number;
+  compGapPx: number;
+  needsComp: boolean;
+  naturalHeightPx: number;
+  rowMaxNaturalHeightPx: number;
+}
 
 export interface LandingCardCopy {
   comingSoon: string;
@@ -29,8 +39,42 @@ interface LandingGridCardProps {
   locale: AppLocale;
   state?: LandingCardVisualState;
   interactionMode?: LandingCardInteractionMode;
+  spacing?: LandingCardSpacingContract;
   copy: LandingCardCopy;
   sequence?: number;
+}
+
+function resolveSpacingContract(spacing: LandingCardSpacingContract | undefined): LandingCardSpacingContract {
+  if (!spacing) {
+    return {
+      baseGapPx: LANDING_CARD_BASE_GAP_PX,
+      compGapPx: 0,
+      needsComp: false,
+      naturalHeightPx: 0,
+      rowMaxNaturalHeightPx: 0
+    };
+  }
+
+  const baseGapPx = Number.isFinite(spacing.baseGapPx)
+    ? Math.max(1, Math.round(spacing.baseGapPx * 100) / 100)
+    : LANDING_CARD_BASE_GAP_PX;
+  const compGapPx = Number.isFinite(spacing.compGapPx)
+    ? Math.max(0, Math.round(spacing.compGapPx * 100) / 100)
+    : 0;
+  const naturalHeightPx = Number.isFinite(spacing.naturalHeightPx)
+    ? Math.max(0, Math.round(spacing.naturalHeightPx * 100) / 100)
+    : 0;
+  const rowMaxNaturalHeightPx = Number.isFinite(spacing.rowMaxNaturalHeightPx)
+    ? Math.max(0, Math.round(spacing.rowMaxNaturalHeightPx * 100) / 100)
+    : 0;
+
+  return {
+    baseGapPx,
+    compGapPx,
+    needsComp: spacing.needsComp === true && compGapPx > 0,
+    naturalHeightPx,
+    rowMaxNaturalHeightPx
+  };
 }
 
 function formatMetaValue(value: number): string {
@@ -65,12 +109,14 @@ export function LandingGridCard({
   locale,
   state = 'normal',
   interactionMode = 'tap',
+  spacing,
   copy,
   sequence
 }: LandingGridCardProps) {
   const isUnavailable = card.availability === 'unavailable';
   const resolvedState: LandingCardVisualState = isUnavailable && state === 'expanded' ? 'normal' : state;
   const isExpanded = resolvedState === 'expanded';
+  const resolvedSpacing = resolveSpacingContract(spacing);
 
   return (
     <article
@@ -82,6 +128,17 @@ export function LandingGridCard({
       data-card-availability={card.availability}
       data-card-state={resolvedState}
       data-interaction-mode={interactionMode}
+      data-base-gap={resolvedSpacing.baseGapPx}
+      data-comp-gap={resolvedSpacing.compGapPx}
+      data-needs-comp={resolvedSpacing.needsComp ? 'true' : 'false'}
+      data-natural-height={resolvedSpacing.naturalHeightPx}
+      data-row-natural-max={resolvedSpacing.rowMaxNaturalHeightPx}
+      style={
+        {
+          '--landing-card-base-gap': `${resolvedSpacing.baseGapPx}px`,
+          '--landing-card-comp-gap': `${resolvedSpacing.compGapPx}px`
+        } as CSSProperties
+      }
     >
       <div className="landing-grid-card-content">
         <h2 className="landing-grid-card-title" data-slot="cardTitle">
@@ -167,6 +224,8 @@ export function LandingGridCard({
                 unoptimized
               />
             </div>
+
+            <div className="landing-grid-card-tags-gap" aria-hidden="true" />
 
             <ul className="landing-grid-card-tags" data-slot="tags" data-tag-count={card.tags.length} aria-label="Card tags">
               {card.tags.map((tag) => (

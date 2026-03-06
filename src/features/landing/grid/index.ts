@@ -1,7 +1,12 @@
 export {LandingCatalogGrid, LANDING_GRID_PLAN_CHANGED_EVENT} from '@/features/landing/grid/landing-catalog-grid';
 export {LandingCatalogGridLoader} from '@/features/landing/grid/landing-catalog-grid-loader';
 export {getDefaultCardCopy, LandingGridCard} from '@/features/landing/grid/landing-grid-card';
-export type {LandingCardCopy, LandingCardVisualState} from '@/features/landing/grid/landing-grid-card';
+export type {
+  LandingCardCopy,
+  LandingCardInteractionMode,
+  LandingCardSpacingContract,
+  LandingCardVisualState
+} from '@/features/landing/grid/landing-grid-card';
 export {
   buildLandingGridPlan,
   CONTAINER_MAX_WIDTH,
@@ -17,4 +22,6 @@ export {
   TABLET_DESKTOP_SIDE_PADDING,
   TABLET_MAX_VIEWPORT_WIDTH
 } from '@/features/landing/grid/layout-plan';
+export {buildRowCompensationModel, LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
+export type {RowCompensationDecision, RowNaturalMeasurement} from '@/features/landing/grid/spacing-plan';
 export type {LandingGridInput, LandingGridPlan, LandingGridRowPlan, LandingGridTier} from '@/features/landing/grid/layout-plan';

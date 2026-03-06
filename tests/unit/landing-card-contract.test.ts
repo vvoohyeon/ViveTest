@@ -47,10 +47,16 @@ describe('landing card slot contract', () => {
     );
 
     expect(orderedSlots).toEqual(['cardTitle', 'cardSubtitle', 'thumbnailOrIcon', 'tags']);
+    expect(doc.querySelector('.landing-grid-card-tags-gap')).not.toBeNull();
 
     const tags = doc.querySelector('[data-slot="tags"]');
     expect(tags).not.toBeNull();
     expect(tags?.querySelectorAll('.landing-grid-card-tag-item').length).toBe(0);
+
+    const cardElement = doc.querySelector('.landing-grid-card');
+    expect(Number(cardElement?.getAttribute('data-base-gap') ?? '0')).toBeGreaterThan(0);
+    expect(cardElement?.getAttribute('data-needs-comp')).toBe('false');
+    expect(Number(cardElement?.getAttribute('data-comp-gap') ?? '1')).toBe(0);
   });
 
   it('renders Test Expanded slots without subtitle/thumbnail/tags and keeps exactly three meta items', () => {

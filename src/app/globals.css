@@ -119,6 +119,8 @@ a {
 }
 
 .landing-grid-card {
+  --landing-card-base-gap: 8px;
+  --landing-card-comp-gap: 0px;
   min-width: 0;
   min-height: 176px;
   border-radius: 16px;
@@ -130,9 +132,9 @@ a {
 }
 
 .landing-grid-card-content {
-  display: grid;
-  align-content: start;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   min-width: 0;
   height: 100%;
   position: relative;
@@ -147,7 +149,7 @@ a {
 }
 
 .landing-grid-card-subtitle {
-  margin: 0;
+  margin: var(--landing-card-base-gap) 0 0;
   color: var(--muted-ink);
   font-size: 0.92rem;
   line-height: 1.4;
@@ -162,6 +164,7 @@ a {
 }
 
 .landing-grid-card-thumbnail-slot {
+  margin-top: var(--landing-card-base-gap);
   width: 100%;
   min-width: 0;
   aspect-ratio: 6 / 1;
@@ -173,6 +176,11 @@ a {
 
 .landing-grid-card-thumbnail {
   object-fit: cover;
+}
+
+.landing-grid-card-tags-gap {
+  flex: 0 0 auto;
+  height: calc(var(--landing-card-base-gap) + var(--landing-card-comp-gap));
 }
 
 .landing-grid-card-tags {
@@ -208,6 +216,7 @@ a {
 }
 
 .landing-grid-card-expanded {
+  margin-top: 10px;
   display: grid;
   gap: 10px;
   min-width: 0;
