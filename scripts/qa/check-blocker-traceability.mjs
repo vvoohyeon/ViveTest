@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const traceabilityFile = 'docs/blocker-traceability.json';
+const TRACEABILITY_ASSERTION_ID = 'assertion:B19-traceability-registry';
 const errors = [];
 
 function fail(message) {
@@ -24,7 +25,22 @@ if (!fileExists(traceabilityFile)) {
   const blockers = new Set();
 
   for (const entry of entries) {
+    if (typeof entry?.blocker !== 'number') {
+      fail(`Traceability entry is missing numeric blocker: ${JSON.stringify(entry)}`);
+      continue;
+    }
+
     blockers.add(entry.blocker);
+
+    if (typeof entry.file !== 'string' || entry.file.length === 0) {
+      fail(`Traceability entry for blocker ${entry.blocker} is missing file.`);
+      continue;
+    }
+
+    if (typeof entry.assertionId !== 'string' || entry.assertionId.length === 0) {
+      fail(`Traceability entry for blocker ${entry.blocker} is missing assertionId.`);
+      continue;
+    }
 
     if (!fileExists(entry.file)) {
       fail(`Traceability entry points to missing file: ${entry.file}`);
@@ -32,8 +48,8 @@ if (!fileExists(traceabilityFile)) {
     }
 
     const content = readFileSync(path.join(rootDir, entry.file), 'utf8');
-    if (!content.includes(entry.pattern)) {
-      fail(`Traceability pattern not found for blocker ${entry.blocker}: ${entry.pattern}`);
+    if (!content.includes(entry.assertionId)) {
+      fail(`Traceability assertionId not found for blocker ${entry.blocker}: ${entry.assertionId}`);
     }
   }
 
@@ -52,4 +68,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Blocker traceability checks passed for ${traceabilityFile}.`);
+console.log(`${TRACEABILITY_ASSERTION_ID} checks passed for ${traceabilityFile}.`);

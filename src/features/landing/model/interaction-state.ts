@@ -437,7 +437,7 @@ export function isCardPointerInteractionBlocked(
     return false;
   }
 
-  return true;
+  return state.hoverLock.keyboardMode;
 }
 
 export function isCardKeyboardAriaDisabled(

@@ -1,7 +1,7 @@
 import {expect, test} from '@playwright/test';
 
 test.describe('Phase 4 grid smoke', () => {
-  test('@smoke desktop wide row rules and underfilled final row contract', async ({page}) => {
+  test('@smoke assertion:B12-underfilled-last-row desktop wide row rules and underfilled final row contract', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -137,7 +137,7 @@ test.describe('Phase 4 grid smoke', () => {
     expect(mainClamp).toBe('2');
   });
 
-  test('@smoke subtitle overflow does not contaminate card or sibling slot inline sizes', async ({page}) => {
+  test('@smoke assertion:B4-inline-size subtitle overflow does not contaminate card or sibling slot inline sizes', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -171,7 +171,7 @@ test.describe('Phase 4 grid smoke', () => {
     expect(Math.abs(rowClientWidth - rowScrollWidth)).toBeLessThanOrEqual(1);
   });
 
-  test('@smoke base-gap and comp-gap follow row-local compensation rule for row1 and row2+', async ({page}) => {
+  test('@smoke assertion:B10-spacing-model base-gap and comp-gap follow row-local compensation rule for row1 and row2+', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -338,5 +338,68 @@ test.describe('Phase 4 grid smoke', () => {
       await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
     );
     expect(opacity).toBeGreaterThanOrEqual(0.95);
+  });
+
+  test('@smoke assertion:B4-geometry-active-frame desktop expanded overlay keeps same-row non-target metrics frozen', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const shell = page.getByTestId('landing-grid-shell');
+    const sourceCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const siblingCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const before = await siblingCard.boundingBox();
+
+    expect(before).not.toBeNull();
+    await sourceCard.hover();
+    await expect(sourceCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(shell).toHaveAttribute('data-baseline-phase', 'BASELINE_FROZEN');
+
+    const after = await siblingCard.boundingBox();
+    expect(after).not.toBeNull();
+    expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((after?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((after?.y ?? 0) + (after?.height ?? 0) - ((before?.y ?? 0) + (before?.height ?? 0)))).toBeLessThanOrEqual(1);
+
+    await page.mouse.move(0, 0);
+    await expect(sourceCard).toHaveAttribute('data-card-state', 'normal');
+    await expect.poll(() => shell.getAttribute('data-baseline-phase')).toBe('BASELINE_READY');
+  });
+
+  test('@smoke assertion:B13-hover-collapse desktop hover-out collapse stays independent and handoff remains available-only', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+
+    await firstCard.hover();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+
+    await page.mouse.move(8, 8);
+    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
+
+    await unavailableCard.hover();
+    await expect(unavailableCard).toHaveAttribute('data-card-state', 'normal');
+    await expect
+      .poll(async () =>
+        parseFloat(
+          await unavailableCard
+            .locator('[data-slot="unavailableOverlay"]')
+            .evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
+        )
+      )
+      .toBeGreaterThanOrEqual(0.95);
+
+    await firstCard.hover();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+    await secondCard.hover();
+    await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'handoff-source');
+    await expect(secondCard).toHaveAttribute('data-desktop-motion-role', 'handoff-target');
+    await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
   });
 });

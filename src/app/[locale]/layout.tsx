@@ -4,6 +4,7 @@ import {notFound} from 'next/navigation';
 import type {ReactNode} from 'react';
 
 import {isLocale, locales} from '@/config/site';
+import {TransitionRuntimeMonitor} from '@/features/landing/transition/transition-runtime-monitor';
 import {LocaleHtmlLangSync} from '@/i18n/locale-html-lang-sync';
 import en from '@/messages/en.json';
 import kr from '@/messages/kr.json';
@@ -37,6 +38,7 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messagesByLocale[locale]}>
       <LocaleHtmlLangSync locale={locale} />
+      <TransitionRuntimeMonitor locale={locale} />
       <div data-locale={locale}>{children}</div>
     </NextIntlClientProvider>
   );

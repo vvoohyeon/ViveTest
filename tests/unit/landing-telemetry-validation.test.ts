@@ -3,7 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {validateTelemetryEvent} from '../../src/features/landing/telemetry/validation';
 
 describe('landing telemetry validation', () => {
-  it('accepts final_submit payloads that use semantic response codes only', () => {
+  it('assertion:B18-final-submit-validation accepts final_submit payloads that use semantic response codes only', () => {
     expect(() =>
       validateTelemetryEvent({
         event_type: 'final_submit',

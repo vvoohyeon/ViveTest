@@ -13,6 +13,13 @@ import {useLocale, useTranslations} from 'next-intl';
 import {defaultLocale, isLocale} from '@/config/site';
 import type {LandingCard} from '@/features/landing/data';
 import {type LandingCardSpacingContract, LandingGridCard} from '@/features/landing/grid/landing-grid-card';
+import {
+  freezeBaselineRows,
+  initialLandingBaselineState,
+  markBaselineRestorePending,
+  releaseBaselineRows,
+  type LandingBaselineState
+} from '@/features/landing/grid/baseline-manager';
 import {buildLandingGridPlan, resolveLandingAvailableWidth} from '@/features/landing/grid/layout-plan';
 import {
   buildRowCompensationModel,
@@ -32,6 +39,25 @@ interface LandingCatalogGridProps {
 }
 
 type CardSpacingMap = Record<string, LandingCardSpacingContract>;
+
+function captureBaselineSnapshots(shellElement: HTMLElement, rowIndexes: readonly number[]) {
+  return rowIndexes.flatMap((rowIndex) => {
+    const rowElement = shellElement.querySelector<HTMLElement>(`[data-row-index="${rowIndex}"]`);
+    if (!rowElement) {
+      return [];
+    }
+
+    const rect = rowElement.getBoundingClientRect();
+    return [
+      {
+        rowId: `row-${rowIndex}`,
+        top: rect.top,
+        bottom: rect.bottom,
+        height: rect.height
+      }
+    ];
+  });
+}
 
 function nearlyEqual(a: number, b: number): boolean {
   return Math.abs(a - b) <= 0.5;
@@ -77,12 +103,14 @@ function readViewportWidth(): number {
 export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
   const previousPlanKeyRef = useRef<string | null>(null);
   const shellRef = useRef<HTMLElement | null>(null);
+  const baselineReleaseTimerRef = useRef<number | null>(null);
   const localeFromContext = useLocale();
   const t = useTranslations('landing');
   const locale = isLocale(localeFromContext) ? localeFromContext : defaultLocale;
 
   const [viewportWidth, setViewportWidth] = useState<number>(readViewportWidth);
   const [spacingModel, setSpacingModel] = useState<CardSpacingMap>({});
+  const [baselineState, setBaselineState] = useState(initialLandingBaselineState);
   const availableWidth = useMemo(() => resolveLandingAvailableWidth(viewportWidth), [viewportWidth]);
   const plan = useMemo(
     () =>
@@ -99,6 +127,8 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
     interactionState,
     mobileLifecycleState,
     mobileBackdropBindings,
+    activeVisualCardId,
+    mobileRestoreReadyCardId,
     resolveCardInteractionBindings,
     collapseExpandedCard
   } = useLandingInteractionController({
@@ -168,7 +198,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       return;
     }
 
-    if (plan.tier !== 'mobile' && interactionState.expandedCardId) {
+    if (plan.tier !== 'mobile' && activeVisualCardId) {
       return;
     }
 
@@ -262,7 +292,93 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [cards, interactionState.expandedCardId, plan, viewportWidth]);
+  }, [activeVisualCardId, cards, plan, viewportWidth]);
+
+  useEffect(() => {
+    const clearBaselineReleaseTimer = () => {
+      if (baselineReleaseTimerRef.current !== null) {
+        window.clearTimeout(baselineReleaseTimerRef.current);
+        baselineReleaseTimerRef.current = null;
+      }
+    };
+    let frame = 0;
+    const scheduleBaselineState = (updater: LandingBaselineState | ((previous: LandingBaselineState) => LandingBaselineState)) => {
+      frame = window.requestAnimationFrame(() => {
+        setBaselineState(updater);
+      });
+    };
+    const cleanup = () => {
+      clearBaselineReleaseTimer();
+      if (frame !== 0) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (plan.tier === 'mobile') {
+      clearBaselineReleaseTimer();
+      scheduleBaselineState((previous) => (previous.phase === 'BASELINE_READY' ? previous : releaseBaselineRows()));
+      return cleanup;
+    }
+
+    if (activeVisualCardId) {
+      clearBaselineReleaseTimer();
+      const shell = shellRef.current;
+      if (!shell) {
+        return;
+      }
+
+      const snapshots = captureBaselineSnapshots(
+        shell,
+        plan.rows.map((row) => row.rowIndex)
+      );
+      scheduleBaselineState((previous) =>
+        previous.phase === 'BASELINE_READY'
+          ? freezeBaselineRows({
+              state: previous,
+              activeCardId: activeVisualCardId,
+              snapshots
+            })
+          : previous.activeCardId === activeVisualCardId
+            ? previous
+            : {
+                ...previous,
+                activeCardId: activeVisualCardId
+              }
+      );
+      return cleanup;
+    }
+
+    if (baselineState.phase === 'BASELINE_READY') {
+      clearBaselineReleaseTimer();
+      return;
+    }
+
+    if (baselineState.phase === 'BASELINE_FROZEN') {
+      scheduleBaselineState((previous) => markBaselineRestorePending(previous));
+    }
+
+    if (baselineReleaseTimerRef.current === null) {
+      baselineReleaseTimerRef.current = window.setTimeout(() => {
+        baselineReleaseTimerRef.current = null;
+        setBaselineState(releaseBaselineRows());
+      }, 32);
+    }
+
+    return cleanup;
+  }, [activeVisualCardId, baselineState.phase, plan.rows, plan.tier]);
+
+  useEffect(
+    () => () => {
+      if (baselineReleaseTimerRef.current !== null) {
+        window.clearTimeout(baselineReleaseTimerRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const nextPlanKey = `${plan.tier}:${plan.row1Columns}:${plan.rowNColumns}:${plan.rows
@@ -274,7 +390,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       previousPlanKeyRef.current !== nextPlanKey &&
       typeof window !== 'undefined'
     ) {
-      if (plan.tier !== 'mobile' && interactionState.expandedCardId) {
+      if (plan.tier !== 'mobile' && activeVisualCardId) {
         collapseExpandedCard();
       }
 
@@ -289,7 +405,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
     }
 
     previousPlanKeyRef.current = nextPlanKey;
-  }, [collapseExpandedCard, interactionState.expandedCardId, plan]);
+  }, [activeVisualCardId, collapseExpandedCard, plan]);
 
   return (
     <section
@@ -306,6 +422,10 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       data-hover-lock-card-id={interactionState.hoverLock.cardId ?? ''}
       data-keyboard-mode={interactionState.hoverLock.keyboardMode ? 'true' : 'false'}
       data-mobile-phase={mobileLifecycleState.phase}
+      data-mobile-restore-ready-card-id={mobileRestoreReadyCardId ?? ''}
+      data-baseline-phase={baselineState.phase}
+      data-baseline-active-card-id={baselineState.activeCardId ?? ''}
+      data-baseline-frozen-rows={baselineState.frozenRows.join(',')}
     >
       {mobileBackdropBindings.active ? (
         <div
@@ -319,56 +439,66 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
         />
       ) : null}
       <div className="landing-grid-container" data-testid="landing-grid-container">
-        {plan.rows.map((row) => (
-          <div
-            key={row.rowIndex}
-            className="landing-grid-row"
-            data-testid={`landing-grid-row-${row.rowIndex}`}
-            data-row-index={row.rowIndex}
-            data-row-role={row.role}
-            data-columns={row.columns}
-            data-card-count={row.cardCount}
-            data-underfilled={row.isUnderfilled ? 'true' : 'false'}
-            style={{'--landing-grid-columns': String(row.columns)} as CSSProperties}
-          >
-            {cards.slice(row.startIndex, row.endIndex).map((card, offset) => {
-              const sequence = row.startIndex + offset;
-              const interactionBindings = resolveCardInteractionBindings(card);
+        {plan.rows.map((row) => {
+          const rowSnapshot = baselineState.snapshots.get(`row-${row.rowIndex}`);
 
-              return (
-                <LandingGridCard
-                  key={card.id}
-                  card={card}
-                  state={interactionBindings.state}
-                  locale={locale}
-                  interactionMode={interactionMode}
-                  viewportTier={plan.tier}
-                  mobilePhase={interactionBindings.mobilePhase}
-                  desktopTransformOriginX={resolveDesktopTransformOriginX({
-                    cardOffset: offset,
-                    rowCardCount: row.cardCount
-                  })}
-                  spacing={spacingModel[card.id]}
-                  sequence={sequence}
-                  copy={cardCopy}
-                  hoverLockEnabled={interactionBindings.hoverLockEnabled}
-                  keyboardMode={interactionBindings.keyboardMode}
-                  interactionBlocked={interactionBindings.interactionBlocked}
-                  ariaDisabled={interactionBindings.ariaDisabled}
-                  tabIndex={interactionBindings.tabIndex}
-                  onFocus={interactionBindings.onFocus}
-                  onKeyDown={interactionBindings.onKeyDown}
-                  onClick={interactionBindings.onClick}
-                  onMouseEnter={interactionBindings.onMouseEnter}
-                  onMouseLeave={interactionBindings.onMouseLeave}
-                  onAnswerChoiceSelect={interactionBindings.onAnswerChoiceSelect}
-                  onPrimaryCtaClick={interactionBindings.onPrimaryCtaClick}
-                  onMobileClose={interactionBindings.onMobileClose}
-                />
-              );
-            })}
-          </div>
-        ))}
+          return (
+            <div
+              key={row.rowIndex}
+              className="landing-grid-row"
+              data-testid={`landing-grid-row-${row.rowIndex}`}
+              data-row-index={row.rowIndex}
+              data-row-role={row.role}
+              data-columns={row.columns}
+              data-card-count={row.cardCount}
+              data-underfilled={row.isUnderfilled ? 'true' : 'false'}
+              data-baseline-top={rowSnapshot?.top}
+              data-baseline-bottom={rowSnapshot?.bottom}
+              data-baseline-height={rowSnapshot?.height}
+              style={{'--landing-grid-columns': String(row.columns)} as CSSProperties}
+            >
+              {cards.slice(row.startIndex, row.endIndex).map((card, offset) => {
+                const sequence = row.startIndex + offset;
+                const interactionBindings = resolveCardInteractionBindings(card);
+
+                return (
+                  <LandingGridCard
+                    key={card.id}
+                    card={card}
+                    state={interactionBindings.state}
+                    locale={locale}
+                    interactionMode={interactionMode}
+                    viewportTier={plan.tier}
+                    mobilePhase={interactionBindings.mobilePhase}
+                    mobileRestoreReady={interactionBindings.mobileRestoreReady}
+                    desktopMotionRole={interactionBindings.desktopMotionRole}
+                    mobileSnapshot={interactionBindings.mobileSnapshot}
+                    desktopTransformOriginX={resolveDesktopTransformOriginX({
+                      cardOffset: offset,
+                      rowCardCount: row.cardCount
+                    })}
+                    spacing={spacingModel[card.id]}
+                    sequence={sequence}
+                    copy={cardCopy}
+                    hoverLockEnabled={interactionBindings.hoverLockEnabled}
+                    keyboardMode={interactionBindings.keyboardMode}
+                    interactionBlocked={interactionBindings.interactionBlocked}
+                    ariaDisabled={interactionBindings.ariaDisabled}
+                    tabIndex={interactionBindings.tabIndex}
+                    onFocus={interactionBindings.onFocus}
+                    onKeyDown={interactionBindings.onKeyDown}
+                    onClick={interactionBindings.onClick}
+                    onMouseEnter={interactionBindings.onMouseEnter}
+                    onMouseLeave={interactionBindings.onMouseLeave}
+                    onAnswerChoiceSelect={interactionBindings.onAnswerChoiceSelect}
+                    onPrimaryCtaClick={interactionBindings.onPrimaryCtaClick}
+                    onMobileClose={interactionBindings.onMobileClose}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

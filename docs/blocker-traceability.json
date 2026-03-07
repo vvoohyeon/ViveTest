@@ -2,96 +2,136 @@
   {
     "blocker": 1,
     "file": "tests/e2e/routing-smoke.spec.ts",
-    "pattern": "hydration warnings remain zero on core localized routes"
+    "assertionId": "assertion:B1-hydration"
   },
   {
     "blocker": 2,
     "file": "tests/e2e/routing-smoke.spec.ts",
-    "pattern": "root + allowlist redirect keeps single locale prefix"
+    "assertionId": "assertion:B2-locale-prefix"
   },
   {
     "blocker": 3,
     "file": "tests/e2e/gnb-smoke.spec.ts",
-    "pattern": "desktop settings open-close and gap contract"
+    "assertionId": "assertion:B3-desktop-settings"
   },
   {
     "blocker": 4,
     "file": "tests/e2e/grid-smoke.spec.ts",
-    "pattern": "desktop wide row rules and underfilled final row contract"
+    "assertionId": "assertion:B4-inline-size"
+  },
+  {
+    "blocker": 4,
+    "file": "tests/e2e/grid-smoke.spec.ts",
+    "assertionId": "assertion:B4-geometry-active-frame"
   },
   {
     "blocker": 5,
     "file": "tests/e2e/state-smoke.spec.ts",
-    "pattern": "keyboard sequential override expands focused card and moves through internal controls before next card"
+    "assertionId": "assertion:B5-keyboard-sequential"
+  },
+  {
+    "blocker": 5,
+    "file": "tests/e2e/state-smoke.spec.ts",
+    "assertionId": "assertion:B5-overlay-focus"
   },
   {
     "blocker": 6,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
-    "pattern": "landing test transition records ingress, attempt_start, and final_submit payload completeness"
+    "assertionId": "assertion:B6-transition-ingress"
   },
   {
     "blocker": 7,
     "file": "tests/e2e/gnb-smoke.spec.ts",
-    "pattern": "mobile overlay close-start and unlock timing"
+    "assertionId": "assertion:B7-mobile-overlay"
   },
   {
     "blocker": 8,
     "file": "tests/e2e/theme-matrix-smoke.spec.ts",
-    "pattern": "theme matrix captures landing, blog, history, and test surfaces in light/dark states"
+    "assertionId": "assertion:B8-theme-matrix"
   },
   {
     "blocker": 9,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
-    "pattern": "default opted-out policy blocks client telemetry network sends"
+    "assertionId": "assertion:B9-opted-out-no-send"
   },
   {
     "blocker": 10,
     "file": "tests/e2e/grid-smoke.spec.ts",
-    "pattern": "base-gap and comp-gap follow row-local compensation rule for row1 and row2+"
+    "assertionId": "assertion:B10-spacing-model"
   },
   {
     "blocker": 11,
     "file": "tests/unit/landing-baseline-manager.test.ts",
-    "pattern": "freezes row snapshots for the active card"
+    "assertionId": "assertion:B11-baseline-freeze"
   },
   {
     "blocker": 12,
     "file": "tests/e2e/grid-smoke.spec.ts",
-    "pattern": "underfilled final row contract"
+    "assertionId": "assertion:B12-underfilled-last-row"
   },
   {
     "blocker": 13,
     "file": "tests/unit/landing-hover-intent.test.ts",
-    "pattern": "allows handoff only between different available cards"
+    "assertionId": "assertion:B13-handoff-available-only"
+  },
+  {
+    "blocker": 13,
+    "file": "tests/e2e/grid-smoke.spec.ts",
+    "assertionId": "assertion:B13-hover-collapse"
   },
   {
     "blocker": 14,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
-    "pattern": "mobile expanded lifecycle keeps scroll lock until explicit close and ignores outside scroll gestures"
+    "assertionId": "assertion:B14-mobile-baseline"
+  },
+  {
+    "blocker": 14,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B14-mobile-queue-close"
   },
   {
     "blocker": 15,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
-    "pattern": "landing test transition records ingress, attempt_start, and final_submit payload completeness"
+    "assertionId": "assertion:B15-transition-correlation"
   },
   {
     "blocker": 16,
     "file": "tests/unit/landing-transition-store.test.ts",
-    "pattern": "rolls back pending transition, ingress flag, and body lock state without leaks"
+    "assertionId": "assertion:B16-rollback-cleanup"
+  },
+  {
+    "blocker": 16,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B16-timeout"
+  },
+  {
+    "blocker": 16,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B16-destination-load-error"
+  },
+  {
+    "blocker": 16,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B16-user-cancel"
   },
   {
     "blocker": 17,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
-    "pattern": "blog transition selects requested article and landing return restores scroll once"
+    "assertionId": "assertion:B17-return-restore"
+  },
+  {
+    "blocker": 18,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B18-final-submit-payload"
   },
   {
     "blocker": 18,
     "file": "tests/unit/landing-telemetry-validation.test.ts",
-    "pattern": "accepts final_submit payloads that use semantic response codes only"
+    "assertionId": "assertion:B18-final-submit-validation"
   },
   {
     "blocker": 19,
     "file": "scripts/qa/check-blocker-traceability.mjs",
-    "pattern": "docs/blocker-traceability.json"
+    "assertionId": "assertion:B19-traceability-registry"
   }
 ]

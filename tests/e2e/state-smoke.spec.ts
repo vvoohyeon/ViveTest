@@ -31,7 +31,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(page.getByTestId('landing-grid-card').first()).toHaveAttribute('data-interaction-mode', 'hover');
   });
 
-  test('@smoke keyboard sequential override expands focused card and moves through internal controls before next card', async ({
+  test('@smoke assertion:B5-keyboard-sequential keyboard sequential override expands focused card and moves through internal controls before next card', async ({
     page
   }) => {
     await page.setViewportSize({width: 1440, height: 980});
@@ -64,5 +64,14 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstTrigger).toBeFocused();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(secondCard).toHaveAttribute('data-card-state', 'normal');
+  });
+
+  test('@smoke assertion:B5-overlay-focus shell-aligned focus remains readable above unavailable overlay', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    await unavailableCard.getByTestId('landing-grid-card-trigger').focus();
+    await expect(unavailableCard).toHaveScreenshot('overlay-focus-shell.png');
   });
 });

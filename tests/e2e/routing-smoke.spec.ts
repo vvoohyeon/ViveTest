@@ -5,7 +5,7 @@ function hasHydrationWarning(text: string): boolean {
 }
 
 test.describe('Phase 1 routing smoke', () => {
-  test('@smoke root + allowlist redirect keeps single locale prefix', async ({page}) => {
+  test('@smoke assertion:B2-locale-prefix root + allowlist redirect keeps single locale prefix', async ({page}) => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/(en|kr)$/u);
     expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
@@ -35,7 +35,7 @@ test.describe('Phase 1 routing smoke', () => {
     await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
   });
 
-  test('@smoke hydration warnings remain zero on core localized routes', async ({page}) => {
+  test('@smoke assertion:B1-hydration hydration warnings remain zero on core localized routes', async ({page}) => {
     const hydrationWarnings: string[] = [];
     page.on('console', (message) => {
       const text = message.text();

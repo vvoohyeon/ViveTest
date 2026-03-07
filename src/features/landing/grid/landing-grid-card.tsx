@@ -26,6 +26,21 @@ export type LandingCardVisualState = 'normal' | 'expanded' | 'focused';
 export type LandingCardInteractionMode = 'hover' | 'tap';
 export type LandingCardViewportTier = 'mobile' | 'tablet' | 'desktop';
 export type LandingCardMobilePhase = 'NORMAL' | 'OPENING' | 'OPEN' | 'CLOSING';
+export type LandingCardDesktopMotionRole =
+  | 'idle'
+  | 'opening'
+  | 'steady'
+  | 'closing'
+  | 'handoff-target'
+  | 'handoff-source';
+
+export interface LandingMobileSnapshotView {
+  cardHeightPx: number;
+  anchorTopPx: number;
+  titleTopPx: number;
+  snapshotWriteCount: number;
+  restoreReady: boolean;
+}
 
 export interface LandingCardSpacingContract {
   baseGapPx: number;
@@ -54,6 +69,9 @@ interface LandingGridCardProps {
   interactionMode?: LandingCardInteractionMode;
   viewportTier?: LandingCardViewportTier;
   mobilePhase?: LandingCardMobilePhase;
+  mobileRestoreReady?: boolean;
+  desktopMotionRole?: LandingCardDesktopMotionRole;
+  mobileSnapshot?: LandingMobileSnapshotView | null;
   desktopTransformOriginX?: '0%' | '50%' | '100%';
   spacing?: LandingCardSpacingContract;
   copy: LandingCardCopy;
@@ -195,6 +213,9 @@ export function LandingGridCard({
   interactionMode = 'tap',
   viewportTier = 'desktop',
   mobilePhase = 'NORMAL',
+  mobileRestoreReady = false,
+  desktopMotionRole = 'idle',
+  mobileSnapshot = null,
   desktopTransformOriginX = '50%',
   spacing,
   copy,
@@ -250,6 +271,14 @@ export function LandingGridCard({
       data-row-natural-max={resolvedSpacing.rowMaxNaturalHeightPx}
       data-card-viewport-tier={viewportTier}
       data-mobile-phase={isMobileViewport ? mobilePhase : undefined}
+      data-desktop-motion-role={!isMobileViewport ? desktopMotionRole : undefined}
+      data-mobile-snapshot-height={mobileSnapshot ? mobileSnapshot.cardHeightPx : undefined}
+      data-mobile-snapshot-anchor-top={mobileSnapshot ? mobileSnapshot.anchorTopPx : undefined}
+      data-mobile-snapshot-title-top={mobileSnapshot ? mobileSnapshot.titleTopPx : undefined}
+      data-mobile-snapshot-writes={mobileSnapshot ? mobileSnapshot.snapshotWriteCount : undefined}
+      data-mobile-restore-ready={
+        isMobileViewport && mobilePhase !== 'NORMAL' ? (mobileRestoreReady ? 'true' : 'false') : undefined
+      }
       data-expanded-layer={isDesktopExpanded ? 'desktop-overlay' : isMobileExpanded ? 'mobile-in-flow' : 'none'}
       aria-disabled={ariaDisabled ? 'true' : undefined}
       onMouseEnter={onMouseEnter}
@@ -390,7 +419,7 @@ export function LandingGridCard({
             onClick={onMobileClose}
             disabled={mobilePhase === 'CLOSING'}
           >
-            {copy.close}
+            <span aria-hidden="true">×</span>
           </button>
           <div className="landing-grid-card-mobile-expanded" data-slot="expandedBody">
             {card.type === 'test' ? (

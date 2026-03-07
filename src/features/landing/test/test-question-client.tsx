@@ -61,6 +61,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   const dwellByQuestionRef = useRef<Record<string, number>>({});
   const attemptStartedRef = useRef(false);
   const bootstrapRuntimeStateRef = useRef<QuestionRuntimeState | null>(null);
+  const pendingTransitionToCompleteRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (bootstrapRuntimeStateRef.current) {
@@ -92,11 +93,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
         : null;
 
     if (nextPendingTransition && nextPendingTransition.targetType === 'test' && nextPendingTransition.variant === variant) {
-      completePendingLandingTransition({
-        locale,
-        route: pathname,
-        targetType: 'test'
-      });
+      pendingTransitionToCompleteRef.current = nextPendingTransition.transitionId;
     }
 
     const landingIngressFlag = matchedIngress !== null;
@@ -115,6 +112,29 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
       setRuntimeState(nextRuntimeState);
     });
   }, [locale, pathname, variant]);
+
+  useEffect(() => {
+    if (!runtimeState.ready || pendingTransitionToCompleteRef.current === null) {
+      return;
+    }
+
+    const expectedTransitionId = pendingTransitionToCompleteRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      const completed = completePendingLandingTransition({
+        locale,
+        route: pathname,
+        targetType: 'test'
+      });
+
+      if (completed?.transitionId === expectedTransitionId) {
+        pendingTransitionToCompleteRef.current = null;
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [locale, pathname, runtimeState.ready]);
 
   useEffect(() => {
     if (!runtimeState.ready || runtimeState.instructionVisible || attemptStartedRef.current) {

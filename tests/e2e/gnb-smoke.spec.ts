@@ -1,7 +1,7 @@
 import {expect, test} from '@playwright/test';
 
 test.describe('Phase 3 gnb shell smoke', () => {
-  test('@smoke desktop settings open-close and gap contract', async ({page}) => {
+  test('@smoke assertion:B3-desktop-settings desktop settings open-close and gap contract', async ({page}) => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
 
@@ -81,7 +81,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(panel).toBeVisible();
   });
 
-  test('@smoke mobile overlay close-start and unlock timing', async ({page}) => {
+  test('@smoke assertion:B7-mobile-overlay mobile overlay close-start and unlock timing', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 

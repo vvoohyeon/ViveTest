@@ -1,5 +1,7 @@
 export const DESKTOP_EXPAND_DELAY_MS = 160;
 export const DESKTOP_COLLAPSE_DELAY_MS = 140;
+export const CORE_MOTION_DURATION_MS = 280;
+export const CORE_MOTION_REVEAL_DELAYS_MS = [40, 100, 160] as const;
 
 export type HoverIntentAction = 'expand' | 'collapse' | 'handoff';
 

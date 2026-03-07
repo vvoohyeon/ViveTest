@@ -26,6 +26,9 @@ export interface LandingIngressRecord {
   landingIngressFlag: true;
 }
 
+export const LANDING_TRANSITION_STORE_EVENT = 'landing:transition-store-change';
+export const LANDING_TRANSITION_CLEANUP_EVENT = 'landing:transition-cleanup';
+
 const PENDING_TRANSITION_KEY = 'vibetest-landing-pending-transition';
 const RETURN_SCROLL_Y_KEY = 'vibetest-landing-return-scroll-y';
 const RETURN_SCROLL_CARD_ID_KEY = 'vibetest-landing-return-card-id';
@@ -72,8 +75,24 @@ function writeJson(key: string, value: unknown): void {
   storage.setItem(key, JSON.stringify(value));
 }
 
+function dispatchTransitionEvent(name: string, detail: Record<string, unknown>): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(
+    new window.CustomEvent(name, {
+      detail
+    })
+  );
+}
+
 export function writePendingLandingTransition(transition: PendingLandingTransition): void {
   writeJson(PENDING_TRANSITION_KEY, transition);
+  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+    key: PENDING_TRANSITION_KEY,
+    transitionId: transition.transitionId
+  });
 }
 
 export function readPendingLandingTransition(): PendingLandingTransition | null {
@@ -83,10 +102,18 @@ export function readPendingLandingTransition(): PendingLandingTransition | null 
 export function clearPendingLandingTransition(): void {
   const storage = getSessionStorage();
   storage?.removeItem(PENDING_TRANSITION_KEY);
+  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+    key: PENDING_TRANSITION_KEY,
+    transitionId: null
+  });
 }
 
 export function writeLandingIngress(record: LandingIngressRecord): void {
   writeJson(`${LANDING_INGRESS_PREFIX}${record.variant}`, record);
+  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+    key: `${LANDING_INGRESS_PREFIX}${record.variant}`,
+    variant: record.variant
+  });
 }
 
 export function readLandingIngress(variant: string): LandingIngressRecord | null {
@@ -108,6 +135,10 @@ export function consumeLandingIngress(variant: string): LandingIngressRecord | n
 export function clearLandingIngress(variant: string): void {
   const storage = getSessionStorage();
   storage?.removeItem(`${LANDING_INGRESS_PREFIX}${variant}`);
+  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+    key: `${LANDING_INGRESS_PREFIX}${variant}`,
+    variant
+  });
 }
 
 export function markInstructionSeen(variant: string): void {
@@ -132,6 +163,11 @@ export function saveLandingReturnScrollY(scrollY: number, sourceCardId?: string)
   } else {
     storage.removeItem(RETURN_SCROLL_CARD_ID_KEY);
   }
+
+  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+    key: RETURN_SCROLL_Y_KEY,
+    sourceCardId: sourceCardId ?? null
+  });
 }
 
 export function readLandingReturnScrollY(): number | null {
@@ -179,6 +215,10 @@ export function clearLandingReturnScroll(): void {
 
   storage.removeItem(RETURN_SCROLL_Y_KEY);
   storage.removeItem(RETURN_SCROLL_CARD_ID_KEY);
+  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+    key: RETURN_SCROLL_Y_KEY,
+    sourceCardId: null
+  });
 }
 
 export function rollbackLandingTransition(input: {
@@ -190,7 +230,11 @@ export function rollbackLandingTransition(input: {
   }
 
   clearPendingLandingTransition();
+  clearLandingReturnScroll();
   if (input.variant) {
     clearLandingIngress(input.variant);
   }
+  dispatchTransitionEvent(LANDING_TRANSITION_CLEANUP_EVENT, {
+    variant: input.variant ?? null
+  });
 }

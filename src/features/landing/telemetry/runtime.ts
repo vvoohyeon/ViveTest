@@ -200,6 +200,28 @@ export function getTelemetrySnapshot(): TelemetrySnapshot {
   };
 }
 
+export function getTelemetryRuntimeQueueLengthForTests(): number {
+  return runtimeState.queue.length;
+}
+
+export function resetTelemetryRuntimeForTests(): void {
+  runtimeState.consentState = 'UNKNOWN';
+  runtimeState.sessionId = null;
+  runtimeState.synced = false;
+  runtimeState.queue = [];
+  runtimeState.sentLandingViews.clear();
+  runtimeState.sentTransitionStarts.clear();
+  runtimeState.sentTransitionTerminals.clear();
+  fallbackCorrelationCounter = 0;
+
+  try {
+    getLocalStorage()?.removeItem(TELEMETRY_CONSENT_STORAGE_KEY);
+    getLocalStorage()?.removeItem(TELEMETRY_SESSION_ID_STORAGE_KEY);
+  } catch {
+    // Ignore storage cleanup failures in test reset helpers.
+  }
+}
+
 export function syncTelemetryConsent(): TelemetrySnapshot {
   const nextConsentState = resolveStoredConsent();
   runtimeState.consentState = nextConsentState;

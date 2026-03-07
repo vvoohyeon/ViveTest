@@ -22,7 +22,7 @@ describe('landing hover intent helpers', () => {
     });
   });
 
-  it('allows handoff only between different available cards', () => {
+  it('assertion:B13-handoff-available-only allows handoff only between different available cards', () => {
     expect(
       isAvailableHandoffCandidate({
         previousExpandedCardId: 'test-rhythm-a',

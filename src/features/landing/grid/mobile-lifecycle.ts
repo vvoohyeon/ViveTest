@@ -13,6 +13,8 @@ export interface LandingMobileLifecycleState {
   cardId: string | null;
   queuedClose: boolean;
   snapshot: LandingMobileSnapshot | null;
+  snapshotWriteCount: number;
+  restoreReady: boolean;
 }
 
 export type LandingMobileLifecycleEvent =
@@ -21,6 +23,7 @@ export type LandingMobileLifecycleEvent =
   | {type: 'QUEUE_CLOSE'}
   | {type: 'QUEUE_CLOSE_CANCEL'}
   | {type: 'CLOSE_START'}
+  | {type: 'RESTORE_READY'}
   | {type: 'CLOSE_SETTLED'}
   | {type: 'RESET'};
 
@@ -28,7 +31,9 @@ export const initialLandingMobileLifecycleState: LandingMobileLifecycleState = {
   phase: 'NORMAL',
   cardId: null,
   queuedClose: false,
-  snapshot: null
+  snapshot: null,
+  snapshotWriteCount: 0,
+  restoreReady: false
 };
 
 export function reduceLandingMobileLifecycleState(
@@ -41,11 +46,22 @@ export function reduceLandingMobileLifecycleState(
         return state;
       }
 
+      if (state.phase !== 'NORMAL' && state.cardId === event.cardId && state.snapshot) {
+        return {
+          ...state,
+          phase: 'OPENING',
+          queuedClose: false,
+          restoreReady: false
+        };
+      }
+
       return {
         phase: 'OPENING',
         cardId: event.cardId,
         queuedClose: false,
-        snapshot: state.snapshot ?? event.snapshot
+        snapshot: event.snapshot,
+        snapshotWriteCount: 1,
+        restoreReady: false
       };
     case 'OPEN_SETTLED':
       if (state.phase !== 'OPENING') {
@@ -55,7 +71,8 @@ export function reduceLandingMobileLifecycleState(
       if (state.queuedClose) {
         return {
           ...state,
-          phase: 'CLOSING'
+          phase: 'CLOSING',
+          restoreReady: false
         };
       }
 
@@ -77,7 +94,8 @@ export function reduceLandingMobileLifecycleState(
 
       return {
         ...state,
-        phase: 'CLOSING'
+        phase: 'CLOSING',
+        restoreReady: false
       };
     case 'QUEUE_CLOSE_CANCEL':
       if (state.phase !== 'OPENING' || !state.queuedClose) {
@@ -95,9 +113,22 @@ export function reduceLandingMobileLifecycleState(
 
       return {
         ...state,
-        phase: 'CLOSING'
+        phase: 'CLOSING',
+        restoreReady: false
+      };
+    case 'RESTORE_READY':
+      if (state.phase !== 'CLOSING') {
+        return state;
+      }
+
+      return {
+        ...state,
+        restoreReady: true
       };
     case 'CLOSE_SETTLED':
+      if (state.phase !== 'CLOSING' || !state.restoreReady) {
+        return state;
+      }
     case 'RESET':
       return initialLandingMobileLifecycleState;
     default:

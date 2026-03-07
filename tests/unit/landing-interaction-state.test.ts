@@ -115,7 +115,23 @@ describe('landing interaction state machine', () => {
     expect(state.hoverLock.keyboardMode).toBe(false);
     expect(isCardKeyboardAriaDisabled(state, 'test-rhythm-b')).toBe(false);
     expect(resolveCardTabIndex(state, 'test-rhythm-b')).toBe(-1);
-    expect(isCardPointerInteractionBlocked(state, 'test-rhythm-b')).toBe(true);
+    expect(isCardPointerInteractionBlocked(state, 'test-rhythm-b')).toBe(false);
+  });
+
+  it('keeps non-target cards pointer-reachable during pointer hover lock for desktop handoff', () => {
+    const state = replay([
+      {
+        type: 'CARD_HOVER_ENTER',
+        nowMs: 10,
+        interactionMode: 'hover',
+        cardId: 'test-rhythm-a',
+        available: true
+      }
+    ]);
+
+    expect(state.hoverLock.enabled).toBe(true);
+    expect(state.hoverLock.keyboardMode).toBe(false);
+    expect(isCardPointerInteractionBlocked(state, 'test-rhythm-b')).toBe(false);
   });
 
   it('resolves card state with deterministic priority over page lock states', () => {

@@ -36,6 +36,7 @@ export function BlogDestinationClient({
   );
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const bootstrapSelectedArticleIdRef = useRef<string | null | undefined>(undefined);
+  const pendingTransitionToCompleteRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (bootstrapSelectedArticleIdRef.current !== undefined) {
@@ -80,11 +81,7 @@ export function BlogDestinationClient({
         : fallbackArticle;
 
     if (nextPendingTransition && nextPendingTransition.targetType === 'blog') {
-      completePendingLandingTransition({
-        locale,
-        route: pathname,
-        targetType: 'blog'
-      });
+      pendingTransitionToCompleteRef.current = nextPendingTransition.transitionId;
     }
 
     bootstrapSelectedArticleIdRef.current = matchedArticle.id;
@@ -92,6 +89,29 @@ export function BlogDestinationClient({
       setSelectedArticleId(matchedArticle.id);
     });
   }, [articles, locale, pathname]);
+
+  useEffect(() => {
+    if (selectedArticleId === null || pendingTransitionToCompleteRef.current === null) {
+      return;
+    }
+
+    const expectedTransitionId = pendingTransitionToCompleteRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      const completed = completePendingLandingTransition({
+        locale,
+        route: pathname,
+        targetType: 'blog'
+      });
+
+      if (completed?.transitionId === expectedTransitionId) {
+        pendingTransitionToCompleteRef.current = null;
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [locale, pathname, selectedArticleId]);
 
   const selectedArticle = articles.find((candidate) => candidate.id === selectedArticleId) ?? articles[0] ?? null;
 

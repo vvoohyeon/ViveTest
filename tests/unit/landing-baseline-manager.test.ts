@@ -8,7 +8,7 @@ import {
 } from '../../src/features/landing/grid/baseline-manager';
 
 describe('landing baseline manager', () => {
-  it('freezes row snapshots for the active card', () => {
+  it('assertion:B11-baseline-freeze freezes row snapshots for the active card', () => {
     const frozen = freezeBaselineRows({
       state: initialLandingBaselineState,
       activeCardId: 'test-rhythm-a',

@@ -80,7 +80,7 @@ describe('landing transition store', () => {
     expect(readLandingReturnCardId()).toBeNull();
   });
 
-  it('rolls back pending transition, ingress flag, and body lock state without leaks', () => {
+  it('assertion:B16-rollback-cleanup rolls back pending transition, ingress flag, and body lock state without leaks', () => {
     installDom();
     document.body.style.overflow = 'hidden';
     document.body.style.touchAction = 'none';
@@ -102,6 +102,7 @@ describe('landing transition store', () => {
       createdAtMs: 1,
       landingIngressFlag: true
     });
+    saveLandingReturnScrollY(256, 'test-rhythm-a');
 
     expect(readLandingIngress('rhythm-a')?.preAnswerChoice).toBe('A');
 
@@ -110,6 +111,8 @@ describe('landing transition store', () => {
     expect(readPendingLandingTransition()).toBeNull();
     expect(readLandingIngress('rhythm-a')).toBeNull();
     expect(consumeLandingIngress('rhythm-a')).toBeNull();
+    expect(readLandingReturnScrollY()).toBeNull();
+    expect(readLandingReturnCardId()).toBeNull();
     expect(document.body.style.overflow).toBe('');
     expect(document.body.style.touchAction).toBe('');
   });
