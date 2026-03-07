@@ -93,6 +93,20 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(sourceCard).toHaveAttribute('data-card-state', 'normal');
   });
 
+  test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    await page.locator('body').click({position: {x: 1, y: 1}});
+    await tabUntilCardFocused(page, 'test-rhythm-a');
+
+    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
+    await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
+    await expect(firstCard).toHaveScreenshot('expanded-focus-shell.png');
+  });
+
   test('@smoke assertion:B5-overlay-focus shell-aligned focus remains readable above unavailable overlay', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');

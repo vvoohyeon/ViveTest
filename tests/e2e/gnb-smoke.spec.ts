@@ -81,6 +81,62 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(panel).toBeVisible();
   });
 
+  test('@smoke desktop settings shows the resolved system theme on first open', async ({page}) => {
+    await page.addInitScript(() => {
+      const originalMatchMedia = window.matchMedia.bind(window);
+      window.localStorage.removeItem('vibetest-theme');
+      window.matchMedia = (query: string) => {
+        if (query === '(prefers-color-scheme: dark)') {
+          return {
+            matches: true,
+            media: query,
+            onchange: null,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+            addListener: () => undefined,
+            removeListener: () => undefined,
+            dispatchEvent: () => true
+          } as MediaQueryList;
+        }
+        return originalMatchMedia(query);
+      };
+    });
+
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+
+    await page.getByTestId('gnb-settings-trigger').hover();
+    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+    await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(0)).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(1)).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
+  test('@smoke desktop settings restores the stored manual theme without a blank selected state', async ({page}) => {
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+    await page.evaluate(() => {
+      window.localStorage.setItem('vibetest-theme', 'dark');
+    });
+    await page.reload();
+
+    await page.getByTestId('gnb-settings-trigger').hover();
+    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+    await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(0)).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(1)).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
   test('@smoke assertion:B7-mobile-overlay mobile overlay close-start and unlock timing', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');

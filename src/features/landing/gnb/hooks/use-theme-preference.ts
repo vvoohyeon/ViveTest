@@ -5,38 +5,80 @@ import {useCallback, useEffect, useState} from 'react';
 import type {ThemePreference} from '@/features/landing/gnb/types';
 
 const THEME_STORAGE_KEY = 'vibetest-theme';
+type ResolvedTheme = Exclude<ThemePreference, 'system'>;
 
 interface ThemePreferenceController {
   themePreference: ThemePreference;
+  resolvedTheme: ResolvedTheme;
   applyManualTheme: (theme: 'light' | 'dark') => void;
 }
 
+function resolveSystemTheme(): ResolvedTheme {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'light';
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function readStoredThemePreference(): ThemePreference {
+  if (typeof window === 'undefined') {
+    return 'system';
+  }
+
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === 'light' || stored === 'dark' ? stored : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+function resolveTheme(preference: ThemePreference): ResolvedTheme {
+  return preference === 'system' ? resolveSystemTheme() : preference;
+}
+
 export function useThemePreference(): ThemePreferenceController {
-  const [themePreference, setThemePreference] = useState<ThemePreference>('system');
+  const [manualThemePreference, setManualThemePreference] = useState<ThemePreference | null>(null);
+  const [clientReady, setClientReady] = useState(false);
+  const [, setSystemThemeVersion] = useState(0);
+  const themePreference = manualThemePreference ?? (clientReady ? readStoredThemePreference() : 'system');
+  const resolvedTheme = clientReady ? resolveTheme(themePreference) : 'light';
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-      if (stored === 'light' || stored === 'dark') {
-        window.requestAnimationFrame(() => {
-          setThemePreference(stored);
-        });
-      }
-    } catch {
-      // Ignore storage failures and keep system-follow fallback.
-    }
+    queueMicrotask(() => {
+      setClientReady(true);
+    });
   }, []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    if (
+      !clientReady ||
+      themePreference !== 'system' ||
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
+      return;
+    }
 
-    const applyResolvedTheme = () => {
-      const resolved = themePreference === 'system' ? (darkQuery.matches ? 'dark' : 'light') : themePreference;
-      root.dataset.theme = resolved;
+    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = () => {
+      setSystemThemeVersion((current) => current + 1);
     };
 
-    applyResolvedTheme();
+    darkQuery.addEventListener('change', handleSystemThemeChange);
+    return () => {
+      darkQuery.removeEventListener('change', handleSystemThemeChange);
+    };
+  }, [clientReady, themePreference]);
+
+  useEffect(() => {
+    if (!clientReady) {
+      return;
+    }
+
+    const root = document.documentElement;
+    root.dataset.theme = resolvedTheme;
 
     if (themePreference === 'system') {
       try {
@@ -44,11 +86,7 @@ export function useThemePreference(): ThemePreferenceController {
       } catch {
         // Ignore storage failures and keep runtime theme only.
       }
-
-      darkQuery.addEventListener('change', applyResolvedTheme);
-      return () => {
-        darkQuery.removeEventListener('change', applyResolvedTheme);
-      };
+      return undefined;
     }
 
     try {
@@ -58,14 +96,15 @@ export function useThemePreference(): ThemePreferenceController {
     }
 
     return undefined;
-  }, [themePreference]);
+  }, [clientReady, resolvedTheme, themePreference]);
 
   const applyManualTheme = useCallback((theme: 'light' | 'dark') => {
-    setThemePreference(theme);
+    setManualThemePreference(theme);
   }, []);
 
   return {
     themePreference,
+    resolvedTheme,
     applyManualTheme
   };
 }

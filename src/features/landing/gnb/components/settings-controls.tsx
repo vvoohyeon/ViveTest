@@ -1,5 +1,4 @@
 import {locales, type AppLocale} from '@/config/site';
-import type {ThemePreference} from '@/features/landing/gnb/types';
 
 interface SettingsControlLabels {
   language: string;
@@ -11,7 +10,7 @@ interface SettingsControlLabels {
 interface SettingsControlsProps {
   scope: 'desktop' | 'mobile';
   locale: AppLocale;
-  themePreference: ThemePreference;
+  resolvedTheme: 'light' | 'dark';
   labels: SettingsControlLabels;
   onLocaleChange: (locale: AppLocale) => void;
   onThemeChange: (theme: 'light' | 'dark') => void;
@@ -20,7 +19,7 @@ interface SettingsControlsProps {
 export function SettingsControls({
   scope,
   locale,
-  themePreference,
+  resolvedTheme,
   labels,
   onLocaleChange,
   onThemeChange
@@ -51,7 +50,7 @@ export function SettingsControls({
           <button
             type="button"
             className="gnb-chip"
-            aria-pressed={themePreference === 'light'}
+            aria-pressed={resolvedTheme === 'light'}
             onClick={() => onThemeChange('light')}
           >
             {labels.light}
@@ -59,7 +58,7 @@ export function SettingsControls({
           <button
             type="button"
             className="gnb-chip"
-            aria-pressed={themePreference === 'dark'}
+            aria-pressed={resolvedTheme === 'dark'}
             onClick={() => onThemeChange('dark')}
           >
             {labels.dark}

@@ -168,6 +168,10 @@ a {
     0 14px 30px rgb(11 15 22 / 10%);
 }
 
+.landing-grid-card[data-expanded-layer='desktop-overlay']:has(:focus-visible) {
+  box-shadow: 0 14px 30px rgb(11 15 22 / 10%);
+}
+
 .landing-grid-card[data-card-state='expanded'] {
   z-index: 20;
 }
@@ -314,6 +318,14 @@ a {
   min-width: 0;
   transform: scale(var(--landing-card-shell-scale));
   transform-origin: var(--landing-card-origin-x) var(--landing-card-origin-y);
+}
+
+.landing-grid-card[data-expanded-layer='desktop-overlay']:has(:focus-visible) .landing-grid-card-expanded {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, #2f73ff 72%, transparent),
+    0 0 0 6px rgb(255 255 255 / 78%),
+    0 18px 34px rgb(11 15 22 / 16%),
+    0 0 0 1px color-mix(in srgb, var(--surface-divider) 92%, transparent);
 }
 
 .landing-grid-card[data-desktop-motion-role='opening'] .landing-grid-card-expanded,
