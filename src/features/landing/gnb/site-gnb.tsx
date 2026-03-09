@@ -3,7 +3,16 @@
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {SettingsControls} from '@/features/landing/gnb/components/settings-controls';
@@ -38,6 +47,21 @@ interface OutsideGesture {
   startY: number;
 }
 
+type LandingKeyboardEntryMode = 'card-first' | 'gnb';
+
+function isVisibleFocusableElement(element: HTMLElement | null): element is HTMLElement {
+  if (!element || element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') {
+    return false;
+  }
+
+  if ('disabled' in element && (element as HTMLButtonElement).disabled) {
+    return false;
+  }
+
+  const style = window.getComputedStyle(element);
+  return style.display !== 'none' && style.visibility !== 'hidden';
+}
+
 export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const t = useTranslations('gnb');
   const router = useRouter();
@@ -49,7 +73,11 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileMenuState, setMobileMenuState] = useState<MobileMenuState>('closed');
+  const [landingKeyboardEntryMode, setLandingKeyboardEntryMode] = useState<LandingKeyboardEntryMode>(
+    context === 'landing' ? 'card-first' : 'gnb'
+  );
 
+  const gnbShellRef = useRef<HTMLElement | null>(null);
   const settingsRootRef = useRef<HTMLDivElement | null>(null);
   const settingsHoverCloseTimerRef = useRef<number | null>(null);
 
@@ -68,6 +96,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const blogHref = useMemo(() => buildLocalizedPath(RouteBuilder.blog(), locale), [locale]);
   const historyHref = useMemo(() => buildLocalizedPath(RouteBuilder.history(), locale), [locale]);
 
+  const isLandingContext = context === 'landing';
   const mobileMenuEnabled = context !== 'test';
   const hoverOpenEnabled = shouldOpenDesktopSettingsByHover({
     viewportWidth,
@@ -88,6 +117,103 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     });
   };
 
+  const shouldDeferLandingGnbEntry = isLandingContext && !settingsOpen && mobileMenuState === 'closed';
+  const desktopLandingTabIndex =
+    shouldDeferLandingGnbEntry && landingKeyboardEntryMode === 'card-first' ? -1 : undefined;
+  const mobileLandingTabIndex =
+    shouldDeferLandingGnbEntry && landingKeyboardEntryMode === 'card-first' ? -1 : undefined;
+
+  const isWithinInteractiveGnb = useCallback(
+    (target: EventTarget | null) => {
+      if (!(target instanceof Element)) {
+        return false;
+      }
+
+      const mobilePanel = document.getElementById(mobileMenuPanelId);
+      const interactiveTarget = target.closest<HTMLElement>(
+        'a[href], button, [data-testid="gnb-settings-panel"], [data-testid="gnb-mobile-menu-panel"]'
+      );
+      if (!interactiveTarget) {
+        return false;
+      }
+
+      return !!gnbShellRef.current?.contains(interactiveTarget) || !!mobilePanel?.contains(interactiveTarget);
+    },
+    [mobileMenuPanelId]
+  );
+
+  const getOrderedKeyboardTargets = useCallback((): HTMLElement[] => {
+    if (typeof document === 'undefined') {
+      return [];
+    }
+
+    const desktopContainer = document.querySelector<HTMLElement>('.gnb-desktop');
+    const mobileContainer = document.querySelector<HTMLElement>('.gnb-mobile');
+    const settingsPanel = document.getElementById(settingsPanelId);
+    const mobilePanel = document.getElementById(mobileMenuPanelId);
+
+    const getTopLevelTargets = (container: HTMLElement | null, excludedRoot: HTMLElement | null) => {
+      if (!isVisibleFocusableElement(container)) {
+        return [];
+      }
+
+      return Array.from(container.querySelectorAll<HTMLElement>('a[href], button')).filter((element) => {
+        if (!isVisibleFocusableElement(element)) {
+          return false;
+        }
+
+        return !excludedRoot || !excludedRoot.contains(element);
+      });
+    };
+
+    const getPanelTargets = (panel: HTMLElement | null) => {
+      if (!isVisibleFocusableElement(panel)) {
+        return [];
+      }
+
+      return Array.from(panel.querySelectorAll<HTMLElement>('a[href], button')).filter((element) =>
+        isVisibleFocusableElement(element)
+      );
+    };
+
+    const desktopTargets = getTopLevelTargets(desktopContainer, settingsPanel);
+    if (desktopTargets.length > 0) {
+      return settingsOpen ? [...desktopTargets, ...getPanelTargets(settingsPanel)] : desktopTargets;
+    }
+
+    const mobileTargets = getTopLevelTargets(mobileContainer, mobilePanel);
+    if (mobileTargets.length === 0) {
+      return [];
+    }
+
+    if (mobileMenuState !== 'closed') {
+      const trigger = mobileMenuTriggerRef.current;
+      const orderedTargets = [
+        ...(isVisibleFocusableElement(trigger) ? [trigger] : []),
+        ...getPanelTargets(mobilePanel)
+      ];
+      return orderedTargets;
+    }
+
+    return mobileTargets;
+  }, [mobileMenuPanelId, mobileMenuState, settingsOpen, settingsPanelId]);
+
+  const focusFirstLandingCardTrigger = useCallback(() => {
+    if (typeof document === 'undefined') {
+      return false;
+    }
+
+    const trigger = document.querySelector<HTMLElement>(
+      '[data-testid="landing-grid-card-trigger"]:not([aria-disabled="true"])'
+    );
+    if (!isVisibleFocusableElement(trigger)) {
+      return false;
+    }
+
+    trigger.focus();
+    return true;
+  }, []);
+
   const clearSettingsHoverCloseTimer = useCallback(() => {
     if (settingsHoverCloseTimerRef.current !== null) {
       window.clearTimeout(settingsHoverCloseTimerRef.current);
@@ -99,6 +225,40 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     clearSettingsHoverCloseTimer();
     setSettingsOpen(false);
   }, [clearSettingsHoverCloseTimer]);
+
+  const routeKeyboardWithinGnb = useCallback(
+    (event: Pick<KeyboardEvent, 'key' | 'shiftKey' | 'altKey' | 'ctrlKey' | 'metaKey' | 'preventDefault'>) => {
+      if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const targets = getOrderedKeyboardTargets();
+      if (targets.length === 0 || !activeElement) {
+        return;
+      }
+
+      const currentIndex = targets.indexOf(activeElement);
+      if (currentIndex === -1) {
+        return;
+      }
+
+      const nextIndex = currentIndex + (event.shiftKey ? -1 : 1);
+      if (nextIndex >= 0 && nextIndex < targets.length) {
+        event.preventDefault();
+        targets[nextIndex]?.focus();
+        return;
+      }
+
+      if (!event.shiftKey && isLandingContext && focusFirstLandingCardTrigger()) {
+        if (settingsOpen) {
+          closeSettingsImmediate();
+        }
+        event.preventDefault();
+      }
+    },
+    [closeSettingsImmediate, focusFirstLandingCardTrigger, getOrderedKeyboardTargets, isLandingContext, settingsOpen]
+  );
 
   const clearMobileMenuCloseTimer = useCallback(() => {
     if (mobileMenuCloseTimerRef.current !== null) {
@@ -282,6 +442,71 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   }, [mobileMenuState]);
 
   useEffect(() => {
+    if (!isLandingContext) {
+      return;
+    }
+
+    const handleFocusIn = (event: FocusEvent) => {
+      setLandingKeyboardEntryMode(isWithinInteractiveGnb(event.target) ? 'gnb' : 'card-first');
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!isWithinInteractiveGnb(event.target)) {
+        setLandingKeyboardEntryMode('card-first');
+      }
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isLandingContext, isWithinInteractiveGnb]);
+
+  useEffect(() => {
+    const handleKeyboardTabRouting = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const targets = getOrderedKeyboardTargets();
+      if (targets.length === 0) {
+        return;
+      }
+
+      const isDocumentLevelTarget =
+        activeElement === document.body || activeElement === document.documentElement || activeElement === null;
+
+      if (isDocumentLevelTarget) {
+        if (event.shiftKey) {
+          return;
+        }
+
+        if (isLandingContext && shouldDeferLandingGnbEntry && landingKeyboardEntryMode === 'card-first') {
+          return;
+        }
+
+        event.preventDefault();
+        targets[0]?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyboardTabRouting, true);
+    return () => {
+      document.removeEventListener('keydown', handleKeyboardTabRouting, true);
+    };
+  }, [getOrderedKeyboardTargets, isLandingContext, landingKeyboardEntryMode, shouldDeferLandingGnbEntry]);
+
+  const handleGnbKeyDownCapture = useCallback(
+    (event: ReactKeyboardEvent<HTMLElement>) => {
+      routeKeyboardWithinGnb(event);
+    },
+    [routeKeyboardWithinGnb]
+  );
+
+  useEffect(() => {
     return () => {
       clearSettingsHoverCloseTimer();
       clearMobileMenuCloseTimer();
@@ -377,7 +602,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         {t('back')}
       </button>
     ) : (
-      <Link href={{pathname: homeHref}} className="gnb-ci-link" scroll={false}>
+      <Link href={{pathname: homeHref}} className="gnb-ci-link" scroll={false} tabIndex={desktopLandingTabIndex}>
         VibeTest
       </Link>
     );
@@ -389,8 +614,12 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       </p>
     ) : (
       <nav className="gnb-desktop-links" aria-label="Primary">
-        <Link href={{pathname: historyHref}}>{t('history')}</Link>
-        <Link href={{pathname: blogHref}}>{t('blog')}</Link>
+        <Link href={{pathname: historyHref}} tabIndex={desktopLandingTabIndex}>
+          {t('history')}
+        </Link>
+        <Link href={{pathname: blogHref}} tabIndex={desktopLandingTabIndex}>
+          {t('blog')}
+        </Link>
       </nav>
     );
 
@@ -409,6 +638,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           aria-label={t('settings')}
           aria-expanded={settingsOpen}
           aria-controls={settingsPanelId}
+          tabIndex={desktopLandingTabIndex}
           onFocus={() => {
             if (!hoverOpenEnabled) {
               setSettingsOpen(true);
@@ -444,7 +674,13 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
 
   return (
     <>
-      <header className="gnb-shell" data-elevated={elevated ? 'true' : 'false'} data-gnb-context={context}>
+      <header
+        ref={gnbShellRef}
+        className="gnb-shell"
+        data-elevated={elevated ? 'true' : 'false'}
+        data-gnb-context={context}
+        onKeyDownCapture={handleGnbKeyDownCapture}
+      >
         <div className="gnb-inner gnb-desktop">
           <div className="gnb-column gnb-column-leading">{desktopLeading}</div>
           <div className="gnb-column gnb-column-center">{desktopCenter}</div>
@@ -454,7 +690,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <div className="gnb-inner gnb-mobile">
           <div className="gnb-column gnb-column-leading">
             {context === 'landing' ? (
-              <Link href={{pathname: homeHref}} className="gnb-ci-link" scroll={false}>
+              <Link href={{pathname: homeHref}} className="gnb-ci-link" scroll={false} tabIndex={mobileLandingTabIndex}>
                 VibeTest
               </Link>
             ) : (
@@ -479,6 +715,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                 aria-label={mobileMenuState === 'closed' ? t('menuAria') : t('closeMenuAria')}
                 aria-expanded={mobileMenuState !== 'closed'}
                 aria-controls={mobileMenuPanelId}
+                tabIndex={mobileLandingTabIndex}
                 onClick={() => {
                   if (mobileMenuState === 'closed') {
                     setMobileMenuState('open');
@@ -517,6 +754,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
             aria-label={t('menu')}
             data-state={mobileMenuState}
             data-testid="gnb-mobile-menu-panel"
+            onKeyDownCapture={handleGnbKeyDownCapture}
           >
             <nav className="gnb-mobile-links" aria-label="Mobile Primary">
               <Link href={{pathname: homeHref}} scroll={false}>

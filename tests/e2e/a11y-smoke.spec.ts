@@ -36,9 +36,8 @@ async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
 async function focusDesktopSettingsByKeyboard(page: Page) {
   await page.locator('body').click({position: {x: 1, y: 1}});
   await page.keyboard.press('Tab');
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Tab');
+  await expect(page.getByTestId('landing-grid-card-trigger').first()).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
   await expect(page.getByTestId('gnb-settings-trigger')).toBeFocused();
   await page.keyboard.press('Space');
   await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
@@ -47,7 +46,8 @@ async function focusDesktopSettingsByKeyboard(page: Page) {
 async function focusMobileMenuByKeyboard(page: Page) {
   await page.locator('body').click({position: {x: 1, y: 1}});
   await page.keyboard.press('Tab');
-  await page.keyboard.press('Tab');
+  await expect(page.getByTestId('landing-grid-card-trigger').first()).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
   await expect(page.getByTestId('gnb-mobile-menu-trigger')).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('gnb-mobile-menu-panel')).toBeVisible();

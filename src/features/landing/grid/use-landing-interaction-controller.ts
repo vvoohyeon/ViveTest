@@ -171,6 +171,23 @@ function focusCardById(shellElement: HTMLElement | null, cardId: string | null):
   return true;
 }
 
+function isDocumentLevelFocusTarget(target: EventTarget | null): boolean {
+  if (typeof document === 'undefined') {
+    return false;
+  }
+
+  return target === document.body || target === document.documentElement;
+}
+
+function isVisibleFocusableElement(element: HTMLElement | null): element is HTMLElement {
+  if (!element || element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') {
+    return false;
+  }
+
+  const style = window.getComputedStyle(element);
+  return style.display !== 'none' && style.visibility !== 'hidden';
+}
+
 function queueFocusCardById(shellElement: HTMLElement | null, cardId: string | null) {
   if (typeof window === 'undefined' || !cardId) {
     return;
@@ -179,6 +196,18 @@ function queueFocusCardById(shellElement: HTMLElement | null, cardId: string | n
   window.requestAnimationFrame(() => {
     window.requestAnimationFrame(() => {
       focusCardById(shellElement, cardId);
+    });
+  });
+}
+
+function queueFocusCallback(callback: () => void) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      callback();
     });
   });
 }
@@ -280,6 +309,10 @@ export function useLandingInteractionController({
     [hoverCapability, viewportWidth]
   );
   const cardIds = useMemo(() => cards.map((card) => card.id), [cards]);
+  const firstAvailableCardId = useMemo(
+    () => cards.find((card) => card.availability === 'available')?.id ?? null,
+    [cards]
+  );
   const isMobileViewport = viewportTier === 'mobile';
 
   const hoverTimerRef = useRef<number | null>(null);
@@ -344,6 +377,34 @@ export function useLandingInteractionController({
       desktopMotionTimerRef.current = null;
     }
   }, []);
+
+  const focusLandingReverseGnbTarget = useCallback((): boolean => {
+    if (typeof document === 'undefined') {
+      return false;
+    }
+
+    const selectors = isMobileViewport
+      ? ['[data-testid="gnb-mobile-menu-trigger"]', '.gnb-mobile .gnb-ci-link']
+      : ['[data-testid="gnb-settings-trigger"]', '.gnb-desktop-links a:last-of-type', '.gnb-desktop .gnb-ci-link'];
+
+    for (const selector of selectors) {
+      const candidate = document.querySelector<HTMLElement>(selector);
+      if (!isVisibleFocusableElement(candidate)) {
+        continue;
+      }
+
+      candidate.focus();
+      return true;
+    }
+
+    return false;
+  }, [isMobileViewport]);
+
+  const queueLandingReverseGnbTargetFocus = useCallback(() => {
+    queueFocusCallback(() => {
+      focusLandingReverseGnbTarget();
+    });
+  }, [focusLandingReverseGnbTarget]);
 
   // Desktop closing/opening markers must land before paint or the trigger briefly flashes back in.
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -430,6 +491,11 @@ export function useLandingInteractionController({
         dispatchInteraction({
           type: 'KEYBOARD_MODE_ENTER'
         });
+
+        if (!event.shiftKey && isDocumentLevelFocusTarget(event.target) && focusCardById(shellRef.current, firstAvailableCardId)) {
+          event.preventDefault();
+          return;
+        }
       } else if (event.key === 'Escape') {
         dispatchInteraction({
           type: 'ESCAPE',
@@ -465,7 +531,7 @@ export function useLandingInteractionController({
       window.removeEventListener('mousedown', handleGlobalPointerEvent);
       window.removeEventListener('wheel', handleGlobalPointerEvent);
     };
-  }, []);
+  }, [firstAvailableCardId, shellRef]);
 
   useEffect(() => {
     if (mobileLifecycleState.phase === 'NORMAL') {
@@ -1027,7 +1093,7 @@ export function useLandingInteractionController({
 
         if (isMobileViewport) {
           event.preventDefault();
-          beginMobileKeyboardHandoff(card.id, resolveAdjacentCardId(cardIds, card.id, -1), event.timeStamp);
+          beginMobileKeyboardHandoff(card.id, resolveAdjacentCardId(cardIds, card.id, -1) ?? card.id, event.timeStamp);
           return;
         }
 
@@ -1124,7 +1190,7 @@ export function useLandingInteractionController({
           if (event.shiftKey && firstFocusable && target === firstFocusable) {
             if (isMobileViewport) {
               event.preventDefault();
-              beginMobileKeyboardHandoff(card.id, resolveAdjacentCardId(cardIds, card.id, -1), event.timeStamp);
+              beginMobileKeyboardHandoff(card.id, resolveAdjacentCardId(cardIds, card.id, -1) ?? card.id, event.timeStamp);
               return;
             }
 
@@ -1133,6 +1199,39 @@ export function useLandingInteractionController({
             if (focusCardById(shellRef.current, previousCardId)) {
               event.preventDefault();
             }
+            return;
+          }
+
+          if (event.shiftKey && target === event.currentTarget) {
+            const previousCardId = resolveAdjacentCardId(cardIds, card.id, -1);
+            if (isMobileViewport) {
+              event.preventDefault();
+              if (previousCardId) {
+                beginMobileKeyboardHandoff(card.id, previousCardId, event.timeStamp);
+                return;
+              }
+
+              beginMobileKeyboardHandoff(card.id, null, event.timeStamp);
+              queueLandingReverseGnbTargetFocus();
+              return;
+            }
+
+            desktopTransitionReasonRef.current = 'handoff';
+
+            if (focusCardById(shellRef.current, previousCardId)) {
+              event.preventDefault();
+              return;
+            }
+
+            desktopTransitionReasonRef.current = 'collapse';
+            dispatchInteraction({
+              type: 'CARD_COLLAPSE',
+              nowMs: event.timeStamp,
+              interactionMode,
+              cardId: card.id
+            });
+            queueLandingReverseGnbTargetFocus();
+            event.preventDefault();
           }
           return;
         }

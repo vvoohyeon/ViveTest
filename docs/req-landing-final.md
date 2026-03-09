@@ -443,6 +443,8 @@
 - 카드 내부의 입력 가능한 요소를 모두 순회한 뒤 다음 `Tab`을 입력하면 다음 카드로 포커스가 이동해야 한다.
 - 카드 간 포커스 이동 시 이전 카드는 `0ms`로 즉시 Normal로 복귀하고, 새로 포커스된 카드는 표준 Expanded 모션 규격으로 전환되어야 한다.
 - `Shift+Tab` 역방향 이동도 동일한 규칙(이전 카드 즉시 Expanded, 현재 카드 Normal 복귀)을 따른다.
+- Landing 컨텍스트에서는 중립 페이지 상태에서 첫 forward `Tab`이 첫 번째 available 카드로 진입해야 하며, 첫 번째 available 카드 trigger에서 `Shift+Tab`은 마지막 visible GNB control(Desktop settings / Mobile menu)로 복귀해야 한다.
+- 위 landing 진입/복귀 규칙은 landing에만 적용하며, Blog/History/Test 컨텍스트의 기본 GNB 순회 규칙은 그대로 유지한다.
 - unavailable 카드는 본 override의 Expanded 대상이 아니다.
 - 본 규칙은 기존 키보드 관련 카드 전이 규칙을 override한다.
 
@@ -451,6 +453,7 @@
 2. Automated: Expanded 카드 내부 포커스 순회(입력 요소 순서) 후 다음 카드로 이동되는지 검증한다.
 3. Automated: Shift+Tab 역순 탐색에서 동일 규칙이 성립하는지 검증한다.
 4. Automated: 키보드 카드 이동에서 이전 카드 `0ms` 복귀 + 현재 카드 표준 Expanded 모션 분리가 유지되는지 검증한다.
+5. Automated: Landing에서 첫 `Tab -> 첫 카드`, 첫 카드 trigger에서 `Shift+Tab -> 마지막 visible GNB control`이 브라우저 간 일관되게 유지되는지 검증한다.
 
 ### 7.7 State Conformance Gate
 **Rule**:

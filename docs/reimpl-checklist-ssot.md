@@ -45,7 +45,7 @@
 - [x] Respect guard rules for INACTIVE/ACTIVE-ramp/TRANSITIONING (`§7.3`).
 - [x] Ensure deterministic transitions and settled semantics with explicit allowed-transition table + guard no-op assertions (`§7.4`, `§7.7`, `§14.3-4`, `§14.3-5`).
 - [x] Implement HOVER_LOCK contracts for non-target cards and keyboard override behavior (`§7.5`).
-- [x] Implement keyboard sequential expansion override across all viewports (`§7.6`).
+- [x] Implement keyboard sequential expansion override across all viewports, including landing card-first entry and reverse GNB handoff (`§7.6`).
 - [x] Apply capability gate split for hover-capable vs tap mode (`§8.1`).
 - [x] Implement Desktop/Tablet trigger timing, cancel, and handoff behavior with single global timer + intent token + execution-time target revalidation (`§8.2`, `§14.3-13`).
 - [x] Classify handoff only on entering another available card; unavailable entry must never be treated as handoff (`§8.2`, `§14.3-13`).
@@ -67,7 +67,7 @@
 - [x] Enforce keyboard reachability, shell-aligned focus boundary, and Esc unwind order (`§9.1`).
 - [x] Enforce disabled semantics with semantic controls, including semantic-only primary card expansion/entry triggers, and aria-disabled activation blocking (`§9.2`, `§14.3-5`).
 - [x] Enforce overlay readability and title visibility under unavailable overlays (`§9.3`).
-- [x] Keep GNB responsive behavior as single source from context contract (`§10.2`, `§6.4`).
+- [x] Keep GNB responsive behavior as single source from context contract, including landing reverse-entry handoff to the last visible GNB control (`§10.2`, `§6.4`, `§7.6`).
 - [x] Enforce SSR/hydration determinism and zero-warning gate (`§11.1`).
 - [x] Enforce animation/reduced-motion/cursor guardrails (`§11.2`, `§11.3`, `§11.4`).
 

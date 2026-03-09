@@ -67,12 +67,12 @@
 - 주의사항: 기능 회귀 수정과 visual polish를 한 변경셋에 섞지 않는다.
 
 ### 3.6 GNB 키보드 접근
-- 현재 상태: `부분 완료 후 후속 audit 필요`
-- 왜 지금 보류했는가: 기본 keyboard/context matrix 증빙은 이미 확장되었고, landing 기준 명백한 기능 결함은 재현되지 않았다. 남은 것은 추가 audit/coverage 성격이 더 크다.
+- 현재 상태: `기본 계약 완료, broader context/state audit만 후속 필요`
+- 왜 지금 보류했는가: landing의 card-first entry와 reverse GNB handoff를 포함한 기본 keyboard/context matrix는 구현 및 smoke로 닫혔다. 남은 것은 추가 context/state audit과 대표 상태 확대 성격이 더 크다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§6.4`, `§10.2`, `§9.1`, checklist의 `GNB responsive behavior as single source`
 - 권장 구현 시점: keyboard audit 또는 context/state matrix 확대 시점
 - 함께 다루면 좋은 인접 항목: hidden-state tabbability, focus restore, settings/mobile menu open-state traversal
-- 아주 간단한 구현 방향 메모: 기능 재설계보다 matrix smoke 확장과 restore/tabbability audit 중심으로 접근한다.
+- 아주 간단한 구현 방향 메모: 현재는 base contract를 유지하고, 후속은 matrix smoke 확장과 restore/tabbability audit 중심으로 접근한다.
 - 주의사항: “미구현”으로 취급하면 안 된다. 현재는 기본 contract가 닫혀 있고, 남은 것은 context/state 확대 검증이다.
 
 ## 4. Suggested Timing Map

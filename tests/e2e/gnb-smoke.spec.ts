@@ -145,7 +145,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     );
   });
 
-  test('@smoke assertion:B3-gnb-keyboard-matrix desktop keyboard traversal keeps GNB in tab order and closes settings on focus-out', async ({
+  test('@smoke assertion:B3-gnb-keyboard-matrix desktop landing enters cards first, reverse-enters GNB, and closes settings on focus-out', async ({
     page
   }) => {
     await page.setViewportSize({width: 1280, height: 900});
@@ -163,7 +163,17 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
 
     await page.keyboard.press('Tab');
+    await expect(firstCardTrigger).toBeFocused();
+
+    await page.keyboard.press('Shift+Tab');
+    await expect(settingsTrigger).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(blog).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(history).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expect(home).toBeFocused();
+
     await page.keyboard.press('Tab');
     await expect(history).toBeFocused();
     await page.keyboard.press('Tab');
@@ -192,20 +202,13 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.goto('/en');
     await page.locator('body').click({position: {x: 1, y: 1}});
 
-    const home = page.locator('.gnb-desktop .gnb-ci-link');
-    const history = page.locator('.gnb-desktop .gnb-desktop-links a').nth(0);
-    const blog = page.locator('.gnb-desktop .gnb-desktop-links a').nth(1);
     const settingsTrigger = page.getByTestId('gnb-settings-trigger');
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
     const panel = page.getByTestId('gnb-settings-panel');
 
     await page.keyboard.press('Tab');
-    await expect(home).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(history).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(blog).toBeFocused();
-    await page.keyboard.press('Tab');
+    await expect(firstCardTrigger).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expect(settingsTrigger).toBeFocused();
     await expect(panel).toBeHidden();
     await page.keyboard.press('Tab');
@@ -250,7 +253,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
       .toBe('gnb-mobile-menu-trigger');
   });
 
-  test('@smoke assertion:B7-gnb-keyboard-matrix mobile landing menu enters the tab order, opens by keyboard, and restores focus on escape close', async ({
+  test('@smoke assertion:B7-gnb-keyboard-matrix mobile landing enters cards first, reverse-enters menu, and restores focus on escape close', async ({
     page
   }) => {
     await page.setViewportSize({width: 390, height: 844});
@@ -266,6 +269,10 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const krButton = page.getByTestId('mobile-gnb-locale-controls').getByRole('button', {name: 'KR'});
 
     await page.keyboard.press('Tab');
+    await expect(page.getByTestId('landing-grid-card-trigger').first()).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(trigger).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expect(home).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(trigger).toBeFocused();
@@ -294,14 +301,13 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.goto('/en');
     await page.locator('body').click({position: {x: 1, y: 1}});
 
-    const home = page.locator('.gnb-mobile .gnb-ci-link');
     const trigger = page.getByTestId('gnb-mobile-menu-trigger');
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
     const panel = page.getByTestId('gnb-mobile-menu-panel');
 
     await page.keyboard.press('Tab');
-    await expect(home).toBeFocused();
-    await page.keyboard.press('Tab');
+    await expect(firstCardTrigger).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expect(trigger).toBeFocused();
     await expect(panel).toBeHidden();
     await page.keyboard.press('Tab');
