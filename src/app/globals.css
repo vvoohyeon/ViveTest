@@ -71,10 +71,6 @@ a {
   pointer-events: none;
 }
 
-.landing-transition-source-gnb .gnb-shell {
-  pointer-events: auto;
-}
-
 .page-shell-main {
   max-width: 1280px;
   margin-inline: auto;

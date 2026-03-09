@@ -93,6 +93,10 @@ if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
   ) {
     fail('Transition smoke must cover mobile open continuity, close choreography, title continuity, and reduced-motion proof.');
   }
+
+  if (!/landing-transition-source-gnb/u.test(e2eSpec) || !/assertion:B15-transition-correlation/u.test(e2eSpec)) {
+    fail('Transition smoke must cover source GNB overlay visibility and destination-ready swap timing.');
+  }
 }
 
 if (fileExists('src/app/globals.css')) {

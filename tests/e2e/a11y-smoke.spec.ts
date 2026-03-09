@@ -2,6 +2,37 @@ import {expect, test, type Page} from '@playwright/test';
 
 import {expectPageToBeAxeClean} from './helpers/axe';
 
+async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
+  await page.addInitScript((timeoutMs) => {
+    const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+    const nativeCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+    const scheduledFrames = new Map<number, number>();
+    let syntheticHandle = 1_000;
+
+    window.requestAnimationFrame = (callback: FrameRequestCallback) => {
+      const handle = syntheticHandle;
+      syntheticHandle += 1;
+      const timeoutHandle = window.setTimeout(() => {
+        scheduledFrames.delete(handle);
+        nativeRequestAnimationFrame(callback);
+      }, timeoutMs);
+      scheduledFrames.set(handle, timeoutHandle);
+      return handle;
+    };
+
+    window.cancelAnimationFrame = (handle: number) => {
+      const timeoutHandle = scheduledFrames.get(handle);
+      if (timeoutHandle !== undefined) {
+        window.clearTimeout(timeoutHandle);
+        scheduledFrames.delete(handle);
+        return;
+      }
+
+      nativeCancelAnimationFrame(handle);
+    };
+  }, delayMs);
+}
+
 async function focusDesktopSettingsByKeyboard(page: Page) {
   await page.locator('body').click({position: {x: 1, y: 1}});
   await page.keyboard.press('Tab');
@@ -78,6 +109,20 @@ test.describe('Canonical accessibility smoke', () => {
       await page.goto(route);
       await expectPageToBeAxeClean(page);
     }
+  });
+
+  test('@smoke assertion:B5-axe-canonical transition overlay representative state remains axe-clean', async ({page}) => {
+    await delayDestinationReadyRaf(page);
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+
+    const blogCard = page.locator('[data-card-id="blog-build-metrics"]');
+    await blogCard.getByTestId('landing-grid-card-trigger').click();
+    await blogCard.locator('[data-slot="primaryCTA"]').click();
+
+    await expect(page).toHaveURL(/\/en\/blog$/u);
+    await expect(page.getByTestId('landing-transition-source-gnb')).toBeVisible();
+    await expectPageToBeAxeClean(page);
   });
 
   test('@smoke assertion:B5-axe-canonical KR representative landing states remain axe-clean', async ({page}) => {

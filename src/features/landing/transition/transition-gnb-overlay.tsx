@@ -19,7 +19,12 @@ export function TransitionGnbOverlay({locale, context}: TransitionGnbOverlayProp
   }
 
   return (
-    <div className="landing-transition-source-gnb" data-testid="landing-transition-source-gnb">
+    <div
+      className="landing-transition-source-gnb"
+      data-testid="landing-transition-source-gnb"
+      aria-hidden="true"
+      inert
+    >
       <SiteGnb locale={locale} context="landing" currentRoute={RouteBuilder.landing()} />
     </div>
   );

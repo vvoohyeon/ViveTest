@@ -1,6 +1,7 @@
 import {expect, test} from '@playwright/test';
 
 const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
+const TRANSITION_OVERLAY_READY_DELAY_MS = 180;
 
 function collectForbiddenKeys(value: unknown, trail = ''): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -16,12 +17,51 @@ function collectForbiddenKeys(value: unknown, trail = ''): string[] {
   });
 }
 
+async function delayDestinationReadyRaf(page: import('@playwright/test').Page, delayMs = TRANSITION_OVERLAY_READY_DELAY_MS) {
+  await page.addInitScript((timeoutMs) => {
+    const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+    const nativeCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+    const scheduledFrames = new Map<number, number>();
+    let syntheticHandle = 1_000;
+
+    window.requestAnimationFrame = (callback: FrameRequestCallback) => {
+      const handle = syntheticHandle;
+      syntheticHandle += 1;
+      const timeoutHandle = window.setTimeout(() => {
+        scheduledFrames.delete(handle);
+        nativeRequestAnimationFrame(callback);
+      }, timeoutMs);
+      scheduledFrames.set(handle, timeoutHandle);
+      return handle;
+    };
+
+    window.cancelAnimationFrame = (handle: number) => {
+      const timeoutHandle = scheduledFrames.get(handle);
+      if (timeoutHandle !== undefined) {
+        window.clearTimeout(timeoutHandle);
+        scheduledFrames.delete(handle);
+        return;
+      }
+
+      nativeCancelAnimationFrame(handle);
+    };
+  }, delayMs);
+}
+
+async function expectSourceGnbOverlay(page: import('@playwright/test').Page, destinationContext: 'blog' | 'test' | 'history') {
+  const overlay = page.getByTestId('landing-transition-source-gnb');
+  await expect(overlay).toBeVisible();
+  await expect(overlay.locator('.gnb-shell')).toHaveAttribute('data-gnb-context', 'landing');
+  await expect(page.locator('.page-shell > .gnb-shell')).toHaveAttribute('data-gnb-context', destinationContext);
+}
+
 test.describe('Phase 10/11 transition + telemetry smoke', () => {
-  test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload landing test transition records ingress, attempt_start, and final_submit payload completeness', async ({
+  test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload landing test transition keeps source GNB until destination-ready and records ingress, attempt_start, and final_submit payload completeness', async ({
     page
   }) => {
     const events: Array<Record<string, unknown>> = [];
 
+    await delayDestinationReadyRaf(page);
     await page.addInitScript((storageKey) => {
       window.localStorage.setItem(storageKey, 'OPTED_IN');
     }, TELEMETRY_CONSENT_STORAGE_KEY);
@@ -41,6 +81,9 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
     await expect(page).toHaveURL(/\/en\/test\/rhythm-a\/question$/u);
+    await expectSourceGnbOverlay(page, 'test');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toContainText('VibeTest');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
 
@@ -117,7 +160,10 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(requestCount).toBe(0);
   });
 
-  test('@smoke assertion:B17-return-restore blog transition selects requested article and landing return restores scroll once', async ({page}) => {
+  test('@smoke assertion:B15-transition-correlation assertion:B17-return-restore blog transition keeps source GNB until destination-ready and landing return restores scroll once', async ({
+    page
+  }) => {
+    await delayDestinationReadyRaf(page);
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -127,6 +173,8 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await blogCard.locator('[data-slot="primaryCTA"]').click();
 
     await expect(page).toHaveURL(/\/en\/blog$/u);
+    await expectSourceGnbOverlay(page, 'blog');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
     const savedReturnScroll = await page.evaluate(() =>
       Number(window.sessionStorage.getItem('vibetest-landing-return-scroll-y') ?? '0')
@@ -493,7 +541,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
           sourceCardId: 'test-rhythm-a',
           targetRoute: '/en/test/rhythm-a/question',
           targetType: 'test',
-          startedAtMs: Date.now() - 5000,
+          startedAtMs: Date.now(),
           variant: 'rhythm-a',
           preAnswerChoice: 'A'
         }
@@ -508,10 +556,12 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     });
 
     await page.goto('/en/history');
+    await expectSourceGnbOverlay(page, 'history');
 
     await expect
       .poll(() => events.find((event) => event.event_type === 'transition_fail')?.result_reason ?? null)
       .toBe('DESTINATION_TIMEOUT');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toHaveCount(0);
     await expect
       .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-pending-transition')))
       .toBeNull();
@@ -553,6 +603,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect
       .poll(() => events.find((event) => event.event_type === 'transition_fail')?.result_reason ?? null)
       .toBe('DESTINATION_LOAD_ERROR');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toHaveCount(0);
     await expect
       .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-pending-transition')))
       .toBeNull();

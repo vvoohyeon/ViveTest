@@ -79,6 +79,7 @@
 - [x] Enforce fixture+adapter data source contract and minimum fixture diversity counts (`§12.6`).
 - [x] Enforce missing-slot behavior and unavailable behavior split by interaction mode (`§13.1`, `§13.2`).
 - [x] Enforce landing→destination handshake and rollback cleanup (`§13.3`, `§13.6`).
+- [x] Enforce source GNB overlay proof until destination-ready swap and terminal cleanup on destination routes (`§13.3`).
 - [x] Enforce rollback cleanup-set closure on fail/cancel for the 3 mandatory scenarios with zero leakage (`§13.3`, `§13.6`, `§14.3-16`).
 - [x] Enforce transition start trigger contract: routing starts only from valid Expanded CTA and preserves destination context handoff (`§8.6`, `§13.3`).
 - [x] Enforce test ingress/pre-answer/instruction/start-question contracts (`§13.4`, `§13.5`).

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {SettingsControls} from '@/features/landing/gnb/components/settings-controls';
@@ -44,6 +44,8 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const pathname = usePathname();
   const {viewportWidth, hoverCapable, elevated} = useGnbCapability();
   const {resolvedTheme, applyManualTheme} = useThemePreference();
+  const settingsPanelId = useId();
+  const mobileMenuPanelId = useId();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileMenuState, setMobileMenuState] = useState<MobileMenuState>('closed');
@@ -406,7 +408,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           className="gnb-settings-trigger"
           aria-label={t('settings')}
           aria-expanded={settingsOpen}
-          aria-controls="gnb-settings-panel"
+          aria-controls={settingsPanelId}
           onFocus={() => {
             if (!hoverOpenEnabled) {
               setSettingsOpen(true);
@@ -420,7 +422,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           {t('settings')}
         </button>
         <div
-          id="gnb-settings-panel"
+          id={settingsPanelId}
           role="dialog"
           aria-label={t('settings')}
           className="gnb-settings-panel"
@@ -476,7 +478,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                 className="gnb-menu-trigger"
                 aria-label={mobileMenuState === 'closed' ? t('menuAria') : t('closeMenuAria')}
                 aria-expanded={mobileMenuState !== 'closed'}
-                aria-controls="gnb-mobile-menu-panel"
+                aria-controls={mobileMenuPanelId}
                 onClick={() => {
                   if (mobileMenuState === 'closed') {
                     setMobileMenuState('open');
@@ -508,7 +510,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
             onPointerCancel={mobileMenuBackdropPointerEnd}
           />
           <div
-            id="gnb-mobile-menu-panel"
+            id={mobileMenuPanelId}
             className="gnb-mobile-panel"
             role="dialog"
             aria-modal="true"
