@@ -1,8 +1,11 @@
-import {expect, test, type Browser, type Page} from '@playwright/test';
+import {expect, test, type Browser, type Page, type ViewportSize} from '@playwright/test';
 
 const THEME_STORAGE_KEY = 'vibetest-theme';
+const PREVIEW_HOST = 'http://127.0.0.1:4173';
+const DESKTOP_VIEWPORT: ViewportSize = {width: 1280, height: 900};
+const MOBILE_VIEWPORT: ViewportSize = {width: 390, height: 844};
 
-async function setTheme(page: import('@playwright/test').Page, theme: 'light' | 'dark') {
+async function setTheme(page: Page, theme: 'light' | 'dark') {
   await page.addInitScript(
     ([storageKey, nextTheme]) => {
       window.localStorage.setItem(storageKey, nextTheme);
@@ -11,88 +14,195 @@ async function setTheme(page: import('@playwright/test').Page, theme: 'light' | 
   );
 }
 
-async function openThemedPage(browser: Browser, theme: 'light' | 'dark'): Promise<Page> {
-  const page = await browser.newPage({
-    viewport: {width: 1280, height: 900}
-  });
+async function openThemedPage(
+  browser: Browser,
+  theme: 'light' | 'dark',
+  viewport: ViewportSize = DESKTOP_VIEWPORT
+): Promise<Page> {
+  const page = await browser.newPage({viewport});
   await setTheme(page, theme);
   return page;
 }
 
+async function captureRepresentativeState(input: {
+  browser: Browser;
+  theme: 'light' | 'dark';
+  route: string;
+  screenshotName: string;
+  viewport?: ViewportSize;
+  settle?: (page: Page) => Promise<void>;
+}) {
+  const page = await openThemedPage(input.browser, input.theme, input.viewport);
+  await page.goto(`${PREVIEW_HOST}${input.route}`);
+  await expect(page.locator('.page-shell')).toBeVisible();
+
+  if (input.settle) {
+    await input.settle(page);
+  }
+
+  await expect(page.locator('.page-shell')).toHaveScreenshot(input.screenshotName);
+  await page.close();
+}
+
+async function expandLandingCard(page: Page, cardId: string) {
+  const card = page.locator(`[data-card-id="${cardId}"]`);
+  await card.getByTestId('landing-grid-card-trigger').click();
+  await expect(card).toHaveAttribute('data-card-state', 'expanded');
+  await expect(card).toHaveAttribute('data-desktop-motion-role', 'steady');
+  const cardBox = await card.boundingBox();
+  if (cardBox) {
+    await page.mouse.move(cardBox.x + 28, cardBox.y + 28);
+  }
+  await expect(card).toHaveAttribute('data-card-state', 'expanded');
+  await expect(card).toHaveAttribute('data-desktop-motion-role', 'steady');
+}
+
+async function openDesktopSettings(page: Page) {
+  await page.getByTestId('gnb-settings-trigger').hover();
+  await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+  await expect(page.getByTestId('desktop-gnb-theme-controls')).toBeVisible();
+}
+
+async function startTestAttempt(page: Page) {
+  await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+  await page.getByTestId('test-start-button').click();
+  await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
+  await expect(page.getByTestId('test-question-panel')).toBeVisible();
+}
+
+async function answerCurrentQuestion(page: Page, choice: 'A' | 'B') {
+  const target = choice === 'A' ? 'test-choice-a' : 'test-choice-b';
+  await page.getByTestId(target).click();
+  await expect(page.getByTestId(target)).toHaveAttribute('data-selected', 'true');
+}
+
+async function completeTestAttempt(page: Page) {
+  await startTestAttempt(page);
+
+  for (const choice of ['A', 'B', 'A', 'B'] as const) {
+    await answerCurrentQuestion(page, choice);
+    const submitButton = page.getByTestId('test-submit-button');
+    if (await submitButton.isVisible()) {
+      await submitButton.click();
+      break;
+    }
+
+    await page.getByTestId('test-next-button').click();
+  }
+
+  await expect(page.getByTestId('test-result-panel')).toBeVisible();
+}
+
+async function openMobileExpandedCard(page: Page, cardId: string) {
+  const card = page.locator(`[data-card-id="${cardId}"]`);
+  await card.getByTestId('landing-grid-card-trigger').click();
+  await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+  await expect(card.locator('[data-slot="expandedBody"]')).toBeVisible();
+}
+
 test.describe('Phase 11 theme matrix smoke', () => {
-  test('@smoke assertion:B8-theme-matrix theme matrix captures landing normal and expanded states in light and dark modes', async ({
-    page,
+  test('@smoke assertion:B8-theme-matrix theme matrix captures representative landing, CTA, destination, and mobile states in light and dark modes', async ({
     browser
   }) => {
-    await page.setViewportSize({width: 1280, height: 900});
+    for (const theme of ['light', 'dark'] as const) {
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en',
+        screenshotName: `theme-landing-${theme}.png`
+      });
 
-    await setTheme(page, 'light');
-    await page.goto('/en');
-    await expect(page.locator('.page-shell')).toHaveScreenshot('theme-landing-light.png');
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en',
+        screenshotName: `theme-landing-${theme}-expanded.png`,
+        settle: async (page) => {
+          await expandLandingCard(page, 'test-rhythm-a');
+        }
+      });
 
-    const lightExpandedLanding = await openThemedPage(browser, 'light');
-    await lightExpandedLanding.goto('http://127.0.0.1:4173/en');
-    const lightExpandedCard = lightExpandedLanding.locator('[data-card-id="test-rhythm-a"]');
-    await lightExpandedCard.getByTestId('landing-grid-card-trigger').click();
-    await expect(lightExpandedCard).toHaveAttribute('data-card-state', 'expanded');
-    await expect(lightExpandedCard).toHaveAttribute('data-desktop-motion-role', 'steady');
-    await expect(lightExpandedLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-light-expanded.png');
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en',
+        screenshotName: `theme-landing-${theme}-blog-expanded.png`,
+        settle: async (page) => {
+          await expandLandingCard(page, 'blog-build-metrics');
+        }
+      });
 
-    const darkLanding = await openThemedPage(browser, 'dark');
-    await darkLanding.goto('http://127.0.0.1:4173/en');
-    await expect(darkLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-dark.png');
-    const darkExpandedCard = darkLanding.locator('[data-card-id="test-rhythm-a"]');
-    await darkExpandedCard.getByTestId('landing-grid-card-trigger').click();
-    await expect(darkExpandedCard).toHaveAttribute('data-card-state', 'expanded');
-    await expect(darkExpandedCard).toHaveAttribute('data-desktop-motion-role', 'steady');
-    await expect(darkLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-dark-expanded.png');
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en/blog',
+        screenshotName: `theme-blog-${theme}.png`
+      });
 
-    const lightBlog = await openThemedPage(browser, 'light');
-    await lightBlog.goto('http://127.0.0.1:4173/en/blog');
-    await expect(lightBlog.locator('.page-shell')).toHaveScreenshot('theme-blog-light.png');
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en/blog',
+        screenshotName: `theme-blog-${theme}-settings.png`,
+        settle: openDesktopSettings
+      });
 
-    const darkBlog = await openThemedPage(browser, 'dark');
-    await darkBlog.goto('http://127.0.0.1:4173/en/blog');
-    await expect(darkBlog.locator('.page-shell')).toHaveScreenshot('theme-blog-dark.png');
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en/history',
+        screenshotName: `theme-history-${theme}.png`
+      });
 
-    const lightHistory = await openThemedPage(browser, 'light');
-    await lightHistory.goto('http://127.0.0.1:4173/en/history');
-    await expect(lightHistory.locator('.page-shell')).toHaveScreenshot('theme-history-light.png');
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en/test/rhythm-a/question',
+        screenshotName: `theme-test-${theme}.png`
+      });
 
-    const darkHistory = await openThemedPage(browser, 'dark');
-    await darkHistory.goto('http://127.0.0.1:4173/en/history');
-    await expect(darkHistory.locator('.page-shell')).toHaveScreenshot('theme-history-dark.png');
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en/test/rhythm-a/question',
+        screenshotName: `theme-test-${theme}-question.png`,
+        settle: async (page) => {
+          await startTestAttempt(page);
+          await answerCurrentQuestion(page, 'A');
+        }
+      });
 
-    const lightTest = await openThemedPage(browser, 'light');
-    await lightTest.goto('http://127.0.0.1:4173/en/test/rhythm-a/question');
-    await expect(lightTest.locator('.page-shell')).toHaveScreenshot('theme-test-light.png');
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/en/test/rhythm-a/question',
+        screenshotName: `theme-test-${theme}-result.png`,
+        settle: completeTestAttempt
+      });
+    }
 
-    const darkTest = await openThemedPage(browser, 'dark');
-    await darkTest.goto('http://127.0.0.1:4173/en/test/rhythm-a/question');
-    await expect(darkTest.locator('.page-shell')).toHaveScreenshot('theme-test-dark.png');
-
-    await lightExpandedLanding.close();
-    await darkLanding.close();
-    await lightBlog.close();
-    await darkBlog.close();
-    await lightHistory.close();
-    await darkHistory.close();
-    await lightTest.close();
-    await darkTest.close();
+    await captureRepresentativeState({
+      browser,
+      theme: 'dark',
+      route: '/en',
+      viewport: MOBILE_VIEWPORT,
+      screenshotName: 'theme-landing-mobile-dark-blog-expanded.png',
+      settle: async (page) => {
+        await openMobileExpandedCard(page, 'blog-build-metrics');
+      }
+    });
   });
 
   test('@smoke assertion:B8-theme-matrix theme matrix captures KR representative landing states in light and dark modes', async ({
     browser
   }) => {
-    const lightLanding = await openThemedPage(browser, 'light');
-    await lightLanding.goto('http://127.0.0.1:4173/kr');
-    await expect(lightLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-kr-light.png');
-
-    const darkLanding = await openThemedPage(browser, 'dark');
-    await darkLanding.goto('http://127.0.0.1:4173/kr');
-    await expect(darkLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-kr-dark.png');
-
-    await lightLanding.close();
-    await darkLanding.close();
+    for (const theme of ['light', 'dark'] as const) {
+      await captureRepresentativeState({
+        browser,
+        theme,
+        route: '/kr',
+        screenshotName: `theme-landing-kr-${theme}.png`
+      });
+    }
   });
 });

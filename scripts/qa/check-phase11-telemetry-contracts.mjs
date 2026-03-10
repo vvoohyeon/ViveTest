@@ -62,6 +62,34 @@ if (fileExists('tests/e2e/theme-matrix-smoke.spec.ts')) {
   if (!/toHaveScreenshot/u.test(e2eSpec)) {
     fail('Theme matrix smoke must capture screenshot baselines.');
   }
+
+  const requiredThemeSnapshotPatterns = [
+    /theme-landing-\$\{theme\}\.png/u,
+    /theme-landing-\$\{theme\}-expanded\.png/u,
+    /theme-landing-\$\{theme\}-blog-expanded\.png/u,
+    /theme-blog-\$\{theme\}\.png/u,
+    /theme-blog-\$\{theme\}-settings\.png/u,
+    /theme-history-\$\{theme\}\.png/u,
+    /theme-test-\$\{theme\}\.png/u,
+    /theme-test-\$\{theme\}-question\.png/u,
+    /theme-test-\$\{theme\}-result\.png/u,
+    /theme-landing-mobile-dark-blog-expanded\.png/u,
+    /theme-landing-kr-\$\{theme\}\.png/u
+  ];
+
+  for (const pattern of requiredThemeSnapshotPatterns) {
+    if (!pattern.test(e2eSpec)) {
+      fail(`Theme matrix smoke must cover representative screenshot pattern: ${pattern}`);
+    }
+  }
+
+  if (!/data-desktop-motion-role', 'steady'/u.test(e2eSpec) || !/data-mobile-phase', 'OPEN'/u.test(e2eSpec)) {
+    fail('Theme matrix smoke must wait for expanded desktop/mobile representative states before capturing screenshots.');
+  }
+
+  if (!/gnb-settings-panel/u.test(e2eSpec) || !/test-result-panel/u.test(e2eSpec)) {
+    fail('Theme matrix smoke must include destination settings-open and test-result representative states.');
+  }
 }
 
 if (errors.length > 0) {

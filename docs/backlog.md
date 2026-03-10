@@ -12,6 +12,7 @@
 - mobile close title continuity 수정
 - GNB 기본 keyboard/context matrix 증빙 확대
 - settings light/dark 선택 상태 초기 표시 정합화
+- representative dark baseline 확대 + CTA emphasis token 정리 + curated theme matrix breadth closure
 - desktop/mobile 주요 focus 표현 보강과 blocker assertion 확장
 - traceability / smoke / blocker assertion 보강
 - preview-mode hydration zero-warning proof hardening과 first-paint bootstrap 정리
@@ -23,13 +24,13 @@
 ## 3. Deferred / Follow-up Items
 
 ### 3.1 dark baseline 전체 확대
-- 현재 상태: `visual regression coverage 확장 필요`
-- 왜 지금 보류했는가: 현재 핵심 기능 축과 직접 연결되지 않고, screenshot churn만 크게 늘릴 가능성이 높다.
+- 현재 상태: `대표 CTA-bearing / destination / mobile dark baseline closure 완료, exhaustive coverage는 선택 후속`
+- 왜 지금 보류했는가: representative breadth는 닫혔다. 남은 것은 추가 locale/viewport 전수 확대 성격이라 현재 release gate에는 필요하지 않다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§6.9`, blocker `#8`
-- 권장 구현 시점: visual polish 또는 theme matrix 재정비 시점
+- 권장 구현 시점: locale/viewport 전수 visual audit이 필요해질 때
 - 함께 다루면 좋은 인접 항목: CTA visual rhythm, expanded visual polish, theme matrix
-- 아주 간단한 구현 방향 메모: dark/light baseline은 기능 구조가 안정된 뒤 matrix를 넓히는 방식이 적절하다.
-- 주의사항: 기능 수정과 baseline 확대를 같은 변경셋에 섞으면 diff 해석이 어려워진다.
+- 아주 간단한 구현 방향 메모: 현재는 curated representative matrix가 기준선이다. 이후 전수 확대가 필요하면 같은 helper/settle 규칙 위에서 locale/viewport 축만 늘린다.
+- 주의사항: 기능 수정과 exhaustive baseline 확대를 같은 변경셋에 섞으면 diff 해석이 어려워진다.
 
 ### 3.2 SSR/hydration determinism 전체 재개방
 - 현재 상태: `기본 closure 완료, render-tree refactor 시 재검토`
@@ -50,13 +51,13 @@
 - 주의사항: 현재 smoke가 닫는 계약과 axe audit 결과를 혼동하지 않도록 역할을 분리한다.
 
 ### 3.4 CTA visual rhythm / theme matrix 확대
-- 현재 상태: `visual polish 후속 필요`
-- 왜 지금 보류했는가: 핵심 기능 계약보다 visual polish 성격이 크며, 지금 열면 mobile/title/transition 변경과 기준선이 섞인다.
+- 현재 상태: `CTA emphasis token 정리 + representative matrix closure 완료, art-direction 수준 polish는 선택 후속`
+- 왜 지금 보류했는가: 현재 backlog 범위의 representative polish는 닫혔다. 남은 것은 더 넓은 art-direction 변경이나 exhaustive matrix 확장이다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§6.8`, `§6.9`
-- 권장 구현 시점: visual polish pass 또는 theme matrix 확장 시점
+- 권장 구현 시점: 시각 언어 자체를 다시 조정하거나 locale/viewport 전수 matrix가 필요해질 때
 - 함께 다루면 좋은 인접 항목: dark baseline 확대, CTA emphasis token 정리
-- 아주 간단한 구현 방향 메모: token 통합과 screenshot matrix 확장을 같은 pass에서 검토하는 편이 효율적이다.
-- 주의사항: 기능 회귀 수정과 visual polish를 한 변경셋에 섞지 않는다.
+- 아주 간단한 구현 방향 메모: representative CTA-bearing state는 현재 gate에 고정되었다. 후속은 새로운 시각 방향을 잡을 때만 연다.
+- 주의사항: 기능 회귀 수정과 추가 art-direction polish를 한 변경셋에 섞지 않는다.
 
 ### 3.5 GNB 키보드 접근
 - 현재 상태: `기본 계약 + desktop destination representative audit 완료, broader context/state audit 일부 후속 필요`

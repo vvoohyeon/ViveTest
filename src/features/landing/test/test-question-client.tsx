@@ -304,8 +304,12 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
               ))}
             </dl>
             <div className="test-result-actions">
-              <Link href={buildLocalizedPath(RouteBuilder.landing(), locale)}>{t('goHome')}</Link>
-              <Link href={buildLocalizedPath(RouteBuilder.history(), locale)}>{t('goHistory')}</Link>
+              <Link className="test-primary-button" href={buildLocalizedPath(RouteBuilder.landing(), locale)}>
+                {t('goHome')}
+              </Link>
+              <Link className="test-secondary-button" href={buildLocalizedPath(RouteBuilder.history(), locale)}>
+                {t('goHistory')}
+              </Link>
             </div>
           </div>
         ) : (

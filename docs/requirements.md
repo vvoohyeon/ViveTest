@@ -392,7 +392,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Confidence:** Medium
 
 ### REQ-F-030 — Unavailable catalog interaction contract (tests)
-- **Statement:** UUnavailable test items in the landing catalog MUST be visible for browse/discovery but MUST NOT allow flip/expanded behavior nor expose any entry CTA.
+- **Statement:** Unavailable test items in the landing catalog MUST be visible for browse/discovery but MUST NOT allow flip/expanded behavior nor expose any entry CTA.
 - **Rationale:** Keeps discovery intact while preventing dead-end or misleading interactions.
 - **Acceptance criteria:**
   - Unavailable test cards MUST NOT transition into a back/expanded state via pointer, touch, or keyboard interactions.
@@ -430,7 +430,6 @@ This product lets users take multiple kinds of short assessments (test variants/
   - A keyboard user MUST be able to place focus on an available catalog card and perform an explicit action to enter its back/expanded state.
   - After entering the back/expanded state, the user MUST be able to move focus to the back-state CTAs and activate them (tests: two answer-choice CTAs; blog: “Read more”).
   - Keyboard interactions on the front/browsing face MUST NOT start navigation.
-  Confidence: Medium
 - **Confidence:** Medium
 
 ### REQ-F-034 — Single-card attention lock on desktop (landing catalog)
@@ -442,7 +441,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Confidence:** Medium
 
 ### REQ-F-035 — Mobile catalog scroll/interaction lock during back-state
-- **Statement:** n touch devices, while an available catalog card is in its back/expanded state, the landing catalog MUST lock background scrolling and prevent interaction with other catalog items until the back/expanded state is dismissed or navigation begins via a back-state CTA.
+- **Statement:** On touch devices, while an available catalog card is in its back/expanded state, the landing catalog MUST lock background scrolling and prevent interaction with other catalog items until the back/expanded state is dismissed or navigation begins via a back-state CTA.
 - **Rationale:** Maintains interaction stability on touch and prevents accidental navigation/scroll conflicts.
 - **Acceptance criteria:**
   - Back/expanded state on touch MUST NOT allow background catalog scrolling.

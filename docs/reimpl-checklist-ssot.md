@@ -27,7 +27,7 @@
 - [x] Enforce text/wrap/truncate/clamp policy by slot (`§6.6`).
 - [x] Enforce subtitle max-2-line truncation with visible ellipsis and block overflow-driven inline-size contamination (card/row width + sibling-slot width unchanged) (`§6.6`, `§6.8`, `§14.3-4`).
 - [x] Enforce Expanded meta formatting/localization contracts (no abbreviated counts, locale switch + default fallback correctness) (`§6.8`).
-- [x] Enforce theme coverage on Landing/Test/Blog/History for both Normal/Expanded, light/dark matrix quality gate (`§6.9`, `§14.3-8`).
+- [x] Enforce theme coverage on Landing/Test/Blog/History with representative CTA-bearing Normal/Expanded, destination settings-open, mobile expanded, and light/dark matrix quality gate (`§6.9`, `§14.3-8`).
 
 ## 3. Normal Height / Spacing Contracts
 - [x] Enforce Normal compact + same-row equal-height stretch (`§6.7`).
