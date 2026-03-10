@@ -226,7 +226,7 @@ export function reduceLandingInteractionState(
     case 'PAGE_VISIBLE':
       return transitionPageState(settledState, 'ACTIVE', event.nowMs, true);
     case 'PAGE_TRANSITION_START':
-      return transitionPageState(settledState, 'TRANSITIONING', event.nowMs);
+      return transitionPageState(settledState, 'TRANSITIONING', event.nowMs, true);
     case 'PAGE_TRANSITION_END':
       return transitionPageState(settledState, 'ACTIVE', event.nowMs, true);
     case 'REDUCED_MOTION_ENABLE':

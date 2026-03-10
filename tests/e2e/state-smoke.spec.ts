@@ -1,5 +1,36 @@
 import {expect, type Page, test} from '@playwright/test';
 
+async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
+  await page.addInitScript((timeoutMs) => {
+    const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+    const nativeCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+    const scheduledFrames = new Map<number, number>();
+    let syntheticHandle = 1_000;
+
+    window.requestAnimationFrame = (callback: FrameRequestCallback) => {
+      const handle = syntheticHandle;
+      syntheticHandle += 1;
+      const timeoutHandle = window.setTimeout(() => {
+        scheduledFrames.delete(handle);
+        nativeRequestAnimationFrame(callback);
+      }, timeoutMs);
+      scheduledFrames.set(handle, timeoutHandle);
+      return handle;
+    };
+
+    window.cancelAnimationFrame = (handle: number) => {
+      const timeoutHandle = scheduledFrames.get(handle);
+      if (timeoutHandle !== undefined) {
+        window.clearTimeout(timeoutHandle);
+        scheduledFrames.delete(handle);
+        return;
+      }
+
+      nativeCancelAnimationFrame(handle);
+    };
+  }, delayMs);
+}
+
 async function tabUntilCardFocused(page: Page, cardId: string): Promise<void> {
   for (let attempts = 0; attempts < 50; attempts += 1) {
     await page.keyboard.press('Tab');
@@ -208,6 +239,29 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     expect(pageErrors).toEqual([]);
     expect(consoleErrors).toEqual([]);
+  });
+
+  test('@smoke reduced-motion transition start still enters TRANSITIONING lock before destination navigation settles', async ({
+    page
+  }) => {
+    await delayDestinationReadyRaf(page);
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const shell = page.getByTestId('landing-grid-shell');
+    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+
+    await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
+    await firstCard.hover();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+
+    const navigation = page.waitForURL(/\/en\/test\/rhythm-a\/question$/u);
+    await firstCard.locator('[data-slot="answerChoiceA"]').click({noWaitAfter: true});
+    await expect(shell).toHaveAttribute('data-page-state', 'TRANSITIONING');
+    await expect(secondCard).toHaveAttribute('data-hover-lock-blocked', 'true');
+    await navigation;
   });
 
   test('@smoke landing card and CTA cursor policy stays scoped to available landing interactions', async ({page}) => {

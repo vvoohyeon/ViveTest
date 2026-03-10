@@ -15,8 +15,10 @@ import {
   consumeLandingIngress,
   hasSeenInstruction,
   markInstructionSeen,
+  type LandingIngressRecord,
   readLandingIngress,
-  readPendingLandingTransition
+  readPendingLandingTransition,
+  type PendingLandingTransition
 } from '@/features/landing/transition/store';
 import {buildLandingTestQuestionBank} from '@/features/landing/test/question-bank';
 import {buildLocalizedPath} from '@/i18n/localized-path';
@@ -36,6 +38,11 @@ interface QuestionRuntimeState {
   answers: Record<string, 'A' | 'B'>;
 }
 
+interface QuestionBootstrapState {
+  runtimeState: QuestionRuntimeState;
+  pendingTransitionToComplete: string | null;
+}
+
 function buildInitialRuntimeState(): QuestionRuntimeState {
   return {
     ready: false,
@@ -44,6 +51,36 @@ function buildInitialRuntimeState(): QuestionRuntimeState {
     transitionId: '',
     currentQuestionIndex: 1,
     answers: {}
+  };
+}
+
+export function resolveQuestionBootstrapState(input: {
+  fallbackTransitionId: string;
+  instructionSeen: boolean;
+  landingIngress: LandingIngressRecord | null;
+  pendingTransition: PendingLandingTransition | null;
+  variant: string;
+}): QuestionBootstrapState {
+  const matchingPendingTransition =
+    input.pendingTransition &&
+    input.pendingTransition.targetType === 'test' &&
+    input.pendingTransition.variant === input.variant
+      ? input.pendingTransition
+      : null;
+  const landingIngressFlag = input.landingIngress !== null;
+  const transitionId =
+    matchingPendingTransition?.transitionId ?? input.landingIngress?.transitionId ?? input.fallbackTransitionId;
+
+  return {
+    runtimeState: {
+      ready: true,
+      instructionVisible: !input.instructionSeen,
+      landingIngressFlag,
+      transitionId,
+      currentQuestionIndex: landingIngressFlag ? 2 : 1,
+      answers: input.landingIngress ? {q1: input.landingIngress.preAnswerChoice} : {}
+    },
+    pendingTransitionToComplete: matchingPendingTransition?.transitionId ?? null
   };
 }
 
@@ -83,29 +120,17 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
 
     const nextPendingTransition = readPendingLandingTransition();
     const landingIngress = readLandingIngress(variant);
-    const matchedIngress =
-      nextPendingTransition &&
-      nextPendingTransition.targetType === 'test' &&
-      nextPendingTransition.variant === variant &&
-      landingIngress &&
-      landingIngress.transitionId === nextPendingTransition.transitionId
-        ? landingIngress
-        : null;
-
-    if (nextPendingTransition && nextPendingTransition.targetType === 'test' && nextPendingTransition.variant === variant) {
-      pendingTransitionToCompleteRef.current = nextPendingTransition.transitionId;
-    }
-
-    const landingIngressFlag = matchedIngress !== null;
     const instructionSeen = hasSeenInstruction(variant);
-    const nextRuntimeState: QuestionRuntimeState = {
-      ready: true,
-      instructionVisible: !instructionSeen,
-      landingIngressFlag,
-      transitionId: nextPendingTransition?.transitionId ?? createCorrelationId(`attempt-${variant}`),
-      currentQuestionIndex: landingIngressFlag ? 2 : 1,
-      answers: matchedIngress ? {q1: matchedIngress.preAnswerChoice} : {}
-    };
+    const bootstrapState = resolveQuestionBootstrapState({
+      fallbackTransitionId: createCorrelationId(`attempt-${variant}`),
+      instructionSeen,
+      landingIngress,
+      pendingTransition: nextPendingTransition,
+      variant
+    });
+
+    pendingTransitionToCompleteRef.current = bootstrapState.pendingTransitionToComplete;
+    const nextRuntimeState = bootstrapState.runtimeState;
 
     bootstrapRuntimeStateRef.current = nextRuntimeState;
     queueMicrotask(() => {

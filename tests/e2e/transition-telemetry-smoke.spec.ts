@@ -86,9 +86,20 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-ingress:rhythm-a')))
+      .not.toBeNull();
+
+    await page.reload();
+    await expect(page).toHaveURL(/\/en\/test\/rhythm-a\/question$/u);
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
 
     await page.getByTestId('test-start-button').click();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-ingress:rhythm-a')))
+      .toBeNull();
 
     await page.getByTestId('test-choice-a').click();
     await page.getByTestId('test-next-button').click();
@@ -137,6 +148,31 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBe(0);
   });
 
+  test('@smoke assertion:B6-transition-ingress test route re-entry without ingress falls back to Q1 after start consumes ingress', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const testCard = page.locator('[data-card-id="test-rhythm-a"]');
+    await testCard.getByTestId('landing-grid-card-trigger').click();
+    await testCard.locator('[data-slot="answerChoiceA"]').click();
+
+    await expect(page).toHaveURL(/\/en\/test\/rhythm-a\/question$/u);
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+
+    await page.getByTestId('test-start-button').click();
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-ingress:rhythm-a')))
+      .toBeNull();
+
+    await page.goto('/en');
+    await page.goto('/en/test/rhythm-a/question');
+    await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
+  });
+
   test('@smoke assertion:B9-opted-out-no-send default opted-out policy blocks client telemetry network sends', async ({page}) => {
     let requestCount = 0;
 
@@ -164,12 +200,31 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     page
   }) => {
     await delayDestinationReadyRaf(page);
-    await page.setViewportSize({width: 1440, height: 980});
+    await page.setViewportSize({width: 1440, height: 720});
     await page.goto('/en');
 
     const blogCard = page.locator('[data-card-id="blog-build-metrics"]');
+    const setupScrollTop = await blogCard.evaluate((element) => {
+      const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
+      return Math.max(0, Math.round(absoluteTop - window.innerHeight / 2 + 40));
+    });
+    await page.evaluate((nextY) => {
+      window.scrollTo({
+        top: nextY,
+        left: 0,
+        behavior: 'auto'
+      });
+    }, setupScrollTop);
+    const preparedScrollY = await page.evaluate(() => Math.round(window.scrollY));
+    expect(preparedScrollY).toBeGreaterThan(0);
+
+    const sourceCardRestoreCandidate = await blogCard.evaluate((element) =>
+      Math.max(0, Math.round(element.getBoundingClientRect().top + window.scrollY - 96))
+    );
     await blogCard.getByTestId('landing-grid-card-trigger').click();
     const scrollBefore = await page.evaluate(() => window.scrollY);
+    expect(Math.abs(scrollBefore - preparedScrollY)).toBeLessThanOrEqual(1);
+    expect(Math.abs(sourceCardRestoreCandidate - scrollBefore)).toBeGreaterThan(40);
     await blogCard.locator('[data-slot="primaryCTA"]').click();
 
     await expect(page).toHaveURL(/\/en\/blog$/u);
@@ -185,6 +240,9 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await page.getByRole('link', {name: 'VibeTest'}).first().click();
     await expect(page).toHaveURL(/\/en$/u);
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-return-scroll-y')))
+      .toBeNull();
     const expectedRestoredScroll = await page.evaluate((initialSavedScroll) => {
       const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
       return Math.min(initialSavedScroll, maxScrollTop);
@@ -198,9 +256,10 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     const restoredScroll = await page.evaluate(() => window.scrollY);
     expect(restoredScroll).toBeGreaterThanOrEqual(scrollBefore);
     expect(Math.abs(restoredScroll - expectedRestoredScroll)).toBeLessThanOrEqual(2);
-    await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-return-scroll-y')))
-      .toBeNull();
+    const restoredSourceAnchor = await page.locator('[data-card-id="blog-build-metrics"]').evaluate((element) =>
+      Math.max(0, Math.round(element.getBoundingClientRect().top + window.scrollY - 96))
+    );
+    expect(Math.abs(restoredSourceAnchor - expectedRestoredScroll)).toBeGreaterThan(40);
   });
 
   test('@smoke assertion:B14-mobile-baseline mobile expanded lifecycle keeps transition-window anchor, title baseline, unlock timing, and restore gating stable', async ({

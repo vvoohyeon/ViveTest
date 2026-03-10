@@ -8,7 +8,6 @@ import {trackLandingView, useTelemetryBootstrap} from '@/features/landing/teleme
 import {terminatePendingLandingTransition} from '@/features/landing/transition/runtime';
 import {
   clearLandingReturnScroll,
-  readLandingReturnCardId,
   readLandingReturnScrollY,
   readPendingLandingTransition
 } from '@/features/landing/transition/store';
@@ -20,7 +19,23 @@ interface LandingRuntimeProps {
 interface PendingReturnScrollRestore {
   pathname: string;
   scrollY: number;
-  sourceCardId: string | null;
+}
+
+export function consumePendingReturnScrollRestore(pathname: string): PendingReturnScrollRestore | null {
+  const scrollY = readLandingReturnScrollY();
+  if (scrollY === null) {
+    return null;
+  }
+
+  clearLandingReturnScroll();
+  return {
+    pathname,
+    scrollY
+  };
+}
+
+export function resolveLandingReturnScrollTop(scrollY: number, maxScrollTop: number): number {
+  return Math.min(Math.max(0, scrollY), Math.max(0, maxScrollTop));
 }
 
 export function LandingRuntime({locale}: LandingRuntimeProps) {
@@ -30,15 +45,7 @@ export function LandingRuntime({locale}: LandingRuntimeProps) {
 
   useEffect(() => {
     if (pendingReturnRestoreRef.current?.pathname !== pathname) {
-      const scrollY = readLandingReturnScrollY();
-      pendingReturnRestoreRef.current =
-        scrollY === null
-          ? null
-          : {
-              pathname,
-              scrollY,
-              sourceCardId: readLandingReturnCardId()
-            };
+      pendingReturnRestoreRef.current = consumePendingReturnScrollRestore(pathname);
     }
 
     const pendingReturnRestore = pendingReturnRestoreRef.current;
@@ -46,48 +53,15 @@ export function LandingRuntime({locale}: LandingRuntimeProps) {
       return;
     }
 
-    let frame = 0;
-    let attempts = 0;
-    let settledFrames = 0;
+    const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    const nextScrollTop = resolveLandingReturnScrollTop(pendingReturnRestore.scrollY, maxScrollTop);
 
-    const restoreScroll = () => {
-      const sourceCardElement = pendingReturnRestore.sourceCardId
-        ? document.querySelector<HTMLElement>(`[data-card-id="${pendingReturnRestore.sourceCardId}"]`)
-        : null;
-      const targetScrollTopFromCard = sourceCardElement
-        ? Math.max(0, sourceCardElement.getBoundingClientRect().top + window.scrollY - 96)
-        : null;
-      const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-      const nextScrollTop = Math.min(targetScrollTopFromCard ?? pendingReturnRestore.scrollY, maxScrollTop);
-
-      window.scrollTo({
-        top: nextScrollTop,
-        left: 0,
-        behavior: 'auto'
-      });
-
-      attempts += 1;
-      const didSettle = Math.abs(window.scrollY - nextScrollTop) <= 1;
-      settledFrames = didSettle ? settledFrames + 1 : 0;
-
-      if (settledFrames >= 2 || attempts >= 60) {
-        clearLandingReturnScroll();
-        pendingReturnRestoreRef.current = null;
-        return;
-      }
-
-      if (attempts < 60) {
-        frame = window.requestAnimationFrame(restoreScroll);
-      }
-    };
-
-    frame = window.requestAnimationFrame(restoreScroll);
-
-    return () => {
-      if (frame !== 0) {
-        window.cancelAnimationFrame(frame);
-      }
-    };
+    window.scrollTo({
+      top: nextScrollTop,
+      left: 0,
+      behavior: 'auto'
+    });
+    pendingReturnRestoreRef.current = null;
   }, [pathname]);
 
   useEffect(() => {

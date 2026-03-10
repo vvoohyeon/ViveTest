@@ -171,7 +171,9 @@ test.describe('Phase 4 grid smoke', () => {
     expect(Math.abs(rowClientWidth - rowScrollWidth)).toBeLessThanOrEqual(1);
   });
 
-  test('@smoke assertion:B10-spacing-model base-gap and comp-gap follow row-local compensation rule for row1 and row2+', async ({page}) => {
+  test('@smoke assertion:B10-spacing-model assertion:B11-row-consistency base-gap and comp-gap follow row-local compensation rule for row1 and row2+', async ({
+    page
+  }) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 

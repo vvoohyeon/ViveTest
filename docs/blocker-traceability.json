@@ -86,8 +86,8 @@
   },
   {
     "blocker": 11,
-    "file": "tests/unit/landing-baseline-manager.test.ts",
-    "assertionId": "assertion:B11-baseline-freeze"
+    "file": "tests/e2e/grid-smoke.spec.ts",
+    "assertionId": "assertion:B11-row-consistency"
   },
   {
     "blocker": 12,

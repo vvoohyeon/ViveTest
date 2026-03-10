@@ -183,6 +183,32 @@ describe('landing interaction state machine', () => {
     expect(sensorDenied.activeRampUntilMs).toBe(150 + ACTIVE_RAMP_UP_MS);
   });
 
+  it('promotes reduced-motion into TRANSITIONING lock immediately on transition start', () => {
+    const state = replay([
+      {
+        type: 'CARD_FOCUS',
+        nowMs: 1,
+        interactionMode: 'hover',
+        cardId: 'test-rhythm-a',
+        available: true
+      },
+      {type: 'REDUCED_MOTION_ENABLE', nowMs: 10},
+      {type: 'PAGE_TRANSITION_START', nowMs: 11},
+      {
+        type: 'CARD_FOCUS',
+        nowMs: 12,
+        interactionMode: 'hover',
+        cardId: 'test-rhythm-b',
+        available: true
+      }
+    ]);
+
+    expect(state.pageState).toBe('TRANSITIONING');
+    expect(state.focusedCardId).toBeNull();
+    expect(state.expandedCardId).toBeNull();
+    expect(resolveCardStateForId(state, 'test-rhythm-b')).toBe('NORMAL');
+  });
+
   it('keeps settled output deterministic for identical input sequences', () => {
     const eventSequence: LandingInteractionEvent[] = [
       {type: 'MODE_SYNC', interactionMode: 'hover'},
