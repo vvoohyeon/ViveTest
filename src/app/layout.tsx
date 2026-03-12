@@ -3,6 +3,7 @@ import {headers} from 'next/headers';
 import Script from 'next/script';
 import type {ReactNode} from 'react';
 
+import {VercelAnalyticsGate} from '@/app/vercel-analytics-gate';
 import {resolveRequestLocaleFromHeaderBag} from '@/i18n/request-locale-header';
 
 import './globals.css';
@@ -21,6 +22,8 @@ export default async function RootLayout({children}: {children: ReactNode}) {
       <body>
         <Script src="/theme-bootstrap.js" strategy="beforeInteractive" />
         {children}
+        {/* 기존 opt-in 정책을 지킨 사용자에게만 Vercel Analytics를 연결한다. */}
+        <VercelAnalyticsGate />
       </body>
     </html>
   );

@@ -16,7 +16,8 @@ import {patchTelemetryEventForTransport, validateTelemetryEvent} from '@/feature
 import type {LandingTransitionResultReason} from '@/features/landing/transition/store';
 
 const TELEMETRY_ENDPOINT = '/api/telemetry';
-const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
+// 보조 분석 도구도 동일한 opt-in 기준을 따르도록 동의 저장 키를 공용화한다.
+export const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
 const TELEMETRY_SESSION_ID_STORAGE_KEY = 'vibetest-telemetry-session-id';
 
 interface TelemetrySnapshot {
