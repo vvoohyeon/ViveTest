@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 
 import {
   hasDuplicateLocalePrefix,
+  isAppOwnedPath,
   isBypassPath,
   isLocaleLessAllowlistedPath,
   parseLocalePrefix,
@@ -46,6 +47,12 @@ describe('locale resolution helpers', () => {
     expect(isLocaleLessAllowlistedPath('/history')).toBe(true);
     expect(isLocaleLessAllowlistedPath('/test/alpha/question')).toBe(true);
     expect(isLocaleLessAllowlistedPath('/foo')).toBe(false);
+
+    expect(isAppOwnedPath('/')).toBe(true);
+    expect(isAppOwnedPath('/en/blog')).toBe(true);
+    expect(isAppOwnedPath('/test/alpha/question')).toBe(true);
+    expect(isAppOwnedPath('/foo')).toBe(false);
+    expect(isAppOwnedPath('/va-123/view')).toBe(false);
 
     expect(isBypassPath('/_next/static/chunk.js')).toBe(true);
     expect(isBypassPath('/api/hello')).toBe(true);

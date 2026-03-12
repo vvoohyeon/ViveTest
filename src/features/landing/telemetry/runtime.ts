@@ -1,8 +1,16 @@
 'use client';
 
-import {useEffect, useState} from 'react';
-
 import type {AppLocale} from '@/config/site';
+import {
+  ensureTelemetryConsentSourceSync,
+  getTelemetryConsentSnapshot,
+  resetTelemetryConsentSourceForTests,
+  setTelemetryConsentState as setTelemetryConsentStateInSource,
+  subscribeToTelemetryConsent,
+  TELEMETRY_CONSENT_STORAGE_KEY,
+  type TelemetryConsentSnapshot,
+  useTelemetryConsentSource
+} from '@/features/landing/telemetry/consent-source';
 import type {
   AttemptStartTelemetryEvent,
   FinalSubmitTelemetryEvent,
@@ -16,8 +24,6 @@ import {patchTelemetryEventForTransport, validateTelemetryEvent} from '@/feature
 import type {LandingTransitionResultReason} from '@/features/landing/transition/store';
 
 const TELEMETRY_ENDPOINT = '/api/telemetry';
-// 보조 분석 도구도 동일한 opt-in 기준을 따르도록 동의 저장 키를 공용화한다.
-export const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
 const TELEMETRY_SESSION_ID_STORAGE_KEY = 'vibetest-telemetry-session-id';
 
 interface TelemetrySnapshot {
@@ -26,7 +32,8 @@ interface TelemetrySnapshot {
   synced: boolean;
 }
 
-interface TelemetryRuntimeState extends TelemetrySnapshot {
+interface TelemetryRuntimeState {
+  sessionId: string | null;
   queue: TelemetryEvent[];
   sentLandingViews: Set<string>;
   sentTransitionStarts: Set<string>;
@@ -34,9 +41,7 @@ interface TelemetryRuntimeState extends TelemetrySnapshot {
 }
 
 const runtimeState: TelemetryRuntimeState = {
-  consentState: 'UNKNOWN',
   sessionId: null,
-  synced: false,
   queue: [],
   sentLandingViews: new Set(),
   sentTransitionStarts: new Set(),
@@ -55,17 +60,6 @@ function getLocalStorage(): Storage | null {
   } catch {
     return null;
   }
-}
-
-function resolveStoredConsent(): TelemetryConsentState {
-  const storage = getLocalStorage();
-  const raw = storage?.getItem(TELEMETRY_CONSENT_STORAGE_KEY)?.trim().toUpperCase() ?? '';
-
-  if (raw === 'OPTED_IN') {
-    return 'OPTED_IN';
-  }
-
-  return 'OPTED_OUT';
 }
 
 function resolveRandomUuid(): string | null {
@@ -116,7 +110,8 @@ function clearSessionId(): void {
 }
 
 function canSendToNetwork(): boolean {
-  return runtimeState.synced && runtimeState.consentState === 'OPTED_IN' && runtimeState.sessionId !== null;
+  const consentSnapshot = getTelemetryConsentSnapshot();
+  return consentSnapshot.synced && consentSnapshot.consentState === 'OPTED_IN' && runtimeState.sessionId !== null;
 }
 
 function sendTelemetryEvent(event: TelemetryEvent): void {
@@ -132,8 +127,10 @@ function sendTelemetryEvent(event: TelemetryEvent): void {
 }
 
 function flushQueue(): void {
+  const consentSnapshot = getTelemetryConsentSnapshot();
+
   if (!canSendToNetwork()) {
-    if (runtimeState.consentState === 'OPTED_OUT') {
+    if (consentSnapshot.consentState === 'OPTED_OUT') {
       runtimeState.queue = [];
     }
     return;
@@ -144,23 +141,24 @@ function flushQueue(): void {
 
   for (const queuedEvent of queued) {
     sendTelemetryEvent(
-      patchTelemetryEventForTransport(queuedEvent, runtimeState.sessionId, runtimeState.consentState)
+      patchTelemetryEventForTransport(queuedEvent, runtimeState.sessionId, consentSnapshot.consentState)
     );
   }
 }
 
 function enqueueOrSend(event: TelemetryEvent): TelemetryEvent {
   const validatedEvent = validateTelemetryEvent(event);
+  const consentSnapshot = getTelemetryConsentSnapshot();
 
   if (!canSendToNetwork()) {
-    if (runtimeState.consentState !== 'OPTED_OUT') {
+    if (consentSnapshot.consentState !== 'OPTED_OUT') {
       runtimeState.queue.push(validatedEvent);
     }
     return validatedEvent;
   }
 
   sendTelemetryEvent(
-    patchTelemetryEventForTransport(validatedEvent, runtimeState.sessionId, runtimeState.consentState)
+    patchTelemetryEventForTransport(validatedEvent, runtimeState.sessionId, consentSnapshot.consentState)
   );
   return validatedEvent;
 }
@@ -172,6 +170,8 @@ function createBaseEvent<EventType extends TelemetryBaseEvent['event_type']>(inp
 }): Pick<TelemetryBaseEvent, 'event_id' | 'ts_ms' | 'locale' | 'route' | 'consent_state' | 'session_id'> & {
   event_type: EventType;
 } {
+  const consentSnapshot = getTelemetryConsentSnapshot();
+
   return {
     event_type: input.eventType,
     event_id: createCorrelationId(input.eventType),
@@ -179,8 +179,36 @@ function createBaseEvent<EventType extends TelemetryBaseEvent['event_type']>(inp
     ts_ms: Date.now(),
     locale: input.locale,
     route: input.route,
-    consent_state: runtimeState.consentState
+    consent_state: consentSnapshot.consentState
   };
+}
+
+function applyConsentSnapshotToRuntime(consentSnapshot: TelemetryConsentSnapshot): void {
+  if (!consentSnapshot.synced) {
+    runtimeState.sessionId = null;
+    return;
+  }
+
+  if (consentSnapshot.consentState === 'OPTED_IN') {
+    runtimeState.sessionId = resolveSessionId();
+    flushQueue();
+    return;
+  }
+
+  clearSessionId();
+  runtimeState.queue = [];
+}
+
+// telemetry queue/session 정책은 runtime이 책임지고, consent 값 자체는 외부 source에서만 읽는다.
+subscribeToTelemetryConsent(() => {
+  applyConsentSnapshotToRuntime(getTelemetryConsentSnapshot());
+});
+
+export {TELEMETRY_CONSENT_STORAGE_KEY};
+
+export function setTelemetryConsentState(nextState: Exclude<TelemetryConsentState, 'UNKNOWN'>): TelemetrySnapshot {
+  setTelemetryConsentStateInSource(nextState);
+  return getTelemetrySnapshot();
 }
 
 export function createCorrelationId(prefix: string): string {
@@ -194,10 +222,12 @@ export function createCorrelationId(prefix: string): string {
 }
 
 export function getTelemetrySnapshot(): TelemetrySnapshot {
+  const consentSnapshot = getTelemetryConsentSnapshot();
+
   return {
-    consentState: runtimeState.consentState,
+    consentState: consentSnapshot.consentState,
     sessionId: runtimeState.sessionId,
-    synced: runtimeState.synced
+    synced: consentSnapshot.synced
   };
 }
 
@@ -206,17 +236,16 @@ export function getTelemetryRuntimeQueueLengthForTests(): number {
 }
 
 export function resetTelemetryRuntimeForTests(): void {
-  runtimeState.consentState = 'UNKNOWN';
   runtimeState.sessionId = null;
-  runtimeState.synced = false;
   runtimeState.queue = [];
   runtimeState.sentLandingViews.clear();
   runtimeState.sentTransitionStarts.clear();
   runtimeState.sentTransitionTerminals.clear();
   fallbackCorrelationCounter = 0;
 
+  resetTelemetryConsentSourceForTests();
+
   try {
-    getLocalStorage()?.removeItem(TELEMETRY_CONSENT_STORAGE_KEY);
     getLocalStorage()?.removeItem(TELEMETRY_SESSION_ID_STORAGE_KEY);
   } catch {
     // Ignore storage cleanup failures in test reset helpers.
@@ -224,41 +253,13 @@ export function resetTelemetryRuntimeForTests(): void {
 }
 
 export function syncTelemetryConsent(): TelemetrySnapshot {
-  const nextConsentState = resolveStoredConsent();
-  runtimeState.consentState = nextConsentState;
-  runtimeState.synced = true;
-
-  if (nextConsentState === 'OPTED_IN') {
-    runtimeState.sessionId = resolveSessionId();
-    flushQueue();
-    return getTelemetrySnapshot();
-  }
-
-  clearSessionId();
-  runtimeState.queue = [];
+  ensureTelemetryConsentSourceSync();
   return getTelemetrySnapshot();
 }
 
 export function useTelemetryBootstrap(): TelemetrySnapshot {
-  const [snapshot, setSnapshot] = useState<TelemetrySnapshot>(getTelemetrySnapshot);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    queueMicrotask(() => {
-      if (cancelled) {
-        return;
-      }
-
-      setSnapshot(syncTelemetryConsent());
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return snapshot;
+  useTelemetryConsentSource();
+  return getTelemetrySnapshot();
 }
 
 export function trackLandingView(input: {locale: AppLocale; route: string}): TelemetryEvent | null {

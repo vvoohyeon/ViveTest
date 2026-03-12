@@ -1,6 +1,7 @@
 import {
   globalUnmatchedPath,
   hasDuplicateLocalePrefix,
+  isAppOwnedPath,
   isBypassPath,
   isLocaleLessAllowlistedPath,
   parseLocalePrefix,
@@ -27,6 +28,10 @@ export function resolveProxyDecision(input: {
   acceptLanguage?: string | null;
 }): ProxyDecision {
   if (isBypassPath(input.pathname)) {
+    return {action: 'next'};
+  }
+
+  if (!isAppOwnedPath(input.pathname)) {
     return {action: 'next'};
   }
 
@@ -60,8 +65,5 @@ export function resolveProxyDecision(input: {
     };
   }
 
-  return {
-    action: 'rewrite',
-    pathname: globalUnmatchedPath
-  };
+  return {action: 'next'};
 }

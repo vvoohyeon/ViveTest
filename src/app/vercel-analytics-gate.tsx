@@ -1,45 +1,13 @@
 'use client';
 
 import {Analytics} from '@vercel/analytics/next';
-import {useEffect, useState} from 'react';
-
-import {TELEMETRY_CONSENT_STORAGE_KEY} from '@/features/landing/telemetry/runtime';
-
-function readAnalyticsConsent(): boolean {
-  try {
-    const raw = window.localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)?.trim().toUpperCase() ?? '';
-    return raw === 'OPTED_IN';
-  } catch {
-    return false;
-  }
-}
+import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
 
 export function VercelAnalyticsGate() {
-  const [shouldRenderAnalytics, setShouldRenderAnalytics] = useState<boolean | null>(null);
+  const consentSnapshot = useTelemetryConsentSource();
 
-  useEffect(() => {
-    // 기존 자체 텔레메트리와 같은 저장 키를 읽어 Vercel Analytics도 동일한 동의 정책을 따르게 한다.
-    const syncConsentState = () => {
-      setShouldRenderAnalytics(readAnalyticsConsent());
-    };
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== null && event.key !== TELEMETRY_CONSENT_STORAGE_KEY) {
-        return;
-      }
-
-      syncConsentState();
-    };
-
-    syncConsentState();
-    window.addEventListener('storage', handleStorage);
-
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, []);
-
-  if (shouldRenderAnalytics !== true) {
+  // same-tab 상태 변경도 즉시 반영되도록 메모리 consent source를 직접 구독한다.
+  if (!consentSnapshot.synced || consentSnapshot.consentState !== 'OPTED_IN') {
     return null;
   }
 

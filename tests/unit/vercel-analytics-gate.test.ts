@@ -13,7 +13,7 @@ vi.mock('@vercel/analytics/next', () => ({
 }));
 
 import {VercelAnalyticsGate} from '../../src/app/vercel-analytics-gate';
-import {TELEMETRY_CONSENT_STORAGE_KEY} from '../../src/features/landing/telemetry/runtime';
+import {resetTelemetryConsentSourceForTests, setTelemetryConsentState} from '../../src/features/landing/telemetry/consent-source';
 
 let root: Root | null = null;
 
@@ -78,6 +78,7 @@ function uninstallDom() {
 describe('VercelAnalyticsGate', () => {
   beforeEach(() => {
     installDom();
+    resetTelemetryConsentSourceForTests();
     analyticsRenderSpy.mockClear();
   });
 
@@ -88,6 +89,7 @@ describe('VercelAnalyticsGate', () => {
     });
 
     root = null;
+    resetTelemetryConsentSourceForTests();
     uninstallDom();
   });
 
@@ -98,7 +100,7 @@ describe('VercelAnalyticsGate', () => {
   });
 
   it('does not render Analytics when consent is opted out', async () => {
-    window.localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'OPTED_OUT');
+    setTelemetryConsentState('OPTED_OUT');
 
     await renderGate();
 
@@ -106,10 +108,15 @@ describe('VercelAnalyticsGate', () => {
   });
 
   it('renders Analytics when consent is opted in', async () => {
-    window.localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'OPTED_IN');
-
     await renderGate();
+    analyticsRenderSpy.mockClear();
 
-    expect(analyticsRenderSpy).toHaveBeenCalled();
+    // 같은 탭 setter 호출만으로 gate가 즉시 재평가되어야 한다.
+    await act(async () => {
+      setTelemetryConsentState('OPTED_IN');
+      await Promise.resolve();
+    });
+
+    expect(analyticsRenderSpy).toHaveBeenCalledTimes(1);
   });
 });

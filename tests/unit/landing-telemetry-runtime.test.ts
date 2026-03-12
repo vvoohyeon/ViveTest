@@ -4,6 +4,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {
   getTelemetryRuntimeQueueLengthForTests,
   resetTelemetryRuntimeForTests,
+  setTelemetryConsentState,
   syncTelemetryConsent,
   trackLandingView
 } from '../../src/features/landing/telemetry/runtime';
@@ -51,16 +52,14 @@ describe('landing telemetry runtime', () => {
     uninstallDom();
   });
 
-  it('flushes UNKNOWN-queued events only after OPTED_IN sync', async () => {
+  it('flushes UNKNOWN-queued events when same-tab consent switches to OPTED_IN', async () => {
     trackLandingView({
       locale: 'en',
       route: '/en'
     });
 
     expect(getTelemetryRuntimeQueueLengthForTests()).toBe(1);
-    window.localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'OPTED_IN');
-
-    const snapshot = syncTelemetryConsent();
+    const snapshot = setTelemetryConsentState('OPTED_IN');
     await Promise.resolve();
 
     expect(snapshot.consentState).toBe('OPTED_IN');
@@ -69,21 +68,28 @@ describe('landing telemetry runtime', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('discards UNKNOWN-queued events when consent resolves to OPTED_OUT', () => {
+  it('discards UNKNOWN-queued events when same-tab consent switches to OPTED_OUT', () => {
     trackLandingView({
       locale: 'en',
       route: '/en'
     });
 
     expect(getTelemetryRuntimeQueueLengthForTests()).toBe(1);
-    window.localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'OPTED_OUT');
-
-    const snapshot = syncTelemetryConsent();
+    const snapshot = setTelemetryConsentState('OPTED_OUT');
 
     expect(snapshot.consentState).toBe('OPTED_OUT');
     expect(snapshot.sessionId).toBeNull();
     expect(getTelemetryRuntimeQueueLengthForTests()).toBe(0);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('can still resync consent state from persisted storage', () => {
+    window.localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'OPTED_OUT');
+
+    const snapshot = syncTelemetryConsent();
+
+    expect(snapshot.consentState).toBe('OPTED_OUT');
+    expect(snapshot.synced).toBe(true);
   });
 
   it('blocks network sends when random sources are unavailable even after OPTED_IN sync', () => {

@@ -28,7 +28,7 @@ describe('proxy policy', () => {
     });
   });
 
-  it('rewrites duplicate locale prefixes and non-allowlisted locale-less paths', () => {
+  it('rewrites duplicate locale prefixes but leaves non-app paths to Next not-found handling', () => {
     expect(
       resolveProxyDecision({
         pathname: '/en/en/blog'
@@ -42,10 +42,13 @@ describe('proxy policy', () => {
       resolveProxyDecision({
         pathname: '/foo'
       })
-    ).toEqual({
-      action: 'rewrite',
-      pathname: '/_not-found'
-    });
+    ).toEqual({action: 'next'});
+
+    expect(
+      resolveProxyDecision({
+        pathname: '/va-123/view'
+      })
+    ).toEqual({action: 'next'});
   });
 
   it('passes through already localized and bypass paths', () => {

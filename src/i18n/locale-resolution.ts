@@ -79,6 +79,11 @@ export function isLocaleLessAllowlistedPath(pathname: string): boolean {
   return allowlistPattern.some((pattern) => pattern.test(pathname));
 }
 
+// 프록시는 앱이 실제로 책임지는 경로에만 개입하고, 그 외 경로는 플랫폼/프레임워크 기본 처리에 맡긴다.
+export function isAppOwnedPath(pathname: string): boolean {
+  return pathname === '/' || isLocaleLessAllowlistedPath(pathname) || parseLocalePrefix(pathname) !== null;
+}
+
 export function withLocalePrefix(pathname: string, locale: AppLocale): string {
   const normalizedPath = pathname === '/' ? '' : pathname;
   return `/${locale}${normalizedPath}`;
