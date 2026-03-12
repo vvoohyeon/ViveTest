@@ -22,11 +22,14 @@ function IntlProviderHarness(props: {
   messages: typeof enMessages | typeof krMessages;
   children?: React.ReactNode;
 }) {
-  return React.createElement(
-    NextIntlClientProvider,
-    {locale: props.locale, messages: props.messages, timeZone: 'UTC'},
-    props.children
-  );
+  const providerProps: React.ComponentProps<typeof NextIntlClientProvider> = {
+    locale: props.locale,
+    messages: props.messages,
+    timeZone: 'UTC',
+    children: props.children
+  };
+
+  return React.createElement(NextIntlClientProvider, providerProps);
 }
 
 function installDom() {
