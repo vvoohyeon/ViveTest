@@ -38,58 +38,79 @@
 
 #### T1-1 — Core Entity 타입 정의
 
-**목적**: §2.1에서 명시된 core entity를 코드 상 명확한 타입으로 고정한다.
+**목적**: §2.1, §2.8에서 명시된 core entity를 코드 상 명확한 타입으로 고정한다.
+
+**제거 항목 (기존 설계 대비)**:
+- `AxisId` brand type — 문항에서 제거. axisId는 poleA+poleB 파생값으로만 사용
+- `AnswerPole = 'A' | 'B'` — 추상 이진 기호 제거. 응답은 pole 문자열을 직접 저장
+- `AnswerOption` 타입 — Question의 poleA/poleB가 직접 선택지 의미를 가지므로 제거
+- `AxisDefinition.positivePole` — ScoreStats 계산이 counts 기준 다수결이므로 불필요
 
 **구현 범위**:
 
-```
-AxisId              string brand type — axis 식별자
-AxisCount           1 | 2 | 4
-AnswerPole          'A' | 'B'  (두 pole 중 하나)
-QuestionIndex       1-based 숫자 brand type (내부 로직 + 추후 telemetry 기준)
-VariantId           string brand type
+```typescript
+// 변경 없는 타입
+QuestionIndex   // 1-based 숫자 brand type
+VariantId       // string brand type
+AxisCount       // 1 | 2 | 4
+SectionId       // string (supportedSections 항목 식별자)
 
-Question            {
-  index: QuestionIndex       // 1-based, 불변
-  axisId: AxisId             // 정확히 1개
-  optionA: AnswerOption
-  optionB: AnswerOption
+// 신규/변경 타입
+AxisSpec = {
+  poleA: string   // 첫 번째 선택지에 대응하는 pole (e.g., 'E')
+  poleB: string   // 두 번째 선택지에 대응하는 pole (e.g., 'I')
+  // axisId는 파생값: `${poleA}${poleB}` — 이 타입에 별도 필드로 포함하지 않음
 }
 
-AnswerOption        {
-  pole: AnswerPole
+Question = {
+  index: QuestionIndex     // 1-based, 불변
+  poleA: string            // 첫 번째 선택지의 pole
+  poleB: string            // 두 번째 선택지의 pole
+  // 축 소속: poleA+poleB 쌍이 schema.axes 중 동일 쌍과 일치하는 항목으로 결정
   // 표시용 텍스트는 별도 i18n 레이어 — 이 타입에 포함하지 않음
 }
 
-AxisDefinition      {
-  axisId: AxisId
-  positivePole: AnswerPole   // 각 axis의 "우세" 방향
+// 응답 저장 타입
+// Map<QuestionIndex, string>: 선택된 pole 문자열 직접 저장 (e.g., 'E' 또는 'I')
+// 'A'/'B' 추상 기호를 경유하지 않음
+
+AxisScoreStat = {
+  poleA: string
+  poleB: string
+  counts: Record<string, number>  // e.g., { 'E': 7, 'I': 3 }
+  dominant: string                 // counts 기준 다수 pole (e.g., 'E')
 }
 
-ScoringSchema       {
+ScoreStats = Record<string, AxisScoreStat>
+// key: axisId = poleA + poleB (e.g., 'EI')
+// key 순서는 schema.axes 선언 순서와 일치
+
+DerivedType = string  // 길이 = axisCount, 각 위치 = schema.axes 순서 매핑
+
+ScoringSchema = {
   variantId: VariantId
-  scoringSchemaId: string    // URL에 노출하지 않음 (§4.1 불변식)
+  scoringSchemaId: string       // URL에 노출하지 않음 (§4.1 불변식)
   axisCount: AxisCount
-  axes: [AxisDefinition, ...] // ordered, 길이 = axisCount
+  axes: AxisSpec[]              // ordered, 길이 = axisCount
   supportedSections: SectionId[]
 }
 
-ScoreStats          Record<AxisId, { dominant: AnswerPole; delta: number }>
-                    // delta: 우세 pole의 응답 수와 열세 pole의 응답 수 차이
-                    // 형태는 schema 선언에 종속 — axisCount 가변
-
-DerivedType         string  // 길이 = axisCount, 각 위치 = axis 순서 매핑
-
-VariantSchema       {
+VariantSchema = {
   variant: VariantId
   schema: ScoringSchema
   questions: Question[]
 }
+
+ResultPayload = {
+  scoreStats: ScoreStats
+  shared: boolean
+}
 ```
 
 **검증 기준**:
-- `ScoringSchema.axes` 배열 길이가 `axisCount`와 다르면 타입 수준에서 불가 또는 런타임 검증 함수로 차단.
+- `ScoringSchema.axes` 배열 길이가 `axisCount`와 다르면 런타임 검증 함수로 차단 (T1-4 위임).
 - `DerivedType` 길이가 `axisCount`와 불일치하는 값 생성은 §2.11 계약 위반 — 생성 함수에서 검증.
+- 동일 poleA+poleB 쌍이 `schema.axes` 내에서 중복되면 안 된다. T1-4에서 검증.
 
 ---
 
@@ -122,13 +143,14 @@ type ValidationResult<T> =
 
 **목적**: §2.8에서 명시된 불변식을 검증하는 pure 함수를 확립한다.
 
-**불변식 체크리스트**:
-1. 각 question은 정확히 2개 answer option을 가진다.
-2. 각 question은 정확히 1개 axisId를 평가한다.
-3. 한 question의 두 option은 동일 axis 내 상반된 pole로 매핑된다 (`optionA.pole ≠ optionB.pole`).
-4. 단일 question이 다중 axis에 기여하지 않는다 (위 구조에서 자연적으로 보장, 명시적 assertion 추가).
+**불변식 체크리스트 (question 단위)**:
+1. 각 question은 `poleA`와 `poleB` 두 필드를 모두 가져야 한다.
+2. `poleA`와 `poleB`는 서로 달라야 한다 (`poleA ≠ poleB`). 동일하면 axis 내 상반된 선택지가 성립하지 않는다.
+3. 각 question의 `index`는 1-based이며, 동일 variant 내 중복이 없어야 한다.
 
-```
+> schema.axes 내 중복 poleA+poleB 쌍 검증은 schema-level 관심사로 T1-4(`DUPLICATE_AXIS_SPEC`)에서 처리한다. T1-3은 question 단위 불변식만 담당한다.
+
+```typescript
 validateQuestionModel(questions: Question[]): ValidationResult<Question[]>
 ```
 
@@ -158,10 +180,30 @@ validateVariantDataIntegrity(
 ```
 
 **Odd-count rule 구현 세부**:
+```typescript
+// schema.axes를 순회하며 각 AxisSpec의 poleA+poleB 쌍에 매칭되는
+// questions를 필터링한 뒤 개수가 짝수이면 차단
+function checkOddCountRule(
+  questions: Question[],
+  axes: AxisSpec[]
+): { ok: true } | { ok: false; axisId: string; count: number } {
+  for (const axis of axes) {
+    const axisId = axis.poleA + axis.poleB
+    const axisQuestions = questions.filter(
+      q => q.poleA === axis.poleA && q.poleB === axis.poleB
+    )
+    if (axisQuestions.length % 2 === 0) {
+      return { ok: false, axisId, count: axisQuestions.length }
+    }
+  }
+  return { ok: true }
+}
 ```
-// axis별 question 수 집계 → 짝수 존재 시 차단
-function checkOddCountRule(questions: Question[], axes: AxisDefinition[]):
-  { ok: true } | { ok: false; axisId: AxisId; count: number }
+
+추가 검증: `schema.axes` 내 중복 poleA+poleB 쌍 존재 시 `'DUPLICATE_AXIS_SPEC'` 반환.
+추가 `BlockingDataErrorReason` 항목:
+```typescript
+| 'DUPLICATE_AXIS_SPEC'    // schema.axes 내 동일 poleA+poleB 쌍 중복
 ```
 
 ---
@@ -172,33 +214,51 @@ function checkOddCountRule(questions: Question[], axes: AxisDefinition[]):
 
 **구현 범위**:
 
-```
-// Step 1: responseSet에서 axis별 점수를 집계
+```typescript
+// Step 1: responses에서 axis별 점수를 집계 → ScoreStats 구성
 computeScoreStats(
   questions: Question[],
-  responses: Map<QuestionIndex, AnswerPole>,
+  responses: Map<QuestionIndex, string>,   // 선택된 pole 문자열 직접 저장
   schema: ScoringSchema
-): ScoreStats
+): ScoreStats | { error: 'INCOMPLETE_RESPONSES' | 'UNMATCHED_QUESTION' }
 
 // Step 2: ScoreStats에서 derivedType 토큰 생성
 deriveDerivedType(
   scoreStats: ScoreStats,
   schema: ScoringSchema
-): DerivedType
+): DerivedType | { error: 'AXIS_NOT_FOUND' | 'TOKEN_LENGTH_MISMATCH' }
 ```
 
-**계약**:
-- `responses` 크기가 `questions` 길이와 같아야 완료 run으로 취급 가능. 불일치 시 에러 반환 (completed run에 대해서만 결과 생성 — §2.11).
-- `derivedType` 토큰 길이는 반드시 `schema.axisCount`와 일치해야 한다. 불일치 시 내부 에러.
-- 각 axis의 dominant pole은 해당 axis question들의 단순 다수결로 결정. odd-count rule이 보장된 상태에서 동점 불가.
+**`computeScoreStats` 계약**:
+- `responses.size`가 `questions.length`와 다르면 `INCOMPLETE_RESPONSES` 반환 (completed run 전제 위반 — §2.11).
+- `schema.axes`를 선언 순서대로 순회한다.
+- 각 `AxisSpec { poleA, poleB }`에 대해 `axisId = poleA + poleB`를 파생한다.
+- 해당 axis 소속 문항: `questions`에서 `q.poleA === axis.poleA && q.poleB === axis.poleB`인 항목.
+- 응답이 `poleA`도 `poleB`도 아닌 값이면 `UNMATCHED_QUESTION` 반환.
+- `counts` 집계 후 더 높은 카운트 pole을 `dominant`로 결정. 홀수 문항 보장 하에 동점 불가.
+- 결과: `scoreStats[axisId] = { poleA, poleB, counts, dominant }`.
+- MBTI 문자를 하드코딩하지 않는다. axisCount 1/2/4 모두 동일 함수로 처리.
+
+**`deriveDerivedType` 계약**:
+- `schema.axes` 선언 순서대로 각 axis의 `scoreStats[axisId].dominant`를 연결한다.
+- `axisId`가 `scoreStats`에 없으면 `AXIS_NOT_FOUND` 반환.
+- 생성된 토큰 길이가 `schema.axisCount`와 불일치하면 `TOKEN_LENGTH_MISMATCH` 반환.
 - 결과 토큰의 각 문자 위치는 `schema.axes` 선언 순서와 결정적으로 매핑된다.
-- MBTI 4축 구조를 하드코딩하지 않는다. axisCount 1/2/4 모두 동일 함수로 처리.
 
 **예시 (axisCount=4, MBTI 기준)**:
-```
-schema.axes = [E/I축, S/N축, T/F축, J/P축]
-scoreStats = { EI: {dominant: 'I', ...}, SN: {dominant: 'N', ...}, ... }
-→ derivedType = "INTJ"  // 각 axis 순서 그대로
+```typescript
+schema.axes = [
+  { poleA: 'E', poleB: 'I' },
+  { poleA: 'S', poleB: 'N' },
+  { poleA: 'T', poleB: 'F' },
+  { poleA: 'J', poleB: 'P' }
+]
+// responses: { 1→'I', 2→'N', 3→'N', 4→'E', ... }
+// scoreStats['EI'] = { ..., counts: {E:4, I:5}, dominant: 'I' }
+// scoreStats['SN'] = { ..., counts: {S:8, N:9}, dominant: 'N' }
+// scoreStats['TF'] = { ..., counts: {T:6, F:11}, dominant: 'F' }
+// scoreStats['JP'] = { ..., counts: {J:10, P:7}, dominant: 'J' }
+// derivedType = "INFJ"
 ```
 
 ---
@@ -229,20 +289,26 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 |---|---|---|
 | validateVariant — 등록된 variant | `ok: true` 반환 | #1 (간접) |
 | validateVariant — 미등록 variant | `ok: false; reason: 'UNKNOWN'` | #1 |
-| validateQuestionModel — option 2개 | pass | #7 |
-| validateQuestionModel — option 1개 | `QUESTION_MODEL_VIOLATION` | #7 |
-| validateQuestionModel — 동일 axis 2개 | `QUESTION_MODEL_VIOLATION` | #7 |
+| validateQuestionModel — poleA≠poleB | pass | #7 |
+| validateQuestionModel — poleA=poleB | `QUESTION_MODEL_VIOLATION` | #7 |
+| validateQuestionModel — poleA=poleB (동일값) | `QUESTION_MODEL_VIOLATION` | #7 |
+| validateQuestionModel — index 중복 | `QUESTION_MODEL_VIOLATION` | #7 |
 | odd-count rule — 홀수 배정 | pass | #12 |
 | odd-count rule — 짝수 배정 | `EVEN_AXIS_QUESTION_COUNT` | #12 |
-| computeScoreStats — axisCount=1 | ScoreStats 길이 1 | #11 |
-| computeScoreStats — axisCount=2 | ScoreStats 길이 2 | #11 |
-| computeScoreStats — axisCount=4 | ScoreStats 길이 4 | #11 |
+| duplicate axis spec — 중복 쌍 | `DUPLICATE_AXIS_SPEC` | #12 |
+| computeScoreStats — axisCount=1 | ScoreStats entry 1개, dominant 올바름 | #11 |
+| computeScoreStats — axisCount=2 | ScoreStats entry 2개, dominant 올바름 | #11 |
+| computeScoreStats — axisCount=4 | ScoreStats entry 4개, dominant 올바름 | #11 |
+| computeScoreStats — partial responses | `INCOMPLETE_RESPONSES` 반환 | #11 |
+| computeScoreStats — 응답값이 poleA/poleB 외 값 | `UNMATCHED_QUESTION` 반환 | #11 |
 | deriveDerivedType — axisCount=1 | 토큰 길이 1 | #11 |
 | deriveDerivedType — axisCount=2 | 토큰 길이 2 | #11 |
 | deriveDerivedType — axisCount=4 | 토큰 길이 4 | #11 |
-| deriveDerivedType — axis 순서 보장 | schema 선언 순서 = 토큰 위치 순서 | #11 |
-| deriveDerivedType — partial responses | 에러 반환 (completed run 아님) | #11 |
+| deriveDerivedType — axis 순서 보장 | schema.axes 선언 순서 = 토큰 위치 순서 | #11 |
+| deriveDerivedType — axisId 누락 | `AXIS_NOT_FOUND` 반환 | #11 |
+| ScoreStats — counts key는 pole 문자열 | Record<string, number> key = poleA 또는 poleB | #11 |
 | validateVariantDataIntegrity — 빈 questions | `EMPTY_QUESTION_SET` | #12 |
+| validateVariantDataIntegrity — axes 길이≠axisCount | `AXIS_COUNT_SCHEMA_MISMATCH` | #12 |
 | validateVariantDataIntegrity — 정상 schema | pass | — |
 
 ---
