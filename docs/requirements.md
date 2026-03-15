@@ -180,22 +180,24 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Confidence:** High
 
 ### REQ-F-010 — Shareable self-contained result URL (reconstructable result view)
-- **Statement:** The system must generate a share URL that self-contains the minimum payload required to reconstruct the full result view (result label + scores + essential context) without server-side result lookup.
-- **Rationale:** Enables server-independent sharing while allowing profile/content mapping to evolve.
+- **Statement:** The system must generate a share URL that self-contains the minimum payload required to reconstruct the full result view without server-side result lookup.
+- **Rationale:** Enables server-independent sharing while allowing profile/content rendering to remain dynamic at view time.
 - **Acceptance criteria:**
+  - URL format: `/result/{variant}/{type}?{base64Payload}`
+    - `{variant}`: test variant identifier as URL path segment 1. Each variant maps to exactly one fixed scoring logic and one fixed rendering schema. No `scoringSchemaId` is required in the payload.
+    - `{type}`: final computed derivedType token as URL path segment 2. Token length equals the variant's `axisCount`.
+    - `{base64Payload}`: URL-safe Base64 encoding (`+`→`-`, `/`→`_`, padding `=` removed) of a JSON object.
   - A valid share URL opens and reconstructs the result view without server result retrieval.
-  - The share payload MUST include:
-    - `testVariantId`,
-    - `scoringSchemaId` (or equivalent schema identifier),
-    - a variant-defined final `derivedType` token (1/2/4 letters, validated per variant),
-    - and `scoreStats` (as defined by the schema) sufficient to render the score/level UI.
-  - The derivedType token MUST represent a completed result only (no in-progress/partial sharing).
-  - The share payload MAY include an optional `nickname` only if the user explicitly enables “Include nickname in share” at share time.
+  - The base64 payload MUST include:
+    - `scoreStats` (as defined by the variant's schema) sufficient to render the score/level UI.
+    - `shared` (boolean): `true` when this URL was generated as a share link, `false` otherwise.
+  - The base64 payload MUST NOT include `scoringSchemaId`, `derivedType`, or `testVariantId`. These are fully expressed by the URL path segments.
+  - The `type` path segment MUST represent a completed result only. No in-progress or partial result may be encoded.
   - The share URL must NOT be required to freeze profile content. Profile content is rendered using the latest available content mapping at view time.
-  - Share payload parsing must be schema-validated (no cryptographic signing requirement).
-  - The share payload is not tamper-proof: users may modify the encoded payload. The system MUST treat the payload as untrusted input and rely on schema validation and safe fallbacks (see REQ-F-023), not authenticity guarantees.
-  - The share payload MUST be sufficient to reconstruct the result UI for the variant:
-    - axis order and label token positions are derived from `scoringSchemaId` (or equivalent schema identifier), not hardcoded.
+  - Share payload parsing must validate against the variant's declared schema before reconstruction.
+  - The share payload is not tamper-proof. The system MUST treat all payload fields as untrusted input and enforce strict schema validation and safe fallbacks rather than authenticity assumptions.
+  - Missing or invalid section-level content must not hard-crash the result page. The core result (type token display) must remain visible. Affected sections render with a fallback indicator only.
+  - The payload MAY include an optional `nickname` only when the user explicitly opts in at share time (default is opt-out). Nickname MUST NOT appear in tracking events or analytics payloads.
 - **Confidence:** High
 
 ### REQ-F-011 — Nickname validation and privacy boundaries
@@ -256,11 +258,11 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Statement:** The system must emit a minimum standardized set of tracking events to support funnel and abandonment analytics.
 - **Rationale:** Funnel and drop-off analytics require consistent event semantics.
 - **Required events:**
-  - `test_catalog_view`
+  - `landing_view`
   - `instruction_view`
   - `instruction_start_click`
   - `question_answered` (emitted on each answered question; see payload requirements)
-  - `test_completed`
+  - `final_submit`
   - `result_viewed`
   - `share_clicked`
   - `share_copied`
@@ -465,7 +467,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Session:** id, variant, status, start/last activity timestamps.
 - **Response Set:** ordered answers, progress, completion state.
 - **Result:** finalized `derivedType` (variant-defined label token) and `scoreStats` (schema-defined axes/metrics), with profile/content rendered from the latest mapping at view time.
-- **Share Payload:** encoded minimal result data for portable reconstruction of the full result view: `testVariantId`, `scoringSchemaId`, `derivedType`, `scoreStats`, and optional `nickname` (opt-in only).
+- **Share Payload:** encoded minimal result data for portable reconstruction of the full result view. URL structure: `/result/{variant}/{type}?{base64Payload}`. `variant` and `type` (derivedType token) are URL path segments. The base64 payload contains `scoreStats` and `shared` (boolean). `scoringSchemaId` is not included; `variant` serves as the sole schema identifier. Optional `nickname` may be included only when the user explicitly opts in at share time.
 - **History Entry:** a per-run record containing runId, createdAt, testVariantId, derivedType, and the stored share URL string; presentation data (variant/type) is reconstructed from the URL payload. The UI may optionally provide a grouped view keyed by (testVariantId, derivedType).
 - **Tracking Event:** identifier, event type, metadata, environment, processing timestamp.
 - **Admin Insight:** funnel stats, trends, alerts, recommendations.

@@ -131,7 +131,7 @@
 2. 쿠키가 없거나 무효면 `Accept-Language`를 파싱해 지원 locale 최적 매치를 선택한다.
 3. 매치 실패 시 `defaultLocale`로 리다이렉트한다.
 - locale 없는 경로 처리(V2 고정): 허용 목록 기반 리다이렉트만 허용한다.
-- 허용 목록(locale-less redirect allowlist): `/blog`, `/history`, `/test/[variant]/question`
+- 허용 목록(locale-less redirect allowlist): `/blog`, `/history`, `/test/[variant]`, `/result/[variant]/[type]`
 - 허용 목록에 없는 locale-less 경로는 locale 주입 리다이렉트하지 않고 global unmatched 404로 처리한다.
 - duplicate locale prefix는 비정상 경로로 분기해 전역 unmatched 404 전략으로 처리한다.
 - localized request가 실제 페이지로 통과할 때는 proxy가 request-scoped locale header를 주입해 root document semantics(`html lang`)의 서버 반영 근거를 제공해야 한다.
