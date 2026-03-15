@@ -150,7 +150,7 @@
 - `as Route`, `as never` 같은 우회 캐스팅을 금지한다.
 
 **Verification**:
-1. Automated: RouteBuilder 단위 테스트(landing/blog/history/question)를 수행한다.
+1. Automated: RouteBuilder 단위 테스트(landing/blog/history/test/result)를 수행한다.
 2. Automated: ESLint rule 또는 코드 검색으로 금지 패턴을 검사한다.
 
 ### 5.5 404 Strategy
@@ -627,6 +627,7 @@
 - article 식별자 누락/무효 시에는 문서에 정의된 안전 fallback으로 처리해야 한다.
 - Mobile에서도 CTA 입력(마우스 클릭/터치 탭)은 닫기 동작보다 우선하며 반드시 `transition_start`로 귀결되어야 한다.
 - 본 섹션의 전환 시작 규칙은 Section 13.3/13.6의 fail/cancel/rollback 계약을 변경하지 않는다.
+- **Test 페이지 destination-ready 해석**: `/test/{variant}` 진입 시 destination-ready는 variant 유효성 검증 완료 + Runtime Entry Commit 준비 완료를 동시에 만족하는 시점이다 (Test Flow Requirements §2.4 참조).
 
 ---
 
@@ -813,7 +814,7 @@
 - Test 카드 Expanded에서 A/B 선택 시:
 1. 선택값을 Q1 pre-answer로 저장
 2. `variant + session` 단위 landing ingress flag 기록
-3. `/test/[variant]/question` 진입
+3. `/test/[variant]` 진입
 - landing ingress flag 존재 시 instruction seen 여부와 무관하게 Q2부터 시작한다.
 - landing ingress flag 부재 시 Q1부터 시작한다.
 - landing ingress flag 존재 시 instruction Start 이전 진행표시는 `Question 2 of N`이어야 한다.
@@ -821,6 +822,7 @@
 1. ingress flag 존재 시 즉시 시작 + Q2 진입
 2. ingress flag 부재 시 Q1 진입
 - 사용자는 테스트 중 Q1을 재수정할 수 있다.
+- staged entry 만료(A/B 선택 시점으로부터 7분 경과)는 commit failure로 처리되며, pre-answer 롤백 대상에 포함된다 (§13.6 QA 케이스 4, Test Flow Requirements §2.5 참조).
 
 ### 13.5 Instruction Contract
 **Rule**: instruction 노출/재노출/입력차단 규칙을 아래와 같이 고정한다.
@@ -828,7 +830,7 @@
 - instruction overlay 활성 중 하위 입력은 차단해야 한다.
 - instructionSeen은 variant 단위로 저장한다.
 - 동일 variant 최초 진입(랜딩/딥링크 공통)에서는 instruction 표시가 필수다.
-- 동일 variant 재진입에서는 instruction 재표시를 금지한다.
+- 동일 variant 재진입에서 `instructionSeen:{variantId}`가 유효한 경우 instruction 재표시를 금지한다. `instructionSeen` 리셋 조건(테스트 완료, inactivity timeout)이 발생하면 다음 진입은 최초 진입으로 취급한다 (Test Flow Requirements §2.6 참조).
 
 ### 13.6 Pre-answer Lifecycle / Failure Rollback
 **Rule**: pre-answer lifecycle과 실패 정리는 누수 없이 종료되어야 한다.
@@ -845,6 +847,7 @@
 1. 랜딩 CTA 직후 사용자 취소(뒤로가기/중단)
 2. locale duplicate 실패
 3. 목적지 라우트 진입 실패(타임아웃/로드 실패)
+4. staged entry 만료(A/B 선택 시점으로부터 7분 경과) 후 commit 시도 — pre-answer 롤백 및 Commit-failure Error State(Test Flow Requirements §5.6) 처리 확인
 
 ### 13.7 Question Dwell Time
 **Rule**: dwell time은 포그라운드 여부와 무관하게 누적 계산한다.
@@ -893,7 +896,7 @@
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 available 카드 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
 15. Transition Terminal Correlation: 각 `transition_id`에서 `start=1`, `terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, fail/cancel `result_reason` 필수 PASS (Section 12.2, 13.3).
-16. Rollback Cleanup Closure: fail/cancel 3케이스에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
+16. Rollback Cleanup Closure: fail/cancel 4케이스에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
 18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses`, `final_q1_response` 포함) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).
 19. Traceability Closure: Section 14.3 모든 블로킹 항목이 최소 1개 이상의 자동 단언과 매핑되어야 하며, 미매핑 `0건` PASS (Section 14.4).

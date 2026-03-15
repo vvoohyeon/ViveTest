@@ -59,7 +59,7 @@ This product lets users take multiple kinds of short assessments (test variants/
    - Sync must be safe and non-disruptive to in-progress end-user sessions.
 
 ### Critical edge journeys
-- Invalid test type from URL/query/local state falls back to safe default.
+- Invalid test type from URL/query/local state routes to an error recovery page; no fallback to a default variant.
 - Invalid or corrupted share payload yields error/retry/home path.
 - Tracking failures (network/privacy constraints) do not block core test completion.
 - Empty/malformed test module is treated as blocking data error.
@@ -78,12 +78,15 @@ This product lets users take multiple kinds of short assessments (test variants/
   - Parity note: If the current implementation exposes any debug/sample variant as “available,” this is a known deviation. The rebuild must enforce production filtering so that debug/sample variants are never user-startable nor visible in the production catalog.
 - **Confidence:** High
 
-### REQ-F-002 — Test type validation and fallback
-- **Statement:** Test type inputs from route/query/storage/session must be validated, with deterministic fallback when invalid.
-- **Rationale:** Prevents broken navigation and stale-state failures.
+### REQ-F-002 — Test variant validation and error recovery
+- **Statement:** Test variant inputs from route/query/storage/session must be validated. Validation failure blocks runtime entry and routes to an error recovery page.
+- **Rationale:** Prevents broken navigation and stale-state failures. Silent fallback to a default variant creates misleading user experience and is not an acceptable recovery path.
 - **Acceptance criteria:**
-  - Invalid test type never crashes test/result/history journeys.
-  - A single deterministic default test type is used when validation fails.
+  - Invalid variant input never crashes test/result/history journeys.
+  - Variant validation failure immediately blocks runtime entry. No session or run context is created.
+  - On validation failure, the system routes to an error recovery page that displays up to 2 incomplete test cards, selected from the catalog in declaration order, excluding variants the user has already completed.
+  - If only 1 incomplete variant exists, 1 card is shown. If 0 incomplete variants exist, no cards are shown and only a landing CTA is provided.
+  - Completion check basis: local storage (current phase); local storage + history after history feature is implemented.
 - **Confidence:** High
 
 ### REQ-F-003 — Instruction gate before test start
@@ -100,7 +103,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Acceptance criteria:**
   - Reused active sessions are detectable.
   - Switching to a different test type closes/replaces prior context.
-  - Inactive session timeout behavior is deterministic.
+  - Inactive session timeout is 30 minutes from the last answered question, evaluated at re-entry point (not by background timer). Confirmed locked decision per Test Flow Requirements AR-002.
 - **Confidence:** High
 
 ### REQ-F-005 — Binary question model
@@ -128,8 +131,8 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Confidence:** High
 
 ### REQ-F-007 — Variant-specific derivation logic (by test family)
-- **Statement:** For each released test variant, the system must derive a finalized `derivedType` label and `scoreStats` according to that variant’s documented scoring schema (“test family” rules).
-- **Rationale:** The product will support multiple test families (e.g., full MBTI, single-axis empathy on T/F only, or other non-MBTI axes). Each family needs explicit, deterministic derivation rules.
+- **Statement:** For each released test variant, the system must derive a finalized `derivedType` label and `scoreStats` according to that variant's documented scoring schema ("test family" rules).
+- **Rationale:** The product supports multiple test families (e.g., full MBTI, single-axis empathy on T/F only, or other non-MBTI axes). Each family needs explicit, deterministic derivation rules.
 - **Acceptance criteria:**
   - Each released variant declares a scoring schema (see REQ-F-008) that defines:
     - the set of axes/metrics,
@@ -140,7 +143,8 @@ This product lets users take multiple kinds of short assessments (test variants/
   - The system must document, per variant, what `derivedType` token is surfaced to users and shared (see REQ-F-010), and it must only represent completed results (no partial/in-progress labels).
   - Each axis must have an odd number of questions in the released dataset, making ties impossible under the standard counting-based scoring rule.
   - If a dataset violates the odd-count rule (data error), the system must treat it as a blocking validation error (see REQ-F-022).
-- **Confidence:** Medium
+  - Scoring schema is schema-driven. MBTI 4-axis hardcoding is forbidden. `axisCount ∈ {1, 2, 4}`. Confirmed locked decision per Test Flow Requirements §1.3.
+- **Confidence:** High
 
 ### REQ-F-007A — Axis model contract (variable axis count)
 - **Statement:** Each released test variant must declare an axis model with an axisCount of 1, 2, or 4, and a deterministic ordering of axes that defines the `derivedType` token length and character positions.
@@ -164,19 +168,20 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Confidence:** High
 
 ### REQ-F-009 — Result content rendering
-- **Statement:** Result views must display the computed type and associated explanatory profile content.
-- **Rationale:** User value depends on interpretation, not only type code.
+- **Statement:** Result views must display the computed type and associated explanatory profile content, with section-level fallback for missing content.
+- **Rationale:** User value depends on interpretation, not only type code. Section-level failures must not collapse the entire result experience.
 - **Acceptance criteria:**
-  - Result view displays the derived type and variant-aware profile content when available.
-  - If profile content mapping is missing:
-    - The system MUST still display the derived type.
-    - The system MUST display a visible warning banner plus a minimal fallback message.
-    - The user MUST be able to proceed with normal share actions (share remains valid under the minimal reconstruction contract).
-    - The user MUST be provided a recoverable path (retry, choose another test, or return home).
-  - Result content is schema-driven per variant: a variant may define which result sections are supported.
-  - Unsupported sections for a given variant MUST be omitted without warnings (normal behavior).
-  - Missing content for a section that the variant declares as supported MUST surface an operator-visible warning and a user-visible minimal fallback.
-  - The experience must not hard-crash.
+  - **Section classification:**
+    - Mandatory sections (`derived_type`, `axis_chart`, `type_desc`): always rendered regardless of variant's `supportedSections` declaration.
+    - Optional sections (e.g. `trait_list`): rendered only when declared in variant's `supportedSections`. Omission without warning is normal behavior.
+  - **Mandatory sections** are rendered even when absent from `supportedSections`.
+  - **Missing content mapping** (applies to both mandatory and declared optional sections):
+    - `derived_type` MUST continue to display.
+    - The affected section renders with an empty container and a short placeholder message.
+    - An operator-visible console warning is emitted.
+    - No separate recoverable CTA is required for the affected section. `derived_type` display guarantees the minimum result experience.
+  - Hard crash and blank result screen are forbidden. The core result experience must remain intact under any content failure.
+  - Result content is rendered from the latest available content mapping at view time. The result URL is not required to freeze profile content.
 - **Confidence:** High
 
 ### REQ-F-010 — Shareable self-contained result URL (reconstructable result view)
@@ -491,6 +496,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 
 - **REQ-F-002**
   - Evidence: `data/testMetadata.ts` (`validateTestType`), `lib/testHelpers.ts` (`getValidTestType` multi-stage fallback to default), `pages/test/index.tsx` (normalized test type usage).
+  - Discrepancy note: Prior implementation used `getValidTestType` fallback to default. Current policy (per REQ-F-002 and Test Flow Requirements AR-001) routes to an error recovery page. This evidence is superseded.
 
 - **REQ-F-003**
   - Evidence: `pages/test/instruction/[testType].tsx` (`handleStartTest`, start/back flows and abandonment events).
@@ -516,6 +522,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 
 - **REQ-F-010**
   - Evidence: `lib/personality-test.ts` (`createResultURL`, `parseResultURL`, `parseBase64URLFromLocation`, `reconstructTestResultFromShareData`), `pages/test/result.tsx` (URL-first reconstruction path).
+  - Discrepancy note: URL structure changed to `/result/{variant}/{type}?{base64Payload}`. Prior implementation paths above are superseded. New implementation reference to be added on completion.
 
 - **REQ-F-011**
   - Evidence: `lib/personality-test.ts` (`isValidNickname` regex + trim + 15-char rule), `scripts/test-nickname-validation.js`.

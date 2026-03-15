@@ -78,7 +78,7 @@
 - **Completed Run**: result screen entry 이후 최종 결과 화면에 도달한 run. same-variant 재진입 시 resume 대상이 아니다.
 - **scoreStats**: variant가 선언한 scoring schema에 따라 계산되는 축/지표별 결과 구조.
 - **derivedType**: variant별 최종 결과 토큰. axisCount 및 axis order에 따라 길이와 위치 의미가 결정된다.
-- **Self-contained Payload**: `scoringSchemaId`, `derivedType`, `scoreStats`를 JSON 직렬화 후 URL-safe Base64로 인코딩한 키 없는 query string. `testVariantId`는 URL path segment로 분리. 합산하여 서버 없이 result view 재구성이 가능한 데이터 단위.
+- **Self-contained Payload**: `scoreStats`(schema 선언 기준 축/지표별 결과)와 `shared`(boolean)를 JSON 직렬화 후 URL-safe Base64로 인코딩한 키 없는 query string. `variant`(path segment 1)와 `type`(derivedType 토큰, path segment 2)와 합산하여 서버 없이 result view 재구성이 가능한 데이터 단위. `scoringSchemaId`는 URL 어느 위치에도 포함하지 않는다.
 - **Blocking Data Error**: 테스트 실행이나 결과 계산을 진행할 수 없을 정도의 데이터 구조/스키마 오류.
 - **Recoverable UI Error**: 사용자에게 retry / 다른 테스트 선택 / 홈 복귀 등 복구 경로를 제공해야 하는 오류 상태.
 
@@ -773,7 +773,7 @@ skeleton으로 확보해야 할 hook 위치:
 
 > **⚠️ 다음 Phase 구현 착수 전에 아래 항목을 완료해야 한다. 생략하고 그 다음 단계로 진행하는 것을 금지한다.**
 
-1. 최소 이벤트셋 계약: `question_answered`, `test_completed`, `result_viewed`, `attempt_start`
+1. 최소 이벤트셋 계약: `question_answered`, `final_submit`, `result_viewed`, `attempt_start`
 2. Transition correlation 계약: `start=1`, `terminal=1` 상호배타 (`req-landing-final.md §12.2` 기준)
 3. Consent gate 연결: `OPTED_IN` 기준 전송 게이트를 question/result flow에 연결
 4. Payload 경계 계약: 원문 질문/답변 텍스트, PII 배제, `questionIndex` 1-based 고정
@@ -836,7 +836,7 @@ skeleton으로 확보해야 할 hook 위치:
 | Derivation schema (axisCount / axis model) 변경 | 2.11, 3.6, 5.2, 4.1, 11.2 |
 | Result URL payload 구조 변경 | 4.1, 4.2, 5.3, 8.2(§5), 11.2 |
 | Result section / fallback 정책 변경 | 2.12, 5.4, 5.5, 6.1, AR-003, AR-004, 11.2 |
-| share=y 파라미터 정책 변경 | 4.1, 4.2, 11.2 |
+| `payload.shared` 필드 정책 변경 | 4.1, 4.2, 11.2 |
 | 응답 데이터 휘발 시점 변경 | 3.6, 5.8, 7.3, 11.2 |
 | Telemetry skeleton hook 위치 변경 | 8.1, 8.2, 11.2 |
 | 에러 심각도 분류 변경 | 5.1, 5.2, 5.3, 5.4, 5.5, 11.2 |
@@ -869,7 +869,7 @@ skeleton으로 확보해야 할 hook 위치:
 11. **Derivation Correctness**: axisCount 1/2/4 각각 derivedType 토큰 길이 검증. schema 순서 준수. completed run만 결과 생성.
 12. **Odd-count Validation**: 짝수 문항 수 schema fixture에서 blocking error 발생.
 13. **Result Payload Validation**: 필수 필드 누락 시 에러 렌더링. 부분 렌더링 `0건`.
-14. **Result 케이스 분기**: 케이스 1/2/4 UX 및 CTA 분기 정확성. 케이스 1 "다시하기"와 케이스 2 "나도 테스트하기" 모두 `/test/{testVariantId}`로 이동하며, instruction overlay는 `instructionSeen` 상태에 따라 테스트 페이지에서 자동 판정된다.
+14. **Result 케이스 분기**: 케이스 1/2/4 UX 및 CTA 분기 정확성. 케이스 1 "다시하기"와 케이스 2 "나도 테스트하기" 모두 `/test/{variant}`로 이동하며, instruction overlay는 `instructionSeen` 상태에 따라 테스트 페이지에서 자동 판정된다.
 15. **Axis Score 시각화**: axisCount 1/2/4 렌더링. schema 선언 순서 준수.
 16. **콘텐츠 누락 fallback**: hard crash `0건`. fallback 표시. blocking/non-blocking 분류 정확성.
 17. **Cleanup Set 원자성**: cleanup 후 잔류 데이터 `0건`. 다른 variant 데이터 영향 `0건`.
