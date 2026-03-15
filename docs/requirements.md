@@ -262,15 +262,37 @@ This product lets users take multiple kinds of short assessments (test variants/
 ### REQ-F-016 — Tracking event taxonomy (minimum required events)
 - **Statement:** The system must emit a minimum standardized set of tracking events to support funnel and abandonment analytics.
 - **Rationale:** Funnel and drop-off analytics require consistent event semantics.
-- **Required events:**
-  - `landing_view`
-  - `instruction_view`
-  - `instruction_start_click`
-  - `question_answered` (emitted on each answered question; see payload requirements)
-  - `final_submit`
-  - `result_viewed`
-  - `share_clicked`
-  - `share_copied`
+
+The current global telemetry minimum baseline MUST be aligned to the active landing/test SSOT.
+
+#### Current global minimum
+The product-wide minimum required events are:
+
+- `landing_view`
+- `attempt_start`
+- `question_answered`
+- `final_submit`
+- `result_viewed`
+
+#### Domain-specific minimum extension
+Landing MAY define additional minimum events for transition integrity. These landing-specific events are not part of the product-wide global minimum:
+
+- `transition_start`
+- `transition_complete`
+- `transition_fail`
+- `transition_cancel`
+
+#### Reserved future subsets
+The following events are RESERVED for future phase-specific adoption and MUST NOT be treated as part of the current global minimum baseline:
+
+- `instruction_view`
+- `instruction_start_click`
+- `share_clicked`
+- `share_copied`
+
+#### Interpretation rule
+If a lower-trust global document and an active landing/test SSOT differ, the active SSOT takes precedence for current implementation and QA gating.
+
 - **Payload requirements (non-PII):**
   - MUST include `sessionId` and `testVariantId` on every event.
   - For `question_answered`, MUST include `questionIndex` (1-based, consistent and documented) and `totalQuestions`.
