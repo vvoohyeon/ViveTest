@@ -64,10 +64,7 @@
 
 ### 2.1 Core Entities
 
-- **Attempt**: 랜딩 카드 A/B 선택 시점에 시작되는 시도 단위(도메인 개념).
-  telemetry `attempt_start` 이벤트 발화 시점과 동일하지 않다.
-  `attempt_start`는 test runtime이 실제로 시작되는 시점(Q1 또는 Q2 제시)에 발화한다.
-  ingress 경로에서는 `card_answered`가 시도 의도 기록을 담당한다.
+- **Attempt**: 랜딩 카드 A/B 선택 시점에 시작되는 시도 단위(도메인 개념). telemetry `attempt_start` 이벤트 발화 시점과 동일하지 않다. `attempt_start`는 test runtime이 실제로 시작되는 시점(ingress 경로: Q2 제시, 직접 진입 경로: Q1 제시)에 발화한다. ingress 경로에서 시도 의도 및 Q1 pre-answer 기록은 landing 단계의   `card_answered` 이벤트가 담당한다. `card_answered`는 landing phase 계약이며 이 단계에서 재구현하지 않는다.
 - **Staged Entry**: landing ingress 전용의 임시 진입 상태. provisional Q1 pre-answer, ingress flag, unconsumed entry marker를 포함한다. A/B 선택 시점으로부터 7분 후 만료된다. 상세 계약은 §2.5 참조.
 - **Test Variant**: 사용자가 실행하는 테스트 단위. identifier, scoring schema, axis model, question set, result content 지원 범위를 가진다.
 - **Session / Run Context**: instruction → question runtime → result까지 이어지는 실행 문맥.
@@ -876,11 +873,16 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 skeleton으로 확보해야 할 hook 위치:
 1. 랜딩 카드 A/B 선택 시점 (`card_answered` 대응, ingress 경로 전용)
    + 블로그 카드 Read more CTA 선택 시점
+   ※ `card_answered`는 landing phase 이벤트다. 이 hook은 landing→test
+   전환 경계 검증을 위한 참조 위치이며, test flow에서 재발화하지 않는다.
 2. instruction 완료 후 test runtime 진입 시점 (`attempt_start` 대응)
    (Start 버튼 클릭 → question runtime 전환 = runtime entry commit)
+   ingress 경로: Q2 제시 시점. 직접 진입 경로: Q1 제시 시점.
 3. question 답변 시점 (`question_answered` 대응, 문항별)
    ingress 경로: Q2부터 발화. Q1은 landing 단계 `card_answered`로 기록됨.
-   direct 경로: Q1부터 발화.
+   직접 진입 경로: Q1부터 발화.
+   세션당 `question_answered` 총 발화 횟수는 경로에 따라 N-1(ingress) 또는
+   N(direct)이다. 이 비대칭은 의도된 설계이며 문서화된 계약이다.
 4. test 완료 확정 시점 (`final_submit` 대응, result screen entry commit)
 5. result 필수 콘텐츠(`derived_type` 블록) 뷰포트 진입 시점
    (`result_viewed` 대응, Intersection Observer 1회 발화 후 disconnect)
@@ -891,10 +893,25 @@ skeleton으로 확보해야 할 hook 위치:
 > **⚠️ 다음 Phase 구현 착수 전에 아래 항목을 완료해야 한다. 생략하고 그 다음 단계로 진행하는 것을 금지한다.**
 
 1. 최소 이벤트셋 계약:
-- Landing phase 완료 이벤트 (이번 단계 재구현 불필요, 계약 계승 확인 의무):`landing_view`, `card_answered`(ingress 경로 전용)
-- 이번 단계 구현 의무: `attempt_start`, `question_answered`, `final_submit`, `result_viewed`
-- `attempt_start.question_index_1based`: ingress=2, direct=1. 경로별 비대칭은 의도된 설계이며 문서화된 계약이다.
-- `question_answered` 발화 범위: ingress 경로에서는 Q2부터 발화한다. Q1 응답은 landing 단계 `card_answered`에서 기록되며, 세션당 `question_answered` 총 카운트는 경로에 따라 N-1(ingress) 또는 N(direct)이다. 이탈 분석 시 이 비대칭을 고려해야 한다.
+   **Landing phase 이벤트 (이번 단계 재구현 불필요, 연계 정합성 확인 의무)**:
+   - `landing_view`: landing phase 발화. test flow 재발화 없음.
+   - `card_answered`: ingress 경로 전용, landing phase 발화. test flow 재발화 없음.
+     `source_card_id`, `target_route`, `landing_ingress_flag(=true)` 필수 필드.
+   - 위 두 이벤트와 `attempt_start`·`question_answered` 간의 연계 정합성은
+     릴리스 블로커 #28에서 검증한다.
+
+   **이번 단계 구현 의무**:
+   - `attempt_start`: ingress=Q2 제시 시점, direct=Q1 제시 시점 발화.
+     필수 추가 필드: `landing_ingress_flag`, `question_index_1based`
+     (ingress=2, direct=1).
+   - `question_answered`: 문항별 발화. 필수 필드: `questionIndex`(1-based),
+     `totalQuestions`.
+     ingress 경로에서 Q1은 landing `card_answered`로 기록되므로 Q2부터 발화.
+     세션당 총 발화 횟수가 경로에 따라 N-1(ingress)/N(direct)임을 이탈 분석
+     시 반드시 고려해야 한다.
+   - `final_submit`: result screen entry commit 시점 발화.
+   - `result_viewed`: `derived_type` 블록 뷰포트 진입 시점, Intersection
+     Observer 1회 발화 후 disconnect.
 
 > **이 항목들이 완성되지 않은 상태에서 share, history, admin 구현을 시작하면 telemetry 데이터 신뢰성을 보장할 수 없다.**
 
@@ -974,6 +991,7 @@ skeleton으로 확보해야 할 hook 위치:
 | 응답 데이터 휘발 시점 변경 | 3.6, 5.8, 7.3, 11.2 |
 | Telemetry skeleton hook 위치 변경 | 8.1, 8.2, 11.2 |
 | 에러 심각도 분류 변경 | 5.1, 5.2, 5.3, 5.4, 5.5, 11.2 |
+| cross-phase event integrity 정책 변경 (`card_answered`↔`attempt_start` 연계, `landing_ingress_flag` 계약) | 2.1, 8.1, 8.2, 11.2, Landing Requirements §12.1, §14.3 |
 
 ---
 
@@ -1017,6 +1035,10 @@ skeleton으로 확보해야 할 hook 위치:
 25. **Derivation-failure**: commit-failure와 taxonomy 분리. cleanup bundle 적용 후 새 attempt. 응답 집합 + eligibility 유지. partial result carryover `0건`.
 26. **Traceability Closure**: blocker 1~25 모두 최소 1개 자동 단언 매핑.
 27. **Type Segment Parsing / Qualifier Validation**: `qualifierFields` 없는 variant에서 `type` segment 길이 = `axisCount`. `qualifierFields` 있는 variant에서 `type` segment 길이 = `axisCount + tokenLength 합산`. qualifier 값이 `values` 목록 외 값이면 에러 렌더링. `qualifierFields.questionIndex`가 scoring 문항을 가리키면 blocking data error. blocking 항목 1~27 모두 최소 1개 자동 단언 매핑.
+28. **Cross-phase Event Integrity (Landing→Test)**: ingress 경로에서     `card_answered`(landing phase) → `attempt_start`(test phase) 순서 보장.     `card_answered.landing_ingress_flag = true`인 세션에서     `attempt_start.landing_ingress_flag = true`이고     `attempt_start.question_index_1based = 2`임을 검증한다.
+직접 진입 경로에서 `card_answered` 미발화 + `attempt_start.question_index_1based = 1` 임을 검증한다.
+Landing Requirements §14.3 Blocker #15와 연동하며, 두 블로커의 단언이 동일 픽스처를 공유해야 한다.
+blocker 1~28 모두 최소 1개 자동 단언 매핑.
 
 ### 11.3 Traceability Requirement
 

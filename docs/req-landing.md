@@ -737,7 +737,9 @@
 - `attempt_start` 추가 필수 필드: `landing_ingress_flag`, `question_index_1based`.
   - ingress 경로: `landing_ingress_flag=true`, `question_index_1based=2`.
   - 직접 진입 경로: `landing_ingress_flag=false`, `question_index_1based=1`.
-- `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`, `final_q1_response`.
+- `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`.
+- `final_responses`는 Q1을 포함한 전 문항의 응답 맵이다. 진입 경로(ingress/직접 진입)와 무관하게 동일한 구조를 유지한다. Q1 재수정이 발생한 경우 최종 제출 시점의 값을 반영한다.
+- `landing_ingress_flag`는 진입 경로를 나타내며, 테스트 중 Q1을 재수정하더라도 ingress 경로로 진입한 세션은 항상 `true`를 유지한다. Q1 재수정 여부는 이 플래그의 값에 영향을 주지 않는다.
 - 상관키 생성 실패 시 세션 카운터 기반 대체키를 허용한다.
 - `transition_id`, `result_reason` 필드는 내부 시스템 로직 전용이며 텔레메트리 payload에 포함하지 않는다.
 
@@ -746,10 +748,10 @@
 - 금지: 원문 질문/답변 텍스트, 자유입력 텍스트, PII/지문성 식별자(IP, fingerprint).
 - 응답은 의미 코드만 기록한다.
 - question index는 1-based 고정이다.
-- `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`, `final_q1_response`.
+- `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`.
 - `final_submit`에는 최종 응답 + 문항별 누적 체류시간을 기록한다.
-- `final_responses`는 문항별 의미 코드 맵이어야 하며 원문 질문/답변 텍스트를 포함하면 안 된다.
-- Q1 값은 최종 제출 시점 값(`final_q1_response`)을 기준으로 한다.
+- `landing_ingress_flag`는 진입 경로 기준이며 Q1 재수정으로 변경되지 않는다. ingress 경로 세션은 제출 시점까지 `true`를 유지한다.
+- `final_responses`는 Q1을 포함한 전 문항의 의미 코드 맵이어야 하며, 원문 질문/답변 텍스트를 포함하면 안 된다. 진입 경로와 무관하게 동일한 구조를 유지한다. Q1 재수정이 발생한 경우 최종 제출 시점의 값을 반영한다.
 - `final_submit`의 `question_index_1based`는 최종 문항 index(1-based)여야 한다.
 
 ### 12.4 Consent State Machine
@@ -901,10 +903,11 @@
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 available 카드 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
-15. Card-to-Attempt Field Integrity: `card_answered` payload의 `source_card_id`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `attempt_start`의 `question_index_1based`가 ingress 경로에서 `2`, 직접 진입에서 `1`로 정확히 발화, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS (Section 12.1, 12.2).
+15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_card_id`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `attempt_start`의 `question_index_1based`가 ingress 경로에서 `2`, 직접 진입에서 `1`로 정확히 발화, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
+Test Flow Requirements §11.2 Blocker #28과 연동하며, 연계 검증 단언은 동일 픽스처를 공유해야 한다.
 16. Rollback Cleanup Closure: fail/cancel 4케이스에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
-18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses`, `final_q1_response` 포함) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).
+18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses` 포함, Q1~QN 전 문항 맵) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).
 19. Traceability Closure: Section 14.3 모든 블로킹 항목이 최소 1개 이상의 자동 단언과 매핑되어야 하며, 미매핑 `0건` PASS (Section 14.4).
 
 ### 14.4 Release Traceability Closure
