@@ -67,7 +67,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const router = useRouter();
   const pathname = usePathname();
   const {viewportWidth, hoverCapable, elevated} = useGnbCapability();
-  const {resolvedTheme, applyManualTheme} = useThemePreference();
+  const {resolvedTheme, applyTheme} = useThemePreference();
   const settingsPanelId = useId();
   const mobileMenuPanelId = useId();
 
@@ -666,7 +666,9 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
             resolvedTheme={resolvedTheme}
             labels={settingsLabels}
             onLocaleChange={handleLocaleChange}
-            onThemeChange={applyManualTheme}
+            onThemeChange={(theme, sourceEl) => {
+              applyTheme(theme, {sourceEl});
+            }}
           />
         </div>
       </div>
@@ -770,7 +772,9 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                 resolvedTheme={resolvedTheme}
                 labels={settingsLabels}
                 onLocaleChange={handleLocaleChange}
-                onThemeChange={applyManualTheme}
+                onThemeChange={(theme, sourceEl) => {
+                  applyTheme(theme, {sourceEl});
+                }}
               />
             </div>
           </div>

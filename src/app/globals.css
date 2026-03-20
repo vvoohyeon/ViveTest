@@ -1728,6 +1728,21 @@ span.landing-grid-card-primary-cta {
     color 140ms ease;
 }
 
+.gnb-chip-theme {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gnb-chip-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
 .gnb-chip:hover:not(:disabled):not([aria-pressed='true']) {
   border-color: var(--interactive-neutral-border-strong);
   background: var(--interactive-neutral-bg-hover);

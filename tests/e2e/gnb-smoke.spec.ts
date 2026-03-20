@@ -1,6 +1,21 @@
-import {expect, test} from '@playwright/test';
+import {expect, test, type Page} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
+
+async function installViewTransitionStub(page: Page) {
+  await page.addInitScript(() => {
+    Object.defineProperty(Document.prototype, 'startViewTransition', {
+      configurable: true,
+      writable: true,
+      value: function (update: () => void) {
+        update();
+        return {
+          ready: Promise.resolve()
+        };
+      }
+    });
+  });
+}
 
 test.describe('Phase 3 gnb shell smoke', () => {
   test.beforeEach(async ({page}) => {
@@ -117,14 +132,10 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
-    await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(0)).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    );
-    await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(1)).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    await expect(page.getByTestId('desktop-gnb-theme-light')).toBeEnabled();
+    await expect(page.getByTestId('desktop-gnb-theme-dark')).toBeDisabled();
+    await expect(page.getByTestId('desktop-gnb-theme-light')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId('desktop-gnb-theme-dark')).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('@smoke desktop settings restores the stored manual theme without a blank selected state', async ({page}) => {
@@ -141,14 +152,95 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
-    await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(0)).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    );
-    await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(1)).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    await expect(page.getByTestId('desktop-gnb-theme-light')).toBeEnabled();
+    await expect(page.getByTestId('desktop-gnb-theme-dark')).toBeDisabled();
+    await expect(page.getByTestId('desktop-gnb-theme-light')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId('desktop-gnb-theme-dark')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('@smoke desktop theme switch applies blur transition styles and cleans them up', async ({page}) => {
+    await installViewTransitionStub(page);
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+
+    await page.getByTestId('gnb-settings-trigger').hover();
+    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+
+    const lightButton = page.getByTestId('desktop-gnb-theme-light');
+    const darkButton = page.getByTestId('desktop-gnb-theme-dark');
+
+    await expect(lightButton).toBeDisabled();
+    await expect(darkButton).toBeEnabled();
+
+    await darkButton.click();
+
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+      .toBe('dark');
+    await expect.poll(() => page.evaluate(() => window.localStorage.getItem('vibetest-theme'))).toBe('dark');
+    await expect(page.locator('#theme-switch-style')).toHaveCount(1);
+    await expect(page.getByTestId('desktop-gnb-theme-light')).toBeEnabled();
+    await expect(page.getByTestId('desktop-gnb-theme-dark')).toBeDisabled();
+
+    await page.waitForTimeout(900);
+    await expect(page.locator('#theme-switch-style')).toHaveCount(0);
+  });
+
+  test('@smoke reduced-motion theme switch falls back without injecting transition styles', async ({page}) => {
+    await installViewTransitionStub(page);
+    await page.addInitScript(() => {
+      const originalMatchMedia = window.matchMedia.bind(window);
+      window.matchMedia = (query: string) => {
+        if (query === '(prefers-reduced-motion: reduce)') {
+          return {
+            matches: true,
+            media: query,
+            onchange: null,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+            addListener: () => undefined,
+            removeListener: () => undefined,
+            dispatchEvent: () => true
+          } as MediaQueryList;
+        }
+
+        return originalMatchMedia(query);
+      };
+    });
+
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+    await page.getByTestId('gnb-settings-trigger').hover();
+    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+
+    await page.getByTestId('desktop-gnb-theme-dark').click();
+
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+      .toBe('dark');
+    await expect(page.locator('#theme-switch-style')).toHaveCount(0);
+  });
+
+  test('@smoke unsupported theme transition falls back without injecting transition styles', async ({page}) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(Document.prototype, 'startViewTransition', {
+        configurable: true,
+        writable: true,
+        value: undefined
+      });
+    });
+
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+    await page.getByTestId('gnb-settings-trigger').hover();
+    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+
+    await page.getByTestId('desktop-gnb-theme-dark').click();
+
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+      .toBe('dark');
+    await expect(page.locator('#theme-switch-style')).toHaveCount(0);
   });
 
   test('@smoke assertion:B3-gnb-keyboard-matrix desktop landing enters cards first, reverse-enters GNB, and closes settings on focus-out', async ({
@@ -164,8 +256,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const settingsTrigger = page.getByTestId('gnb-settings-trigger');
     const panel = page.getByTestId('gnb-settings-panel');
     const krButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: 'KR'});
-    const lightButton = page.getByTestId('desktop-gnb-theme-controls').getByRole('button', {name: 'Light'});
-    const darkButton = page.getByTestId('desktop-gnb-theme-controls').getByRole('button', {name: 'Dark'});
+    const darkButton = page.getByTestId('desktop-gnb-theme-dark');
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
 
     await page.keyboard.press('Tab');
@@ -192,8 +283,6 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.keyboard.press('Tab');
     await expect(krButton).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(lightButton).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(darkButton).toBeFocused();
     await page.keyboard.press('Tab');
@@ -262,8 +351,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const settingsTrigger = page.getByTestId('gnb-settings-trigger');
     const panel = page.getByTestId('gnb-settings-panel');
     const krButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: 'KR'});
-    const lightButton = page.getByTestId('desktop-gnb-theme-controls').getByRole('button', {name: 'Light'});
-    const darkButton = page.getByTestId('desktop-gnb-theme-controls').getByRole('button', {name: 'Dark'});
+    const darkButton = page.getByTestId('desktop-gnb-theme-dark');
     const sink = page.getByTestId('destination-focus-sink');
 
     await page.keyboard.press('Tab');
@@ -276,8 +364,6 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(panel).toBeVisible();
     await page.keyboard.press('Tab');
     await expect(krButton).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(lightButton).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(darkButton).toBeFocused();
     await page.keyboard.press('Tab');
