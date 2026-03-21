@@ -1,7 +1,7 @@
 # Backlog
 
 ## 1. Purpose / How to use
-- 이 문서는 구현 SSOT가 아니다. 요구사항 판단은 항상 [req-landing-final.md](/Users/woohyeon/Local/VibeTest/docs/req-landing-final.md) 를 우선한다.
+- 이 문서는 구현 SSOT가 아니다. 요구사항 판단은 항상 [req-landing-final.md](../req-landing-final.md) 를 우선한다.
 - 목적은 후속 Agent가 현재 상태를 빠르게 이어받도록, 이미 닫힌 축과 보류 축을 짧게 구분해 두는 것이다.
 - 보류 항목은 방향만 남긴다. 구체 설계, selector, state 이름, 파일 단위 지시는 의도적으로 제한한다.
 - 구현에 착수할 때는 backlog를 그대로 집행하지 말고, 해당 시점 코드베이스와 smoke/traceability를 다시 재탐색한다.

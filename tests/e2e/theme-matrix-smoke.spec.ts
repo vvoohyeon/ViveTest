@@ -3,7 +3,7 @@ import {expect, test, type Browser, type Page, type ViewportSize} from '@playwri
 import {seedTelemetryConsent} from './helpers/consent';
 import rawThemeMatrixManifest from './theme-matrix-manifest.json';
 
-const THEME_STORAGE_KEY = 'vibetest-theme';
+const THEME_STORAGE_KEY = 'vivetest-theme';
 const PREVIEW_HOST = 'http://127.0.0.1:4173';
 
 type MatrixLocale = 'en' | 'kr';

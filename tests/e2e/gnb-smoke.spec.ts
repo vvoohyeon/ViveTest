@@ -105,7 +105,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   test('@smoke desktop settings shows the resolved system theme on first open', async ({page}) => {
     await page.addInitScript(() => {
       const originalMatchMedia = window.matchMedia.bind(window);
-      window.localStorage.removeItem('vibetest-theme');
+      window.localStorage.removeItem('vivetest-theme');
       window.matchMedia = (query: string) => {
         if (query === '(prefers-color-scheme: dark)') {
           return {
@@ -142,7 +142,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
     await page.evaluate(() => {
-      window.localStorage.setItem('vibetest-theme', 'dark');
+      window.localStorage.setItem('vivetest-theme', 'dark');
     });
     await page.reload();
 
@@ -177,7 +177,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect
       .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
       .toBe('dark');
-    await expect.poll(() => page.evaluate(() => window.localStorage.getItem('vibetest-theme'))).toBe('dark');
+    await expect.poll(() => page.evaluate(() => window.localStorage.getItem('vivetest-theme'))).toBe('dark');
     await expect(page.locator('#theme-switch-style')).toHaveCount(1);
     await expect
       .poll(() =>

@@ -30,8 +30,8 @@ import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder, type LocaleFreeRoute} from '@/lib/routes/route-builder';
 
 const MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS = 220;
-const CURRENT_PATH_STORAGE_KEY = 'vibetest-current-path';
-const PREVIOUS_PATH_STORAGE_KEY = 'vibetest-previous-path';
+const CURRENT_PATH_STORAGE_KEY = 'vivetest-current-path';
+const PREVIOUS_PATH_STORAGE_KEY = 'vivetest-previous-path';
 
 type CloseReason = 'button' | 'outside' | 'escape';
 
@@ -603,7 +603,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       </button>
     ) : (
       <Link href={{pathname: homeHref}} className="gnb-ci-link" scroll={false} tabIndex={desktopLandingTabIndex}>
-        VibeTest
+        ViveTest
       </Link>
     );
 
@@ -693,7 +693,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           <div className="gnb-column gnb-column-leading">
             {context === 'landing' ? (
               <Link href={{pathname: homeHref}} className="gnb-ci-link" scroll={false} tabIndex={mobileLandingTabIndex}>
-                VibeTest
+                ViveTest
               </Link>
             ) : (
               <button

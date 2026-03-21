@@ -2,7 +2,7 @@ import {expect, type Locator, type Page, test} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
 
-const THEME_STORAGE_KEY = 'vibetest-theme';
+const THEME_STORAGE_KEY = 'vivetest-theme';
 
 interface InteractiveMetrics {
   x: number;

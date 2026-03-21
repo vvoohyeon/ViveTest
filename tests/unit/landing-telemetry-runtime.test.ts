@@ -9,7 +9,7 @@ import {
   trackLandingView
 } from '../../src/features/landing/telemetry/runtime';
 
-const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
+const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 
 function installDom() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {

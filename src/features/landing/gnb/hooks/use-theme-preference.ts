@@ -6,7 +6,7 @@ import {flushSync} from 'react-dom';
 import type {ThemePreference} from '@/features/landing/gnb/types';
 import {runBlurCircleTransition} from '@/features/landing/gnb/hooks/theme-transition';
 
-const THEME_STORAGE_KEY = 'vibetest-theme';
+const THEME_STORAGE_KEY = 'vivetest-theme';
 type ResolvedTheme = Exclude<ThemePreference, 'system'>;
 
 interface ApplyThemeOptions {

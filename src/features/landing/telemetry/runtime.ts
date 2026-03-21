@@ -27,7 +27,7 @@ import type {
 import {patchTelemetryEventForTransport, validateTelemetryEvent} from '@/features/landing/telemetry/validation';
 
 const TELEMETRY_ENDPOINT = '/api/telemetry';
-const TELEMETRY_SESSION_ID_STORAGE_KEY = 'vibetest-telemetry-session-id';
+const TELEMETRY_SESSION_ID_STORAGE_KEY = 'vivetest-telemetry-session-id';
 
 interface TelemetrySnapshot {
   consentState: TelemetryConsentState;

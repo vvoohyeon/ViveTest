@@ -9,7 +9,7 @@ import {
 import {LANDING_TRANSITION_SIGNAL_EVENT} from '../../src/features/landing/transition/signals';
 import {readLandingIngress, readPendingLandingTransition} from '../../src/features/landing/transition/store';
 
-const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
+const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 
 function installDom() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {

@@ -1,8 +1,8 @@
 import {expect, test} from '@playwright/test';
 
-const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
+const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 const LANDING_TRANSITION_SIGNAL_EVENT = 'landing:transition-signal';
-const LANDING_TRANSITION_SIGNAL_STORAGE_KEY = 'vibetest-test-transition-signals';
+const LANDING_TRANSITION_SIGNAL_STORAGE_KEY = 'vivetest-test-transition-signals';
 const TRANSITION_OVERLAY_READY_DELAY_MS = 180;
 
 function collectForbiddenKeys(value: unknown, trail = ''): string[] {
@@ -96,7 +96,7 @@ async function readTransitionSignals(page: import('@playwright/test').Page) {
     () =>
       (() => {
         try {
-          const stored = window.sessionStorage.getItem('vibetest-test-transition-signals');
+          const stored = window.sessionStorage.getItem('vivetest-test-transition-signals');
           if (!stored) {
             return [] as Array<Record<string, unknown>>;
           }
@@ -138,12 +138,12 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await expect(page).toHaveURL(/\/en\/test\/rhythm-a$/u);
     await expectSourceGnbOverlay(page, 'test');
-    await expect(page.getByTestId('landing-transition-source-gnb')).toContainText('VibeTest');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toContainText('ViveTest');
     await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-ingress:rhythm-a')))
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-ingress:rhythm-a')))
       .not.toBeNull();
 
     await page.reload();
@@ -154,7 +154,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.getByTestId('test-start-button').click();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-ingress:rhythm-a')))
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-ingress:rhythm-a')))
       .toBeNull();
 
     await page.getByTestId('test-choice-a').click();
@@ -211,7 +211,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect
       .poll(() =>
         page.evaluate(() =>
-          Object.keys(window.sessionStorage).filter((key) => key.startsWith('vibetest-landing-ingress:')).length
+          Object.keys(window.sessionStorage).filter((key) => key.startsWith('vivetest-landing-ingress:')).length
         )
       )
       .toBe(0);
@@ -271,7 +271,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await page.getByTestId('test-start-button').click();
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-ingress:rhythm-a')))
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-ingress:rhythm-a')))
       .toBeNull();
 
     await page.goto('/en');
@@ -358,16 +358,16 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(transitionSignals.filter((signal) => signal.signal === 'transition_complete')).toHaveLength(1);
 
     const savedReturnScroll = await page.evaluate(() =>
-      Number(window.sessionStorage.getItem('vibetest-landing-return-scroll-y') ?? '0')
+      Number(window.sessionStorage.getItem('vivetest-landing-return-scroll-y') ?? '0')
     );
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-return-scroll-y')))
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-return-scroll-y')))
       .not.toBeNull();
 
-    await page.getByRole('link', {name: 'VibeTest'}).first().click();
+    await page.getByRole('link', {name: 'ViveTest'}).first().click();
     await expect(page).toHaveURL(/\/en$/u);
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-return-scroll-y')))
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-return-scroll-y')))
       .toBeNull();
     const expectedRestoredScroll = await page.evaluate((initialSavedScroll) => {
       const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
@@ -732,7 +732,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await installTransitionSignalCollector(page);
     await page.addInitScript(
       (pendingTransition) => {
-        window.sessionStorage.setItem('vibetest-landing-pending-transition', JSON.stringify(pendingTransition));
+        window.sessionStorage.setItem('vivetest-landing-pending-transition', JSON.stringify(pendingTransition));
       },
       {
         transitionId: 'transition-timeout-1',
@@ -753,7 +753,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBe('DESTINATION_TIMEOUT');
     await expect(page.getByTestId('landing-transition-source-gnb')).toHaveCount(0);
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-pending-transition')))
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-pending-transition')))
       .toBeNull();
   });
 
@@ -763,7 +763,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await installTransitionSignalCollector(page);
     await page.addInitScript(
       (pendingTransition) => {
-        window.sessionStorage.setItem('vibetest-landing-pending-transition', JSON.stringify(pendingTransition));
+        window.sessionStorage.setItem('vivetest-landing-pending-transition', JSON.stringify(pendingTransition));
       },
       {
         transitionId: 'transition-load-error-1',
@@ -782,7 +782,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBe('DESTINATION_LOAD_ERROR');
     await expect(page.getByTestId('landing-transition-source-gnb')).toHaveCount(0);
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-pending-transition')))
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-pending-transition')))
       .toBeNull();
   });
 
@@ -790,7 +790,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await installTransitionSignalCollector(page);
     await page.addInitScript(
       (pendingTransition) => {
-        window.sessionStorage.setItem('vibetest-landing-pending-transition', JSON.stringify(pendingTransition));
+        window.sessionStorage.setItem('vivetest-landing-pending-transition', JSON.stringify(pendingTransition));
       },
       {
         transitionId: 'transition-user-cancel-1',
@@ -809,7 +809,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .poll(async () => (await readTransitionSignals(page)).find((signal) => signal.signal === 'transition_cancel')?.resultReason ?? null)
       .toBe('USER_CANCEL');
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-pending-transition')))
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-pending-transition')))
       .toBeNull();
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
   });

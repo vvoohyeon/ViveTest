@@ -1,6 +1,6 @@
 import type {Page} from '@playwright/test';
 
-export const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
+export const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 
 export async function seedTelemetryConsent(page: Page, consentState: 'OPTED_IN' | 'OPTED_OUT') {
   await page.addInitScript(

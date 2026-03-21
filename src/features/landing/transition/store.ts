@@ -27,11 +27,11 @@ export interface LandingIngressRecord {
 export const LANDING_TRANSITION_STORE_EVENT = 'landing:transition-store-change';
 export const LANDING_TRANSITION_CLEANUP_EVENT = 'landing:transition-cleanup';
 
-const PENDING_TRANSITION_KEY = 'vibetest-landing-pending-transition';
-const RETURN_SCROLL_Y_KEY = 'vibetest-landing-return-scroll-y';
-const RETURN_SCROLL_CARD_ID_KEY = 'vibetest-landing-return-card-id';
-const INSTRUCTION_SEEN_PREFIX = 'vibetest-test-instruction-seen:';
-const LANDING_INGRESS_PREFIX = 'vibetest-landing-ingress:';
+const PENDING_TRANSITION_KEY = 'vivetest-landing-pending-transition';
+const RETURN_SCROLL_Y_KEY = 'vivetest-landing-return-scroll-y';
+const RETURN_SCROLL_CARD_ID_KEY = 'vivetest-landing-return-card-id';
+const INSTRUCTION_SEEN_PREFIX = 'vivetest-test-instruction-seen:';
+const LANDING_INGRESS_PREFIX = 'vivetest-landing-ingress:';
 
 function getSessionStorage(): Storage | null {
   if (typeof window === 'undefined') {

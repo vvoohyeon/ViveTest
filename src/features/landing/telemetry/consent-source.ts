@@ -5,7 +5,7 @@ import {useEffect, useSyncExternalStore} from 'react';
 import type {TelemetryConsentState} from '@/features/landing/telemetry/types';
 
 // consent의 단일 진실 공급원은 메모리 상태에 두고, localStorage는 영속화 계층으로만 사용한다.
-export const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
+export const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 
 export interface TelemetryConsentSnapshot {
   consentState: TelemetryConsentState;

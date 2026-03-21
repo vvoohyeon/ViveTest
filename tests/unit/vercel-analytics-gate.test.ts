@@ -100,7 +100,7 @@ describe('VercelAnalyticsGate', () => {
   });
 
   it('does not render Analytics when consent stays UNKNOWN after sync', async () => {
-    window.localStorage.removeItem('vibetest-telemetry-consent');
+    window.localStorage.removeItem('vivetest-telemetry-consent');
 
     await renderGate();
 

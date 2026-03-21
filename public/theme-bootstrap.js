@@ -2,7 +2,7 @@
   var root = document.documentElement;
 
   try {
-    var stored = window.localStorage.getItem('vibetest-theme');
+    var stored = window.localStorage.getItem('vivetest-theme');
     if (stored === 'light' || stored === 'dark') {
       root.dataset.theme = stored;
       return;

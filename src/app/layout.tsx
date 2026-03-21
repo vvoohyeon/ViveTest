@@ -10,7 +10,7 @@ import {resolveRequestLocaleFromHeaderBag} from '@/i18n/request-locale-header';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'VibeTest',
+  title: 'ViveTest',
   description: 'Reset baseline placeholder'
 };
 
