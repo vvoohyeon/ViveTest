@@ -1,5 +1,3 @@
-import type {MouseEvent as ReactMouseEvent} from 'react';
-
 import {locales, type AppLocale} from '@/config/site';
 
 interface SettingsControlLabels {
@@ -15,46 +13,7 @@ interface SettingsControlsProps {
   resolvedTheme: 'light' | 'dark';
   labels: SettingsControlLabels;
   onLocaleChange: (locale: AppLocale) => void;
-  onThemeChange: (theme: 'light' | 'dark', sourceEl: HTMLElement | null) => void;
-}
-
-function ThemeChipIcon({theme}: {theme: 'light' | 'dark'}) {
-  if (theme === 'light') {
-    return (
-      <svg
-        aria-hidden="true"
-        className="gnb-chip-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="4.25" />
-        <path d="M12 2.75v2.5" />
-        <path d="M12 18.75v2.5" />
-        <path d="m4.93 4.93 1.77 1.77" />
-        <path d="m17.3 17.3 1.77 1.77" />
-        <path d="M2.75 12h2.5" />
-        <path d="M18.75 12h2.5" />
-        <path d="m4.93 19.07 1.77-1.77" />
-        <path d="m17.3 6.7 1.77-1.77" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      aria-hidden="true"
-      className="gnb-chip-icon"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="none"
-    >
-      <path d="M14.85 3.8a8.7 8.7 0 1 0 5.35 15.71 9.35 9.35 0 0 1-3.61.72 9.48 9.48 0 0 1-9.47-9.47c0-2.9 1.3-5.54 3.34-7.32a8.65 8.65 0 0 0 4.39.36Z" />
-    </svg>
-  );
+  onThemeChange: (theme: 'light' | 'dark') => void;
 }
 
 export function SettingsControls({
@@ -65,11 +24,6 @@ export function SettingsControls({
   onLocaleChange,
   onThemeChange
 }: SettingsControlsProps) {
-  const handleThemeClick =
-    (theme: 'light' | 'dark') => (event: ReactMouseEvent<HTMLButtonElement>) => {
-      onThemeChange(theme, event.currentTarget);
-    };
-
   return (
     <>
       <div className="gnb-settings-row" data-testid={`${scope}-gnb-locale-controls`}>
@@ -95,29 +49,19 @@ export function SettingsControls({
         <div className="gnb-chip-row">
           <button
             type="button"
-            className="gnb-chip gnb-chip-theme"
+            className="gnb-chip"
             aria-pressed={resolvedTheme === 'light'}
-            aria-label={labels.light}
-            title={labels.light}
-            data-testid={`${scope}-gnb-theme-light`}
-            data-theme-option="light"
-            disabled={resolvedTheme === 'light'}
-            onClick={handleThemeClick('light')}
+            onClick={() => onThemeChange('light')}
           >
-            <ThemeChipIcon theme="light" />
+            {labels.light}
           </button>
           <button
             type="button"
-            className="gnb-chip gnb-chip-theme"
+            className="gnb-chip"
             aria-pressed={resolvedTheme === 'dark'}
-            aria-label={labels.dark}
-            title={labels.dark}
-            data-testid={`${scope}-gnb-theme-dark`}
-            data-theme-option="dark"
-            disabled={resolvedTheme === 'dark'}
-            onClick={handleThemeClick('dark')}
+            onClick={() => onThemeChange('dark')}
           >
-            <ThemeChipIcon theme="dark" />
+            {labels.dark}
           </button>
         </div>
       </div>

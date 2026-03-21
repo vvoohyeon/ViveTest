@@ -1,22 +1,16 @@
 'use client';
 
 import {useCallback, useEffect, useState} from 'react';
-import {flushSync} from 'react-dom';
 
 import type {ThemePreference} from '@/features/landing/gnb/types';
-import {runBlurCircleTransition} from '@/features/landing/gnb/hooks/theme-transition';
 
 const THEME_STORAGE_KEY = 'vibetest-theme';
 type ResolvedTheme = Exclude<ThemePreference, 'system'>;
 
-interface ApplyThemeOptions {
-  sourceEl?: HTMLElement | null;
-}
-
 interface ThemePreferenceController {
   themePreference: ThemePreference;
   resolvedTheme: ResolvedTheme;
-  applyTheme: (theme: 'light' | 'dark', options?: ApplyThemeOptions) => void;
+  applyManualTheme: (theme: 'light' | 'dark') => void;
 }
 
 function resolveSystemTheme(): ResolvedTheme {
@@ -44,37 +38,12 @@ function resolveTheme(preference: ThemePreference): ResolvedTheme {
   return preference === 'system' ? resolveSystemTheme() : preference;
 }
 
-function writeThemePreferenceToDom(themePreference: ThemePreference, resolvedTheme: ResolvedTheme) {
-  if (typeof document !== 'undefined') {
-    document.documentElement.dataset.theme = resolvedTheme;
-  }
-
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  if (themePreference === 'system') {
-    try {
-      window.localStorage.removeItem(THEME_STORAGE_KEY);
-    } catch {
-      // Ignore storage failures and keep runtime theme only.
-    }
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(THEME_STORAGE_KEY, themePreference);
-  } catch {
-    // Ignore storage failures and keep runtime theme only.
-  }
-}
-
 export function useThemePreference(): ThemePreferenceController {
   const [manualThemePreference, setManualThemePreference] = useState<ThemePreference | null>(null);
   const [clientReady, setClientReady] = useState(false);
   const [, setSystemThemeVersion] = useState(0);
   const themePreference = manualThemePreference ?? (clientReady ? readStoredThemePreference() : 'system');
-  const resolvedTheme = manualThemePreference ? resolveTheme(manualThemePreference) : clientReady ? resolveTheme(themePreference) : 'light';
+  const resolvedTheme = clientReady ? resolveTheme(themePreference) : 'light';
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -108,27 +77,34 @@ export function useThemePreference(): ThemePreferenceController {
       return;
     }
 
-    writeThemePreferenceToDom(themePreference, resolvedTheme);
+    const root = document.documentElement;
+    root.dataset.theme = resolvedTheme;
+
+    if (themePreference === 'system') {
+      try {
+        window.localStorage.removeItem(THEME_STORAGE_KEY);
+      } catch {
+        // Ignore storage failures and keep runtime theme only.
+      }
+      return undefined;
+    }
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, themePreference);
+    } catch {
+      // Ignore storage failures and keep runtime theme only.
+    }
+
     return undefined;
   }, [clientReady, resolvedTheme, themePreference]);
 
-  const applyTheme = useCallback((theme: 'light' | 'dark', options?: ApplyThemeOptions) => {
-    const commitThemeChange = () => {
-      flushSync(() => {
-        setManualThemePreference(theme);
-      });
-      writeThemePreferenceToDom(theme, theme);
-    };
-
-    void runBlurCircleTransition({
-      sourceEl: options?.sourceEl,
-      applyThemeDomWrite: commitThemeChange
-    });
+  const applyManualTheme = useCallback((theme: 'light' | 'dark') => {
+    setManualThemePreference(theme);
   }, []);
 
   return {
     themePreference,
     resolvedTheme,
-    applyTheme
+    applyManualTheme
   };
 }
