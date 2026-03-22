@@ -1,5 +1,10 @@
 # Project Analysis
 
+> Correction note (2026-03-22)
+> - The current representative available test fixture is `test-qmbti` / `qmbti`, not the older `test-rhythm-a` references mentioned below.
+> - `package.json` now uses the contract script chain `check-phase1-contracts -> check-phase4/5/6/7/8/9/10/11-contracts -> check-blocker-traceability`; any older script list in this document is stale.
+> - The statements below that Phase 11 fails because only 12 theme-matrix PNGs are present describe an older repository state and should be read as historical context, not current truth.
+
 ## 1. Executive Summary
 
 This repository is a localized Next.js App Router application whose real technical center of gravity is not the entire product described in `docs/requirements.md`, but a highly specified landing-to-destination interaction system. The implemented code is strongest in four areas: locale normalization and SSR document semantics, an interaction-heavy landing catalog, a context-aware global navigation shell, and consent-gated telemetry and transition bookkeeping. Most of that logic is concentrated under `src/features/landing`, which functions as the de facto application module rather than a narrow feature folder.

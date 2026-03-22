@@ -6,8 +6,8 @@ import {
 } from '../../src/features/landing/gnb/hooks/theme-transition';
 
 describe('gnb theme transition contracts', () => {
-  it('keeps the blur circle duration config at 2000ms by default', () => {
-    expect(THEME_TRANSITION_CONFIG.durationMs).toBe(2000);
+  it('keeps the blur circle duration config at 2500ms by default', () => {
+    expect(THEME_TRANSITION_CONFIG.durationMs).toBe(2500);
     expect(resolveThemeTransitionDuration()).toBe(
       THEME_TRANSITION_CONFIG.durationMs
     );

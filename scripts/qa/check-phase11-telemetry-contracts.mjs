@@ -30,6 +30,7 @@ const requiredFiles = [
   'src/features/landing/telemetry/validation.ts',
   'src/app/api/telemetry/route.ts',
   'tests/unit/landing-telemetry-validation.test.ts',
+  'tests/e2e/helpers/landing-fixture.ts',
   'tests/e2e/theme-matrix-smoke.spec.ts',
   'tests/e2e/theme-matrix-manifest.json'
 ];
@@ -95,6 +96,13 @@ if (fileExists('src/features/landing/telemetry/validation.ts')) {
 
 if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
   const manifest = readJson('tests/e2e/theme-matrix-manifest.json');
+  const landingFixtureHelper = fileExists('tests/e2e/helpers/landing-fixture.ts')
+    ? read('tests/e2e/helpers/landing-fixture.ts')
+    : '';
+  const representativeVariantMatch = landingFixtureHelper.match(
+    /PRIMARY_AVAILABLE_TEST_VARIANT\s*=\s*['"`]([^'"`]+)['"`]/u
+  );
+  const representativeVariant = representativeVariantMatch?.[1] ?? null;
   const viewports = manifest.viewports ?? {};
   const closure = manifest.closure ?? {};
   const requiredLayoutCaseViewportKeys = closure.layoutCaseViewportKeys ?? {};
@@ -129,6 +137,10 @@ if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
     fail('Theme matrix manifest must contain both layout and state case groups.');
   }
 
+  if (!representativeVariant) {
+    fail('Theme matrix manifest drift guard requires PRIMARY_AVAILABLE_TEST_VARIANT in tests/e2e/helpers/landing-fixture.ts.');
+  }
+
   const layoutCaseIds = new Set(layoutCases.map((matrixCase) => matrixCase.id));
   const stateCaseIds = new Set(stateCases.map((matrixCase) => matrixCase.id));
 
@@ -152,6 +164,16 @@ if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
 
     if (!matrixCase.routeTemplate.includes('{locale}')) {
       fail(`Theme matrix case ${matrixCase.id} must express locale-aware routes via {locale}.`);
+    }
+
+    if (
+      representativeVariant &&
+      matrixCase.routeTemplate.includes('/test/') &&
+      matrixCase.routeTemplate !== `/{locale}/test/${representativeVariant}`
+    ) {
+      fail(
+        `Theme matrix case ${matrixCase.id} must align with representative test route /{locale}/test/${representativeVariant}.`
+      );
     }
 
     if (!allowedSettleRecipes.has(matrixCase.settleRecipe)) {

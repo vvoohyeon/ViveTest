@@ -1,0 +1,65 @@
+{
+  "gnb": {
+    "home": "ホーム",
+    "history": "履歴",
+    "blog": "ブログ",
+    "settings": "設定",
+    "language": "言語",
+    "theme": "テーマ",
+    "light": "ライト",
+    "dark": "ダーク",
+    "menu": "メニュー",
+    "menuAria": "メニューを開く",
+    "closeMenuAria": "メニューを閉じる",
+    "close": "閉じる",
+    "back": "戻る",
+    "backAria": "戻る",
+    "timerPlaceholder": "00:00"
+  },
+  "landing": {
+    "heroTitle": "ひと続きの流れで、自分の作業リズムを見つける",
+    "heroBody": "利用可能なテストとエンジニアリングブログのノートを、ひとつのカタログで確認できます。カードを展開してアクションを選ぶだけで、迷いのない次の一歩に進めます。",
+    "comingSoon": "近日公開",
+    "closeExpandedAria": "展開したカードを閉じる",
+    "close": "閉じる",
+    "metaEstimated": "所要時間",
+    "metaShares": "シェア数",
+    "metaAttempts": "累計参加数",
+    "metaReadTime": "読了時間",
+    "metaViews": "閲覧数",
+    "readMore": "続きを読む"
+  },
+  "test": {
+    "progress": "全{total}問中 {current}問目",
+    "prev": "前へ",
+    "next": "次へ",
+    "submit": "送信",
+    "resultLabel": "最終結果",
+    "resultBody": "結果は、1問目の更新内容を含む最終回答をもとに算出されます。",
+    "goHome": "ランディングへ",
+    "goHistory": "履歴を見る",
+    "instructionTitle": "始める前に",
+    "instructionBody": "各設問を読んで、回答を1つ選択してください。最終送信前であれば、前の設問に戻って回答を修正できます。",
+    "start": "開始"
+  },
+  "blog": {
+    "selected": "選択した記事",
+    "allArticles": "すべての記事"
+  },
+  "history": {
+    "title": "ローカル結果履歴",
+    "body": "完了した実行は、それぞれ独立した項目として保存されます（新しい順、最大50件）。",
+    "clearAll": "すべて削除",
+    "goHome": "ホームへ",
+    "open": "開く",
+    "delete": "削除"
+  },
+  "consent": {
+    "regionLabel": "Cookie 設定",
+    "message": "サービスを正しく動作させ、利用状況を把握するために、Cookie および類似技術を使用します。任意の Cookie を許可するかどうかはご自身で選択でき、その選択はいつでも変更できます。",
+    "accept": "すべて許可",
+    "deny": "拒否",
+    "preferences": "設定",
+    "preferencesTitle": "設定パネルは近日公開予定です"
+  }
+}

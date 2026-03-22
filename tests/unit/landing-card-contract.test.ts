@@ -4,6 +4,10 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {describe, expect, it} from 'vitest';
 
 import {createLandingCatalog} from '../../src/features/landing/data/adapter';
+import type {
+  LandingCardDesktopMotionRole,
+  LandingCardDesktopShellPhase
+} from '../../src/features/landing/grid/desktop-shell-phase';
 import type {LandingCardInteractionMode, LandingCardVisualState} from '../../src/features/landing/grid/landing-grid-card';
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
 
@@ -11,12 +15,16 @@ function renderCardDocument({
   card,
   state,
   locale = 'en',
-  interactionMode = 'tap'
+  interactionMode = 'tap',
+  desktopMotionRole = 'idle',
+  desktopShellPhase = 'idle'
 }: {
   card: ReturnType<typeof createLandingCatalog>[number];
   state: LandingCardVisualState;
   locale?: 'en' | 'kr';
   interactionMode?: LandingCardInteractionMode;
+  desktopMotionRole?: LandingCardDesktopMotionRole;
+  desktopShellPhase?: LandingCardDesktopShellPhase;
 }): Document {
   const html = renderToStaticMarkup(
     createElement(LandingGridCard, {
@@ -24,12 +32,34 @@ function renderCardDocument({
       locale,
       state,
       interactionMode,
+      viewportTier: 'desktop',
+      desktopMotionRole,
+      desktopShellPhase,
       copy: getDefaultCardCopy(),
       sequence: 0
     })
   );
 
-  return new JSDOM(html).window.document;
+  return new JSDOM(html, {url: `https://example.test/${locale}`}).window.document;
+}
+
+function renderDesktopExpandedCardDocument({
+  card,
+  locale = 'en',
+  interactionMode = 'hover'
+}: {
+  card: ReturnType<typeof createLandingCatalog>[number];
+  locale?: 'en' | 'kr';
+  interactionMode?: LandingCardInteractionMode;
+}): Document {
+  return renderCardDocument({
+    card,
+    locale,
+    state: 'expanded',
+    interactionMode,
+    desktopMotionRole: 'steady',
+    desktopShellPhase: 'steady'
+  });
 }
 
 describe('landing card slot contract', () => {
@@ -68,12 +98,13 @@ describe('landing card slot contract', () => {
     }
 
     const normalDoc = renderCardDocument({card, state: 'normal'});
-    const expandedDoc = renderCardDocument({card, state: 'expanded'});
+    const expandedDoc = renderDesktopExpandedCardDocument({card});
 
     expect(expandedDoc.querySelector('[data-slot="cardSubtitle"]')).toBeNull();
     expect(expandedDoc.querySelector('[data-slot="thumbnailOrIcon"]')).toBeNull();
     expect(expandedDoc.querySelector('[data-slot="tags"]')).toBeNull();
 
+    expect(expandedDoc.querySelector('[data-slot="expandedSurface"]')).not.toBeNull();
     expect(expandedDoc.querySelector('[data-slot="previewQuestion"]')).not.toBeNull();
     expect(expandedDoc.querySelector('[data-slot="answerChoiceA"]')).not.toBeNull();
     expect(expandedDoc.querySelector('[data-slot="answerChoiceB"]')).not.toBeNull();
@@ -118,8 +149,9 @@ describe('landing card slot contract', () => {
       throw new Error('Expected blog-ops-handbook as a blog card fixture');
     }
 
-    const doc = renderCardDocument({card, state: 'expanded'});
+    const doc = renderDesktopExpandedCardDocument({card});
 
+    expect(doc.querySelector('[data-slot="expandedSurface"]')).not.toBeNull();
     expect(doc.querySelector('[data-slot="summary"]')).not.toBeNull();
     expect(doc.querySelector('[data-slot="cardSubtitle"]')).toBeNull();
     expect(doc.querySelector('[data-slot="thumbnailOrIcon"]')).toBeNull();

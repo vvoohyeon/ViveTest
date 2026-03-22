@@ -58,13 +58,13 @@ test.describe('Phase 1 routing smoke', () => {
     expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
   });
 
-  test('@smoke non-allowlisted paths outside the route contract resolve to global 404 and duplicate locale paths stay global 404', async ({
+  test('@smoke non-allowlisted paths outside the route contract fall through to segment 404 while duplicate locale paths stay global 404', async ({
     page
   }) => {
     const previewLogBefore = readPreviewLog();
     const unmatchedResponse = await page.goto('/foo');
     expect(unmatchedResponse?.status()).toBe(404);
-    await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
+    await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
 
     const duplicateLocaleResponse = await page.goto('/en/en/blog');
     expect(duplicateLocaleResponse?.status()).toBe(404);

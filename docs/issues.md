@@ -1,103 +1,59 @@
-# P1: Release gate is still red
+# P1: Release gate drift came from ignored baselines and adjacent unit drift
 
 ## 요약
 
-P1은 telemetry/transition 코드가 틀렸다는 뜻이 아니다.
-문제는 현재 활성 SSOT와 QA 게이트가 theme-matrix completeness까지 release-blocking으로 요구하고 있고,
-실제 브랜치가 그 게이트를 아직 통과하지 못했다는 점이다.
-따라서 현 상태를 ‘마지막 요구사항 변경까지 완벽히 커버했다’고 표현하기는 어렵다.
+P1은 telemetry/transition 런타임 자체가 틀렸다는 뜻이 아니었다.
+현재 코드베이스를 다시 확인하면 short-expanded CSS 수정, `test-qmbti` / `qmbti` fixture 정렬,
+theme representative helper 안정화는 이미 반영되어 있고 대표 Playwright 케이스도 통과한다.
 
-## 현재 구현된 코드와 로직
+실제 문제는 두 층으로 나뉘어 있었다.
 
-- 현재 브랜치의 정적 릴리스 게이트는 `npm run qa:rules`입니다.
-- [package.json](/package.json#L11) 기준으로 `qa:rules`는 다음 QA 스크립트를 순차 실행합니다.
-  - `check-phase1-typed-routes.mjs`
-  - `check-phase2-accessibility.mjs`
-  - `check-phase3-theme-tokens.mjs`
-  - `check-phase4-copy-length.mjs`
-  - `check-phase5-locale-parity.mjs`
-  - `check-phase6-motion-performance.mjs`
-  - `check-phase7-hero-focus.mjs`
-  - `check-phase8-card-analytics.mjs`
-  - `check-phase9-article-surface.mjs`
+1. Phase 11은 로컬 디스크에 snapshot PNG가 있으면 통과할 수 있었지만,
+   그 파일들이 `.gitignore`에 가려져 저장소 진실로 승격되지 못했다.
+2. 전체 release gate(`qa:gate:once`)는 Phase 11 외에도 `npm test`를 포함하므로,
+   unit drift가 남아 있으면 여전히 빨간 상태였다.
+
+## 현재 코드 기준 사실관계
+
+- 현재 [package.json](/package.json) 의 `qa:rules`는 아래 순서로 실행된다.
+  - `check-phase1-contracts.mjs`
+  - `check-phase4-grid-contracts.mjs`
+  - `check-phase5-card-contracts.mjs`
+  - `check-phase6-spacing-contracts.mjs`
+  - `check-phase7-state-contracts.mjs`
+  - `check-phase8-accessibility-contracts.mjs`
+  - `check-phase9-performance-contracts.mjs`
   - `check-phase10-transition-contracts.mjs`
   - `check-phase11-telemetry-contracts.mjs`
   - `check-blocker-traceability.mjs`
-- 같은 [package.json](/package.json#L15) 에서 `qa:static`은 `lint + typecheck + qa:rules`를 묶고 있습니다.
-- [package.json](/package.json#L17) 에서 `qa:gate:once`는 `qa:static + build + test + test:e2e:smoke`를 묶습니다.
-- [package.json](/package.json#L18) 에서 `qa:gate`는 `qa:gate:once`를 3회 반복 통과해야 PASS입니다.
-- 즉 현재 코드베이스에서 `qa:rules`가 실패하면, 전체 release gate도 자동으로 빨간 상태입니다.
+- `qa:static`은 `lint + typecheck + qa:rules`,
+  `qa:gate:once`는 `qa:static + build + test + test:e2e:smoke`,
+  `qa:gate`는 `qa:gate:once`를 3회 반복한다.
+- 현재 [check-phase11-telemetry-contracts.mjs](/Users/woohyeon/Local/ViveTest/scripts/qa/check-phase11-telemetry-contracts.mjs) 는 telemetry 계약만이 아니라
+  `tests/e2e/theme-matrix-smoke.spec.ts`, `tests/e2e/theme-matrix-manifest.json`,
+  그리고 snapshot completeness까지 함께 검사한다.
+- 현재 저장소에는 manifest naming과 맞지 않는 legacy theme baseline 12장이 추적돼 있었고,
+  manifest가 실제로 요구하는 168장 theme baseline과 8장 safari baseline은 디스크에는 있어도 `.gitignore` 때문에 저장소에 드러나지 않았다.
 
-### 현재 실제 실행 결과
+## 핵심 해석
 
-- 방금 다시 확인한 `npm run qa:rules` 결과:
-  - Phase 1~10 PASS
-  - `check-phase11-telemetry-contracts.mjs` FAIL
-  - 실패 원인은 `theme-matrix` snapshot completeness 누락
-- 누락 항목은 landing/blog/history/test instruction/test result 등 다수의 theme snapshot PNG입니다.
-- 즉, telemetry/transition 계약 자체만 보면 많이 맞아도, 현재 브랜치는 활성 QA 게이트 기준으로는 아직 release-green이 아닙니다.
-
-### 구현 로직상 중요한 점
-
-- [check-phase11-telemetry-contracts.mjs](/scripts/qa/check-phase11-telemetry-contracts.mjs#L27) 는 이름은 telemetry contracts 검사이지만, 실제로는 아래 파일까지 함께 요구합니다.
-  - `tests/e2e/theme-matrix-smoke.spec.ts`
-  - `tests/e2e/theme-matrix-manifest.json`
-- [check-phase11-telemetry-contracts.mjs](/scripts/qa/check-phase11-telemetry-contracts.mjs#L96) 이후 로직은 manifest coverage와 snapshot completeness까지 검사합니다.
-- 따라서 현재 구현 체인에서는 “telemetry 계약 검사”와 “theme-matrix snapshot 완결성”이 사실상 하나의 Phase 11 블로커로 결합돼 있습니다.
-
-### 현재 구현 요약
-
-telemetry/transition 전용 계약은 대체로 맞지만,
-활성 release gate는 theme-matrix completeness까지 함께 요구하므로 현재 브랜치는 아직 release-green이 아니다.
-
-## 요구사항 문서에서 기술된 바
-
-- [req-landing.md](/docs/req-landing.md#L891) 14.3은 QA Matrix를 release-blocking으로 규정합니다.
-- 같은 섹션은 “하나라도 실패하면 release-blocked”라는 의미로 읽히도록 구성돼 있습니다.
-- [req-landing.md](/docs/req-landing.md#L900) 에는 `Theme Matrix PASS`가 명시적으로 blocker 항목으로 들어 있습니다.
-- [req-landing.md](/docs/req-landing.md#L904) 에는 `QA scripts / blocker traceability PASS`도 요구합니다.
-- [req-landing.md](/docs/req-landing.md#L911) 에는 최종적으로 `qa:gate 3/3 PASS`가 release-blocking으로 적혀 있습니다.
-- 즉 문서상 기준만 보면, telemetry/transition 범위가 맞더라도 theme-matrix나 QA gate가 실패하면 아직 완료 선언을 하면 안 됩니다.
-
-### 문서 요구사항 요약
-
-telemetry/transition 구현 일치 여부만으로는 충분하지 않고,
-문서가 release-blocking으로 둔 전체 QA matrix와 qa:gate까지 모두 통과해야 완료다.
-
-
-## 핵심 충돌 지점
-
-- 현재 구현 해석:
-telemetry/transition 변경 자체는 대부분 반영되어 있음
-- 현재 release gate 해석:
-theme-matrix completeness까지 포함한 QA matrix가 아직 실패 중
-- 따라서 충돌은 “코드가 telemetry/transition 요구를 대체로 만족한다”는 사실과, “활성 SSOT는 그보다 더 넓은 범위를 release-blocking으로 묶고 있다”는 사실 사이에 있습니다.
-
-조금 더 직접적으로 말하면:
-
-- 코드 관점에서는:
-“telemetry/transition 작업은 거의 닫혔다”고 볼 수 있음
-- 문서/게이트 관점에서는:
-“아직 release-ready라고 말할 수 없음”
-
-즉 P1의 본질은 런타임 버그가 아니라 아래 문제입니다.
+이 이슈의 본질은 “telemetry/transition 구현 미완료”가 아니라
+아래 두 가지 저장소 드리프트가 동시에 release gate를 흔든 데 있다.
 
 ```text
-이번 Phase의 실제 검증 범위와
-현재 문서/QA 스크립트가 release-blocking으로 묶고 있는 범위가 완전히 일치하지 않는다.
+1. Phase 11 green이 로컬의 ignored snapshot 파일 존재 여부에 의존했다.
+2. 전체 gate는 unit drift까지 포함하므로 qa:rules만 green이어도 release-ready가 아니었다.
 ```
 
-## 추가 질문
+따라서 P1은 범위 정의 문제만도 아니고, 런타임 버그만도 아니다.
+정확하게는 “현재 동작하는 테스트 상태가 저장소와 QA 문서에 제대로 반영되지 않은 상태”였다.
 
-1. 이번 telemetry/transition 변경셋의 완료 판단에 `theme-matrix snapshot completeness`를 계속 release-blocking으로 유지하는 것이 맞는가?
+## 현재 정리 방향
 
-2. 아니라면, [req-landing.md](/docs/req-landing.md) 14.3 또는 `qa:rules`/Phase 11 스크립트에서 이를 명시적으로 범위 밖으로 분리해야 하는가?
-
-3. 맞다면, telemetry/transition 구현 검토와 별개로 누락된 theme snapshot을 먼저 채우기 전에는 “완료” 또는 “완벽 커버” 판단을 내려서는 안 되는가?
-
-4. `check-phase11-telemetry-contracts.mjs`가 telemetry 계약 검사와 theme-matrix completeness를 함께 검사하는 현재 구조가 적절한가, 아니면 Phase 11을 두 개의 독립 게이트로 분리하는 편이 더 명확한가?
-
-5. 외부 리뷰 기준에서 이번 이슈를 “telemetry/transition 구현 미완료”로 볼지, 아니면 “release gate 범위 정의 문제”로 분류하는 것이 더 정확한가?
+- theme-matrix / safari baselines를 저장소에서 추적 가능한 자산으로 정리한다.
+- Phase 11 QA에 representative test variant drift guard를 추가해 fixture 변경 시 조기 실패하게 만든다.
+- `gnb-theme-transition` / `landing-card-contract` 같은 unit drift를 현재 runtime 계약에 맞춰 정리한다.
+- 그 뒤 `qa:gate:once` 기준으로 다시 release-green 여부를 판단한다.
 
 
 ---
