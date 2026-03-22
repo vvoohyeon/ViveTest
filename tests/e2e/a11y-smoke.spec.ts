@@ -2,6 +2,7 @@ import {expect, test, type Page} from '@playwright/test';
 
 import {expectPageToBeAxeClean} from './helpers/axe';
 import {seedTelemetryConsent} from './helpers/consent';
+import {PRIMARY_AVAILABLE_TEST_CARD_ID, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   await page.addInitScript((timeoutMs) => {
@@ -126,12 +127,15 @@ test.describe('Canonical accessibility smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, 'test-rhythm-a');
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
     await page.keyboard.press('Space');
-    await expect(page.locator('[data-card-id="test-rhythm-a"]')).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect(page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`)).toHaveAttribute(
+      'data-mobile-phase',
+      'OPEN'
+    );
     await expectPageToBeAxeClean(page);
 
-    for (const route of ['/en/blog', '/en/history', '/en/test/rhythm-a']) {
+    for (const route of ['/en/blog', '/en/history', buildLocalizedPrimaryTestRoute('en')]) {
       await page.goto(route);
       await expectPageToBeAxeClean(page);
     }
@@ -159,9 +163,12 @@ test.describe('Canonical accessibility smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/kr');
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, 'test-rhythm-a');
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
     await page.keyboard.press('Space');
-    await expect(page.locator('[data-card-id="test-rhythm-a"]')).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect(page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`)).toHaveAttribute(
+      'data-mobile-phase',
+      'OPEN'
+    );
     await expectPageToBeAxeClean(page);
   });
 });

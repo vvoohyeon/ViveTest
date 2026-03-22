@@ -1,9 +1,17 @@
 import {expect, test} from '@playwright/test';
 
+import {
+  PRIMARY_AVAILABLE_TEST_CARD_ID,
+  PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY,
+  PRIMARY_AVAILABLE_TEST_VARIANT,
+  buildLocalizedPrimaryTestRoute
+} from './helpers/landing-fixture';
+
 const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 const LANDING_TRANSITION_SIGNAL_EVENT = 'landing:transition-signal';
 const LANDING_TRANSITION_SIGNAL_STORAGE_KEY = 'vivetest-test-transition-signals';
 const TRANSITION_OVERLAY_READY_DELAY_MS = 180;
+const PRIMARY_AVAILABLE_TEST_ROUTE_EN = buildLocalizedPrimaryTestRoute('en');
 
 function collectForbiddenKeys(value: unknown, trail = ''): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -132,29 +140,29 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const testCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const testCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     await testCard.getByTestId('landing-grid-card-trigger').click();
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
-    await expect(page).toHaveURL(/\/en\/test\/rhythm-a$/u);
+    await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expectSourceGnbOverlay(page, 'test');
     await expect(page.getByTestId('landing-transition-source-gnb')).toContainText('ViveTest');
     await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-ingress:rhythm-a')))
+      .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY))
       .not.toBeNull();
 
     await page.reload();
-    await expect(page).toHaveURL(/\/en\/test\/rhythm-a$/u);
+    await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
 
     await page.getByTestId('test-start-button').click();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-ingress:rhythm-a')))
+      .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY))
       .toBeNull();
 
     await page.getByTestId('test-choice-a').click();
@@ -187,11 +195,11 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(1);
     expect(transitionSignals.filter((signal) => signal.signal === 'transition_complete')).toHaveLength(1);
 
-    expect(cardAnswered?.source_card_id).toBe('test-rhythm-a');
-    expect(cardAnswered?.target_route).toBe('/en/test/rhythm-a');
+    expect(cardAnswered?.source_card_id).toBe(PRIMARY_AVAILABLE_TEST_CARD_ID);
+    expect(cardAnswered?.target_route).toBe(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     expect(cardAnswered?.landing_ingress_flag).toBe(true);
-    expect(transitionStart?.sourceCardId).toBe('test-rhythm-a');
-    expect(transitionStart?.targetRoute).toBe('/en/test/rhythm-a');
+    expect(transitionStart?.sourceCardId).toBe(PRIMARY_AVAILABLE_TEST_CARD_ID);
+    expect(transitionStart?.targetRoute).toBe(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     expect(transitionComplete?.transitionId).toBe(transitionStart?.transitionId);
     expect(attemptStart?.landing_ingress_flag).toBe(true);
     expect(attemptStart?.question_index_1based).toBe(2);
@@ -235,7 +243,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     });
 
     await page.setViewportSize({width: 1440, height: 980});
-    await page.goto('/en/test/rhythm-a');
+    await page.goto(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
 
@@ -261,21 +269,21 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const testCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const testCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     await testCard.getByTestId('landing-grid-card-trigger').click();
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
-    await expect(page).toHaveURL(/\/en\/test\/rhythm-a$/u);
+    await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
 
     await page.getByTestId('test-start-button').click();
     await expect
-      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-ingress:rhythm-a')))
+      .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY))
       .toBeNull();
 
     await page.goto('/en');
-    await page.goto('/en/test/rhythm-a');
+    await page.goto(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
   });
@@ -396,7 +404,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'mobile');
 
-    const card = page.locator('[data-card-id="test-rhythm-a"]');
+    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const trigger = card.getByTestId('landing-grid-card-trigger');
     const before = await card.boundingBox();
     const beforeTitleTop = await card
@@ -442,7 +450,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + 32);
       return target?.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-id') ?? null;
     });
-    expect(activeCardElementAtPoint).toBe('test-rhythm-a');
+    expect(activeCardElementAtPoint).toBe(PRIMARY_AVAILABLE_TEST_CARD_ID);
 
     await backdrop.dispatchEvent('pointerdown', {
       pointerType: 'touch',
@@ -460,7 +468,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(trigger).toHaveAttribute('data-trigger-state', 'collapsed');
     await expect
       .poll(() => shell.getAttribute('data-mobile-restore-ready-card-id'))
-      .toBe('test-rhythm-a');
+      .toBe(PRIMARY_AVAILABLE_TEST_CARD_ID);
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
   });
 
@@ -470,7 +478,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const card = page.locator('[data-card-id="test-rhythm-a"]');
+    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const before = await card.boundingBox();
     const beforeTitleTop = await card
       .locator('[data-slot="cardTitle"]')
@@ -512,7 +520,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const card = page.locator('[data-card-id="test-rhythm-a"]');
+    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const before = await card.boundingBox();
 
     expect(before).not.toBeNull();
@@ -607,7 +615,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
-    const card = page.locator('[data-card-id="test-rhythm-a"]');
+    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const trigger = card.getByTestId('landing-grid-card-trigger');
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
@@ -673,7 +681,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
     await firstCard.getByTestId('landing-grid-card-trigger').click();
 
@@ -736,11 +744,11 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       },
       {
         transitionId: 'transition-timeout-1',
-        sourceCardId: 'test-rhythm-a',
-        targetRoute: '/en/test/rhythm-a',
+        sourceCardId: PRIMARY_AVAILABLE_TEST_CARD_ID,
+        targetRoute: PRIMARY_AVAILABLE_TEST_ROUTE_EN,
         targetType: 'test',
         startedAtMs: Date.now(),
-        variant: 'rhythm-a',
+        variant: PRIMARY_AVAILABLE_TEST_VARIANT,
         preAnswerChoice: 'A'
       }
     );
@@ -775,7 +783,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       }
     );
 
-    await page.goto('/en/test/rhythm-a');
+    await page.goto(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
 
     await expect
       .poll(async () => (await readTransitionSignals(page)).find((signal) => signal.signal === 'transition_fail')?.resultReason ?? null)
@@ -794,11 +802,11 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       },
       {
         transitionId: 'transition-user-cancel-1',
-        sourceCardId: 'test-rhythm-a',
-        targetRoute: '/en/test/rhythm-a',
+        sourceCardId: PRIMARY_AVAILABLE_TEST_CARD_ID,
+        targetRoute: PRIMARY_AVAILABLE_TEST_ROUTE_EN,
         targetType: 'test',
         startedAtMs: Date.now(),
-        variant: 'rhythm-a',
+        variant: PRIMARY_AVAILABLE_TEST_VARIANT,
         preAnswerChoice: 'A'
       }
     );

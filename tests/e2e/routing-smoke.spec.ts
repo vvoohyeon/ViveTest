@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import {expect, test} from '@playwright/test';
 
+import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
+
 const PREVIEW_LOG_PATH = path.join(process.cwd(), '.next/qa/preview-smoke.log');
 const PREVIEW_404_ALLOWLIST = /Error: Internal: NoFallbackError(?:\n\s+at .+)+/gu;
 const isPreviewServerMode = process.env.PLAYWRIGHT_SERVER_MODE === 'preview';
@@ -51,16 +53,18 @@ test.describe('Phase 1 routing smoke', () => {
     await expect(page).toHaveURL(/\/(en|kr)\/history$/u);
     expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
 
-    await page.goto('/test/rhythm-a');
-    await expect(page).toHaveURL(/\/(en|kr)\/test\/rhythm-a$/u);
+    await page.goto(`/test/${PRIMARY_AVAILABLE_TEST_VARIANT}`);
+    await expect(page).toHaveURL(new RegExp(`/(en|kr)/test/${PRIMARY_AVAILABLE_TEST_VARIANT}$`, 'u'));
     expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
   });
 
-  test('@smoke non-allowlisted paths resolve to segment 404 and duplicate locale paths resolve to global 404', async ({page}) => {
+  test('@smoke non-allowlisted paths outside the route contract resolve to global 404 and duplicate locale paths stay global 404', async ({
+    page
+  }) => {
     const previewLogBefore = readPreviewLog();
     const unmatchedResponse = await page.goto('/foo');
     expect(unmatchedResponse?.status()).toBe(404);
-    await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
+    await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
 
     const duplicateLocaleResponse = await page.goto('/en/en/blog');
     expect(duplicateLocaleResponse?.status()).toBe(404);

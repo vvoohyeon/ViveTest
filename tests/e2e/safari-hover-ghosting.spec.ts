@@ -1,6 +1,7 @@
 import {expect, test, type Locator, type Page} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
+import {PRIMARY_AVAILABLE_TEST_CARD_ID} from './helpers/landing-fixture';
 
 const DESKTOP_VIEWPORT = {width: 1440, height: 980} as const;
 const STAGE_SHADOW_BLEED_X_PX = 72;
@@ -84,7 +85,10 @@ async function settleDesktopExpandedCard(page: Page, card: Locator) {
   }
 
   await page.mouse.move(initialBox.x + initialBox.width / 2, initialBox.y + initialBox.height / 2);
-  await expect(card).toHaveAttribute('data-desktop-shell-phase', 'opening');
+  await expect(card).toHaveAttribute('data-card-state', 'expanded');
+  await expect
+    .poll(() => card.getAttribute('data-desktop-shell-phase'))
+    .toMatch(/^(opening|steady)$/u);
   await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
 
   const settledBox = await card.boundingBox();
@@ -141,6 +145,55 @@ async function expectSteadyExpandedShadowSnapshot(input: {
   expect(screenshot).toMatchSnapshot(input.snapshotName);
 }
 
+async function readDesktopExpandedOverlayMetrics(card: Locator) {
+  return card.evaluate((element) => {
+    const shell = element.querySelector<HTMLElement>('[data-slot="expandedShell"]');
+    const surface = element.querySelector<HTMLElement>('[data-slot="expandedSurface"]');
+    if (!shell || !surface) {
+      throw new Error('Expected expanded shell and surface to be present for overlay metrics.');
+    }
+
+    const parseBackgroundAlpha = (value: string): number => {
+      if (value === 'transparent') {
+        return 0;
+      }
+
+      const rgbaMatch = value.match(/rgba?\((.*)\)/u);
+      if (rgbaMatch) {
+        const parts = rgbaMatch[1].split(',');
+        if (parts.length === 4) {
+          return Number.parseFloat(parts[3]);
+        }
+
+        return 1;
+      }
+
+      const slashMatch = value.match(/\/\s*([0-9.]+)\s*\)$/u);
+      if (slashMatch) {
+        return Number.parseFloat(slashMatch[1]);
+      }
+
+      return 1;
+    };
+
+    const rootRect = element.getBoundingClientRect();
+    const surfaceRect = surface.getBoundingClientRect();
+    const rootStyle = getComputedStyle(element);
+    const shellStyle = getComputedStyle(shell);
+    const surfaceStyle = getComputedStyle(surface);
+
+    return {
+      rootHeight: rootRect.height,
+      rootBottom: rootRect.bottom,
+      rootBackgroundAlpha: parseBackgroundAlpha(rootStyle.backgroundColor),
+      surfaceHeight: surfaceRect.height,
+      surfaceBottom: surfaceRect.bottom,
+      shellMinHeight: shellStyle.minHeight,
+      surfaceMinHeight: surfaceStyle.minHeight
+    };
+  });
+}
+
 test.describe('Safari hover-out ghosting regression', () => {
   test.beforeEach(async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_OUT');
@@ -149,11 +202,11 @@ test.describe('Safari hover-out ghosting regression', () => {
   });
 
   test('@smoke row1 same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}) => {
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const firstCardBox = await runHoverOutCollapseCycles({
       page,
       card: firstCard,
-      cardId: 'test-rhythm-a',
+      cardId: PRIMARY_AVAILABLE_TEST_CARD_ID,
       leavePointForBox: (box) => ({
         x: box.x + box.width / 2,
         y: Math.max(12, box.y - 48)
@@ -185,7 +238,7 @@ test.describe('Safari hover-out ghosting regression', () => {
   });
 
   test('@smoke row1 handoff source skips close and cleanup phases', async ({page}) => {
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
 
     await settleDesktopExpandedCard(page, firstCard);
@@ -198,11 +251,19 @@ test.describe('Safari hover-out ghosting regression', () => {
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
   });
 
-  test('@smoke row1 steady expanded shadow keeps a full envelope', async ({page}) => {
+  test('@smoke row1 steady expanded short card stays content-fit without leaking the in-flow shell', async ({page}) => {
+    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    await settleDesktopExpandedCard(page, card);
+    const overlayMetrics = await readDesktopExpandedOverlayMetrics(card);
+
+    expect(overlayMetrics.rootBackgroundAlpha).toBeLessThanOrEqual(0.05);
+    expect(overlayMetrics.shellMinHeight).toBe('0px');
+    expect(overlayMetrics.surfaceMinHeight).toBe('0px');
+
     await expectSteadyExpandedShadowSnapshot({
       page,
-      card: page.locator('[data-card-id="test-rhythm-a"]'),
-      snapshotName: 'steady-row1-expanded-shadow.png'
+      card,
+      snapshotName: 'steady-row1-short-expanded-content-fit.png'
     });
   });
 

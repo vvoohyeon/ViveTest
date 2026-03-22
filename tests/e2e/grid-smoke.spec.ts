@@ -1,4 +1,4 @@
-import {expect, test, type Page} from '@playwright/test';
+import {expect, test, type Locator, type Page} from '@playwright/test';
 
 import {
   DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE,
@@ -8,6 +8,7 @@ import {
   type LandingGridColumnMode
 } from '../../src/features/landing/grid/layout-plan';
 import {seedTelemetryConsent} from './helpers/consent';
+import {PRIMARY_AVAILABLE_TEST_CARD_ID} from './helpers/landing-fixture';
 
 const COLUMN_MODE_ORDER: Record<LandingGridColumnMode, number> = {
   'desktop-wide': 0,
@@ -125,6 +126,56 @@ async function findMixedScrollbarHeight(
   }
 
   throw new Error('Expected to find a viewport height where medium and two-column modes disagree on scrollbar state');
+}
+
+async function readDesktopExpandedOverlayMetrics(card: Locator) {
+  return card.evaluate((element) => {
+    const shell = element.querySelector<HTMLElement>('[data-slot="expandedShell"]');
+    const surface = element.querySelector<HTMLElement>('[data-slot="expandedSurface"]');
+    if (!shell || !surface) {
+      throw new Error('Expected expanded shell and surface to be present for overlay metrics.');
+    }
+
+    const parseBackgroundAlpha = (value: string): number => {
+      if (value === 'transparent') {
+        return 0;
+      }
+
+      const rgbaMatch = value.match(/rgba?\((.*)\)/u);
+      if (rgbaMatch) {
+        const parts = rgbaMatch[1].split(',');
+        if (parts.length === 4) {
+          return Number.parseFloat(parts[3]);
+        }
+
+        return 1;
+      }
+
+      const slashMatch = value.match(/\/\s*([0-9.]+)\s*\)$/u);
+      if (slashMatch) {
+        return Number.parseFloat(slashMatch[1]);
+      }
+
+      return 1;
+    };
+
+    const rootRect = element.getBoundingClientRect();
+    const surfaceRect = surface.getBoundingClientRect();
+    const rootStyle = getComputedStyle(element);
+    const shellStyle = getComputedStyle(shell);
+    const surfaceStyle = getComputedStyle(surface);
+
+    return {
+      rootHeight: rootRect.height,
+      rootBottom: rootRect.bottom,
+      rootBackgroundAlpha: parseBackgroundAlpha(rootStyle.backgroundColor),
+      shellMinHeight: shellStyle.minHeight,
+      surfaceHeight: surfaceRect.height,
+      surfaceBottom: surfaceRect.bottom,
+      surfaceBackgroundAlpha: parseBackgroundAlpha(surfaceStyle.backgroundColor),
+      surfaceMinHeight: surfaceStyle.minHeight
+    };
+  });
 }
 
 test.describe('Phase 4 grid smoke', () => {
@@ -336,7 +387,7 @@ test.describe('Phase 4 grid smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const shortCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const shortCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const longCard = page.locator('[data-card-id="test-rhythm-b"]');
     await expect(shortCard).toHaveCount(1);
     await expect(longCard).toHaveCount(1);
@@ -546,7 +597,7 @@ test.describe('Phase 4 grid smoke', () => {
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
-    const sourceCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const sourceCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const siblingCard = page.locator('[data-card-id="test-rhythm-b"]');
     const before = await siblingCard.boundingBox();
 
@@ -566,13 +617,44 @@ test.describe('Phase 4 grid smoke', () => {
     await expect.poll(() => shell.getAttribute('data-baseline-phase')).toBe('BASELINE_READY');
   });
 
+  test('@smoke assertion:B4-short-expanded desktop short expanded overlay stays content-fit without leaking the in-flow shell', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const sourceCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const siblingCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const beforeSibling = await siblingCard.boundingBox();
+
+    expect(beforeSibling).not.toBeNull();
+    await sourceCard.hover();
+    await expect(sourceCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(sourceCard).toHaveAttribute('data-desktop-motion-role', 'steady');
+    await sourceCard.locator('[data-slot="cardTitleExpanded"]').hover();
+
+    const overlayMetrics = await readDesktopExpandedOverlayMetrics(sourceCard);
+    const afterSibling = await siblingCard.boundingBox();
+
+    expect(overlayMetrics.rootBackgroundAlpha).toBeLessThanOrEqual(0.05);
+    expect(overlayMetrics.surfaceBackgroundAlpha).toBeGreaterThan(0.9);
+    expect(overlayMetrics.shellMinHeight).toBe('0px');
+    expect(overlayMetrics.surfaceMinHeight).toBe('0px');
+    expect(afterSibling).not.toBeNull();
+    expect(Math.abs((afterSibling?.y ?? 0) - (beforeSibling?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((afterSibling?.height ?? 0) - (beforeSibling?.height ?? 0))).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs((afterSibling?.y ?? 0) + (afterSibling?.height ?? 0) - ((beforeSibling?.y ?? 0) + (beforeSibling?.height ?? 0)))
+    ).toBeLessThanOrEqual(1);
+  });
+
   test('@smoke assertion:B13-hover-collapse desktop hover-out collapse stays independent and handoff remains available-only', async ({
     page
   }) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
     const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
 

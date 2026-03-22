@@ -1,6 +1,7 @@
 import {expect, test, type Page} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
+import {buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 async function installViewTransitionStub(page: Page) {
   await page.addInitScript(() => {
@@ -573,7 +574,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   test('@smoke mobile test back uses history before fallback', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en/blog');
-    await page.goto('/en/test/rhythm-a');
+    await page.goto(buildLocalizedPrimaryTestRoute('en'));
 
     await page.getByTestId('gnb-mobile-test-back').click();
     await expect(page).toHaveURL(/\/en\/blog$/u);
@@ -581,7 +582,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
   test('@smoke mobile test back falls back to localized landing', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
-    await page.goto('/en/test/rhythm-a');
+    await page.goto(buildLocalizedPrimaryTestRoute('en'));
 
     await page.getByTestId('gnb-mobile-test-back').click();
     await expect(page).toHaveURL(/\/en$/u);
@@ -592,7 +593,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   }) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en/blog');
-    await page.goto('/en/test/rhythm-a');
+    await page.goto(buildLocalizedPrimaryTestRoute('en'));
     await page.locator('body').click({position: {x: 1, y: 1}});
 
     await expect(page.getByTestId('gnb-mobile-menu-trigger')).toHaveCount(0);

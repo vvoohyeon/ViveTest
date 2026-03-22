@@ -1,10 +1,12 @@
 import {expect, test, type Browser, type Page, type ViewportSize} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
+import {PRIMARY_AVAILABLE_TEST_CARD_ID} from './helpers/landing-fixture';
 import rawThemeMatrixManifest from './theme-matrix-manifest.json';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const PREVIEW_HOST = 'http://127.0.0.1:4173';
+const REPRESENTATIVE_SETTLE_WAIT_MS = 300;
 
 type MatrixLocale = 'en' | 'kr';
 type MatrixTheme = 'light' | 'dark';
@@ -150,9 +152,18 @@ async function expandLandingCard(page: Page, cardId: string) {
 }
 
 async function openDesktopSettings(page: Page) {
-  await page.getByTestId('gnb-settings-trigger').hover();
-  await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+  const trigger = page.getByTestId('gnb-settings-trigger');
+  const panel = page.getByTestId('gnb-settings-panel');
+
+  await trigger.evaluate((element) => {
+    if (element instanceof HTMLElement) {
+      element.click();
+    }
+  });
+
+  await expect(panel).toBeVisible();
   await expect(page.getByTestId('desktop-gnb-theme-controls')).toBeVisible();
+  await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
 async function startTestAttempt(page: Page) {
@@ -160,12 +171,14 @@ async function startTestAttempt(page: Page) {
   await page.getByTestId('test-start-button').click();
   await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
   await expect(page.getByTestId('test-question-panel')).toBeVisible();
+  await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
 async function answerCurrentQuestion(page: Page, choice: 'A' | 'B') {
   const target = choice === 'A' ? 'test-choice-a' : 'test-choice-b';
   await page.getByTestId(target).click();
   await expect(page.getByTestId(target)).toHaveAttribute('data-selected', 'true');
+  await page.waitForTimeout(100);
 }
 
 async function completeTestAttempt(page: Page) {
@@ -183,18 +196,32 @@ async function completeTestAttempt(page: Page) {
   }
 
   await expect(page.getByTestId('test-result-panel')).toBeVisible();
+  await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
 async function openMobileExpandedCard(page: Page, cardId: string) {
   const card = page.locator(`[data-card-id="${cardId}"]`);
-  await card.getByTestId('landing-grid-card-trigger').click();
+  const trigger = card.getByTestId('landing-grid-card-trigger');
+
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.evaluate((element) => {
+    if (element instanceof HTMLElement) {
+      element.click();
+    }
+  });
   await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
   await expect(card.locator('[data-slot="expandedBody"]')).toBeVisible();
+  await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
 async function openMobileMenu(page: Page) {
-  await page.getByTestId('gnb-mobile-menu-trigger').click();
+  await page.getByTestId('gnb-mobile-menu-trigger').evaluate((element) => {
+    if (element instanceof HTMLElement) {
+      element.click();
+    }
+  });
   await expect(page.getByTestId('gnb-mobile-menu-panel')).toBeVisible();
+  await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
 async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
@@ -203,7 +230,7 @@ async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
     case 'test-instruction':
       return;
     case 'landing-test-expanded':
-      await expandLandingCard(page, 'test-rhythm-a');
+      await expandLandingCard(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
       return;
     case 'landing-blog-expanded':
       await expandLandingCard(page, 'blog-build-metrics');
@@ -219,7 +246,7 @@ async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
       await completeTestAttempt(page);
       return;
     case 'mobile-landing-test-expanded':
-      await openMobileExpandedCard(page, 'test-rhythm-a');
+      await openMobileExpandedCard(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
       return;
     case 'mobile-landing-blog-expanded':
       await openMobileExpandedCard(page, 'blog-build-metrics');

@@ -61,7 +61,7 @@
     {
       "id": "test-instruction",
       "suite": "layout",
-      "routeTemplate": "/{locale}/test/rhythm-a",
+      "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-instruction",
       "localeKeys": ["en", "kr"],
       "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
@@ -111,7 +111,7 @@
     {
       "id": "test-question",
       "suite": "state",
-      "routeTemplate": "/{locale}/test/rhythm-a",
+      "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-question",
       "localeKeys": ["en", "kr"],
       "viewportKeys": ["desktop-wide", "tablet-wide"]
@@ -119,7 +119,7 @@
     {
       "id": "test-result",
       "suite": "state",
-      "routeTemplate": "/{locale}/test/rhythm-a",
+      "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-result",
       "localeKeys": ["en", "kr"],
       "viewportKeys": ["desktop-wide", "tablet-wide"]
@@ -167,7 +167,7 @@
     {
       "id": "mobile-test-question",
       "suite": "state",
-      "routeTemplate": "/{locale}/test/rhythm-a",
+      "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-question",
       "localeKeys": ["en", "kr"],
       "viewportKeys": ["mobile"]
@@ -175,7 +175,7 @@
     {
       "id": "mobile-test-result",
       "suite": "state",
-      "routeTemplate": "/{locale}/test/rhythm-a",
+      "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-result",
       "viewportKeys": ["mobile"]
     }

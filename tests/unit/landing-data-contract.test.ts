@@ -27,16 +27,16 @@ describe('landing fixture and adapter contract', () => {
   it('normalizes localized Korean text and tags while blocking unavailable blog cards', () => {
     const catalogKr = createLandingCatalog('kr');
 
-    const rhythmATest = catalogKr.find((card) => card.id === 'test-rhythm-a');
-    expect(rhythmATest?.type).toBe('test');
-    if (!rhythmATest || rhythmATest.type !== 'test') {
-      throw new Error('Expected test-rhythm-a to be present as a test card');
+    const qmbtiTest = catalogKr.find((card) => card.id === 'test-qmbti');
+    expect(qmbtiTest?.type).toBe('test');
+    if (!qmbtiTest || qmbtiTest.type !== 'test') {
+      throw new Error('Expected test-qmbti to be present as a test card');
     }
 
-    expect(rhythmATest.title).toBe('집중 리듬 A');
-    expect(rhythmATest.subtitle).toBe('내 기본 딥워크 리듬을 빠르게 찾아보세요.');
-    expect(rhythmATest.tags).toEqual(['집중', '루틴']);
-    expect(rhythmATest.test.previewQuestion).toBe('언제 가장 깊게 몰입되나요?');
+    expect(qmbtiTest.title).toBe('10분컷 MBTI');
+    expect(qmbtiTest.subtitle).toBe('내 기본 딥워크 리듬을 빠르게 찾아보세요.');
+    expect(qmbtiTest.tags).toEqual(['순식간에', '쌉가능', '어서와']);
+    expect(qmbtiTest.test.previewQuestion).toBe('🎉 파티나 생일잔치에 가면 나는');
 
     const opsHandbookBlog = catalogKr.find((card) => card.id === 'blog-ops-handbook');
     expect(opsHandbookBlog?.type).toBe('blog');

@@ -369,6 +369,10 @@ a {
   box-shadow: none;
 }
 
+.landing-grid-card[data-expanded-layer='desktop-overlay'] {
+  background: transparent;
+}
+
 .landing-grid-card:has(:focus-visible) {
   box-shadow:
     0 0 0 3px var(--focus-ring-outer),
@@ -577,6 +581,12 @@ a {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--surface-divider) 92%, transparent);
   pointer-events: auto;
   z-index: 1;
+}
+
+.landing-grid-card[data-expanded-layer='desktop-overlay'] .landing-grid-card-expanded-shell,
+.landing-grid-card[data-expanded-layer='desktop-overlay'] .landing-grid-card-expanded-surface {
+  min-height: 0;
+  height: auto;
 }
 
 .landing-grid-card-expanded {

@@ -1,6 +1,7 @@
 import {expect, type Locator, type Page, test} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
+import {PRIMARY_AVAILABLE_TEST_CARD_ID, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const AVAILABLE_TEST_CARD_SELECTOR =
@@ -211,9 +212,9 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, 'test-rhythm-a');
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
 
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
     const firstTrigger = firstCard.getByTestId('landing-grid-card-trigger');
     const secondTrigger = secondCard.getByTestId('landing-grid-card-trigger');
@@ -266,14 +267,50 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(sourceCard).toHaveAttribute('data-card-state', 'normal');
   });
 
+  test('@smoke desktop short expanded overlay keeps the root shell transparent while the surface settles content-fit', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    await movePointerToCenter(page, firstCard.getByTestId('landing-grid-card-trigger'));
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
+
+    await movePointerToCenter(page, firstCard.locator('[data-slot="cardTitleExpanded"]'));
+
+    const rootMetrics = await readInteractiveMetrics(firstCard);
+    const surfaceMetrics = await readInteractiveMetrics(firstCard.locator('[data-slot="expandedSurface"]'));
+    const overlayStyleMetrics = await firstCard.evaluate((element) => {
+      const shell = element.querySelector<HTMLElement>('[data-slot="expandedShell"]');
+      const surface = element.querySelector<HTMLElement>('[data-slot="expandedSurface"]');
+
+      if (!shell || !surface) {
+        throw new Error('Expected expanded shell and surface to be present.');
+      }
+
+      return {
+        shellMinHeight: getComputedStyle(shell).minHeight,
+        surfaceMinHeight: getComputedStyle(surface).minHeight
+      };
+    });
+
+    expect(rootMetrics.backgroundAlpha).toBeLessThanOrEqual(0.05);
+    expect(rootMetrics.boxShadow).toBe('none');
+    expect(surfaceMetrics.backgroundAlpha).toBeGreaterThan(0.9);
+    expect(overlayStyleMetrics.shellMinHeight).toBe('0px');
+    expect(overlayStyleMetrics.surfaceMinHeight).toBe('0px');
+  });
+
   test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, 'test-rhythm-a');
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
 
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
     await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
@@ -296,9 +333,9 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, 'test-rhythm-a');
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
 
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
     const secondTrigger = secondCard.getByTestId('landing-grid-card-trigger');
 
@@ -310,10 +347,14 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstCard.locator('[data-slot="mobileClose"]:focus')).toHaveCount(1);
 
     await page.keyboard.press('Tab');
-    await expect(page.locator('[data-card-id="test-rhythm-a"] [data-slot="answerChoiceA"]:focus')).toHaveCount(1);
+    await expect(
+      page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"] [data-slot="answerChoiceA"]:focus`)
+    ).toHaveCount(1);
 
     await page.keyboard.press('Tab');
-    await expect(page.locator('[data-card-id="test-rhythm-a"] [data-slot="answerChoiceB"]:focus')).toHaveCount(1);
+    await expect(
+      page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"] [data-slot="answerChoiceB"]:focus`)
+    ).toHaveCount(1);
 
     await page.keyboard.press('Tab');
     await expect(secondTrigger).toBeFocused();
@@ -343,7 +384,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
     const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
 
@@ -392,14 +433,14 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
-    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
 
-    const navigation = page.waitForURL(/\/en\/test\/rhythm-a$/u);
+    const navigation = page.waitForURL(new RegExp(`${buildLocalizedPrimaryTestRoute('en')}$`, 'u'));
     await firstCard.locator('[data-slot="answerChoiceA"]').click({noWaitAfter: true});
     await expect(shell).toHaveAttribute('data-page-state', 'TRANSITIONING');
     await expect(secondCard).toHaveAttribute('data-hover-lock-blocked', 'true');
@@ -410,7 +451,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const availableTestCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const availableTestCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const availableBlogCard = page.locator('[data-card-id="blog-ops-handbook"]');
     const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
 
