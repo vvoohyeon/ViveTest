@@ -1761,24 +1761,33 @@ span.landing-grid-card-primary-cta {
 }
 
 .gnb-settings-row-theme {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 12px;
-}
-
-.gnb-settings-row-theme > .gnb-settings-label {
-  align-self: center;
-}
-
-.gnb-settings-row-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
+.gnb-settings-theme-heading {
+  min-height: var(--gnb-settings-trigger-size, 40px);
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+}
+
+.gnb-settings-theme-heading > .gnb-settings-label {
+  line-height: 1;
+}
+
+@supports (font: -apple-system-body) {
+  .gnb-settings-theme-heading > .gnb-settings-label {
+    transform: translateY(2px);
+  }
+}
+
 .gnb-settings-theme-actions {
-  display: inline-flex;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
 }
@@ -1789,16 +1798,6 @@ span.landing-grid-card-primary-cta {
   letter-spacing: 0.03em;
   color: var(--muted-ink);
   text-transform: uppercase;
-}
-
-.gnb-settings-value {
-  min-width: 0;
-  margin-left: auto;
-  color: var(--ink);
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-align: right;
-  white-space: nowrap;
 }
 
 .gnb-chip-row {

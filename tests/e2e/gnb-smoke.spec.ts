@@ -5,6 +5,7 @@ import {seedTelemetryConsent} from './helpers/consent';
 import {buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
+const EN_COMBINED_SETTINGS_LABEL = 'Language⋅Theme';
 
 async function installViewTransitionStub(page: Page) {
   await page.addInitScript(() => {
@@ -31,14 +32,29 @@ function getAlternateLocaleLabels(locale: AppLocale): string[] {
 
 async function expectLocalePickerState(page: Page, scope: 'desktop' | 'mobile', locale: AppLocale) {
   const localeControls = page.getByTestId(`${scope}-gnb-locale-controls`);
+  const currentLocaleLabel = getLocaleLabel(locale);
 
-  await expect(page.getByTestId(`${scope}-gnb-current-locale`)).toHaveText(getLocaleLabel(locale));
-  await expect(localeControls.getByRole('button')).toHaveCount(localeOptions.length - 1);
-  await expect(localeControls.getByRole('button', {name: getLocaleLabel(locale)})).toHaveCount(0);
+  await expect(localeControls.getByRole('button')).toHaveCount(localeOptions.length);
 
-  for (const label of getAlternateLocaleLabels(locale)) {
-    await expect(localeControls.getByRole('button', {name: label})).toBeVisible();
+  for (const {code, label} of localeOptions) {
+    const button = localeControls.getByRole('button', {name: label});
+
+    await expect(button).toBeVisible();
+
+    if (code === locale) {
+      await expect(button).toHaveAttribute('aria-pressed', 'true');
+      await expect(button).toBeDisabled();
+      await expect(button).toHaveText(currentLocaleLabel);
+    } else {
+      await expect(button).toHaveAttribute('aria-pressed', 'false');
+      await expect(button).toBeEnabled();
+    }
   }
+}
+
+async function expectCombinedSettingsLabel(page: Page, scope: 'desktop' | 'mobile', expectedLabel: string) {
+  await expect(page.getByTestId(`${scope}-gnb-theme-controls`).locator('.gnb-settings-label')).toHaveText(expectedLabel);
+  await expect(page.getByTestId(`${scope}-gnb-locale-controls`).locator('.gnb-settings-label')).toHaveCount(0);
 }
 
 function getThemeControls(page: Page, scope: 'desktop' | 'mobile') {
@@ -121,6 +137,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await trigger.hover();
     await expect(panel).toBeVisible({timeout: 200});
+    await expectCombinedSettingsLabel(page, 'desktop', EN_COMBINED_SETTINGS_LABEL);
     await expectLocalePickerState(page, 'desktop', 'en');
     await expectDesktopCurrentThemeButtonAlignment(page);
 
@@ -350,6 +367,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await trigger.click();
     await expect(panel).toBeVisible();
+    await expectCombinedSettingsLabel(page, 'mobile', EN_COMBINED_SETTINGS_LABEL);
     await expectThemeButtonsState(page, 'mobile', 'light');
 
     await getThemeControls(page, 'mobile').darkButton.click();

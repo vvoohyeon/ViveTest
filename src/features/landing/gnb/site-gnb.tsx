@@ -586,7 +586,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   };
 
   const settingsLabels = {
-    language: t('language'),
     theme: t('theme'),
     light: t('light'),
     dark: t('dark')

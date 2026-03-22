@@ -4,7 +4,6 @@ import {localeOptions, type AppLocale} from '@/config/site';
 import {ThemeModeIcon} from '@/features/landing/gnb/components/theme-mode-icon';
 
 interface SettingsControlLabels {
-  language: string;
   theme: string;
   light: string;
   dark: string;
@@ -27,8 +26,6 @@ export function SettingsControls({
   onLocaleChange,
   onThemeChange
 }: SettingsControlsProps) {
-  const currentLocaleOption = localeOptions.find(({code}) => code === locale);
-  const alternateLocaleOptions = localeOptions.filter(({code}) => code !== locale);
   const orderedThemeOptions =
     resolvedTheme === 'light'
       ? (['dark', 'light'] as const)
@@ -42,7 +39,9 @@ export function SettingsControls({
   return (
     <div className={`gnb-settings-controls gnb-settings-controls-${scope}`}>
       <div className="gnb-settings-row gnb-settings-row-theme" data-testid={`${scope}-gnb-theme-controls`}>
-        <span className="gnb-settings-label">{labels.theme}</span>
+        <div className="gnb-settings-theme-heading">
+          <span className="gnb-settings-label">{labels.theme}</span>
+        </div>
         <div className="gnb-settings-theme-actions">
           {orderedThemeOptions.map((theme) => {
             const isCurrentTheme = resolvedTheme === theme;
@@ -69,23 +68,23 @@ export function SettingsControls({
       </div>
 
       <div className="gnb-settings-row gnb-settings-row-locale" data-testid={`${scope}-gnb-locale-controls`}>
-        <div className="gnb-settings-row-header">
-          <span className="gnb-settings-label">{labels.language}</span>
-          <span className="gnb-settings-value" data-testid={`${scope}-gnb-current-locale`}>
-            {currentLocaleOption?.label ?? locale}
-          </span>
-        </div>
         <div className="gnb-chip-row">
-          {alternateLocaleOptions.map(({code, label}) => (
-            <button
-              key={code}
-              type="button"
-              className="gnb-chip"
-              onClick={() => onLocaleChange(code)}
-            >
-              {label}
-            </button>
-          ))}
+          {localeOptions.map(({code, label}) => {
+            const isCurrentLocale = code === locale;
+
+            return (
+              <button
+                key={code}
+                type="button"
+                className="gnb-chip"
+                aria-pressed={isCurrentLocale}
+                disabled={isCurrentLocale}
+                onClick={isCurrentLocale ? undefined : () => onLocaleChange(code)}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
