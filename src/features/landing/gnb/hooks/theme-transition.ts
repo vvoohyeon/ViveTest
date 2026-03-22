@@ -10,6 +10,10 @@ export const THEME_TRANSITION_CONFIG = {
 
 interface BlurCircleTransitionInput {
   sourceEl?: HTMLElement | null;
+  origin?: {
+    x: number;
+    y: number;
+  };
   applyThemeDomWrite: () => void;
   durationMs?: number;
 }
@@ -39,8 +43,9 @@ function isReducedMotionPreferred(): boolean {
 
 export function supportsThemeTransition(
   sourceEl?: HTMLElement | null,
+  origin?: {x: number; y: number},
 ): boolean {
-  if (typeof document === "undefined" || !sourceEl) {
+  if (typeof document === "undefined" || (!sourceEl && !origin)) {
     return false;
   }
 
@@ -145,23 +150,24 @@ function removeTransitionStyle() {
 
 export async function runBlurCircleTransition({
   sourceEl,
+  origin,
   applyThemeDomWrite,
   durationMs,
 }: BlurCircleTransitionInput): Promise<void> {
-  if (!supportsThemeTransition(sourceEl)) {
+  if (!supportsThemeTransition(sourceEl, origin)) {
     applyThemeDomWrite();
     return;
   }
 
-  const transitionSourceEl = sourceEl;
-  if (!transitionSourceEl) {
+  const resolvedOrigin = origin ?? (sourceEl ? getTransitionOrigin(sourceEl) : null);
+  if (!resolvedOrigin) {
     applyThemeDomWrite();
     return;
   }
 
   const transitionDocument = document as ThemeTransitionDocument;
   const nextDurationMs = resolveThemeTransitionDuration(durationMs);
-  const { x, y } = getTransitionOrigin(transitionSourceEl);
+  const { x, y } = resolvedOrigin;
 
   injectBaseStyles();
   removeTransitionStyle();

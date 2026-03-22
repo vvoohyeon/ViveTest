@@ -25,6 +25,7 @@ import {
   shouldUseHistoryBack
 } from '@/features/landing/gnb/behavior';
 import {useGnbCapability} from '@/features/landing/gnb/hooks/use-gnb-capability';
+import {getTransitionOrigin} from '@/features/landing/gnb/hooks/theme-transition';
 import {useThemePreference} from '@/features/landing/gnb/hooks/use-theme-preference';
 import type {GnbContext, MobileMenuState} from '@/features/landing/gnb/types';
 import {buildLocalizedPath} from '@/i18n/localized-path';
@@ -670,7 +671,10 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
             labels={settingsLabels}
             onLocaleChange={handleLocaleChange}
             onThemeChange={(theme, sourceEl) => {
-              applyTheme(theme, {sourceEl});
+              const transitionOrigin = sourceEl ? getTransitionOrigin(sourceEl) : undefined;
+
+              closeSettingsImmediate();
+              applyTheme(theme, {transitionOrigin});
             }}
           />
         </div>

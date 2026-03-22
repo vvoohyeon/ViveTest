@@ -246,13 +246,17 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
 
-    await page.getByTestId('gnb-settings-trigger').hover();
-    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+    const trigger = page.getByTestId('gnb-settings-trigger');
+    const panel = page.getByTestId('gnb-settings-panel');
+
+    await trigger.hover();
+    await expect(panel).toBeVisible();
     await expectThemeButtonsState(page, 'desktop', 'light');
 
     const {darkButton} = getThemeControls(page, 'desktop');
 
     await darkButton.click();
+    await expect(panel).toBeHidden();
 
     await expect
       .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
@@ -260,6 +264,9 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect.poll(() => page.evaluate(() => window.localStorage.getItem('vivetest-theme'))).toBe('dark');
     await expect(page.getByTestId('gnb-settings-trigger')).toHaveAttribute('data-current-theme', 'dark');
     await expect(page.locator('#theme-switch-style')).toHaveCount(1);
+
+    await trigger.hover();
+    await expect(panel).toBeVisible();
     await expectThemeButtonsState(page, 'desktop', 'dark');
 
     await expect(page.locator('#theme-switch-style')).toHaveCount(0, {timeout: 3000});
@@ -290,10 +297,13 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
+    const panel = page.getByTestId('gnb-settings-panel');
+
     await page.getByTestId('gnb-settings-trigger').hover();
-    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+    await expect(panel).toBeVisible();
 
     await getThemeControls(page, 'desktop').darkButton.click();
+    await expect(panel).toBeHidden();
 
     await expect
       .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
@@ -314,16 +324,44 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
+    const panel = page.getByTestId('gnb-settings-panel');
+
     await page.getByTestId('gnb-settings-trigger').hover();
-    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+    await expect(panel).toBeVisible();
 
     await getThemeControls(page, 'desktop').darkButton.click();
+    await expect(panel).toBeHidden();
 
     await expect
       .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
       .toBe('dark');
     await expectThemeButtonsState(page, 'desktop', 'dark');
     await expect(page.locator('#theme-switch-style')).toHaveCount(0);
+  });
+
+  test('@smoke mobile theme switch keeps the menu open while applying the next theme', async ({page}) => {
+    await installViewTransitionStub(page);
+    await seedManualTheme(page, 'light');
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const trigger = page.getByTestId('gnb-mobile-menu-trigger');
+    const panel = page.getByTestId('gnb-mobile-menu-panel');
+
+    await trigger.click();
+    await expect(panel).toBeVisible();
+    await expectThemeButtonsState(page, 'mobile', 'light');
+
+    await getThemeControls(page, 'mobile').darkButton.click();
+
+    await expect(panel).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+      .toBe('dark');
+    await expect(page.locator('#theme-switch-style')).toHaveCount(1);
+    await expectThemeButtonsState(page, 'mobile', 'dark');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#theme-switch-style')).toHaveCount(0, {timeout: 3000});
   });
 
   test('@smoke assertion:B3-gnb-keyboard-matrix desktop landing enters cards first, reverse-enters GNB, and closes settings on focus-out', async ({

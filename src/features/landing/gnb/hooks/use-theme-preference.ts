@@ -11,6 +11,10 @@ type ResolvedTheme = Exclude<ThemePreference, 'system'>;
 
 interface ApplyThemeOptions {
   sourceEl?: HTMLElement | null;
+  transitionOrigin?: {
+    x: number;
+    y: number;
+  };
 }
 
 interface ThemePreferenceController {
@@ -122,6 +126,7 @@ export function useThemePreference(): ThemePreferenceController {
 
     void runBlurCircleTransition({
       sourceEl: options?.sourceEl,
+      origin: options?.transitionOrigin,
       applyThemeDomWrite: commitThemeChange
     });
   }, []);
