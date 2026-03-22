@@ -5,6 +5,9 @@ import {seedTelemetryConsent} from './helpers/consent';
 import {buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
+const DESKTOP_SETTINGS_PANEL_EXTRA_TOP_PX = 12;
+const DESKTOP_SETTINGS_PANEL_EXTRA_RIGHT_PX = 15;
+const DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX = 0.5;
 const EN_COMBINED_SETTINGS_LABEL = 'Language⋅Theme';
 
 async function installViewTransitionStub(page: Page) {
@@ -104,13 +107,30 @@ async function expectDesktopCurrentThemeButtonAlignment(page: Page) {
   expect(currentButtonBox).not.toBeNull();
   expect(alternateButtonBox).not.toBeNull();
 
-  expect(Math.abs((panelBox?.y ?? 0) - (triggerBox?.y ?? 0))).toBeLessThanOrEqual(1);
-  expect(Math.abs((currentButtonBox?.x ?? 0) - (triggerBox?.x ?? 0))).toBeLessThanOrEqual(1);
-  expect(Math.abs((currentButtonBox?.y ?? 0) - (triggerBox?.y ?? 0))).toBeLessThanOrEqual(1);
-  expect(Math.abs((currentButtonBox?.width ?? 0) - (triggerBox?.width ?? 0))).toBeLessThanOrEqual(1);
-  expect(Math.abs((currentButtonBox?.height ?? 0) - (triggerBox?.height ?? 0))).toBeLessThanOrEqual(1);
+  expect(Math.abs((currentButtonBox?.x ?? 0) - (triggerBox?.x ?? 0))).toBeLessThanOrEqual(
+    DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX
+  );
+  expect(Math.abs((currentButtonBox?.y ?? 0) - (triggerBox?.y ?? 0))).toBeLessThanOrEqual(
+    DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX
+  );
+  expect(Math.abs((currentButtonBox?.width ?? 0) - (triggerBox?.width ?? 0))).toBeLessThanOrEqual(
+    DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX
+  );
+  expect(Math.abs((currentButtonBox?.height ?? 0) - (triggerBox?.height ?? 0))).toBeLessThanOrEqual(
+    DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX
+  );
+  expect(
+    Math.abs((currentButtonBox?.y ?? 0) - (panelBox?.y ?? 0) - DESKTOP_SETTINGS_PANEL_EXTRA_TOP_PX)
+  ).toBeLessThanOrEqual(DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX);
+  expect(
+    Math.abs(
+      (panelBox?.x ?? 0) +
+        (panelBox?.width ?? 0) -
+        ((currentButtonBox?.x ?? 0) + (currentButtonBox?.width ?? 0) + DESKTOP_SETTINGS_PANEL_EXTRA_RIGHT_PX)
+    )
+  ).toBeLessThanOrEqual(DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX);
   expect((alternateButtonBox?.x ?? 0) + (alternateButtonBox?.width ?? 0)).toBeLessThan(
-    (currentButtonBox?.x ?? 0) + 1
+    (currentButtonBox?.x ?? 0) + DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX
   );
 }
 
