@@ -1804,15 +1804,22 @@ span.landing-grid-card-primary-cta {
   right: 0;
   width: min(87vw, 340px);
   height: 100vh;
+  max-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: var(--panel-solid);
   border-left: 1px solid var(--surface-divider);
   box-shadow: var(--sheet-shadow);
-  padding: 72px 16px 20px;
+  padding: 72px 16px 32px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   transform: translateX(0);
   opacity: 1;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
   transition:
     transform 180ms ease,
     opacity 180ms ease;
