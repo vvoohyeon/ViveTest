@@ -183,17 +183,17 @@
 
 ### 6.2 Grid Composition
 **Rule**: Grid는 breakpoint 별 고정 규칙을 따른다.
+- Grid 컬럼 규칙의 source of truth는 `.landing-grid-container`의 **measured grid inline-size**이며, `window.innerWidth - padding` 같은 viewport 기반 추정값으로 판정하면 안 된다.
 - Desktop: hero/main 명칭은 유지하되 카드 흐름은 단일 연속 grid로 구성한다. hero/main은 시각 영역 분리가 아니라 row index 기반 규칙으로만 해석한다.
-- Desktop Wide(`availableWidth>=1160`): Row 1은 `3`, Row 2+는 `4` 컬럼을 강제한다.
-- Desktop Medium(`1040<=availableWidth<1160`): Row 1은 `2`, Row 2+는 `3` 컬럼을 강제한다.
-- Desktop Narrow(`900<=availableWidth<1040`): first-row 예외 없이 모든 row를 `2` 컬럼으로 고정한다.
+- Desktop/Tablet Wide(`gridInlineSize>=1160`): Row 1은 `3`, Row 2+는 `4` 컬럼을 강제한다.
+- Desktop/Tablet Medium(`1040<=gridInlineSize<1160`): Row 1은 `2`, Row 2+는 `3` 컬럼을 강제한다.
+- Desktop/Tablet Two-column(`gridInlineSize<1040`): first-row 예외 없이 모든 non-mobile row를 `2` 컬럼으로 고정한다.
 - Desktop first-row 예외 구간(Medium/Wide)에서 Row 1 카드가 목표 개수에 미달하면 이후 row 후보를 앞 row로 당겨 채운다.
 - Desktop/Tablet: hero/main 경계가 강제 줄바꿈, 빈 track, 빈 카드 공간을 만들면 안 된다.
 - Desktop/Tablet 마지막 row가 underfilled(카드 수가 목표 컬럼 수 미만)인 경우에도 row 컬럼 폭은 목표 컬럼 규칙을 유지해야 하며, 카드는 row 시작측 정렬을 유지해야 한다.
 - Desktop/Tablet underfilled 마지막 row의 잔여 영역은 위 빈 track/빈 카드 공간 금지 규칙의 허용 예외로 간주한다. 단, 잔여 영역을 해소하기 위한 카드 폭 확장(좌우 채움)은 금지한다.
-- Tablet: hero 2 고정, main은 `availableWidth>=900`이면 3 아니면 2
 - Mobile: 1열, vertical gap `14~16px`
-- Expanded 활성 중 viewport/availableWidth 변경으로 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤 1회만 재계산한다.
+- Expanded 활성 중 viewport/gridInlineSize 변경으로 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤 1회만 재계산한다.
 
 **Verification**:
 1. Manual: threshold 근처 폭에서 컬럼 전환을 확인한다.

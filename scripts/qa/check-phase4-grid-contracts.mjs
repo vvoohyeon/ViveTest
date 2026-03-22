@@ -45,11 +45,11 @@ if (fileExists('tests/unit/landing-grid-plan.test.ts')) {
   if (
     !/desktop wide/u.test(unitSpec) ||
     !/desktop medium/u.test(unitSpec) ||
-    !/desktop narrow/u.test(unitSpec) ||
+    (!/desktop narrow/u.test(unitSpec) && !/two-column/u.test(unitSpec)) ||
     !/tablet/u.test(unitSpec) ||
     !/mobile/u.test(unitSpec)
   ) {
-    fail('Unit test must cover Desktop Wide/Medium/Narrow row rules.');
+    fail('Unit test must cover Desktop Wide/Medium and the non-mobile two-column rule.');
   }
 }
 
@@ -63,6 +63,9 @@ if (fileExists('tests/e2e/grid-smoke.spec.ts')) {
   }
   if (!/desktop narrow/u.test(e2eSpec)) {
     fail('Grid smoke spec must assert Desktop Narrow reachability.');
+  }
+  if (!/threshold sweeps/u.test(e2eSpec)) {
+    fail('Grid smoke spec must include threshold sweep regression coverage.');
   }
   if (!/card type label is removed/u.test(e2eSpec) || !/subtitle clamp/u.test(e2eSpec)) {
     fail('Grid smoke spec must assert type-label removal and subtitle clamp consistency.');

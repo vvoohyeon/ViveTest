@@ -1,6 +1,131 @@
-import {expect, test} from '@playwright/test';
+import {expect, test, type Page} from '@playwright/test';
 
+import {
+  DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE,
+  DESKTOP_WIDE_MIN_GRID_INLINE_SIZE,
+  MOBILE_MAX_VIEWPORT_WIDTH,
+  TABLET_DESKTOP_SIDE_PADDING,
+  type LandingGridColumnMode
+} from '../../src/features/landing/grid/layout-plan';
 import {seedTelemetryConsent} from './helpers/consent';
+
+const COLUMN_MODE_ORDER: Record<LandingGridColumnMode, number> = {
+  'desktop-wide': 0,
+  'desktop-medium': 1,
+  'two-column': 2,
+  mobile: 3
+};
+
+interface GridSweepSample {
+  viewportWidth: number;
+  clientWidth: number;
+  gridInlineSize: number;
+  columnMode: LandingGridColumnMode;
+  hasScrollbar: boolean;
+}
+
+function createDescendingViewportSweep(center: number, radius: number): number[] {
+  return Array.from({length: radius * 2 + 1}, (_, index) => center + radius - index);
+}
+
+function expectAllowedModes(samples: readonly GridSweepSample[], allowedModes: readonly LandingGridColumnMode[]) {
+  const modeSet = new Set(samples.map((sample) => sample.columnMode));
+
+  expect(modeSet.size).toBeGreaterThan(0);
+  for (const mode of modeSet) {
+    expect(allowedModes).toContain(mode);
+  }
+}
+
+function expectBoundaryCoverage(
+  samples: readonly GridSweepSample[],
+  boundaryModes: readonly [LandingGridColumnMode, LandingGridColumnMode]
+) {
+  const modeSet = new Set(samples.map((sample) => sample.columnMode));
+
+  expect(modeSet.has(boundaryModes[0])).toBe(true);
+  expect(modeSet.has(boundaryModes[1])).toBe(true);
+}
+
+function expectOnlyMode(samples: readonly GridSweepSample[], mode: LandingGridColumnMode) {
+  expect(new Set(samples.map((sample) => sample.columnMode))).toEqual(new Set([mode]));
+}
+
+function expectMonotonicGridSweep(samples: readonly GridSweepSample[]) {
+  for (let index = 1; index < samples.length; index += 1) {
+    const previous = samples[index - 1];
+    const current = samples[index];
+
+    expect(current.viewportWidth).toBeLessThan(previous.viewportWidth);
+    expect(current.clientWidth).toBeLessThanOrEqual(previous.clientWidth);
+    expect(COLUMN_MODE_ORDER[current.columnMode]).toBeGreaterThanOrEqual(COLUMN_MODE_ORDER[previous.columnMode]);
+  }
+}
+
+async function sampleGridSweepState(
+  page: Page,
+  viewportWidth: number,
+  viewportHeight: number
+): Promise<GridSweepSample> {
+  await page.setViewportSize({width: viewportWidth, height: viewportHeight});
+
+  const shell = page.getByTestId('landing-grid-shell');
+  await expect(shell).toHaveAttribute('data-grid-column-mode', /.+/);
+  await expect(shell).toHaveAttribute('data-grid-inline-size', /\d+/);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const shellElement = document.querySelector<HTMLElement>('[data-testid="landing-grid-shell"]');
+        const containerElement = document.querySelector<HTMLElement>('[data-testid="landing-grid-container"]');
+        const plannedInlineSize = Number.parseInt(shellElement?.dataset.gridInlineSize ?? '0', 10);
+        const measuredInlineSize = Math.floor(containerElement?.clientWidth ?? 0);
+
+        if (!shellElement || !containerElement || Number.isNaN(plannedInlineSize)) {
+          return -1;
+        }
+
+        return plannedInlineSize - measuredInlineSize;
+      })
+    )
+    .toBe(0);
+
+  return page.evaluate(() => {
+    const shellElement = document.querySelector<HTMLElement>('[data-testid="landing-grid-shell"]');
+    const containerElement = document.querySelector<HTMLElement>('[data-testid="landing-grid-container"]');
+    const rootElement = document.documentElement;
+    const inlineSize = Number.parseInt(shellElement?.dataset.gridInlineSize ?? '0', 10);
+    const columnMode = shellElement?.dataset.gridColumnMode;
+
+    if (!shellElement || !containerElement || Number.isNaN(inlineSize) || !columnMode) {
+      throw new Error('Expected landing grid shell debug attributes to be present');
+    }
+
+    return {
+      viewportWidth: window.innerWidth,
+      clientWidth: rootElement.clientWidth,
+      gridInlineSize: inlineSize,
+      columnMode: columnMode as LandingGridColumnMode,
+      hasScrollbar: rootElement.scrollHeight > window.innerHeight
+    };
+  });
+}
+
+async function findMixedScrollbarHeight(
+  page: Page,
+  widerViewportWidth: number,
+  narrowerViewportWidth: number
+): Promise<{viewportHeight: number; widerSample: GridSweepSample; narrowerSample: GridSweepSample}> {
+  for (let viewportHeight = 1400; viewportHeight >= 980; viewportHeight -= 4) {
+    const widerSample = await sampleGridSweepState(page, widerViewportWidth, viewportHeight);
+    const narrowerSample = await sampleGridSweepState(page, narrowerViewportWidth, viewportHeight);
+
+    if (!widerSample.hasScrollbar && narrowerSample.hasScrollbar) {
+      return {viewportHeight, widerSample, narrowerSample};
+    }
+  }
+
+  throw new Error('Expected to find a viewport height where medium and two-column modes disagree on scrollbar state');
+}
 
 test.describe('Phase 4 grid smoke', () => {
   test.beforeEach(async ({page}) => {
@@ -13,6 +138,7 @@ test.describe('Phase 4 grid smoke', () => {
 
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'desktop');
+    await expect(shell).toHaveAttribute('data-grid-column-mode', 'desktop-wide');
     await expect(shell).toHaveAttribute('data-row1-columns', '3');
     await expect(shell).toHaveAttribute('data-rown-columns', '4');
 
@@ -64,6 +190,7 @@ test.describe('Phase 4 grid smoke', () => {
 
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'desktop');
+    await expect(shell).toHaveAttribute('data-grid-column-mode', 'desktop-medium');
     await expect(shell).toHaveAttribute('data-row1-columns', '2');
     await expect(shell).toHaveAttribute('data-rown-columns', '3');
 
@@ -77,6 +204,7 @@ test.describe('Phase 4 grid smoke', () => {
 
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'desktop');
+    await expect(shell).toHaveAttribute('data-grid-column-mode', 'two-column');
     await expect(shell).toHaveAttribute('data-row1-columns', '2');
     await expect(shell).toHaveAttribute('data-rown-columns', '2');
 
@@ -84,25 +212,27 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(page.getByTestId('landing-grid-row-1')).toHaveAttribute('data-card-count', '2');
   });
 
-  test('@smoke tablet wide uses hero=2 and main=3', async ({page}) => {
+  test('@smoke tablet top range stays in two-column mode', async ({page}) => {
     await page.setViewportSize({width: 1023, height: 980});
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'tablet');
+    await expect(shell).toHaveAttribute('data-grid-column-mode', 'two-column');
     await expect(shell).toHaveAttribute('data-row1-columns', '2');
-    await expect(shell).toHaveAttribute('data-rown-columns', '3');
+    await expect(shell).toHaveAttribute('data-rown-columns', '2');
 
     await expect(page.getByTestId('landing-grid-row-0')).toHaveAttribute('data-card-count', '2');
-    await expect(page.getByTestId('landing-grid-row-1')).toHaveAttribute('data-card-count', '3');
+    await expect(page.getByTestId('landing-grid-row-1')).toHaveAttribute('data-card-count', '2');
   });
 
-  test('@smoke tablet narrow uses hero=2 and main=2', async ({page}) => {
+  test('@smoke tablet lower range also stays in two-column mode', async ({page}) => {
     await page.setViewportSize({width: 900, height: 980});
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'tablet');
+    await expect(shell).toHaveAttribute('data-grid-column-mode', 'two-column');
     await expect(shell).toHaveAttribute('data-row1-columns', '2');
     await expect(shell).toHaveAttribute('data-rown-columns', '2');
 
@@ -116,11 +246,70 @@ test.describe('Phase 4 grid smoke', () => {
 
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'mobile');
+    await expect(shell).toHaveAttribute('data-grid-column-mode', 'mobile');
     await expect(shell).toHaveAttribute('data-row1-columns', '1');
     await expect(shell).toHaveAttribute('data-rown-columns', '1');
 
     await expect(page.getByTestId('landing-grid-row-0')).toHaveAttribute('data-columns', '1');
     await expect(page.getByTestId('landing-grid-row-1')).toHaveAttribute('data-columns', '1');
+  });
+
+  test('@smoke threshold sweeps stay monotonic and keep tablet region two-column', async ({page}) => {
+    await page.goto('/en');
+
+    const desktopWideBoundaryViewport = DESKTOP_WIDE_MIN_GRID_INLINE_SIZE + TABLET_DESKTOP_SIDE_PADDING * 2;
+    const desktopMediumBoundaryViewport = DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE + TABLET_DESKTOP_SIDE_PADDING * 2;
+
+    const wideSamples: GridSweepSample[] = [];
+    for (const viewportWidth of createDescendingViewportSweep(desktopWideBoundaryViewport, 6)) {
+      wideSamples.push(await sampleGridSweepState(page, viewportWidth, 980));
+    }
+
+    expectAllowedModes(wideSamples, ['desktop-wide', 'desktop-medium']);
+    expectBoundaryCoverage(wideSamples, ['desktop-wide', 'desktop-medium']);
+    expectMonotonicGridSweep(wideSamples);
+
+    const chatterScenario = await findMixedScrollbarHeight(
+      page,
+      desktopMediumBoundaryViewport + 6,
+      desktopMediumBoundaryViewport - 6
+    );
+    expect(chatterScenario.widerSample.hasScrollbar).toBe(false);
+    expect(chatterScenario.narrowerSample.hasScrollbar).toBe(true);
+
+    const mediumTwoColumnSamples: GridSweepSample[] = [];
+    for (const viewportWidth of createDescendingViewportSweep(desktopMediumBoundaryViewport, 6)) {
+      mediumTwoColumnSamples.push(await sampleGridSweepState(page, viewportWidth, chatterScenario.viewportHeight));
+    }
+
+    expectAllowedModes(mediumTwoColumnSamples, ['desktop-medium', 'two-column']);
+    expectBoundaryCoverage(mediumTwoColumnSamples, ['desktop-medium', 'two-column']);
+    expectMonotonicGridSweep(mediumTwoColumnSamples);
+
+    const tabletTopSamples: GridSweepSample[] = [];
+    for (const viewportWidth of createDescendingViewportSweep(1023, 4)) {
+      tabletTopSamples.push(await sampleGridSweepState(page, viewportWidth, 980));
+    }
+
+    expectOnlyMode(tabletTopSamples, 'two-column');
+    expectMonotonicGridSweep(tabletTopSamples);
+
+    const formerTabletBounceSamples: GridSweepSample[] = [];
+    for (const viewportWidth of createDescendingViewportSweep(946, 5)) {
+      formerTabletBounceSamples.push(await sampleGridSweepState(page, viewportWidth, 980));
+    }
+
+    expectOnlyMode(formerTabletBounceSamples, 'two-column');
+    expectMonotonicGridSweep(formerTabletBounceSamples);
+
+    const mobileSamples: GridSweepSample[] = [];
+    for (const viewportWidth of createDescendingViewportSweep(MOBILE_MAX_VIEWPORT_WIDTH, 4)) {
+      mobileSamples.push(await sampleGridSweepState(page, viewportWidth, 980));
+    }
+
+    expectAllowedModes(mobileSamples, ['two-column', 'mobile']);
+    expectBoundaryCoverage(mobileSamples, ['two-column', 'mobile']);
+    expectMonotonicGridSweep(mobileSamples);
   });
 
   test('@smoke card type label is removed and subtitle clamp is consistent across rows', async ({page}) => {

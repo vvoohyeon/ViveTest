@@ -91,6 +91,10 @@ html[data-theme='dark'] {
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 html,
 body {
   margin: 0;

@@ -20,7 +20,13 @@ import {
   releaseBaselineRows,
   type LandingBaselineState
 } from '@/features/landing/grid/baseline-manager';
-import {buildLandingGridPlan, resolveLandingAvailableWidth} from '@/features/landing/grid/layout-plan';
+import {
+  buildLandingGridPlan,
+  CONTAINER_MAX_WIDTH,
+  resolveLandingViewportTier,
+  TABLET_DESKTOP_SIDE_PADDING,
+  type LandingGridColumnMode
+} from '@/features/landing/grid/layout-plan';
 import {
   buildRowCompensationModel,
   deriveNaturalHeightFromGeometry,
@@ -31,6 +37,7 @@ import {useLandingInteractionController} from '@/features/landing/grid/use-landi
 import {useLandingTransition} from '@/features/landing/transition/use-landing-transition';
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
+const INITIAL_GRID_INLINE_SIZE = CONTAINER_MAX_WIDTH - TABLET_DESKTOP_SIDE_PADDING * 2;
 
 export const LANDING_GRID_PLAN_CHANGED_EVENT = 'landing:grid-plan-changed';
 
@@ -92,26 +99,33 @@ function isSameSpacingModel(a: CardSpacingMap, b: CardSpacingMap): boolean {
   return true;
 }
 
+function measureGridInlineSize(containerElement: HTMLDivElement | null): number {
+  return Math.max(0, Math.floor(containerElement?.clientWidth ?? 0));
+}
+
 export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
   const previousPlanKeyRef = useRef<string | null>(null);
+  const previousColumnModeRef = useRef<LandingGridColumnMode | null>(null);
   const shellRef = useRef<HTMLElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const baselineReleaseTimerRef = useRef<number | null>(null);
   const localeFromContext = useLocale();
   const t = useTranslations('landing');
   const locale = isLocale(localeFromContext) ? localeFromContext : defaultLocale;
 
   const [viewportWidth, setViewportWidth] = useState<number>(INITIAL_VIEWPORT_WIDTH);
+  const [gridInlineSize, setGridInlineSize] = useState<number>(INITIAL_GRID_INLINE_SIZE);
   const [spacingModel, setSpacingModel] = useState<CardSpacingMap>({});
   const [baselineState, setBaselineState] = useState(initialLandingBaselineState);
-  const availableWidth = useMemo(() => resolveLandingAvailableWidth(viewportWidth), [viewportWidth]);
+  const viewportTier = useMemo(() => resolveLandingViewportTier(viewportWidth), [viewportWidth]);
   const plan = useMemo(
     () =>
       buildLandingGridPlan({
-        viewportWidth,
-        availableWidth,
+        viewportTier,
+        gridInlineSize,
         cardCount: cards.length
       }),
-    [availableWidth, cards.length, viewportWidth]
+    [cards.length, gridInlineSize, viewportTier]
   );
   const {beginBlogTransition, beginTestTransition} = useLandingTransition({locale});
   const {
@@ -157,10 +171,15 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
 
   useLayoutEffect(() => {
     let frame = 0;
+    let resizeObserver: ResizeObserver | null = null;
 
-    const syncViewportWidth = () => {
+    const syncLayoutMetrics = () => {
       const nextViewportWidth = window.innerWidth;
+      const nextGridInlineSize = measureGridInlineSize(containerRef.current);
       setViewportWidth((previous) => (previous === nextViewportWidth ? previous : nextViewportWidth));
+      setGridInlineSize((previous) =>
+        previous === nextGridInlineSize || nextGridInlineSize === 0 ? previous : nextGridInlineSize
+      );
     };
 
     const scheduleSync = () => {
@@ -170,17 +189,26 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
 
       frame = window.requestAnimationFrame(() => {
         frame = 0;
-        syncViewportWidth();
+        syncLayoutMetrics();
       });
     };
 
-    syncViewportWidth();
+    syncLayoutMetrics();
+
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        scheduleSync();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
     window.addEventListener('resize', scheduleSync, {passive: true});
 
     return () => {
       if (frame !== 0) {
         window.cancelAnimationFrame(frame);
       }
+      resizeObserver?.disconnect();
       window.removeEventListener('resize', scheduleSync);
     };
   }, []);
@@ -373,7 +401,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
   );
 
   useEffect(() => {
-    const nextPlanKey = `${plan.tier}:${plan.row1Columns}:${plan.rowNColumns}:${plan.rows
+    const nextPlanKey = `${plan.tier}:${plan.columnMode}:${plan.row1Columns}:${plan.rowNColumns}:${plan.rows
       .map((row) => `${row.columns}-${row.cardCount}`)
       .join('|')}`;
 
@@ -390,13 +418,16 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
         new CustomEvent(LANDING_GRID_PLAN_CHANGED_EVENT, {
           detail: {
             previousPlanKey: previousPlanKeyRef.current,
-            nextPlanKey
+            nextPlanKey,
+            previousColumnMode: previousColumnModeRef.current,
+            nextColumnMode: plan.columnMode
           }
         })
       );
     }
 
     previousPlanKeyRef.current = nextPlanKey;
+    previousColumnModeRef.current = plan.columnMode;
   }, [activeVisualCardId, collapseExpandedCard, plan]);
 
   return (
@@ -406,6 +437,8 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       aria-label="Landing Catalog Grid"
       data-testid="landing-grid-shell"
       data-grid-tier={plan.tier}
+      data-grid-column-mode={plan.columnMode}
+      data-grid-inline-size={plan.gridInlineSize}
       data-row1-columns={plan.row1Columns}
       data-rown-columns={plan.rowNColumns}
       data-page-state={interactionState.pageState}
@@ -430,7 +463,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
           onPointerCancel={mobileBackdropBindings.onPointerCancel}
         />
       ) : null}
-      <div className="landing-grid-container" data-testid="landing-grid-container">
+      <div ref={containerRef} className="landing-grid-container" data-testid="landing-grid-container">
         {plan.rows.map((row) => {
           const rowSnapshot = baselineState.snapshots.get(`row-${row.rowIndex}`);
 

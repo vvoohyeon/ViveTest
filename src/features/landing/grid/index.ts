@@ -10,18 +10,23 @@ export type {
 export {
   buildLandingGridPlan,
   CONTAINER_MAX_WIDTH,
-  DESKTOP_MEDIUM_MIN_AVAILABLE_WIDTH,
-  DESKTOP_NARROW_MIN_AVAILABLE_WIDTH,
-  DESKTOP_WIDE_MIN_AVAILABLE_WIDTH,
+  DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE,
+  DESKTOP_WIDE_MIN_GRID_INLINE_SIZE,
   MOBILE_SIDE_PADDING,
   MOBILE_MAX_VIEWPORT_WIDTH,
   NARROW_PADDING_MAX_VIEWPORT_WIDTH,
   NARROW_TABLET_SIDE_PADDING,
-  resolveLandingAvailableWidth,
-  TABLET_MAIN_THREE_COLUMNS_MIN_AVAILABLE_WIDTH,
+  resolveLandingGridColumns,
+  resolveLandingViewportTier,
   TABLET_DESKTOP_SIDE_PADDING,
   TABLET_MAX_VIEWPORT_WIDTH
 } from '@/features/landing/grid/layout-plan';
 export {buildRowCompensationModel, LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
 export type {RowCompensationDecision, RowNaturalMeasurement} from '@/features/landing/grid/spacing-plan';
-export type {LandingGridInput, LandingGridPlan, LandingGridRowPlan, LandingGridTier} from '@/features/landing/grid/layout-plan';
+export type {
+  LandingGridColumnMode,
+  LandingGridInput,
+  LandingGridPlan,
+  LandingGridRowPlan,
+  LandingGridTier
+} from '@/features/landing/grid/layout-plan';

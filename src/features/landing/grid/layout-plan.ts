@@ -5,16 +5,15 @@ export const MOBILE_SIDE_PADDING = 16;
 export const NARROW_TABLET_SIDE_PADDING = 20;
 export const TABLET_DESKTOP_SIDE_PADDING = 24;
 export const NARROW_PADDING_MAX_VIEWPORT_WIDTH = 899;
-export const DESKTOP_NARROW_MIN_AVAILABLE_WIDTH = 900;
-export const DESKTOP_MEDIUM_MIN_AVAILABLE_WIDTH = 1040;
-export const DESKTOP_WIDE_MIN_AVAILABLE_WIDTH = 1160;
-export const TABLET_MAIN_THREE_COLUMNS_MIN_AVAILABLE_WIDTH = 900;
+export const DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE = 1040;
+export const DESKTOP_WIDE_MIN_GRID_INLINE_SIZE = 1160;
 
 export type LandingGridTier = 'mobile' | 'tablet' | 'desktop';
+export type LandingGridColumnMode = 'desktop-wide' | 'desktop-medium' | 'two-column' | 'mobile';
 
 export interface LandingGridInput {
-  viewportWidth: number;
-  availableWidth: number;
+  viewportTier: LandingGridTier;
+  gridInlineSize: number;
   cardCount: number;
 }
 
@@ -30,12 +29,15 @@ export interface LandingGridRowPlan {
 
 export interface LandingGridPlan {
   tier: LandingGridTier;
+  columnMode: LandingGridColumnMode;
+  gridInlineSize: number;
   row1Columns: number;
   rowNColumns: number;
   rows: LandingGridRowPlan[];
 }
 
 interface ResolvedColumns {
+  columnMode: LandingGridColumnMode;
   row1Columns: number;
   rowNColumns: number;
 }
@@ -48,27 +50,7 @@ function toNonNegativeInteger(value: number): number {
   return Math.max(0, Math.floor(value));
 }
 
-function resolveHorizontalPadding(viewportWidth: number): number {
-  if (viewportWidth <= MOBILE_MAX_VIEWPORT_WIDTH) {
-    return MOBILE_SIDE_PADDING;
-  }
-
-  if (viewportWidth <= NARROW_PADDING_MAX_VIEWPORT_WIDTH) {
-    return NARROW_TABLET_SIDE_PADDING;
-  }
-
-  return TABLET_DESKTOP_SIDE_PADDING;
-}
-
-export function resolveLandingAvailableWidth(viewportWidth: number): number {
-  const normalizedViewportWidth = toNonNegativeInteger(viewportWidth);
-  const cappedViewportWidth = Math.min(normalizedViewportWidth, CONTAINER_MAX_WIDTH);
-  const horizontalPadding = resolveHorizontalPadding(normalizedViewportWidth);
-
-  return Math.max(0, cappedViewportWidth - horizontalPadding * 2);
-}
-
-function resolveTier(viewportWidth: number): LandingGridTier {
+export function resolveLandingViewportTier(viewportWidth: number): LandingGridTier {
   if (viewportWidth <= MOBILE_MAX_VIEWPORT_WIDTH) {
     return 'mobile';
   }
@@ -80,45 +62,38 @@ function resolveTier(viewportWidth: number): LandingGridTier {
   return 'desktop';
 }
 
-function resolveColumns(tier: LandingGridTier, availableWidth: number): ResolvedColumns {
-  const normalizedAvailableWidth = toNonNegativeInteger(availableWidth);
+export function resolveLandingGridColumns(input: {
+  tier: LandingGridTier;
+  gridInlineSize: number;
+}): ResolvedColumns {
+  const normalizedGridInlineSize = toNonNegativeInteger(input.gridInlineSize);
 
-  if (tier === 'mobile') {
+  if (input.tier === 'mobile') {
     return {
+      columnMode: 'mobile',
       row1Columns: 1,
       rowNColumns: 1
     };
   }
 
-  if (tier === 'tablet') {
+  if (normalizedGridInlineSize >= DESKTOP_WIDE_MIN_GRID_INLINE_SIZE) {
     return {
-      row1Columns: 2,
-      rowNColumns: normalizedAvailableWidth >= TABLET_MAIN_THREE_COLUMNS_MIN_AVAILABLE_WIDTH ? 3 : 2
-    };
-  }
-
-  if (normalizedAvailableWidth >= DESKTOP_WIDE_MIN_AVAILABLE_WIDTH) {
-    return {
+      columnMode: 'desktop-wide',
       row1Columns: 3,
       rowNColumns: 4
     };
   }
 
-  if (normalizedAvailableWidth >= DESKTOP_MEDIUM_MIN_AVAILABLE_WIDTH) {
+  if (normalizedGridInlineSize >= DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE) {
     return {
+      columnMode: 'desktop-medium',
       row1Columns: 2,
       rowNColumns: 3
     };
   }
 
-  if (normalizedAvailableWidth >= DESKTOP_NARROW_MIN_AVAILABLE_WIDTH) {
-    return {
-      row1Columns: 2,
-      rowNColumns: 2
-    };
-  }
-
   return {
+    columnMode: 'two-column',
     row1Columns: 2,
     rowNColumns: 2
   };
@@ -126,8 +101,12 @@ function resolveColumns(tier: LandingGridTier, availableWidth: number): Resolved
 
 export function buildLandingGridPlan(input: LandingGridInput): LandingGridPlan {
   const cardCount = toNonNegativeInteger(input.cardCount);
-  const tier = resolveTier(input.viewportWidth);
-  const {row1Columns, rowNColumns} = resolveColumns(tier, input.availableWidth);
+  const gridInlineSize = toNonNegativeInteger(input.gridInlineSize);
+  const tier = input.viewportTier;
+  const {columnMode, row1Columns, rowNColumns} = resolveLandingGridColumns({
+    tier,
+    gridInlineSize
+  });
 
   const rows: LandingGridRowPlan[] = [];
   let cursor = 0;
@@ -153,6 +132,8 @@ export function buildLandingGridPlan(input: LandingGridInput): LandingGridPlan {
 
   return {
     tier,
+    columnMode,
+    gridInlineSize,
     row1Columns,
     rowNColumns,
     rows
