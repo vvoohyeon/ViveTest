@@ -29,6 +29,22 @@
   --interactive-accent-outline: color-mix(in srgb, var(--accent-solid) 36%, transparent);
   --interactive-accent-shadow: 0 10px 24px color-mix(in srgb, var(--accent-solid) 14%, transparent);
   --interactive-accent-shadow-hover: 0 14px 30px color-mix(in srgb, var(--accent-solid) 18%, transparent);
+  --theme-preview-light-bg: #ffffff;
+  --theme-preview-light-border: rgb(22 26 32 / 16%);
+  --theme-preview-light-ink: #161a20;
+  --theme-preview-light-hover-bg: color-mix(in srgb, var(--accent-solid) 10%, #ffffff);
+  --theme-preview-light-hover-border: color-mix(in srgb, var(--accent-solid) 34%, rgb(22 26 32 / 16%));
+  --theme-preview-light-hover-shadow:
+    0 10px 22px color-mix(in srgb, var(--accent-solid) 12%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 16%, transparent);
+  --theme-preview-dark-bg: #121821;
+  --theme-preview-dark-border: rgb(238 244 255 / 26%);
+  --theme-preview-dark-ink: #eff2f8;
+  --theme-preview-dark-hover-bg: color-mix(in srgb, var(--accent-solid) 18%, #121821);
+  --theme-preview-dark-hover-border: color-mix(in srgb, var(--accent-solid) 42%, rgb(238 244 255 / 26%));
+  --theme-preview-dark-hover-shadow:
+    0 12px 28px rgb(0 0 0 / 28%),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 24%, transparent);
   --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
   --landing-answer-bg-hover: color-mix(in srgb, var(--accent-solid) 10%, var(--panel-solid));
   --landing-answer-bg-pressed: var(--interactive-accent-bg);
@@ -1848,10 +1864,19 @@ span.landing-grid-card-primary-cta {
 }
 
 .gnb-chip {
-  border: 1px solid var(--interactive-neutral-border);
+  --gnb-chip-bg: var(--interactive-neutral-bg);
+  --gnb-chip-border: var(--interactive-neutral-border);
+  --gnb-chip-ink: var(--interactive-neutral-ink);
+  --gnb-chip-hover-bg: var(--landing-answer-bg-hover);
+  --gnb-chip-hover-border: var(--landing-answer-border-hover);
+  --gnb-chip-hover-shadow: var(--landing-answer-shadow-hover);
+  --gnb-chip-selected-bg: var(--interactive-accent-bg-strong);
+  --gnb-chip-selected-border: transparent;
+  --gnb-chip-selected-shadow: none;
+  border: 1px solid var(--gnb-chip-border);
   border-radius: 999px;
-  background: var(--interactive-neutral-bg);
-  color: var(--interactive-neutral-ink);
+  background: var(--gnb-chip-bg);
+  color: var(--gnb-chip-ink);
   font-size: 0.8rem;
   font-weight: 600;
   padding: 5px 10px;
@@ -1861,6 +1886,24 @@ span.landing-grid-card-primary-cta {
     background-color 140ms ease,
     box-shadow 140ms ease,
     color 140ms ease;
+}
+
+.gnb-chip[data-chip-surface='theme-preview-light'] {
+  --gnb-chip-bg: var(--theme-preview-light-bg);
+  --gnb-chip-border: var(--theme-preview-light-border);
+  --gnb-chip-ink: var(--theme-preview-light-ink);
+  --gnb-chip-hover-bg: var(--theme-preview-light-hover-bg);
+  --gnb-chip-hover-border: var(--theme-preview-light-hover-border);
+  --gnb-chip-hover-shadow: var(--theme-preview-light-hover-shadow);
+}
+
+.gnb-chip[data-chip-surface='theme-preview-dark'] {
+  --gnb-chip-bg: var(--theme-preview-dark-bg);
+  --gnb-chip-border: var(--theme-preview-dark-border);
+  --gnb-chip-ink: var(--theme-preview-dark-ink);
+  --gnb-chip-hover-bg: var(--theme-preview-dark-hover-bg);
+  --gnb-chip-hover-border: var(--theme-preview-dark-hover-border);
+  --gnb-chip-hover-shadow: var(--theme-preview-dark-hover-shadow);
 }
 
 .gnb-chip-theme {
@@ -1879,21 +1922,21 @@ span.landing-grid-card-primary-cta {
 }
 
 .gnb-chip:hover:not(:disabled):not([aria-pressed='true']) {
-  border-color: var(--landing-answer-border-hover);
-  background: var(--landing-answer-bg-hover);
-  box-shadow: var(--landing-answer-shadow-hover);
+  border-color: var(--gnb-chip-hover-border);
+  background: var(--gnb-chip-hover-bg);
+  box-shadow: var(--gnb-chip-hover-shadow);
 }
 
 .gnb-chip[aria-pressed='true'] {
-  background: var(--interactive-accent-bg-strong);
-  border-color: transparent;
-  box-shadow: none;
+  background: var(--gnb-chip-selected-bg);
+  border-color: var(--gnb-chip-selected-border);
+  box-shadow: var(--gnb-chip-selected-shadow);
 }
 
 .gnb-chip[aria-pressed='true']:hover:not(:disabled) {
-  background: var(--interactive-accent-bg-strong);
-  border-color: transparent;
-  box-shadow: none;
+  background: var(--gnb-chip-selected-bg);
+  border-color: var(--gnb-chip-selected-border);
+  box-shadow: var(--gnb-chip-selected-shadow);
 }
 
 .gnb-chip:focus-visible {

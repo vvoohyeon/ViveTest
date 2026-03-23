@@ -46,6 +46,7 @@ export function SettingsControls({
           {orderedThemeOptions.map((theme) => {
             const isCurrentTheme = resolvedTheme === theme;
             const themeLabel = theme === 'light' ? labels.light : labels.dark;
+            const chipSurface = isCurrentTheme ? undefined : (`theme-preview-${theme}` as const);
 
             return (
               <button
@@ -57,6 +58,7 @@ export function SettingsControls({
                 title={themeLabel}
                 data-testid={`${scope}-gnb-theme-${theme}`}
                 data-theme-option={theme}
+                data-chip-surface={chipSurface}
                 disabled={isCurrentTheme}
                 onClick={handleThemeClick(theme)}
               >

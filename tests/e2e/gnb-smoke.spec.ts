@@ -35,6 +35,7 @@ async function readInteractiveSurfaceStyles(locator: Locator) {
       backgroundColor: styles.backgroundColor,
       borderColor: styles.borderColor,
       borderTopColor,
+      color: styles.color,
       boxShadow: styles.boxShadow,
       hasVisibleBorder: borderTopColor !== 'transparent' && borderTopColor !== 'rgba(0, 0, 0, 0)'
     };
@@ -330,6 +331,18 @@ test.describe('Phase 3 gnb shell smoke', () => {
   }) => {
     await page.setViewportSize({width: 1280, height: 900});
 
+    const landingAnswerHoverStylesByTheme = {} as Record<'light' | 'dark', Awaited<ReturnType<typeof readInteractiveSurfaceStyles>>>;
+    const themePreviewRestStylesByTheme = {
+      light: {
+        backgroundColor: 'rgb(255, 255, 255)',
+        color: 'rgb(22, 26, 32)'
+      },
+      dark: {
+        backgroundColor: 'rgb(18, 24, 33)',
+        color: 'rgb(239, 242, 248)'
+      }
+    } as const;
+
     for (const theme of ['light', 'dark'] as const) {
       await seedManualTheme(page, theme);
       await page.goto('/en');
@@ -341,33 +354,49 @@ test.describe('Phase 3 gnb shell smoke', () => {
       await expect(answerChoice).toBeVisible();
       await answerChoice.hover();
       await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
-      const landingAnswerHoverStyles = await readInteractiveSurfaceStyles(answerChoice);
+      landingAnswerHoverStylesByTheme[theme] = await readInteractiveSurfaceStyles(answerChoice);
+    }
 
-      await page.getByTestId('gnb-settings-trigger').hover();
+    for (const theme of ['light', 'dark'] as const) {
+      await seedManualTheme(page, theme);
+      await page.goto('/en');
+      await page.mouse.move(32, 220);
+      await expect(page.getByTestId('gnb-settings-panel')).toBeHidden();
+
+      await page.getByTestId('gnb-settings-trigger').click();
       await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
 
       const localeControls = page.getByTestId('desktop-gnb-locale-controls');
       const selectableLocaleChip = localeControls.locator('button:not([disabled])').first();
       const selectedLocaleChip = localeControls.locator('button[disabled]');
       const {alternateButton, currentButton} = getThemeControls(page, 'desktop');
+      const expectedLocaleHoverStyles = landingAnswerHoverStylesByTheme[theme];
+      const alternateTheme = theme === 'light' ? 'dark' : 'light';
+      const expectedThemeHoverStyles = landingAnswerHoverStylesByTheme[alternateTheme];
 
-      const [selectedLocaleBeforeHover, currentThemeBeforeHover] = await Promise.all([
+      const [selectedLocaleBeforeHover, currentThemeBeforeHover, alternateThemeBeforeHover] = await Promise.all([
         readInteractiveSurfaceStyles(selectedLocaleChip),
-        readInteractiveSurfaceStyles(currentButton)
+        readInteractiveSurfaceStyles(currentButton),
+        readInteractiveSurfaceStyles(alternateButton)
       ]);
 
       expect.soft(selectedLocaleBeforeHover.hasVisibleBorder).toBe(false);
       expect.soft(currentThemeBeforeHover.hasVisibleBorder).toBe(false);
       expect.soft(selectedLocaleBeforeHover.boxShadow).toBe('none');
       expect.soft(currentThemeBeforeHover.boxShadow).toBe('none');
+      await expect(alternateButton).toHaveAttribute('data-chip-surface', `theme-preview-${alternateTheme}`);
+      expect.soft(alternateThemeBeforeHover.backgroundColor).toBe(
+        themePreviewRestStylesByTheme[alternateTheme].backgroundColor
+      );
+      expect.soft(alternateThemeBeforeHover.color).toBe(themePreviewRestStylesByTheme[alternateTheme].color);
 
       await selectableLocaleChip.hover();
       await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
-      expect.soft(await readInteractiveSurfaceStyles(selectableLocaleChip)).toEqual(landingAnswerHoverStyles);
+      expect.soft(await readInteractiveSurfaceStyles(selectableLocaleChip)).toEqual(expectedLocaleHoverStyles);
 
       await alternateButton.hover();
       await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
-      expect.soft(await readInteractiveSurfaceStyles(alternateButton)).toEqual(landingAnswerHoverStyles);
+      expect.soft(await readInteractiveSurfaceStyles(alternateButton)).toEqual(expectedThemeHoverStyles);
 
       await selectedLocaleChip.hover();
       await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
