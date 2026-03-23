@@ -29,11 +29,14 @@ async function installViewTransitionStub(page: Page) {
 async function readInteractiveSurfaceStyles(locator: Locator) {
   return locator.evaluate((element) => {
     const styles = getComputedStyle(element);
+    const borderTopColor = styles.borderTopColor;
 
     return {
       backgroundColor: styles.backgroundColor,
       borderColor: styles.borderColor,
-      boxShadow: styles.boxShadow
+      borderTopColor,
+      boxShadow: styles.boxShadow,
+      hasVisibleBorder: borderTopColor !== 'transparent' && borderTopColor !== 'rgba(0, 0, 0, 0)'
     };
   });
 }
@@ -352,6 +355,11 @@ test.describe('Phase 3 gnb shell smoke', () => {
         readInteractiveSurfaceStyles(selectedLocaleChip),
         readInteractiveSurfaceStyles(currentButton)
       ]);
+
+      expect.soft(selectedLocaleBeforeHover.hasVisibleBorder).toBe(false);
+      expect.soft(currentThemeBeforeHover.hasVisibleBorder).toBe(false);
+      expect.soft(selectedLocaleBeforeHover.boxShadow).toBe('none');
+      expect.soft(currentThemeBeforeHover.boxShadow).toBe('none');
 
       await selectableLocaleChip.hover();
       await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
