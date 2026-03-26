@@ -3,7 +3,7 @@ import {getTranslations} from 'next-intl/server';
 
 import {isLocale} from '@/config/site';
 import {PageShell} from '@/features/landing/shell';
-import {TestQuestionClient} from '@/features/landing/test/test-question-client';
+import {TestQuestionClient} from '@/features/test/test-question-client';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
 export default async function QuestionPage({
@@ -14,10 +14,6 @@ export default async function QuestionPage({
   const {locale, variant} = await params;
 
   if (!isLocale(locale)) {
-    notFound();
-  }
-
-  if (!/^[a-z0-9-]+$/u.test(variant)) {
     notFound();
   }
 

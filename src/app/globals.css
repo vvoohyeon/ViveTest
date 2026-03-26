@@ -1679,6 +1679,40 @@ span.landing-grid-card-primary-cta {
   min-width: 132px;
 }
 
+.test-recovery-panel {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.test-recovery-actions {
+  align-items: stretch;
+}
+
+.test-recovery-recommendations {
+  display: grid;
+  gap: 1rem;
+}
+
+.test-recovery-card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.test-recovery-card-item {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.test-recovery-card-item .landing-grid-card {
+  min-height: 100%;
+}
+
+.test-recovery-card-link {
+  justify-content: center;
+  text-decoration: none;
+}
+
 .test-result-grid {
   display: grid;
   gap: 8px;

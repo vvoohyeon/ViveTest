@@ -4,7 +4,7 @@
     "history": "Histórico",
     "blog": "Blog",
     "settings": "Configurações",
-    "theme": "Idioma ⋅ Tema",
+    "theme": "Idioma⋅Tema",
     "light": "Claro",
     "dark": "Escuro",
     "menu": "Menu",
@@ -39,7 +39,16 @@
     "goHistory": "Abrir histórico",
     "instructionTitle": "Antes de começar",
     "instructionBody": "Leia cada pergunta e escolha uma resposta. Você pode voltar e revisar respostas anteriores antes do envio final.",
-    "start": "Começar"
+    "start": "Começar",
+    "recoveryInvalidTitle": "Este link de teste não é válido",
+    "recoveryInvalidBody": "Não conseguimos abrir \"{variant}\" como uma variante de teste compatível. Experimente um dos testes disponíveis abaixo.",
+    "recoveryUnknownTitle": "Não encontramos este teste",
+    "recoveryUnknownBody": "\"{variant}\" não está no catálogo atual de testes. Experimente um dos testes disponíveis abaixo.",
+    "recoveryUnavailableTitle": "Este teste ainda não está disponível",
+    "recoveryUnavailableBody": "\"{variant}\" existe, mas não está aberto no momento. Experimente um dos testes disponíveis abaixo.",
+    "recoveryRecommendedTitle": "Testes disponíveis",
+    "recoveryNoRecommendations": "Nenhum teste alternativo está disponível no momento.",
+    "recoveryOpenTest": "Abrir este teste"
   },
   "blog": {
     "selected": "Artigo selecionado",

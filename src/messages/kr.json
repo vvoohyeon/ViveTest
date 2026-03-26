@@ -4,7 +4,7 @@
     "history": "이력",
     "blog": "블로그",
     "settings": "설정",
-    "theme": "언어 ⋅ 테마",
+    "theme": "언어⋅테마",
     "light": "라이트",
     "dark": "다크",
     "menu": "메뉴",
@@ -39,7 +39,16 @@
     "goHistory": "이력 보기",
     "instructionTitle": "시작 전 안내",
     "instructionBody": "각 문항에서 하나를 선택하세요. 제출 전에는 이전 문항으로 돌아가 답변을 수정할 수 있습니다.",
-    "start": "시작"
+    "start": "시작",
+    "recoveryInvalidTitle": "이 테스트 링크는 유효하지 않습니다",
+    "recoveryInvalidBody": "\"{variant}\"는 지원되는 테스트 variant로 열 수 없습니다. 아래의 이용 가능한 테스트를 시도해 보세요.",
+    "recoveryUnknownTitle": "이 테스트를 찾을 수 없습니다",
+    "recoveryUnknownBody": "\"{variant}\"는 현재 테스트 카탈로그에 없습니다. 아래의 이용 가능한 테스트를 시도해 보세요.",
+    "recoveryUnavailableTitle": "이 테스트는 아직 이용할 수 없습니다",
+    "recoveryUnavailableBody": "\"{variant}\"는 존재하지만 지금은 열려 있지 않습니다. 아래의 이용 가능한 테스트를 시도해 보세요.",
+    "recoveryRecommendedTitle": "이용 가능한 테스트",
+    "recoveryNoRecommendations": "지금은 대체 가능한 테스트가 없습니다.",
+    "recoveryOpenTest": "이 테스트 열기"
   },
   "blog": {
     "selected": "선택된 글",

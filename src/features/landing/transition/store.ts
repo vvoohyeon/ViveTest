@@ -30,7 +30,6 @@ export const LANDING_TRANSITION_CLEANUP_EVENT = 'landing:transition-cleanup';
 const PENDING_TRANSITION_KEY = 'vivetest-landing-pending-transition';
 const RETURN_SCROLL_Y_KEY = 'vivetest-landing-return-scroll-y';
 const RETURN_SCROLL_CARD_ID_KEY = 'vivetest-landing-return-card-id';
-const INSTRUCTION_SEEN_PREFIX = 'vivetest-test-instruction-seen:';
 const LANDING_INGRESS_PREFIX = 'vivetest-landing-ingress:';
 
 function getSessionStorage(): Storage | null {
@@ -137,16 +136,6 @@ export function clearLandingIngress(variant: string): void {
     key: `${LANDING_INGRESS_PREFIX}${variant}`,
     variant
   });
-}
-
-export function markInstructionSeen(variant: string): void {
-  const storage = getSessionStorage();
-  storage?.setItem(`${INSTRUCTION_SEEN_PREFIX}${variant}`, 'true');
-}
-
-export function hasSeenInstruction(variant: string): boolean {
-  const storage = getSessionStorage();
-  return storage?.getItem(`${INSTRUCTION_SEEN_PREFIX}${variant}`) === 'true';
 }
 
 export function saveLandingReturnScrollY(scrollY: number, sourceCardId?: string): void {

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {resolveQuestionBootstrapState} from '../../src/features/landing/test/test-question-client';
+import {resolveQuestionBootstrapState} from '../../src/features/test/test-question-client';
 
 describe('test question bootstrap state', () => {
   it('starts at Q2 whenever landing ingress exists, even after pending transition is gone', () => {

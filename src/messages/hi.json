@@ -4,7 +4,7 @@
     "history": "इतिहास",
     "blog": "ब्लॉग",
     "settings": "सेटिंग्स",
-    "theme": "भाषा ⋅ थीम",
+    "theme": "भाषा⋅थीम",
     "light": "हल्का",
     "dark": "गहरा",
     "menu": "मेनू",
@@ -39,7 +39,16 @@
     "goHistory": "इतिहास खोलें",
     "instructionTitle": "शुरू करने से पहले",
     "instructionBody": "हर प्रश्न पढ़ें और एक उत्तर चुनें। अंतिम सबमिट से पहले आप पहले के उत्तरों पर वापस जाकर उन्हें बदल सकते हैं।",
-    "start": "शुरू करें"
+    "start": "शुरू करें",
+    "recoveryInvalidTitle": "यह टेस्ट लिंक मान्य नहीं है",
+    "recoveryInvalidBody": "हम \"{variant}\" को समर्थित टेस्ट variant के रूप में नहीं खोल सके। नीचे उपलब्ध टेस्ट में से कोई एक आज़माएँ।",
+    "recoveryUnknownTitle": "हमें यह टेस्ट नहीं मिला",
+    "recoveryUnknownBody": "\"{variant}\" मौजूदा टेस्ट कैटलॉग में नहीं है। नीचे उपलब्ध टेस्ट में से कोई एक आज़माएँ।",
+    "recoveryUnavailableTitle": "यह टेस्ट अभी उपलब्ध नहीं है",
+    "recoveryUnavailableBody": "\"{variant}\" मौजूद है, लेकिन अभी खुला नहीं है। नीचे उपलब्ध टेस्ट में से कोई एक आज़माएँ।",
+    "recoveryRecommendedTitle": "उपलब्ध टेस्ट",
+    "recoveryNoRecommendations": "अभी कोई वैकल्पिक टेस्ट उपलब्ध नहीं है।",
+    "recoveryOpenTest": "यह टेस्ट खोलें"
   },
   "blog": {
     "selected": "चुना गया लेख",

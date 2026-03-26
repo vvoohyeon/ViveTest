@@ -4,7 +4,7 @@
     "history": "历史记录",
     "blog": "博客",
     "settings": "设置",
-    "theme": "语言 ⋅ 主题",
+    "theme": "语言⋅主题",
     "light": "浅色",
     "dark": "深色",
     "menu": "菜单",
@@ -39,7 +39,16 @@
     "goHistory": "打开历史记录",
     "instructionTitle": "开始之前",
     "instructionBody": "请阅读每道题并选择一个答案。在最终提交之前，你可以返回并修改之前的答案。",
-    "start": "开始"
+    "start": "开始",
+    "recoveryInvalidTitle": "这个测试链接无效",
+    "recoveryInvalidBody": "我们无法将“{variant}”作为受支持的测试 variant 打开。请尝试下面可用的测试。",
+    "recoveryUnknownTitle": "找不到这个测试",
+    "recoveryUnknownBody": "“{variant}”不在当前测试目录中。请尝试下面可用的测试。",
+    "recoveryUnavailableTitle": "这个测试暂不可用",
+    "recoveryUnavailableBody": "“{variant}”存在，但目前尚未开放。请尝试下面可用的测试。",
+    "recoveryRecommendedTitle": "可用测试",
+    "recoveryNoRecommendations": "目前没有可替代的测试。",
+    "recoveryOpenTest": "打开此测试"
   },
   "blog": {
     "selected": "已选文章",

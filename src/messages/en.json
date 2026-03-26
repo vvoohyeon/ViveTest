@@ -4,7 +4,7 @@
     "history": "History",
     "blog": "Blog",
     "settings": "Settings",
-    "theme": "Language ⋅ Theme",
+    "theme": "Language⋅Theme",
     "light": "Light",
     "dark": "Dark",
     "menu": "Menu",
@@ -39,7 +39,16 @@
     "goHistory": "Open history",
     "instructionTitle": "Before we start",
     "instructionBody": "Read each question and choose one answer. You can revisit and revise earlier answers before final submit.",
-    "start": "Start"
+    "start": "Start",
+    "recoveryInvalidTitle": "This test link isn't valid",
+    "recoveryInvalidBody": "We couldn't open \"{variant}\" as a supported test variant. Try one of the available tests below.",
+    "recoveryUnknownTitle": "We couldn't find this test",
+    "recoveryUnknownBody": "\"{variant}\" isn't in the current test catalog. Try one of the available tests below.",
+    "recoveryUnavailableTitle": "This test isn't available yet",
+    "recoveryUnavailableBody": "\"{variant}\" exists, but it's not open right now. Try one of the available tests below.",
+    "recoveryRecommendedTitle": "Available tests",
+    "recoveryNoRecommendations": "No alternative tests are available right now.",
+    "recoveryOpenTest": "Open this test"
   },
   "blog": {
     "selected": "Selected article",

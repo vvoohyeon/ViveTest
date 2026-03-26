@@ -25,7 +25,7 @@ const requiredFiles = [
   'src/features/landing/transition/signals.ts',
   'src/features/landing/transition/use-landing-transition.ts',
   'src/features/landing/landing-runtime.tsx',
-  'src/features/landing/test/test-question-client.tsx',
+  'src/features/test/test-question-client.tsx',
   'src/features/landing/blog/blog-destination-client.tsx',
   'src/app/globals.css',
   'tests/e2e/transition-telemetry-smoke.spec.ts'
@@ -57,8 +57,8 @@ if (fileExists('src/features/landing/transition/runtime.ts')) {
   }
 }
 
-if (fileExists('src/features/landing/test/test-question-client.tsx')) {
-  const questionClient = read('src/features/landing/test/test-question-client.tsx');
+if (fileExists('src/features/test/test-question-client.tsx')) {
+  const questionClient = read('src/features/test/test-question-client.tsx');
 
   if (!/consumeLandingIngress/u.test(questionClient) || !/markInstructionSeen/u.test(questionClient)) {
     fail('Test question client must separate ingress read/consume and persist instructionSeen.');

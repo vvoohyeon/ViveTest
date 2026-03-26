@@ -4,7 +4,7 @@
     "history": "Verlauf",
     "blog": "Blog",
     "settings": "Einstellungen",
-    "theme": "Sprache ⋅ Thema",
+    "theme": "Sprache⋅Thema",
     "light": "Hell",
     "dark": "Dunkel",
     "menu": "Menü",
@@ -39,7 +39,16 @@
     "goHistory": "Verlauf öffnen",
     "instructionTitle": "Bevor wir beginnen",
     "instructionBody": "Lies jede Frage und wähle eine Antwort aus. Vor dem endgültigen Absenden kannst du zu früheren Fragen zurückkehren und deine Antworten ändern.",
-    "start": "Starten"
+    "start": "Starten",
+    "recoveryInvalidTitle": "Dieser Testlink ist ungültig",
+    "recoveryInvalidBody": "Wir konnten \"{variant}\" nicht als unterstützte Testvariante öffnen. Probiere einen der verfügbaren Tests unten.",
+    "recoveryUnknownTitle": "Diesen Test konnten wir nicht finden",
+    "recoveryUnknownBody": "\"{variant}\" ist nicht im aktuellen Testkatalog enthalten. Probiere einen der verfügbaren Tests unten.",
+    "recoveryUnavailableTitle": "Dieser Test ist noch nicht verfügbar",
+    "recoveryUnavailableBody": "\"{variant}\" existiert, ist aber derzeit nicht geöffnet. Probiere einen der verfügbaren Tests unten.",
+    "recoveryRecommendedTitle": "Verfügbare Tests",
+    "recoveryNoRecommendations": "Derzeit sind keine alternativen Tests verfügbar.",
+    "recoveryOpenTest": "Diesen Test öffnen"
   },
   "blog": {
     "selected": "Ausgewählter Artikel",

@@ -4,7 +4,7 @@
     "history": "履歴",
     "blog": "ブログ",
     "settings": "設定",
-    "theme": "言語 ⋅ テーマ",
+    "theme": "言語⋅テーマ",
     "light": "ライト",
     "dark": "ダーク",
     "menu": "メニュー",
@@ -39,7 +39,16 @@
     "goHistory": "履歴を見る",
     "instructionTitle": "始める前に",
     "instructionBody": "各設問を読んで、回答を1つ選択してください。最終送信前であれば、前の設問に戻って回答を修正できます。",
-    "start": "開始"
+    "start": "開始",
+    "recoveryInvalidTitle": "このテストリンクは無効です",
+    "recoveryInvalidBody": "「{variant}」は対応しているテスト variant として開けません。以下の利用可能なテストを試してください。",
+    "recoveryUnknownTitle": "このテストは見つかりませんでした",
+    "recoveryUnknownBody": "「{variant}」は現在のテストカタログにありません。以下の利用可能なテストを試してください。",
+    "recoveryUnavailableTitle": "このテストはまだ利用できません",
+    "recoveryUnavailableBody": "「{variant}」は存在しますが、現在は公開されていません。以下の利用可能なテストを試してください。",
+    "recoveryRecommendedTitle": "利用可能なテスト",
+    "recoveryNoRecommendations": "現在利用できる代替テストはありません。",
+    "recoveryOpenTest": "このテストを開く"
   },
   "blog": {
     "selected": "選択した記事",

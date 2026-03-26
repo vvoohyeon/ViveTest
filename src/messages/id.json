@@ -4,7 +4,7 @@
     "history": "Riwayat",
     "blog": "Blog",
     "settings": "Pengaturan",
-    "theme": "Bahasa ⋅ Tema",
+    "theme": "Bahasa⋅Tema",
     "light": "Terang",
     "dark": "Gelap",
     "menu": "Menu",
@@ -39,7 +39,16 @@
     "goHistory": "Buka riwayat",
     "instructionTitle": "Sebelum mulai",
     "instructionBody": "Baca setiap pertanyaan dan pilih satu jawaban. Anda dapat kembali dan mengubah jawaban sebelumnya sebelum pengiriman akhir.",
-    "start": "Mulai"
+    "start": "Mulai",
+    "recoveryInvalidTitle": "Tautan tes ini tidak valid",
+    "recoveryInvalidBody": "Kami tidak dapat membuka \"{variant}\" sebagai varian tes yang didukung. Coba salah satu tes yang tersedia di bawah.",
+    "recoveryUnknownTitle": "Kami tidak menemukan tes ini",
+    "recoveryUnknownBody": "\"{variant}\" tidak ada di katalog tes saat ini. Coba salah satu tes yang tersedia di bawah.",
+    "recoveryUnavailableTitle": "Tes ini belum tersedia",
+    "recoveryUnavailableBody": "\"{variant}\" ada, tetapi belum dibuka saat ini. Coba salah satu tes yang tersedia di bawah.",
+    "recoveryRecommendedTitle": "Tes yang tersedia",
+    "recoveryNoRecommendations": "Saat ini tidak ada tes alternatif yang tersedia.",
+    "recoveryOpenTest": "Buka tes ini"
   },
   "blog": {
     "selected": "Artikel terpilih",

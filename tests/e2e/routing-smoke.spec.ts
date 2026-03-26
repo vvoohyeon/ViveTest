@@ -79,10 +79,16 @@ test.describe('Phase 1 routing smoke', () => {
     }
   });
 
-  test('@smoke segment-local domain errors resolve to segment not-found', async ({page}) => {
-    const response = await page.goto('/en/test/INVALID!');
-    expect(response?.status()).toBe(404);
-    await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
+  test('@smoke segment-local test variant errors stay recoverable inside the test route', async ({page}) => {
+    await page.goto('/en/test/INVALID!');
+    await expect(page).toHaveURL('/en/test/INVALID!');
+    await expect(page.getByTestId('test-recovery-panel')).toBeVisible();
+    await expect(page.getByTestId('test-recovery-card')).toHaveCount(2);
+
+    await page.goto('/en/test/creativity-profile');
+    await expect(page).toHaveURL('/en/test/creativity-profile');
+    await expect(page.getByTestId('test-recovery-panel')).toBeVisible();
+    await expect(page.getByTestId('test-recovery-card')).toHaveCount(2);
   });
 
   test('@smoke localized SSR responses emit locale-specific html lang and client locale navigation preserves it', async ({

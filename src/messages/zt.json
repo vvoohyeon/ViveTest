@@ -4,7 +4,7 @@
     "history": "歷史紀錄",
     "blog": "部落格",
     "settings": "設定",
-    "theme": "語言 ⋅ 主題",
+    "theme": "語言⋅主題",
     "light": "淺色",
     "dark": "深色",
     "menu": "選單",
@@ -39,7 +39,16 @@
     "goHistory": "開啟歷史紀錄",
     "instructionTitle": "開始之前",
     "instructionBody": "請閱讀每一道題並選擇一個答案。在最終提交之前，你可以返回並修改先前的答案。",
-    "start": "開始"
+    "start": "開始",
+    "recoveryInvalidTitle": "這個測試連結無效",
+    "recoveryInvalidBody": "我們無法將「{variant}」作為受支援的測試 variant 開啟。請嘗試下方可用的測試。",
+    "recoveryUnknownTitle": "找不到這個測試",
+    "recoveryUnknownBody": "「{variant}」不在目前的測試目錄中。請嘗試下方可用的測試。",
+    "recoveryUnavailableTitle": "這個測試暫時無法使用",
+    "recoveryUnavailableBody": "「{variant}」存在，但目前尚未開放。請嘗試下方可用的測試。",
+    "recoveryRecommendedTitle": "可用測試",
+    "recoveryNoRecommendations": "目前沒有可替代的測試。",
+    "recoveryOpenTest": "開啟這個測試"
   },
   "blog": {
     "selected": "已選文章",
