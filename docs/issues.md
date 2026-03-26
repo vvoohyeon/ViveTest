@@ -1,187 +1,258 @@
-# P1: Release gate drift came from ignored baselines and adjacent unit drift
+# 1. 현재 상태 요약
 
-## 요약
+## 구현 완료 / 부분 구현 / 미구현 영역
 
-P1은 telemetry/transition 런타임 자체가 틀렸다는 뜻이 아니었다.
-현재 코드베이스를 다시 확인하면 short-expanded CSS 수정, `test-qmbti` / `qmbti` fixture 정렬,
-theme representative helper 안정화는 이미 반영되어 있고 대표 Playwright 케이스도 통과한다.
+**구현 완료**
+- 로케일 정규화 + SSR 문서 시맨틱 (`proxy.ts`, `i18n`)
+- Landing 카탈로그 인터랙션 레이어 (catalog-grid, interaction-controller, layout/spacing plan)
+- GNB / 테마 / 모바일 오버레이 / Expanded UX
+- Transition 상태 기계 (begin / complete / fail / cancel / rollback)
+- Telemetry 동의 게이트 + consent-source (custom + Vercel 통합)
+- `card_answered`, `landing_view`, `attempt_start`, `final_submit` telemetry 이벤트 생성 (pre-sync 큐 포함)
+- Unit 테스트 106개 GREEN. 그러나 `qa:gate:once`는 RED.
 
-실제 문제는 두 층으로 나뉘어 있었다.
+**부분 구현 (Shell만 있거나 프로토타입 수준)**
+- `test-question-client.tsx`: 4문항 고정 루프, answer state, 단순 result echo. schema-driven scoring 없음, 결과 URL 없음, 세션 없음 → **clean-room 교체 대상**
+- Staged Entry: `createdAtMs` 저장되어 있으나 7분 만료 판정 미시행
+- `session_id` 보장: transport-patch 모델로 구현되어 있으나, validator/서버 계약 미강제
 
-1. Phase 11은 로컬 디스크에 snapshot PNG가 있으면 통과할 수 있었지만,
-   그 파일들이 `.gitignore`에 가려져 저장소 진실로 승격되지 못했다.
-2. 전체 release gate(`qa:gate:once`)는 Phase 11 외에도 `npm test`를 포함하므로,
-   unit drift가 남아 있으면 여전히 빨간 상태였다.
+**미구현**
+- Domain 타입 (`VariantSchema`, `ScoringSchema`, `QualifierFieldSpec`, `ScoreStats` 등) — Phase 1 대상
+- `variant-registry.generated.json` 인터페이스 및 cross-sheet 검증 — Phase 2 대상
+- Storage 추상 레이어 + 5개 상태 플래그 + variant-scope 격리 — Phase 3 대상
+- 3-경로 진입 분류기 + invalid variant 에러 복구 페이지 — Phase 4 대상
+- Instruction overlay (비-라우트), runtime entry commit 도메인 이벤트 — Phase 5 대상
+- Result URL `/result/{variant}/{type}?{base64Payload}` 구조 — Phase 8 대상
+- Result 섹션 렌더링 (mandatory/optional, content fallback) — Phase 9 대상
+- `src/features/test` 네임스페이스 — **착수 전 분리 필요**
+- Storage key ADR — **Phase 1 이전 작성 필요**
+- History, Share URL, Admin — 후속 Phase
 
-## 현재 코드 기준 사실관계
+## 문서 신뢰 우선순위 (요약)
 
-- 현재 [package.json](/package.json) 의 `qa:rules`는 아래 순서로 실행된다.
-  - `check-phase1-contracts.mjs`
-  - `check-phase4-grid-contracts.mjs`
-  - `check-phase5-card-contracts.mjs`
-  - `check-phase6-spacing-contracts.mjs`
-  - `check-phase7-state-contracts.mjs`
-  - `check-phase8-accessibility-contracts.mjs`
-  - `check-phase9-performance-contracts.mjs`
-  - `check-phase10-transition-contracts.mjs`
-  - `check-phase11-telemetry-contracts.mjs`
-  - `check-blocker-traceability.mjs`
-- `qa:static`은 `lint + typecheck + qa:rules`,
-  `qa:gate:once`는 `qa:static + build + test + test:e2e:smoke`,
-  `qa:gate`는 `qa:gate:once`를 3회 반복한다.
-- 현재 [check-phase11-telemetry-contracts.mjs](/Users/woohyeon/Local/ViveTest/scripts/qa/check-phase11-telemetry-contracts.mjs) 는 telemetry 계약만이 아니라
-  `tests/e2e/theme-matrix-smoke.spec.ts`, `tests/e2e/theme-matrix-manifest.json`,
-  그리고 snapshot completeness까지 함께 검사한다.
-- 현재 저장소에는 manifest naming과 맞지 않는 legacy theme baseline 12장이 추적돼 있었고,
-  manifest가 실제로 요구하는 168장 theme baseline과 8장 safari baseline은 디스크에는 있어도 `.gitignore` 때문에 저장소에 드러나지 않았다.
+| 순위 | 문서 | 신뢰 판단 |
+|---|---|---|
+| 1 | `req-test.md` | 이번 착수 Phase SSOT. 충돌 시 최우선 |
+| 2 | `req-landing.md` | 완료 영역 기준. §13.6 correlation 문구에 해석 여지 있음 (issues.md P2) |
+| 3 | `req-test-plan.md` | Phase 1~3 구현 방향 구체성 높음. 신뢰 |
+| 4 | `requirements.md` | 전역 범위 참고용. req-test.md와 충돌 시 하위 |
+| 5 | `project-analysis.md` | 구현 상태 가설 생성용. 단정 금지 |
+| 6 | `issues.md` | 현재 드리프트 이해용. 일부 반영됐을 수 있음 |
 
-## 핵심 해석
+## 문서와 Q&A 통합 해석 시 핵심 포인트
 
-이 이슈의 본질은 “telemetry/transition 구현 미완료”가 아니라
-아래 두 가지 저장소 드리프트가 동시에 release gate를 흔든 데 있다.
+- Gate GREEN 없이는 착수 불가. Traceability Closure (blocker 1~30 매핑) 선행.
+- `test-question-client.tsx` clean-room 교체 + `src/features/test` 분리를 착수 전 방향으로 확정.
+- Storage key ADR은 Phase 1 이전. Phase 3에서 key 바꿀 리스크를 Phase 1 타입 수준에서 차단.
+- axisCount 1/2/4 첫 구조에서 모두 수용. MBTI 하드코딩 절대 금지.
+- "지금 빨리 만들지만 다음 Phase에서 뜯는" 결정을 최우선으로 차단.
 
-```text
-1. Phase 11 green이 로컬의 ignored snapshot 파일 존재 여부에 의존했다.
-2. 전체 gate는 unit drift까지 포함하므로 qa:rules만 green이어도 release-ready가 아니었다.
-```
+## 문서 간 충돌 및 주의점
 
-따라서 P1은 범위 정의 문제만도 아니고, 런타임 버그만도 아니다.
-정확하게는 “현재 동작하는 테스트 상태가 저장소와 QA 문서에 제대로 반영되지 않은 상태”였다.
+| 충돌 포인트 | 설명 |
+|---|---|
+| req-landing.md §13.6 vs 구현 | correlation 문구 vs ingress-first bootstrap. P2 확정: ingress-first가 맞지만 문서 미정리 |
+| requirements.md vs req-test.md | session_id transport-patch 모델 명시 수준 차이. req-test.md에 직접 규정 없음 |
+| question-bank.ts vs AR-001 | 코드는 unknown variant → generic fallback. req-test.md는 에러 복구 페이지로 이동 |
+| Phase 11 QA gate vs 저장소 | 168장 baseline → gitignore. `qa:gate:once` RED 상태 |
 
-## 현재 정리 방향
+## 이번 우선순위에서 특히 강하게 반영할 운영 원칙
 
-- theme-matrix / safari baselines를 저장소에서 추적 가능한 자산으로 정리한다.
-- Phase 11 QA에 representative test variant drift guard를 추가해 fixture 변경 시 조기 실패하게 만든다.
-- `gnb-theme-transition` / `landing-card-contract` 같은 unit drift를 현재 runtime 계약에 맞춰 정리한다.
-- 그 뒤 `qa:gate:once` 기준으로 다시 release-green 여부를 판단한다.
-
-
----
-
-# P2: Ingress bootstrap no longer requires transition correlation
-
-## 요약
-
-현재 구현에서 Test ingress bootstrap의 권위는 `landingIngress` 자체다.
-`pendingTransition`은 Q2 시작 여부를 결정하지 않으며, destination-ready 이후 internal `transition_complete`를 정리하는 보조 상태로만 남아 있다.
-즉 현재 코드베이스는 “transition correlation-less ingress bootstrap” 모델로 굳어져 있고, 남은 충돌은 주로 문서 표현과의 정합성 문제다.
-
-## 현재 구현된 코드와 로직
-
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L55) 의 `resolveQuestionBootstrapState()`는 `landingIngress !== null`만으로 `landingIngressFlag`를 결정한다.
-- 같은 함수에서 [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L74) `currentQuestionIndex`는 ingress 존재 시 `2`, 부재 시 `1`로 바로 정해진다.
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L75) 는 ingress가 있으면 Q1 응답을 `answers.q1`로 즉시 채운다. 시작 문항 결정과 pre-answer bootstrap은 둘 다 ingress record만으로 수행된다.
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L61) 의 `pendingTransition` 분기는 target type/variant가 맞는지 확인한 뒤 [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L77) `pendingTransitionToComplete`에 `transitionId`를 넣는 역할만 한다.
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L104) 마운트 시 bootstrap은 `readPendingLandingTransition()`과 `readLandingIngress(variant)`를 각각 읽지만, 시작 문항 판정은 ingress 기준으로만 계산된다.
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L131) destination-ready 이후 `completePendingLandingTransition()`을 호출하는 effect는 pending transition cleanup 전용이다. 이 effect가 없어도 이미 계산된 Q2 bootstrap은 유지된다.
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L152) 실제 runtime 시작 시점에는 `trackAttemptStart()`를 먼저 발화하고, [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L171) ingress가 있는 경우에만 `consumeLandingIngress(variant)`를 수행한다.
-- [transition/store.ts](/src/features/landing/transition/store.ts#L20) 기준으로 ingress record는 `sessionStorage`의 `vivetest-landing-ingress:{variant}` 키에 저장된다.
-- 저장 필드는 [transition/store.ts](/src/features/landing/transition/store.ts#L20) `variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`뿐이다. `transitionId`나 correlation token은 저장되지 않는다.
-- [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L49) 의 `beginLandingTransition()`는 test ingress에서 ingress record를 쓰고, [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L57) 바로 `trackCardAnswered()`를 발화한다.
-- 이 순서는 [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L72) duplicate-locale 검증보다 앞선다. 따라서 duplicate-locale 실패에서는 public `card_answered`가 먼저 남을 수 있지만, 내부 rollback이 ingress/pending state를 즉시 제거한다.
-- correlation은 bootstrap 권위가 아니라 internal transition signal 정합성과 cleanup 경계에만 남아 있다. [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L65) 는 `transition_start`, [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L91) 는 `transition_complete`, [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L110) 는 `transition_fail|cancel` 신호를 보낸다.
-- destination mismatch는 ingress 권위가 아니라 pending transition 쪽에서 fail-close 된다. [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L105) 는 target type/variant mismatch를 `DESTINATION_LOAD_ERROR`로 정리하고, [blog-destination-client.tsx](/src/features/landing/blog/blog-destination-client.tsx#L40) 도 blog target이 아니면 동일하게 fail-close 한다.
-- landing 재진입에서 stale pending transition은 [landing-runtime.tsx](/src/features/landing/landing-runtime.tsx#L67) `USER_CANCEL`로 정리된다.
-- transition timeout monitor는 [transition-runtime-monitor.tsx](/src/features/landing/transition/transition-runtime-monitor.tsx#L9) `LANDING_TRANSITION_TIMEOUT_MS = 1600` 기준으로 pending transition만 감시한다. ingress 자체의 freshness나 만료는 여기서 판정하지 않는다.
-- ingress record의 [transition/store.ts](/src/features/landing/transition/store.ts#L23) `createdAtMs`는 현재 bootstrap/read/consume 경로 어디에서도 freshness 판정에 사용되지 않는다. 현재 구현에서는 저장만 되고 해석되지 않는 메타데이터다.
-
-## 현재 테스트/QA가 고정한 동작
-
-- [test-question-bootstrap.test.ts](/tests/unit/test-question-bootstrap.test.ts#L6) 는 pending transition이 없어도 ingress만 있으면 Q2에서 시작해야 한다는 동작을 직접 고정한다.
-- 같은 테스트의 [test-question-bootstrap.test.ts](/tests/unit/test-question-bootstrap.test.ts#L26) 는 pending transition completion이 ingress 기반 시작 문항 계산과 분리되어야 함을 고정한다.
-- [landing-transition-store.test.ts](/tests/unit/landing-transition-store.test.ts#L73) 는 rollback이 pending transition, ingress flag, return scroll, body lock을 함께 정리해야 한다는 cleanup bundle을 고정한다.
-- [landing-transition-runtime.test.ts](/tests/unit/landing-transition-runtime.test.ts#L91) 는 duplicate-locale test ingress가 internal fail-close로 종료되더라도 public `card_answered`는 이미 발화될 수 있음을 고정한다.
-- [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L113) 는 ingress 경로에서 Q2 bootstrap, `card_answered -> attempt_start -> final_submit`, internal `transition_start -> transition_complete` 순서를 함께 검증한다.
-- [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L265) 는 ingress consume 이후 같은 test route 재진입 시 instruction 재표시 없이 Q1 fallback이 일어나야 함을 고정한다.
-- [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L739) 와 [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L766) 는 timeout / destination-load-error / landing remount cancel 경로에서 stale pending transition cleanup을 검증한다.
-- [check-phase10-transition-contracts.mjs](/scripts/qa/check-phase10-transition-contracts.mjs#L47) 는 transition runtime이 ingress 저장과 `card_answered` 발화를 유지해야 함을 정적 게이트로 강제한다.
-- 같은 스크립트의 [check-phase10-transition-contracts.mjs](/scripts/qa/check-phase10-transition-contracts.mjs#L63) 는 question client가 ingress read/consume 분리를 유지해야 함을, [check-phase10-transition-contracts.mjs](/scripts/qa/check-phase10-transition-contracts.mjs#L71) 는 fallback/runtime `transitionId` 상태에 의존하면 안 됨을 정적 게이트로 고정한다.
-
-## 요구사항 문서와의 차이
-
-- [req-landing.md](/docs/req-landing.md#L819) 13.4는 “Q1 pre-answer와 시작 문항 결정은 ingress flag 기준으로만 판단한다”고 적고, [req-landing.md](/docs/req-landing.md#L826) ingress flag 존재 시 instructionSeen 여부와 무관하게 Q2 시작을 요구한다. 이 부분은 현재 구현과 직접 맞물린다.
-- 반면 [req-landing.md](/docs/req-landing.md#L844) 13.6은 pre-answer lifecycle 규칙 안에 [req-landing.md](/docs/req-landing.md#L850) “`transition correlation + landing ingress flag` 없는 유입에 pre-answer 적용 금지” 문구를 남겨 두고 있다.
-- [req-test.md](/docs/req-test.md#L159) 는 `Ingress Flag`를 “시작 문항 판정의 유일한 근거”라고 정의하고, [req-test.md](/docs/req-test.md#L160) 는 `Validated Landing-origin Context`를 “랜딩 카드 선택과 ingress flag 저장이 하나의 원자적 동작으로 완료된 상태”로 정의한다. 현재 구현은 이 정의와 더 가깝다.
-- [req-test.md](/docs/req-test.md#L466) 는 validated landing-origin context가 확인된 경우에만 Q1 pre-answer를 적용한다고 적고, [req-test.md](/docs/req-test.md#L467) context가 없으면 storage에 pre-answer가 남아 있어도 무시하라고 적는다. 이 문구는 “correlation token 보존”보다 “ingress flag 기반 문맥 판정” 쪽에 무게가 실린다.
-- [req-landing.md](/docs/req-landing.md#L833) 와 [req-test.md](/docs/req-test.md#L153) 는 staged entry의 7분 만료를 다음 Phase 범위로 둔다. 현재 landing 구현은 `createdAtMs`를 저장하지만 ingress bootstrap 시 만료를 판정하지는 않는다.
-- [req-landing.md](/docs/req-landing.md#L898) 와 [req-landing.md](/docs/req-landing.md#L907) 는 ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, `card_answered -> attempt_start` 정합성을 release-blocking으로 둔다. 이 QA 문구는 현재 구현/테스트와 일치하지만, 13.6의 correlation 문구와는 긴장이 있다.
-
-## 이번 분석으로 추가된 핵심 시사점
-
-- 현재 코드, unit test, e2e smoke, Phase 10 QA는 모두 “transition correlation이 없어도 ingress bootstrap은 성립한다”는 모델을 공통으로 고정하고 있다.
-- transition correlation은 현재 구현에서 bootstrap authority가 아니라 internal signal 정합성, source GNB overlay 유지, fail/cancel/timeout cleanup 경계를 위한 상태다.
-- duplicate-locale 실패처럼 public `card_answered`는 남지만 ingress/pending state는 즉시 사라지는 경로가 존재한다. 즉 public telemetry와 internal transition terminal의 종료 시점은 완전히 동일하지 않다.
-- `createdAtMs`가 현재 미사용이므로, staged entry freshness/expiry는 저장 포맷에 흔적만 있고 현재 landing bootstrap 계약에는 아직 연결되어 있지 않다.
-- 따라서 P2의 실질 이슈는 “ingress bootstrap 버그”보다 “문서 일부가 여전히 correlation-required 모델처럼 읽힌다”는 정합성 문제에 더 가깝다.
-- 후속 세션에서 바로 검토할 차이는 아래 3가지로 압축된다.
-  - [req-landing.md](/docs/req-landing.md#L850) correlation 문구를 현재 ingress-first bootstrap 모델에 맞게 해석하거나 정리할 필요가 있다.
-  - staged entry expiry는 다음 Phase 문서에 정의돼 있지만, 현재 landing bootstrap에서는 시행되지 않는다.
-  - duplicate-locale 실패에서 `card_answered`가 먼저 남는 현재 순서를 제품/분석 관점에서 의도된 것으로 볼지 확인이 필요하다.
+- 착수 전 QA gate GREEN 복구 필수
+- 코드 리팩터링보다 ADR/계약 확정 우선
+- "다음 Phase에서 다시 뜯지 않을 결정"을 지금 굳힘
+- UX fallback/recovery와 구조·도메인 계약을 동등 비중
+- Sheets sync, history, admin: 인터페이스/경계 설계 관점에서만
 
 ---
 
-# P3: session_id semantics are still split across the active docs
+# 2. 우선순위 Top 10 개선 과제
 
-## 요약
+## 1 — QA Gate GREEN 복구 + Blocker Traceability 완결
 
-현재 구현은 `session_id`를 이벤트 생성 시점이 아니라 transport 시점에 보장하는 모델이다.
-이벤트 객체는 pre-sync 상태에서 `session_id=null`로 생성·큐잉될 수 있고, 전송 직전에 `session_id`를 patch한다.
-다만 이 보장은 validator나 서버가 아니라 client runtime 규약에 의해 성립하며, 활성 문서들 사이에서도 이 적용 시점이 동일한 수준으로 풀려 있지는 않다.
+- **카테고리**: QA / Testing
+- **현재 문제 징후**
+  - `qa:gate:once` RED: Phase 11 check가 168장 theme-matrix baseline을 요구하지만, 저장소에는 36장만 추적됨 (나머지 132장 `.gitignore` 가려짐). Safari ghosting baseline 디렉토리 비어 있음.
+  - Unit drift: `gnb-theme-transition`, `landing-card-contract` 관련 단언이 현재 runtime 계약과 불일치.
+  - `check-blocker-traceability.mjs` — landing blocker 1~19의 automated assertion 매핑 현황이 req-test.md 신규 blocker 1~30 기준과 정합하지 않음 (확인 필요).
+- **근거 문서**: project-analysis §9, req-landing.md §14.4, req-test.md §12.3
+- **왜 착수 전에 먼저 봐야 하는지**: gate RED 상태로 Phase 1을 시작하면 Phase 1 완료 판정 자체가 불가능. 릴리스 신호 신뢰 불가.
+- **미개선 시 리스크**: Phase 1 단위 테스트가 GREEN이어도 `qa:gate`는 계속 RED. 복잡도가 높아질수록 gate 회복 비용이 기하급수적으로 증가.
+- **기대 효과**: "릴리스 가능한 상태" 기준선 복구. Phase 1 DoD 완료 판정 신뢰성 확보.
+- **긴급도**: P0
 
-## 현재 구현된 코드와 로직
+---
 
-- [types.ts](/src/features/landing/telemetry/types.ts#L11) 의 공개 telemetry 공통 타입 `TelemetryBaseEvent`는 `session_id: string | null`을 허용한다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L44) 초기 runtime state에서 `sessionId`는 `null`이고, [runtime.ts](/src/features/landing/telemetry/runtime.ts#L146) `createBaseEvent()`는 현재 runtime state의 `sessionId`를 그대로 event payload에 넣는다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L166) consent source가 아직 sync되지 않았으면 runtime `sessionId`는 계속 `null`로 유지된다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L92) `canSendToNetwork()`는 `synced && consent_state === OPTED_IN && sessionId !== null`일 때만 `true`가 된다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L129) `enqueueOrSend()`는 전송 조건이 안 맞으면 event를 runtime queue에 적재한다.
-- 이 queue는 [runtime.ts](/src/features/landing/telemetry/runtime.ts#L38) 메모리 배열 `runtimeState.queue`일 뿐이며, `localStorage`나 `sessionStorage`로 영속화되지 않는다. same-tab 런타임 동안만 유지되고, reload 후 durable queue로 복원되지는 않는다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L109) `flushQueue()`는 나중에 전송 가능 상태가 되면 queued event를 꺼내 [validation.ts](/src/features/landing/telemetry/validation.ts#L111) `patchTelemetryEventForTransport()`로 `session_id`와 `consent_state`를 덮어쓴 뒤 전송한다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L172) `OPTED_IN` sync 시점에는 `resolveSessionId()`를 호출해 session ID를 확보하려고 시도한다.
-- 이 session ID는 [runtime.ts](/src/features/landing/telemetry/runtime.ts#L62) `localStorage`의 `vivetest-telemetry-session-id`를 우선 재사용하고, 없으면 [correlation-id.ts](/src/features/landing/lib/correlation-id.ts) 의 `createOpaqueId()`를 통해 `randomUUID -> getRandomValues` 순서로 생성한다.
-- 랜덤 소스를 끝내 사용할 수 없으면 `sessionId`는 계속 `null`이고, 이 경우 event 객체 생성은 가능하지만 네트워크 전송은 계속 막힌다.
-- event별 pre-sync 동작도 동일하지 않다.
-  - [runtime.ts](/src/features/landing/telemetry/runtime.ts#L245) `trackCardAnswered`, [runtime.ts](/src/features/landing/telemetry/runtime.ts#L258) `trackAttemptStart`, [runtime.ts](/src/features/landing/telemetry/runtime.ts#L274) `trackFinalSubmit`는 consent sync 이전에도 호출될 수 있고 queue로 들어갈 수 있다.
-  - 반면 [landing-runtime.tsx](/src/features/landing/landing-runtime.tsx#L79) `trackLandingView`는 `telemetrySnapshot.synced` 이후에만 발화된다. 따라서 `landing_view`는 다른 public event보다 더 늦은 시점에 생성된다.
-- [consent-source.ts](/src/features/landing/telemetry/consent-source.ts#L7) 는 consent의 SSOT를 메모리 snapshot에 두고, `localStorage`는 persistence layer로만 사용한다.
-- [consent-source.ts](/src/features/landing/telemetry/consent-source.ts#L58) invalid persisted consent는 `OPTED_OUT`로 안전하게 강등되며, [consent-source.ts](/src/features/landing/telemetry/consent-source.ts#L112) same-tab `setTelemetryConsentState()` 호출은 즉시 메모리 snapshot을 갱신한다.
-- [validation.ts](/src/features/landing/telemetry/validation.ts#L54) `validateTelemetryEvent()`는 forbidden/legacy fields와 이벤트별 필수 필드는 검사하지만 `session_id !== null`은 강제하지 않는다.
-- transport 직전에도 같은 validator를 다시 쓰지만, [validation.ts](/src/features/landing/telemetry/validation.ts#L111) validator 자체가 non-null session을 계약으로 들고 있지는 않다.
-- 서버 경계는 더 느슨하다. [src/app/api/telemetry/route.ts](/src/app/api/telemetry/route.ts#L3) 는 request body가 JSON으로 parse되는지만 보고 `204`를 반환한다. payload schema나 `session_id`는 서버에서 재검증하지 않는다.
+## 2 — `src/features/test` 네임스페이스 분리 + `test-question-client.tsx` clean-room ADR 확정
 
-## 현재 테스트/QA가 고정한 동작
+- **카테고리**: Architecture / Docs
+- **현재 문제 징후**
+  - 현재 test 런타임 전체 (`test-question-client.tsx`, `question-bank.ts`, 관련 파일)가 `src/features/landing/test/` 하위에 위치. landing 네임스페이스와 test 도메인이 물리적으로 혼합.
+  - 착수 전 `src/features/test` 분리. `test-question-client.tsx` 전면 교체(clean-room).
+  - 분리 없이 Phase 1~5 타입/함수를 쌓으면 전부 잘못된 위치에 구현됨.
+- **근거 문서**: project-analysis §2, §3, §5; req-test-plan.md Part 2 개요
+- **왜 착수 전에 먼저 봐야 하는지**: 디렉토리 구조가 Phase 1 이후 수정되면 import 경로 전면 수정 발생. Phase 5까지 누적된 clean-room 구현이 landing 네임스페이스 내에 뒤섞임.
+- **미개선 시 리스크**: Phase 1~5 전체를 나중에 이동. e2e smoke import 경로 깨짐. landing과 test 관심사 혼합으로 테스트 불가능한 결합 고착.
+- **기대 효과**: Phase 1 타입/함수 파일이 처음부터 올바른 위치에 생성됨. landing 네임스페이스 책임 경계 명확화.
+- **긴급도**: P0
 
-- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L55) 는 `UNKNOWN` 상태에서 생긴 event가 queue에 쌓였다가 `OPTED_IN` 전환 후 flush되는 것을 고정한다.
-- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L71) 는 `OPTED_OUT` 전환 시 queued event가 폐기되는 것을 고정한다.
-- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L95) 는 persisted consent가 없으면 `sessionId=null` 상태로 전송이 막히고 queue만 쌓인다는 점을 고정한다.
-- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L110) 는 invalid persisted consent를 안전하게 `OPTED_OUT`로 해석해야 함을 고정한다.
-- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L120) 는 랜덤 소스가 불가해 `sessionId`를 만들 수 없는 경우에도 `OPTED_IN` 이후 전송을 막고 queue만 유지함을 고정한다.
-- [landing-telemetry-validation.test.ts](/tests/unit/landing-telemetry-validation.test.ts#L5) 는 forbidden/legacy field와 `card_answered`/`final_submit` 필수 필드를 검증하지만, nullable `session_id` 자체를 직접 단언하지는 않는다.
-- [vercel-analytics-gate.test.ts](/tests/unit/vercel-analytics-gate.test.ts#L89) 와 [vercel-speed-insights-gate.test.ts](/tests/unit/vercel-speed-insights-gate.test.ts#L89) 는 same-tab consent 변경 시 Vercel Analytics / Speed Insights gate가 같은 consent source를 즉시 따른다는 점을 고정한다.
-- [check-phase11-telemetry-contracts.mjs](/scripts/qa/check-phase11-telemetry-contracts.mjs#L57) 는 telemetry runtime이 consent state machine과 helper surface를 유지해야 함을 정적 게이트로 검사한다.
-- 같은 스크립트의 [check-phase11-telemetry-contracts.mjs](/scripts/qa/check-phase11-telemetry-contracts.mjs#L85) 는 validation file이 forbidden/legacy fields, `card_answered`, `final_responses` 검사를 유지해야 함을 요구하지만, transport payload의 non-null `session_id`를 직접 검사하지는 않는다.
-- [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L132) 는 실제 전송 payload를 캡처하지만, 현재 단언은 event ordering / required fields / forbidden fields에 집중되어 있고 `session_id`의 non-null을 직접 확인하지 않는다.
+---
 
-## 요구사항 문서와의 차이
+## 3 — Storage Key ADR + 5개 상태 플래그 계약 문서화 (Phase 1 이전 완료)
 
-- [req-landing.md](/docs/req-landing.md#L720) 는 `OPTED_IN`에서만 네트워크 전송 허용, [req-landing.md](/docs/req-landing.md#L721) `UNKNOWN/OPTED_OUT`에서는 로컬 큐 보관 가능이라고 적는다.
-- [req-landing.md](/docs/req-landing.md#L732) 는 “공통 필수 필드(모든 전송 이벤트)”에 `session_id`를 포함하고, [req-landing.md](/docs/req-landing.md#L770) 랜덤 소스 불가 환경에서는 `session_id`를 만들지 않는다고 적는다.
-- 이 서술은 “실제로 전송되는 event에는 session_id가 있어야 한다”는 해석과는 잘 맞지만, queued pre-sync event가 `session_id=null`로 시작할 수 있는지, queue가 durable한지, validator가 언제 non-null을 강제하는지까지는 적지 않는다.
-- [requirements.md](/docs/requirements.md#L297) 는 payload requirements에서 `session_id`를 공통 필수 필드 목록과 별도로 분리해 쓰고, [requirements.md](/docs/requirements.md#L299) “queued pre-sync events may originate with `session_id=null` before transport patching”을 명시한다.
-- 따라서 active docs 사이에서도 표현 밀도가 다르다. `requirements.md`는 현재 구현에 가깝고, `req-landing.md`는 transport-stage 필수성만 짧게 말하는 편이다.
-- [req-test.md](/docs/req-test.md) 에는 `session_id`에 대한 직접 규정이 없다. 현재 P3의 해석 충돌은 사실상 `req-landing.md`와 `requirements.md` 사이에 있다.
-- 또 하나의 차이는 보장 위치다. 활성 문서는 주로 payload semantics를 말하지만, 현재 구현에서 그 보장은 validator나 서버보다 client runtime에 집중돼 있다.
+- **카테고리**: State / Docs / Architecture
+- **현재 문제 징후**
+  - `derivation_in_progress`, `derivation_computed`, `min_loading_duration_elapsed`, `result_entry_committed`, `result_persisted` 5개 플래그의 storage key 명명, variant-scope 격리 전략, cleanup set 원자성 조건이 어느 문서에도 확정되어 있지 않음.
+  - req-test-plan.md Part 4: "Phase 3 착수 전 ADR 작성 권장"이지만, "Phase 1 이전 작성" 확정.
+  - `VariantId` brand type이 storage key prefix로 사용될 것이므로 (req-test-plan.md §Phase 3 설계 제약), Phase 1 타입 정의와 storage key 구조의 사전 정합 확인 없이는 Phase 3에서 Phase 1을 뜯어야 함.
+- **근거 문서**: req-test-plan.md Part 4, req-test.md §6.8, §8.2, §8.3
+- **왜 착수 전에 먼저 봐야 하는지**: Phase 1 `VariantId` 타입 결정이 Phase 3 storage key prefix 설계에 직접 영향. ADR 없이 Phase 1 타입을 확정하면 Phase 3에서 key 구조 변경 시 Phase 1~2 타입과 불일치.
+- **미개선 시 리스크**: Phase 3에서 storage key 재설계 → Phase 1 타입 수정 역방향 의존 발생. cleanup set 원자성 검증(blocker #17, #22) 불가.
+- **기대 효과**: Phase 1 타입과 storage key 구조가 사전 정합됨. Phase 3 착수 시 storage 추상 레이어 설계에만 집중 가능.
+- **긴급도**: P0
 
-## 이번 분석으로 추가된 핵심 시사점
+---
 
-- 현재 구현의 실제 보장 문장은 “모든 event 객체가 처음부터 `session_id`를 가져야 한다”가 아니라 “실제 네트워크로 나가는 시점에는 client runtime이 `session_id`가 없는 event를 보내지 않는다”에 가깝다.
-- 이 보장은 validator 단독 계약이 아니고, server contract도 아니다. 현재는 `canSendToNetwork()`와 transport patch 경로가 사실상의 enforcement point다.
-- queued pre-sync event는 durable queue가 아니라 메모리 queue이므로, reload 이후까지 보존되는 분석 버퍼로 이해하면 안 된다.
-- public event 중에서도 생성 시점은 다르다. `landing_view`는 sync 이후에만 생성되지만, `card_answered`/`attempt_start`/`final_submit`는 pre-sync 상태에서도 생성되어 queue에 들어갈 수 있다.
-- same-tab consent 변경은 custom telemetry뿐 아니라 Vercel Analytics / Speed Insights gate에도 즉시 전파된다. 현재 consent source는 “telemetry send 여부”와 “third-party script mount 여부”를 같은 메모리 snapshot으로 묶는다.
-- 현재 테스트와 QA는 consent state machine, queue flush/discard, forbidden fields, helper surface는 잘 고정하지만, “실제 전송 payload의 `session_id` non-null”은 직접 단언하지 않는다.
-- 따라서 P3의 실질 이슈는 단순한 문서 표현 차이만이 아니라, “`session_id` 필수성의 적용 시점”과 “그 보장을 누가 책임지는가”가 문서마다 다르게 읽힌다는 점이다.
-- 후속 세션에서 바로 검토할 차이는 아래 3가지로 압축된다.
-  - `req-landing.md`의 “모든 전송 이벤트” 표현만으로 transport-patch 모델을 충분히 설명하는지.
-  - `session_id` non-null 보장을 validator 또는 서버까지 끌어올릴 필요가 있는지.
-  - 현재 메모리 queue만으로도 제품/분석 관점에서 충분한지, 아니면 durable queue semantics가 필요한지.
+## 4 — Domain Foundation 타입 계약: axisCount 가변 구조 + EGTT qualifier 수용
+
+- **카테고리**: Domain Model / Architecture
+- **현재 문제 징후**
+  - 현재 코드에 `VariantSchema`, `ScoringSchema`, `QualifierFieldSpec`, `ScoreStats`, `DerivedType` 등 핵심 도메인 타입이 없음 (project-analysis §2: "no schema-driven scoring").
+  - `question-bank.ts`의 현재 fallback 구조는 MBTI 4축 하드코딩 전제. axisCount 1/2/4 첫 구조에서 모두 수용 필요.
+  - EGTT (axisCount=1, qualifierFields 1개)는 Phase 2 이후 fixture 추가지만, Phase 1 타입이 qualifier 구조를 수용하지 못하면 Phase 2~3이 Phase 1을 뜯어야 함.
+  - `qualifierFields.questionIndex`가 scoring 문항을 가리키면 blocking error — 이 검증 로직도 Phase 1 pure 함수 대상.
+- **근거 문서**: req-test-plan.md T1-1~T1-6, req-test.md §3.1, §3.8, §3.11, §6.2
+- **왜 착수 전에 먼저 봐야 하는지**: Phase 1 타입이 모든 이후 Phase의 전제. 지금 MBTI-only로 좁혀놓으면 Phase 2에서 EGTT 추가 시 Phase 1 전면 재작성.
+- **미개선 시 리스크**: Phase 2 EGTT fixture 추가 시 `qualifierFields` 구조를 Phase 1 타입이 수용 못함. `parseTypeSegment`, `buildTypeSegment` EGTT 케이스 실패. `scale` mode 선언 variant blocking error 부재 → blocker #12 미매핑.
+- **기대 효과**: Phase 1 DoD 완료 시 Phase 2~11 타입 전제 확립. MBTI, EGTT, 향후 variant 모두 동일 코드 경로 처리.
+- **긴급도**: P0
+
+---
+
+## 5 — Invalid Variant → 에러 복구 페이지 계약 확정 (현재 코드와 역방향 충돌)
+
+- **카테고리**: UX / Domain Model / Architecture
+- **현재 문제 징후**
+  - `question-bank.ts`: unknown variant → generic questions fallback 제공. **req-test.md AR-001과 정반대 계약** — invalid variant는 crash 없이 에러 복구 페이지 이동, session/run 생성 없음.
+  - 에러 복구 페이지 구조 (미완료 테스트 카드 최대 2개, 카탈로그 순서 + 완료 이력 필터) 미구현.
+  - `validateVariant()` pure 함수도 없음 (Phase 1 T1-2 대상).
+  - invalid variant가 2순위 위험 실패로 명시. no-session-on-failure 우선.
+  - `adapter.ts` test card unavailable 필터링 누락이 별도 결함으로 추가 확정. Phase 2 착수 전 필터링 계약 레이어 ADR 필요
+- **근거 문서**: req-test.md AR-001, §3.2, §6.1, §12.2 blocker #1; req-test-plan.md T1-2
+- **왜 착수 전에 먼저 봐야 하는지**: 현재 코드의 generic fallback 동작이 Phase 4(진입 경로 분류기) 구현 시 충돌. clean-room 교체 전, 계약 방향을 확정해두지 않으면 Phase 4 구현이 두 계약 사이에서 분열.
+- **미개선 시 리스크**: Phase 4 착수 시 `question-bank.ts` fallback 로직과 `validateVariant` 결과 소비 경로가 충돌. blocker #1 (Variant Validation) 자동 단언 매핑 불가. 에러 복구 카드 2개 제공 로직이 history 연동 시점까지 임시 구조로 누적됨.
+- **기대 효과**: Phase 4 진입 경로 분류기가 `validateVariant → ok:false → 에러 복구 페이지` 경로를 명확하게 의존. no-session-on-failure 보장 구조 확립.
+- **긴급도**: P1
+
+---
+
+## 6 — Ingress Bootstrap 문서-구현 정합성 해소 + Staged Entry Expiry 계약 확정
+
+- **카테고리**: UX / State / Docs
+- **현재 문제 징후**
+  - req-landing.md §13.6: "transition correlation + landing ingress flag 없는 유입에 pre-answer 적용 금지" 문구 → 현재 ingress-first bootstrap 모델과 긴장. 문서 미정리 상태.
+  - Landing 단 계약과 Test 단 계약이 staged entry expiry를 서로 다른 Phase 범위로 다루는 방식이 명확하지 않음.
+  - staged entry / ingress / active run UX 일관성이 가장 민감한 항목.
+- **근거 문서**: req-landing.md §13.4, §13.6, req-test.md §3.3, §3.5
+- **왜 착수 전에 먼저 봐야 하는지**: req-landing.md correlation 문구가 정리되지 않으면 Phase 4 staged entry commit 구현 시 landing 단 재작업 요구. `createdAtMs` 미사용 상태가 Phase 4로 넘어가면 staged entry expiry 구현이 landing 스토리지 계약 수정을 유발.
+- **미개선 시 리스크**: Phase 4에서 staged entry 7분 만료 구현 시 landing ingress record 구조 변경 필요 → landing Phase QA 재실행. blocker #19 (Staged Entry) 단언이 landing 단 구조에 의존하는 지점에서 충돌.
+- **기대 효과**: landing-test 경계에서의 staged entry 책임 분리 확정. Phase 4 착수 시 landing 단 재작업 없이 expiry 판정 추가 가능.
+- **긴급도**: P1
+
+---
+
+## 7 — Session_id 명시 계약 + Telemetry 이벤트 서사 기반 QA 강화
+
+- **카테고리**: Telemetry / Docs / QA
+- **현재 문제 징후**
+  - `validateTelemetryEvent()`는 `session_id !== null`을 강제하지 않음. e2e smoke도 session_id non-null을 직접 단언하지 않음.
+  - `landing_view`는 sync 이후에만 생성 (다른 이벤트와 생성 시점 비대칭). 이 해석 규칙이 문서화되지 않으면 cross-phase integrity 분석 시 분모 해석 오류 발생.
+  - transport-patch 모델 → 명시 계약으로 격상. QA = "이벤트 서사" 기준.
+- **근거 문서**: req-landing.md §12, req-test.md §9.1, §9.2, §12.2 blocker #18
+- **왜 착수 전에 먼저 봐야 하는지**: req-test.md §9 telemetry skeleton (Phase 11)은 6개 hook 위치 확보가 목표지만, hook이 잘못된 session_id 계약 위에 쌓이면 cross-phase event integrity(blocker #28) 검증 시 재작업. "이벤트 서사" QA 기준 없이는 blocker traceability 완결 불가.
+- **미개선 시 리스크**: Phase 11 telemetry skeleton hook이 session_id null-risk 포함 상태로 추가됨. cross-phase `card_answered → attempt_start` integrity가 session_id 비대칭으로 인해 잘못 분석됨. share/history 구현 시 세션 단위 데이터 신뢰 불가.
+- **기대 효과**: telemetry event 생성 시점 비대칭 해석 규칙 문서화. transport-patch 경로가 명시 계약으로 고정되어 Phase 11 hook 위치 설계 시 혼선 제거.
+- **긴급도**: P1
+
+---
+
+## 8 — Cross-phase Event Integrity 픽스처 공유 계약 (Blocker #15 ↔ #28 연동)
+
+- **카테고리**: QA / Telemetry / Testing
+- **현재 문제 징후**
+  - req-landing.md §14.3 blocker #15: `card_answered → attempt_start` 순서, `landing_ingress_flag` 일관성.
+  - req-test.md §12.2 blocker #28: 동일 요구를 test Phase blocker로 선언. "두 블로커의 단언이 동일 픽스처를 공유해야 한다"고 명시.
+  - 현재 어느 픽스처에 이 단언이 속하는지, 공유 구조가 구현되어 있는지 불명확.
+  - e2e smoke가 event ordering 단언은 있으나 `question_index_1based` 값과 `landing_ingress_flag` 일관성을 직접 단언하지 않음
+- **근거 문서**: req-landing.md §14.3 blocker #15, req-test.md §12.2 blocker #28, §11 (cross-phase event integrity 동기화 트리거)
+- **왜 착수 전에 먼저 봐야 하는지**: blocker #28 단언이 test Phase 착수 시 어디서 작성되는지 결정되지 않으면, 이미 완료된 landing Phase의 traceability closure가 test blocker와 분리됨. 공유 픽스처 구조가 없으면 같은 시나리오를 두 번 작성하거나 한쪽이 미매핑 상태로 남음.
+- **미개선 시 리스크**: blocker #15, #28 중복 구현 또는 미매핑. traceability closure 미완성으로 Phase 11 gate 실패. landing/test 경계의 QA 픽스처 소유권 불명확 고착.
+- **기대 효과**: landing-test 경계 pixture 공유 구조 확정. blocker #15, #28 동시 GREEN 가능. Phase 11 traceability closure 안전 달성.
+- **긴급도**: P1
+
+---
+
+## 9 — Missing Result Content Fallback 구조 ADR (Mandatory 섹션 보장 + Operator Warning)
+
+- **카테고리**: UX / Domain Model / Architecture
+- **현재 문제 징후**
+  - req-test.md AR-003, AR-004: mandatory 섹션(`derived_type`, `axis_chart`, `type_desc`)은 항상 렌더링, optional은 `supportedSections` 선언 기준. content mapping 누락 시 빈 컨테이너 + '준비 중' 문구 + operator console warning. hard crash 금지.
+  - 현재 result panel은 단순 response echo. 섹션 구조, fallback 경로, operator warning 없음.
+  - `adapter.ts` tolerant normalization (malformed → empty string/zero)이 향후 blocking validator와 충돌 예정 (Q15: Phase 2에서 자연 분리 예정이지만, 이 방향을 지금 ADR로 확정 필요).
+  - missing result content = 1순위 위험 실패. mandatory/optional section fallback + operator-visible warning 구조가 최우선.
+- **근거 문서**: req-test.md §3.12, §6.4, §7.1, AR-003, AR-004, §12.2 blocker #13, #16; project-analysis §9
+- **왜 착수 전에 먼저 봐야 하는지**: Phase 9(Result Page) 착수 시 섹션 등급 구조 없이 구현하면 mandatory/optional 분리 재작업 발생. `adapter.ts` tolerant 정책이 Phase 2 validator 도입 시점까지 생산 경로에 남으면 silent error 누적.
+- **미개선 시 리스크**: Phase 9 구현이 ad-hoc 섹션 배치로 시작 → mandatory fallback 누락 → hard crash 경로 잔존. blocker #13 (Result Payload Validation) 부분 렌더링 '0건' 보장 불가.
+- **기대 효과**: Phase 9 착수 시 섹션 등급(mandatory/optional), fallback 동작, operator warning 위치가 ADR로 고정됨. `adapter.ts` 교체 경로 확정으로 Phase 2 validator 도입 시 충돌 방지.
+- **긴급도**: P1
+
+---
+
+## 10 — Representative Variant 범위 축소 + QA 스냅샷 자산 추적 가능성 정비
+
+- **카테고리**: QA / Testing
+- **현재 문제 징후**
+  - 168장 theme-matrix baseline 요구 중 저장소에 36장만 추적. 나머지 gitignored. Safari baseline 디렉토리 비어 있음.
+  - manifest(`theme-matrix-manifest.json`)와 실제 자산이 불일치. `check-phase11-telemetry-contracts.mjs`가 snapshot completeness까지 검사함.
+  - Phase 11 QA gate가 representative variant + screenshot baseline 변경 시 조기 실패 가드 없음
+  - 게이트 유지하되 대표 케이스 최소화, variant 대표성 재정의.
+- **근거 문서**: project-analysis §9, §10 item 6, req-test.md §12.2 blocker #26
+- **왜 착수 전에 먼저 봐야 하는지**: "테스트 플로우 구현 후 신규 settle recipe 케이스의 manifest + baseline 추가 부담"
+- **미개선 시 리스크**: drift guard는 이미 구현되어 있음. 하지만, 테스트 플로우 구현 후 신규 settle recipe 케이스의 manifest + baseline 추가 부담
+- **기대 효과**: manifest-baseline 정합성 복구. 대표 케이스 범위 명확화로 테스트 플로우 추가 시 baseline 추가 범위 결정 가능. Phase 11 gate 안정화.
+- **긴급도**: P1
+
+---
+
+# 3. 최종 우선순위 정렬표
+
+| 순위 | 과제명 | 긴급도 | 투입 대비 효과 | 테스트 플로우 선행 필요성 | 확신도 |
+|---|---|---|---|---|---|
+| 1 | QA Gate GREEN 복구 + Blocker Traceability 완결 | P0 | 매우 높음 | **착수 불가 전제조건** | 높음 |
+| 2 | `src/features/test` 분리 + clean-room ADR 확정 | P0 | 매우 높음 | **물리 구조 착수 전제** | 높음 |
+| 3 | Storage Key ADR + 5개 상태 플래그 계약 | P0 | 매우 높음 | **Phase 1 타입 설계 전제** | 높음 |
+| 4 | Domain Foundation 타입: axisCount 1/2/4 + qualifier 수용 | P0 | 매우 높음 | **Phase 1 핵심 산출물** | 높음 |
+| 5 | Invalid Variant → 에러 복구 페이지 계약 (현행 역방향 충돌 해소) | P1 | 높음 | Phase 4 착수 전 필수 | 높음 |
+| 6 | Ingress Bootstrap 문서 정합 + Staged Entry Expiry 계약 | P1 | 높음 | Phase 4 staging 전 필수 | 높음 |
+| 7 | Session_id 명시 계약 + 이벤트 서사 QA 기준 | P1 | 높음 | Phase 11 hook 설계 전 | 높음 |
+| 8 | Cross-phase Event Integrity 픽스처 공유 계약 (blocker #15↔#28) | P1 | 높음 | Phase 11 traceability 전 | 중간 |
+| 9 | Missing Result Content Fallback 구조 ADR | P1 | 높음 | Phase 9 착수 전 필수 | 높음 |
+| 10 | Representative Variant 축소 + QA 스냅샷 자산 정비 | P1 | 높음 | Gate 안정화 선행 | 높음 |
+
+---
+
+# 당장 ADR/결정 문서화가 필요한 8가지
+
+| # | ADR 주제 | 착수 전/후 | 이유 |
+|---|---|---|---|
+| A | **`src/features/test` 경계와 파일 구조** | 착수 전 | Phase 1 파일 생성 위치 결정 |
+| B | **Storage key 네이밍 + 5개 상태 플래그 구조 + variant-scope 격리 전략** | Phase 1 이전 | Phase 1 `VariantId` 타입과 정합 필요 |
+| C | **Invalid variant 처리 경로 (AR-001 재확인 + `question-bank.ts` 교체 타이밍)** | Phase 4 이전 | 현재 코드와 역방향 충돌 해소 |
+| D | **`session_id` 보장 위치 (transport-patch client-runtime 계약 명시화)** | Phase 11 이전 | 이벤트 서사 QA 기준 전제 |
+| E | **Representative variant + manifest-baseline 대상 범위 (축소 기준)** | 즉시 | Gate 안정화와 테스트 플로우 확장 준비 동시 |
+
+> **F. `unavailable` test card 카탈로그 제외 계약 레이어 결정** — 현재 adapter.ts의 blog-only 필터를 test card로 확장할지, Phase 2 registry 로딩 레이어에서 처리할지 결정. `normalizeLandingCards()` 수정 vs `loadVariantRegistry()` 소비 레이어에서 처리 중 하나를 Phase 2 ADR에 포함.
+
+> **G. blocker-traceability.mjs 상한 확장 계획** — 현재 1~19 하드코딩을 Phase 11 착수 전 1~30으로 확장하는 타이밍과 책임자 결정. req-test.md §12.3 blocker traceability closure 요건 충족을 위한 전제.
+
+> **H. test-flow telemetry hook 검사 추가 계획** — `check-phase11-telemetry-contracts.mjs`에 test phase hook 검사를 추가할 Phase 확정. req-test.md §9.1의 6개 hook 완전 커버 보장.
