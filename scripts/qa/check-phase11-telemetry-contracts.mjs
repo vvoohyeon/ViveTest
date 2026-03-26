@@ -3,6 +3,15 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const errors = [];
+const THEME_MATRIX_SNAPSHOT_SUFFIX = '-chromium-darwin.png';
+const SAFARI_GHOSTING_SNAPSHOT_SUFFIX = '-webkit-ghosting-darwin.png';
+const REQUIRED_SAFARI_GHOSTING_SNAPSHOT_STEMS = [
+  'hover-out-lower-row-settled',
+  'hover-out-row1-settled',
+  'settings-panel-top-seam-free',
+  'steady-lower-row-expanded-shadow',
+  'steady-row1-short-expanded-content-fit'
+];
 
 function fail(message) {
   errors.push(message);
@@ -16,6 +25,14 @@ function fileExists(relativePath) {
   }
 }
 
+function directoryExists(relativePath) {
+  try {
+    return statSync(path.join(rootDir, relativePath)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 function read(relativePath) {
   return readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
@@ -24,15 +41,75 @@ function readJson(relativePath) {
   return JSON.parse(read(relativePath));
 }
 
+function listPngFiles(relativePath) {
+  if (!directoryExists(relativePath)) {
+    return [];
+  }
+
+  return readdirSync(path.join(rootDir, relativePath))
+    .filter((fileName) => fileName.endsWith('.png'))
+    .sort();
+}
+
+function buildExpectedThemeSnapshotFiles(manifest) {
+  const expectedFiles = [];
+
+  for (const matrixCase of [...manifest.layoutCases, ...manifest.stateCases]) {
+    const locales = matrixCase.localeKeys ?? manifest.locales;
+    const themes = matrixCase.themeKeys ?? manifest.themes;
+
+    for (const locale of locales) {
+      for (const theme of themes) {
+        for (const viewportKey of matrixCase.viewportKeys) {
+          expectedFiles.push(
+            `theme-${matrixCase.suite}-${matrixCase.id}-${locale}-${theme}-${viewportKey}${THEME_MATRIX_SNAPSHOT_SUFFIX}`
+          );
+        }
+      }
+    }
+  }
+
+  return expectedFiles.sort();
+}
+
+function buildExpectedSafariGhostingSnapshotFiles() {
+  return REQUIRED_SAFARI_GHOSTING_SNAPSHOT_STEMS.map(
+    (snapshotStem) => `${snapshotStem}${SAFARI_GHOSTING_SNAPSHOT_SUFFIX}`
+  ).sort();
+}
+
+function assertExactSnapshotSet({label, actualFiles, expectedFiles}) {
+  const actualSet = new Set(actualFiles);
+  const expectedSet = new Set(expectedFiles);
+
+  for (const fileName of expectedFiles) {
+    if (!actualSet.has(fileName)) {
+      fail(`${label} must include ${fileName}.`);
+    }
+  }
+
+  for (const fileName of actualFiles) {
+    if (!expectedSet.has(fileName)) {
+      fail(`${label} must not include unexpected snapshot ${fileName}.`);
+    }
+  }
+
+  if (actualFiles.length !== expectedFiles.length) {
+    fail(`${label} must contain exactly ${expectedFiles.length} PNG baselines; found ${actualFiles.length}.`);
+  }
+}
+
 const requiredFiles = [
   'src/features/landing/lib/correlation-id.ts',
   'src/features/landing/telemetry/runtime.ts',
   'src/features/landing/telemetry/validation.ts',
   'src/app/api/telemetry/route.ts',
+  'playwright.config.ts',
   'tests/unit/landing-telemetry-validation.test.ts',
   'tests/e2e/helpers/landing-fixture.ts',
   'tests/e2e/theme-matrix-smoke.spec.ts',
-  'tests/e2e/theme-matrix-manifest.json'
+  'tests/e2e/theme-matrix-manifest.json',
+  'tests/e2e/safari-hover-ghosting.spec.ts'
 ];
 
 const allowedSettleRecipes = new Set([
@@ -252,28 +329,46 @@ if (fileExists('tests/e2e/theme-matrix-smoke.spec.ts')) {
 
 if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
   const manifest = readJson('tests/e2e/theme-matrix-manifest.json');
-  const snapshotDir = path.join(rootDir, 'tests/e2e/theme-matrix-smoke.spec.ts-snapshots');
-  const snapshotFiles = fileExists('tests/e2e/theme-matrix-smoke.spec.ts')
-    ? readdirSync(snapshotDir).filter((fileName) => fileName.endsWith('.png'))
-    : [];
-  const allCases = [...manifest.layoutCases, ...manifest.stateCases];
+  const snapshotDir = 'tests/e2e/theme-matrix-smoke.spec.ts-snapshots';
+  if (!directoryExists(snapshotDir)) {
+    fail(`Missing theme matrix snapshot directory: ${snapshotDir}`);
+  } else {
+    assertExactSnapshotSet({
+      label: 'Theme matrix snapshots',
+      actualFiles: listPngFiles(snapshotDir),
+      expectedFiles: buildExpectedThemeSnapshotFiles(manifest)
+    });
+  }
+}
 
-  for (const matrixCase of allCases) {
-    const locales = matrixCase.localeKeys ?? manifest.locales;
-    const themes = matrixCase.themeKeys ?? manifest.themes;
-    for (const locale of locales) {
-      for (const theme of themes) {
-        for (const viewportKey of matrixCase.viewportKeys) {
-          const snapshotStem = `theme-${matrixCase.suite}-${matrixCase.id}-${locale}-${theme}-${viewportKey}`;
-          const snapshotExists = snapshotFiles.some(
-            (fileName) => fileName.startsWith(`${snapshotStem}-`) && fileName.endsWith('.png')
-          );
-          if (!snapshotExists) {
-            fail(`Theme matrix snapshots must include ${snapshotStem}.png for manifest completeness.`);
-          }
-        }
-      }
+if (fileExists('tests/e2e/safari-hover-ghosting.spec.ts')) {
+  const safariSpec = read('tests/e2e/safari-hover-ghosting.spec.ts');
+  if (!/toMatchSnapshot/u.test(safariSpec)) {
+    fail('Safari ghosting smoke must capture screenshot baselines.');
+  }
+
+  for (const snapshotStem of REQUIRED_SAFARI_GHOSTING_SNAPSHOT_STEMS) {
+    if (!new RegExp(`${snapshotStem}\\.png`, 'u').test(safariSpec)) {
+      fail(`Safari ghosting smoke must reference snapshot ${snapshotStem}.png.`);
     }
+  }
+
+  const safariSnapshotDir = 'tests/e2e/safari-hover-ghosting.spec.ts-snapshots';
+  if (!directoryExists(safariSnapshotDir)) {
+    fail(`Missing safari ghosting snapshot directory: ${safariSnapshotDir}`);
+  } else {
+    assertExactSnapshotSet({
+      label: 'Safari ghosting snapshots',
+      actualFiles: listPngFiles(safariSnapshotDir),
+      expectedFiles: buildExpectedSafariGhostingSnapshotFiles()
+    });
+  }
+}
+
+if (fileExists('playwright.config.ts')) {
+  const playwrightConfig = read('playwright.config.ts');
+  if (!/testIgnore:\s*\/safari-hover-ghosting\\.spec\\.ts\//u.test(playwrightConfig)) {
+    fail('Playwright chromium project must exclude safari-hover-ghosting so safari baselines stay webkit-scoped.');
   }
 }
 

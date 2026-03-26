@@ -26,6 +26,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /safari-hover-ghosting\.spec\.ts/,
       use: {
         browserName: 'chromium'
       }

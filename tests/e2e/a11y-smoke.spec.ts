@@ -4,6 +4,8 @@ import {expectPageToBeAxeClean} from './helpers/axe';
 import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_CARD_ID, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
+const TRANSITION_OVERLAY_READY_DELAY_MS = 300;
+
 async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   await page.addInitScript((timeoutMs) => {
     const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
@@ -142,7 +144,7 @@ test.describe('Canonical accessibility smoke', () => {
   });
 
   test('@smoke assertion:B5-axe-canonical transition overlay representative state remains axe-clean', async ({page}) => {
-    await delayDestinationReadyRaf(page);
+    await delayDestinationReadyRaf(page, TRANSITION_OVERLAY_READY_DELAY_MS);
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
 

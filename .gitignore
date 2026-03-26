@@ -6,7 +6,5 @@ dist/
 coverage/
 test-results/
 playwright-report/
-tests/e2e/theme-matrix-smoke.spec.ts-snapshots/
-tests/e2e/safari-hover-ghosting.spec.ts-snapshots/
 *.tsbuildinfo
 .DS_Store
