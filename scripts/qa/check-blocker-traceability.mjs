@@ -4,6 +4,7 @@ import path from 'node:path';
 const rootDir = process.cwd();
 const traceabilityFile = 'docs/blocker-traceability.json';
 const TRACEABILITY_ASSERTION_ID = 'assertion:B19-traceability-registry';
+const allowedKinds = new Set(['automated_assertion', 'scenario_test', 'manual_checkpoint']);
 const errors = [];
 
 function escapeRegex(value) {
@@ -36,6 +37,26 @@ function fileExists(relativePath) {
   }
 }
 
+function hasTraceabilityAnchor({content, file, assertionId, kind}) {
+  if (kind === 'automated_assertion') {
+    return hasExecutableAssertionReference({content, file, assertionId});
+  }
+
+  if (kind === 'manual_checkpoint') {
+    return file.startsWith('docs/') && content.includes(assertionId);
+  }
+
+  if (kind === 'scenario_test') {
+    if (file.startsWith('tests/') || file.startsWith('scripts/qa/')) {
+      return hasExecutableAssertionReference({content, file, assertionId});
+    }
+
+    return file.startsWith('docs/') && content.includes(assertionId);
+  }
+
+  return false;
+}
+
 if (!fileExists(traceabilityFile)) {
   fail(`Missing traceability registry: ${traceabilityFile}`);
 } else {
@@ -60,6 +81,11 @@ if (!fileExists(traceabilityFile)) {
       continue;
     }
 
+    if (typeof entry.kind !== 'string' || !allowedKinds.has(entry.kind)) {
+      fail(`Traceability entry for blocker ${entry.blocker} has invalid kind: ${JSON.stringify(entry.kind)}`);
+      continue;
+    }
+
     if (!fileExists(entry.file)) {
       fail(`Traceability entry points to missing file: ${entry.file}`);
       continue;
@@ -71,14 +97,14 @@ if (!fileExists(traceabilityFile)) {
       continue;
     }
 
-    if (!hasExecutableAssertionReference({content, file: entry.file, assertionId: entry.assertionId})) {
+    if (!hasTraceabilityAnchor({content, file: entry.file, assertionId: entry.assertionId, kind: entry.kind})) {
       fail(
-        `Traceability assertionId is not anchored to an executable test/qa surface for blocker ${entry.blocker}: ${entry.assertionId}`
+        `Traceability assertionId is not anchored to the declared ${entry.kind} surface for blocker ${entry.blocker}: ${entry.assertionId}`
       );
     }
   }
 
-  for (let blocker = 1; blocker <= 19; blocker += 1) {
+  for (let blocker = 1; blocker <= 30; blocker += 1) {
     if (!blockers.has(blocker)) {
       fail(`Traceability registry is missing blocker ${blocker}.`);
     }

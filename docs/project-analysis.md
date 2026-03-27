@@ -1,172 +1,365 @@
 # Project Analysis
 
-## 1. Executive Summary
+## 1. Current State At A Glance
 
-This repository is a localized Next.js App Router application whose real technical center of gravity is not the entire product described in `docs/requirements.md`, but a highly specified landing-to-destination interaction system. The implemented code is strongest in four areas: locale normalization and SSR document semantics, an interaction-heavy landing catalog, a context-aware global navigation shell, and consent-gated telemetry and transition bookkeeping. Most of that logic is concentrated under `src/features/landing`, which functions as the de facto application module rather than a narrow feature folder.
+This repository is a localized Next.js App Router application. Its real technical center of gravity is a landing-to-destination interaction system, not the full assessment product described in `docs/requirements.md`. The codebase is best understood as a polished V1 front-end interaction prototype with unusually mature contract discipline.
 
-The current implementation is therefore better understood as a polished V1 front-end interaction prototype than as a full assessment product. It includes a localized landing page, a catalog of test/blog cards, desktop and mobile expansion behavior, a skeletal blog destination, a skeletal test question flow, and client-side telemetry/runtime contracts. It does not yet implement the broader product model described in `docs/requirements.md`, including result URLs, share reconstruction, local history management, schema-driven scoring, Sheets-backed content sync, admin/ops surfaces, or a persistent backend.
+**Test suite (2026-03-27):**
 
-The repository also shows an interesting split between process maturity and product completeness. Its contract discipline is unusually strong for a prototype: `scripts/qa` contains architecture- and behavior-specific checks, `docs/blocker-traceability.json` ties blockers to executable assertions, and Playwright/Vitest coverage is aimed at UI and runtime contracts rather than generic smoke testing. The current working tree is in a mixed but still informative state: local execution on 2026-03-22 found that `npm test` passes all 26 unit test files / 106 tests, while `npm run qa:static` currently fails in Phase 11 because the theme-matrix manifest closes over 168 screenshot expectations and only 36 PNG baselines are presently available under `tests/e2e/theme-matrix-smoke.spec.ts-snapshots`.
+- `npm test`: 28 unit test files / 111 tests — fails exactly one assertion in `tests/unit/gnb-message-labels.test.ts`
+  - Expected: `Language⋅Theme` (no spaces)
+  - Received: `Language ⋅ Theme` (spaces present in locale JSON files)
+  - This makes `qa:gate:once` effectively red for a narrow message-contract drift, not a runtime break.
+- `npm run qa:static`: passes all phase checks (Phase 1 → 11)
+- Screenshot baselines: 168 theme-matrix PNGs, 5 Safari ghosting PNGs, 4 state-smoke PNGs — all present
 
-## 2. Product Surface vs. Current Implementation
+---
 
-The implemented user-facing surface is materially smaller than the product scope in `docs/requirements.md`. What exists today is a landing-driven browsing experience that can branch into either a generic blog destination or a lightweight test flow. The landing experience is real, behavior-rich, and structurally important. The downstream product journeys are present mainly as bootstrap targets that preserve transition continuity rather than as fully realized destination products.
+## 2. Implementation Scope
 
-Completed or substantially implemented areas are concentrated around the landing entry experience. `src/app/[locale]/page.tsx` renders a localized hero and catalog, `src/features/landing/grid/landing-catalog-grid.tsx` and `src/features/landing/grid/use-landing-interaction-controller.ts` provide the complex interaction layer, and `src/features/landing/transition` plus `src/features/landing/telemetry` give the landing flow explicit transition and event semantics. Locale switching, theme switching, consent gating, duplicate-locale rejection, and GNB focus behavior are implemented as real runtime behavior rather than placeholders.
+### Substantially implemented
 
-Partially implemented areas include the destination pages. `src/app/[locale]/blog/page.tsx` and `src/features/landing/blog/blog-destination-client.tsx` provide a selected-article view plus an article list, but there is no article-specific route and no content source beyond the landing fixtures. `src/app/[locale]/test/[variant]/page.tsx` and `src/features/landing/test/test-question-client.tsx` provide an instruction overlay, 4-question flow, answer state, and a simple result panel, but there is no schema-driven scoring, no shareable result URL, and no durable session model. The final result panel is essentially a response echo plus navigation links.
+- Localized landing page with hero + catalog (`src/app/[locale]/page.tsx`)
+- Landing catalog grid with desktop/mobile expansion behavior (`src/features/landing/grid/`)
+- Global navigation shell (GNB) with theme switching, locale switching, keyboard/focus contract (`src/features/landing/gnb/site-gnb.tsx`)
+- Landing-to-destination transition handshake with sessionStorage persistence and timeout/cancel semantics (`src/features/landing/transition/`)
+- Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/landing/telemetry/`)
+- Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
+- Blog destination with article list and selected-article view (`src/features/landing/blog/blog-destination-client.tsx`)
 
-Placeholder-level areas are easy to identify. `src/app/[locale]/history/page.tsx` is still a placeholder shell with localized text and the active locale printed back to the user, and the preferences action in `src/features/landing/shell/telemetry-consent-banner.tsx` remains a no-op callback. Root metadata in `src/app/layout.tsx` is only partially finalized: the title is set to `ViveTest`, but the description is still the placeholder string `Reset baseline placeholder`. The repository also now contains scaffold-only trees under `src/components/**`, `src/hooks`, and `src/lib/landing`; those paths suggest planned extraction and generalization work, but they do not yet contain implementation files.
+### Partially implemented
 
-Major product surfaces described in `docs/requirements.md` are entirely absent. There is no `result` route family, no share payload parser, no local result history store or delete/clear UI, no admin routes, no auth boundary, no sync path for Google Sheets data, no result-content fallback renderer, and no invalid-variant recovery page. One especially important divergence is that test variant validation is not implemented at the domain level: `src/app/[locale]/test/[variant]/page.tsx` only validates the URL segment format, and `src/features/landing/test/question-bank.ts` falls back to generic questions for unknown variants instead of blocking entry.
+| Area | What exists | What's missing |
+|---|---|---|
+| Test destination | Instruction overlay, 4-question flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry | Schema-driven scoring, variant registry, shareable result URL, durable session |
+| Test variant model | String ids in fixtures, format-only URL validation | Domain-level validation, blocking on unknown variant |
+| Blog destination | Selected-article view, article list | Article-specific route, content source beyond fixtures |
 
-## 3. Architecture Overview
+### Placeholder only
 
-The application structure is layered clearly at the top level, even though most business logic is concentrated in one namespace. `src/proxy.ts` and the `src/i18n` helpers own request normalization and locale inference. `src/app` owns route files and the root/layout split required by Next.js App Router. `src/config/site.ts` defines the locale set, while `src/lib/routes/route-builder.ts` and `src/i18n/localized-path.ts` enforce locale-free route construction followed by locale prefixing. This gives the codebase a consistent route-authoring model and reduces duplicate-locale mistakes.
+- `src/app/[locale]/history/page.tsx` — renders localized shell text and current locale; no functionality
+- Preferences button in `src/features/landing/shell/telemetry-consent-banner.tsx` — click handler is a no-op
+- `src/app/layout.tsx` root metadata — title is `ViveTest`, description is still `Reset baseline placeholder`
 
-Below that, the real runtime is organized around `src/features/landing`. This folder contains not just landing-specific UI, but also shell composition, global navigation, telemetry consent, transition state, blog destination behavior, and test destination behavior. In practice, the repository treats “landing” as the product platform. The landing namespace is where cross-cutting concerns live, and the App Router layer mostly delegates into it.
+### Entirely absent
 
-This has both benefits and limits. On the positive side, the current V1 scope is easy to locate: most real work happens under one feature root. On the negative side, the namespace no longer maps narrowly to a single product slice. Blog, test, GNB, telemetry, and transition concerns are all coupled to the landing feature boundary, which is workable for a prototype but will become harder to scale once result/history/admin surfaces arrive.
+The following product surfaces from `docs/requirements.md` have no implementation in `src`:
 
-Inference: this structure looks deliberate rather than accidental. The code suggests a team decision to stabilize the landing shell and its interaction contract first, then hang destination prototypes off that shell before committing to a larger domain model. The scaffold-only `src/components/**`, `src/hooks`, and `src/lib/landing` trees reinforce that interpretation: shared abstractions were anticipated, but landing runtime correctness was prioritized first.
+- `/result` route family and share payload reconstruction
+- Local result history store, delete/clear UI
+- Admin routes and auth boundary
+- Google Sheets sync pipeline (no client dependency, no sync script, no generated registry)
+- EGTT variant — `egtt`, `axisCount`, `qualifierFields`, `derivedType` appear only in docs
+- Invalid-variant recovery page
+- Server-side telemetry validation or persistence
+- Profile question type (no `questionType`, scoring/profile split, or qualifier-field structure in `src/features/landing/data/types.ts`)
+
+---
+
+## 3. Architecture
+
+### 3.1 Layered Structure
+
+| Layer | Responsibility |
+|---|---|
+| `src/proxy.ts` + `src/i18n/` | Request normalization, locale resolution, `X-NEXT-INTL-LOCALE` injection |
+| `src/app/layout.tsx` | Document structure, global CSS, theme bootstrap, Vercel analytics gates |
+| `src/app/[locale]/layout.tsx` | Locale validation, `NextIntlClientProvider`, `TransitionRuntimeMonitor` |
+| `src/app/[locale]/**/page.tsx` | Thin server components — load translations, validate params, hand off to `PageShell` + client |
+| `src/features/landing/` | **Real application runtime** — grid, GNB, transition, telemetry, destination clients |
+| `src/config/site.ts` | Locale set definition |
+| `src/lib/routes/route-builder.ts` + `src/i18n/localized-path.ts` | Locale-free route authoring + locale prefix application |
+
+`src/features/landing` is the de facto platform namespace. It contains blog/test destinations, shared shell behavior, telemetry, and the GNB — not just landing-specific UI. This is intentional for V1 but will become strained when result/history/admin surfaces arrive.
+
+Three directories exist as scaffold only and contain no implementation files: `src/components`, `src/hooks`, `src/lib/landing`.
+
+### 3.2 Module Flow
+
+```
+Request
+  └─ src/proxy.ts → src/i18n/proxy-policy.ts
+       ├─ locale-less paths → redirect to localized
+       ├─ duplicate prefix → rewrite to /_not-found
+       └─ pass-through → Next.js route tree
+
+Route tree
+  └─ src/app/layout.tsx (document, theme-bootstrap.js)
+       └─ src/app/[locale]/layout.tsx (locale, messages, TransitionRuntimeMonitor)
+            ├─ src/app/[locale]/page.tsx
+            │    └─ LandingRuntime + LandingCatalogGridLoader
+            │         ├─ src/features/landing/data/raw-fixtures.ts (content source)
+            │         ├─ src/features/landing/data/adapter.ts (normalization)
+            │         ├─ src/features/landing/grid/use-landing-interaction-controller.ts
+            │         └─ src/features/landing/grid/landing-catalog-grid.tsx
+            ├─ src/app/[locale]/blog/page.tsx → blog-destination-client.tsx
+            ├─ src/app/[locale]/test/[variant]/page.tsx → test-question-client.tsx
+            └─ src/app/[locale]/history/page.tsx (placeholder)
+
+Shared page wrapper (all localized routes)
+  └─ src/features/landing/shell/page-shell.tsx
+       ├─ TransitionGnbOverlay
+       ├─ SiteGnb
+       ├─ <main>
+       └─ TelemetryConsentBanner
+
+Telemetry
+  └─ src/features/landing/telemetry/consent-source.ts (single consent gate)
+       ├─ src/features/landing/telemetry/runtime.ts (queue, session, flush)
+       ├─ src/app/vercel-analytics-gate.tsx
+       └─ src/app/vercel-speed-insights-gate.tsx
+```
+
+---
 
 ## 4. Route and Request Flow
 
-Locale-less requests are normalized before they reach the route tree. `src/proxy.ts` calls `src/i18n/proxy-policy.ts`, which decides whether to pass through, redirect, or rewrite. Locale-less app-owned paths such as `/`, `/blog`, `/history`, and `/test/:variant` are redirected to localized paths, while duplicate locale prefixes are rewritten to `/_not-found`, which drives `src/app/global-not-found.tsx`. Unowned paths are left to Next.js so that the framework’s unmatched-route behavior remains in control outside the app’s declared contract.
+### 4.1 Route Surface
 
-The SSR locale story is stronger than in many small Next.js projects. The proxy injects `X-NEXT-INTL-LOCALE` via `src/i18n/request-locale-header.ts`, and `src/app/layout.tsx` reads that header to render `<html lang>` correctly on the initial server response. `src/app/[locale]/layout.tsx` then validates the locale, calls `setRequestLocale`, mounts `NextIntlClientProvider`, and adds `src/i18n/locale-html-lang-sync.tsx` as a client-side fallback for navigation-time reconciliation. This means locale correctness is not left to client hydration alone.
+Effective route tree confirmed by 2026-03-27 build output:
 
-The layout hierarchy is intentionally thin. `src/app/layout.tsx` owns document structure, global CSS, theme bootstrap script injection, and Vercel analytics gates. `src/app/[locale]/layout.tsx` owns locale validation, message injection, and the global `TransitionRuntimeMonitor`. Individual route files are small server components that load translations or validate params, then hand off to `PageShell` plus a client runtime. This keeps the App Router layer close to orchestration and pushes behavioral complexity downward.
+```
+/_not-found              (static prerender)
+/[locale]                (dynamic)
+/[locale]/blog           (dynamic)
+/[locale]/history        (dynamic)
+/[locale]/test/[variant] (dynamic)
+/api/telemetry           (dynamic)
+```
 
-`src/features/landing/shell/page-shell.tsx` is the shared page wrapper for all localized pages. It renders `TransitionGnbOverlay`, `SiteGnb`, the page `<main>`, and `TelemetryConsentBanner`. Because of that, even the blog, history, and test routes inherit landing-origin concerns such as source-GNB overlay continuity and telemetry consent presentation.
+There is an empty scaffold directory at `src/app/[locale]/test/[variant]/question` but no route file under it.
 
-The client/server boundary is clear and meaningful. The route files in `src/app/[locale]/**` and the locale layout are server-side composition points. By contrast, `LandingRuntime`, `LandingCatalogGrid`, `SiteGnb`, the consent banner, telemetry runtime, and destination bootstrap clients are all client-side. This is a sensible split: SSR establishes locale, translations, and first paint, while interaction, measurement, storage, and timers remain on the client.
+### 4.2 Supported Locales
 
-## 5. Core Feature Analysis
+Defined in `src/config/site.ts`: `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru`
 
-### 5.1 Landing Experience
+All 12 locale files in `src/messages/` are complete with the same 6 namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent`. UI chrome is handled by these files; future test/content localization is expected to come from a separate data source.
 
-The landing experience is assembled in `src/app/[locale]/page.tsx` from three main pieces: translated copy via `getTranslations`, content generation via `createLandingCatalog(locale)`, and client behavior via `LandingRuntime` plus `LandingCatalogGridLoader`. The server component does not attempt to resolve interaction state; it only establishes the localized card dataset and the initial shell.
+### 4.3 Proxy Contract
 
-The landing catalog itself is not yet a product catalog in the CMS sense. `src/features/landing/data/raw-fixtures.ts` is the source of truth, and `src/features/landing/data/fixture-contract.ts` explicitly checks for stress-test conditions such as long tokens, long body text, empty tags, unavailable cards, and debug/sample entries. That is a strong signal that the fixtures are serving two purposes at once: they represent current content, but they also act as an adversarial UI contract corpus.
+- Locale-less app-owned paths → 307 redirect to localized equivalent
+- Duplicate locale prefix (e.g. `/en/en/...`) → rewrite to `/_not-found`
+- `/_next`, `/api`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by `src/i18n/locale-resolution.ts`
+- Locale family normalization: `ko* → kr`, Simplified Chinese → `zs`, Traditional Chinese → `zt`
 
-This is a practical choice for a V1 interaction prototype. It gives the layout and expansion system realistic variability without waiting for a remote content source. The downside is that content realism and UI-edge-case engineering are currently entangled. As a result, data fixtures are not just editorial artifacts; they are effectively part of the test harness.
+### 4.4 SSR Locale Correctness
 
-### 5.2 Navigation / GNB
+The proxy injects `X-NEXT-INTL-LOCALE`. `src/app/layout.tsx` reads it to set `<html lang>` on initial server response. `src/i18n/locale-html-lang-sync.tsx` reconciles it client-side on navigation. Locale correctness does not depend on client hydration alone.
 
-`src/features/landing/gnb/site-gnb.tsx` is responsible for much more than rendering navigation links. It controls desktop settings hover behavior, click/focus fallback behavior, mobile menu open/close choreography, route-aware back behavior, locale switching, theme switching, landing-specific keyboard entry order, and focus return semantics. The theme subsystem itself is more substantial than a simple toggle: `public/theme-bootstrap.js` sets the initial theme before hydration, `src/features/landing/gnb/hooks/use-theme-preference.ts` persists manual overrides to `localStorage`, and `src/features/landing/gnb/hooks/theme-transition.ts` uses the View Transition API to run a blur-circle theme switch with a 2500ms default duration when the browser supports it, while falling back cleanly for reduced-motion or unsupported environments. `src/features/landing/shell/page-shell.tsx` makes the GNB the navigation layer for every localized route, so it behaves more like a shared runtime controller than a simple header component.
+`src/app/[locale]/layout.tsx` exports `dynamicParams = false` and uses `generateStaticParams()` from the locale list, making the locale parameter surface explicit and preventing hidden permutations.
 
-This implementation has real strengths. The code clearly distinguishes landing, blog, history, and test contexts through the `GnbContext` type in `src/features/landing/gnb/types.ts`. The GNB also uses explicit helper rules from `src/features/landing/gnb/behavior.ts` and hook-based capability/theme detection from `src/features/landing/gnb/hooks`. The overall behavior is heavily test-driven, especially around keyboard order and mobile overlay contracts.
+---
 
-The main maintenance issue is concentration. `src/features/landing/gnb/site-gnb.tsx` is now about 780 lines and mixes rendering, timers, storage, focus routing, gesture interpretation, and route navigation. It works for the current scope, but it is one of the clearest candidates for decomposition if the shell continues to grow.
+## 5. Core Subsystems
 
-### 5.3 Catalog Data Modeling
+### 5.1 Landing Interaction Runtime
 
-The data model around `src/features/landing/data/types.ts` is reasonably disciplined. Raw card types distinguish test and blog payloads, localized text is modeled explicitly, and normalized `LandingCard` structures carry both resolved text and source identifiers such as `sourceParam`. `src/features/landing/data/adapter.ts` centralizes locale fallback rules, malformed-value normalization, debug/sample filtering, and the policy that unavailable blog cards are removed entirely from the end-user catalog.
+The most technically distinctive part of the codebase. Several focused pure modules:
 
-That normalization layer is both a strength and a risk. It makes rendering resilient: missing fields degrade to empty strings, zeroed metadata, or placeholder icons instead of throwing. That is useful for UI development. However, it also means the current implementation is tolerant where the product requirements call for blocking data validation in later phases. In particular, `docs/requirements.md` and `docs/req-test-plan.md` describe schema validation and blocking failures for malformed test data, while `normalizeLandingCards` is intentionally forgiving.
+- `src/features/landing/model/interaction-state.ts` — page/card/hover-lock state transitions
+- `src/features/landing/grid/layout-plan.ts` — row plans
+- `src/features/landing/grid/spacing-plan.ts` — row-local compensation
+- `src/features/landing/grid/mobile-lifecycle.ts` — mobile expansion phases
+- `src/features/landing/grid/desktop-shell-phase.ts` — visual shell phases
 
-The fixture/test relationship is more disciplined in the current working tree than an older analysis snapshot suggested. The active representative available test fixture used by current e2e helpers is `test-qmbti` / `qmbti` via `tests/e2e/helpers/landing-fixture.ts`, and the theme-matrix manifest pins its test routes to that same representative variant. Legacy `rhythm-a` strings still appear in several pure unit/runtime tests as synthetic identifiers, but they no longer define the active end-to-end representative path.
+Coordinated by:
 
-### 5.4 Interaction State and Motion Behavior
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — **1582 lines**, runtime state machine for focus, hover intent, keyboard handoff, reduced motion, page visibility, mobile transient shells, backdrop gestures, transition start/cancel
+- `src/features/landing/grid/landing-catalog-grid.tsx` — DOM geometry measurement, row baseline freezing, `requestAnimationFrame` timing
 
-This is the most technically distinctive part of the codebase. Interaction behavior is broken into several focused modules: `src/features/landing/model/interaction-state.ts` defines page/card/hover-lock state transitions, `src/features/landing/grid/mobile-lifecycle.ts` models mobile expansion phases, `src/features/landing/grid/layout-plan.ts` calculates row plans, `src/features/landing/grid/spacing-plan.ts` computes row-local compensation, and `src/features/landing/grid/desktop-shell-phase.ts` separates visual shell phases from raw interaction state.
+State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. `motion@12.34.0` is installed but not imported anywhere in `src` or `tests`; the motion system is entirely CSS- and data-attribute-driven.
 
-Those pure helpers are then coordinated by `src/features/landing/grid/use-landing-interaction-controller.ts`, which is the runtime state machine for focus, hover intent, keyboard handoff, reduced motion, page visibility, mobile transient shells, backdrop gestures, and transition start/cancel behavior. `src/features/landing/grid/landing-catalog-grid.tsx` adds another layer by measuring DOM geometry, freezing row baselines during active expansion, and reacting to plan changes. Together, these modules implement a browser-sensitive choreography system rather than a simple “expand card on click” UI.
+### 5.2 GNB
 
-The strengths here are rigor and explicitness. State transitions are named, timing constants are centralized, and layout/spacing behavior is largely testable outside the DOM. The main challenge is operational complexity. `src/features/landing/grid/use-landing-interaction-controller.ts` is 1582 lines, and `src/features/landing/grid/landing-catalog-grid.tsx` depends on post-render measurement and `requestAnimationFrame` timing. That makes the feature powerful but fragile under future browser, content-density, or performance changes.
+`src/features/landing/gnb/site-gnb.tsx` — **~791 lines** — does far more than render nav links. It owns: desktop settings hover, click/focus fallback, mobile menu choreography, route-aware back behavior, locale switching, theme switching, landing-specific keyboard entry order, and focus return semantics.
 
-One additional signal is noteworthy: the repository depends on `motion`, but the current code does not import it anywhere. The implemented motion system is almost entirely CSS- and data-attribute-driven, with timers and DOM measurements coordinating state. That suggests either an abandoned earlier direction or a future migration path that has not yet been adopted.
+Key supporting files: `src/features/landing/gnb/behavior.ts`, `src/features/landing/gnb/types.ts` (defines `GnbContext` per route: landing/blog/history/test), `src/features/landing/gnb/hooks/`.
 
-### 5.5 Transition Runtime and Session Persistence
+Theme subsystem: `public/theme-bootstrap.js` (sets before hydration from `localStorage`), `src/features/landing/gnb/hooks/use-theme-preference.ts` (persists manual overrides), `src/features/landing/gnb/hooks/theme-transition.ts` (2500ms blur-circle View Transition API, with reduced-motion fallback).
 
-The landing-to-destination handshake is explicit and reasonably well thought out. `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` writes a `PendingLandingTransition` into `sessionStorage`, records return scroll state, optionally records landing ingress for test cards, and emits an internal correlation signal via `src/features/landing/transition/signals.ts`.
+`src/features/landing/shell/page-shell.tsx` mounts the GNB for every localized route — it is a shared runtime controller, not a page-local header.
 
-On the destination side, `src/features/landing/transition/transition-runtime-monitor.tsx` watches for pending transitions and enforces a 1600ms timeout, while the destination clients complete the transition only after their own bootstrap conditions are satisfied. `src/features/landing/transition/transition-gnb-overlay.tsx` keeps a landing-context GNB rendered on top of non-landing pages while a transition is still pending, preserving visual continuity during destination readiness. `LandingRuntime` on the landing page also restores saved scroll position on return.
+### 5.3 Catalog Data Model
 
-This is a strong runtime contract for a prototype. The code differentiates complete, fail, and cancel paths and gives them distinct cleanup semantics. The downside is that all persistence is session-scoped and front-end only. There is no server correlation layer, no durable transition history, and no guarantee that a 1600ms timeout remains appropriate once destinations become heavier. Also, because `trackCardAnswered` is fired at transition start for test cards, telemetry can record ingress intent even when the destination later fails closed.
+Source: `src/features/landing/data/raw-fixtures.ts`
 
-### 5.6 Destination Bootstrap Logic
+Current fixture inventory:
+- 9 total cards (6 test, 3 blog)
+- 7 available, 2 unavailable, 1 debug/sample
+- Available test variant ids: `qmbti`, `rhythm-b`, `debug-sample`, `energy-check`
+- Available blog article ids: `ops-handbook`, `build-metrics`, `release-gate`
 
-The two destination bootstraps are intentionally asymmetric. `src/features/landing/blog/blog-destination-client.tsx` looks up available blog cards from the landing catalog, checks whether the pending transition targeted a blog, and then resolves the selected article from the transition payload or falls back to the first available article. If there are no articles, it terminates the pending transition with a specific fallback-empty reason.
+`src/features/landing/data/adapter.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), malformed-value normalization, and debug/sample filtering. It exposes a `{audience: 'qa'}` escape hatch that preserves debug fixtures the end-user catalog hides.
 
-`src/features/landing/test/test-question-client.tsx` is more involved. It separates runtime bootstrap from transition completion through `resolveQuestionBootstrapState`, supports instruction gating, consumes landing ingress to start the user at question 2, tracks dwell time, and emits `attempt_start` and `final_submit` events. That means the current test page is designed more around entry semantics and telemetry correctness than around sophisticated test logic.
+The adapter normalizes silently (empty strings, zeroed metadata) where `docs/requirements.md` describes blocking validation. This divergence will become critical once fixtures are replaced by a remote data source.
 
-The missing layer is the actual domain model. `src/features/landing/test/question-bank.ts` builds question 1 from the selected landing card when possible, but questions 2 through 4 are generic locale-based fallbacks, and unknown variants still receive a generic question set. This is a major divergence from the requirements, which expect registry-backed variant validation, schema-driven scoring, and error recovery instead of silent fallback.
+Active e2e representative variant: `test-qmbti` / `qmbti` (pinned in `tests/e2e/helpers/landing-fixture.ts` and `theme-matrix-manifest.json`). `rhythm-a` strings appear in unit tests only as synthetic identifiers.
 
-### 5.7 Telemetry and Consent Handling
+### 5.4 Transition Runtime
 
-Telemetry is one of the more coherent subsystems. `src/features/landing/telemetry/consent-source.ts` maintains consent as an in-memory source of truth synchronized to `localStorage`, and both `src/app/vercel-analytics-gate.tsx` and `src/app/vercel-speed-insights-gate.tsx` subscribe to it. `src/features/landing/telemetry/runtime.ts` manages queueing, anonymous session ID generation, landing-view deduplication, and consent-aware flush behavior. `src/features/landing/telemetry/validation.ts` rejects forbidden and legacy keys, including PII-shaped field names and deprecated transition fields.
+Landing-to-destination handshake: `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` writes `PendingLandingTransition` to `sessionStorage`, records return scroll state, and optionally records landing ingress for test cards.
 
-This gives the client runtime a clear privacy posture. Same-tab consent changes are respected immediately, analytics products and custom telemetry share the same gate, and opt-out clears queued events. As a front-end contract, this is solid.
+On the destination side, `src/features/landing/transition/transition-runtime-monitor.tsx` enforces a **1600ms timeout**. `TransitionGnbOverlay` keeps a landing-context GNB visible during pending transition for visual continuity. `LandingRuntime` restores scroll on return and cancels stale transitions with `USER_CANCEL`.
 
-The important limitation is server authority. `src/app/api/telemetry/route.ts` only checks whether the request body can be parsed as JSON and then returns `204`. It does not validate the event schema, reject forbidden fields, batch partial success, or persist anything. In other words, telemetry validation currently exists only on the trusted client path. That is acceptable for a prototype but not for a production analytics boundary.
+Result reasons: `USER_CANCEL`, `DUPLICATE_LOCALE`, `DESTINATION_TIMEOUT`, `DESTINATION_LOAD_ERROR`, `BLOG_FALLBACK_EMPTY`, `UNKNOWN`. Cleanup is centralized in `rollbackLandingTransition()`.
 
-## 6. Code Organization and Modularity
+Limitation: all persistence is session-scoped and client-only. No server correlation, no durable transition history.
 
-At the directory level, the repository is easy to navigate. `src/i18n`, `src/config`, and `src/lib/routes` each have tight and understandable responsibilities. `src/app` remains thin and route-oriented. The codebase does not scatter route helpers or locale logic throughout unrelated folders, which is a real organizational strength.
+### 5.5 Destination Bootstrap
 
-The feature-centric structure also works well up to a point. Everything related to the current V1 interaction surface is colocated under `src/features/landing`, so a reviewer can find grid logic, transition state, telemetry, destination clients, and shell components without chasing many cross-directory references. This is likely one reason the project could support such specific QA rules so early.
+**Blog** (`src/features/landing/blog/blog-destination-client.tsx`): resolves selected article from transition payload, falls back to first available article, terminates with `BLOG_FALLBACK_EMPTY` if no articles exist.
 
-The tradeoff is that `src/features/landing` is already overburdened as a name. It contains modules for blog and test destinations, shared shell behavior, and telemetry runtime, none of which are truly “landing-only” anymore. Two files in particular stand out as modularity pressure points: `src/features/landing/grid/use-landing-interaction-controller.ts` at 1582 lines and `src/features/landing/gnb/site-gnb.tsx` at about 780 lines. Those are not automatically problematic, but they indicate where future refactoring effort will likely concentrate.
+**Test** (`src/features/landing/test/test-question-client.tsx`): instruction gating, landing-ingress starts user at Q2, dwell time tracking, `attempt_start` / `final_submit` telemetry. The page is designed around entry semantics and telemetry correctness, not test logic.
 
-The repository also contains structural signals of incompleteness. `src/components/**`, `src/hooks`, and `src/lib/landing` exist as scaffold trees without implementation files, while Tailwind and `motion` are installed but not currently imported by the runtime code. `docs/req-landing.md`, `docs/req-test-plan.md`, and the phase-oriented QA scripts describe a future structure that the current runtime has not yet reached. Taken together, this suggests the codebase is in a controlled intermediate state rather than a stable long-term architecture.
+`src/features/landing/test/question-bank.ts` builds Q1 from the selected card when possible; Q2–4 are generic locale fallbacks; unknown variants still get generic questions instead of a blocking error. No variant registry and no schema-driven scoring exist in current source.
+
+### 5.6 Telemetry
+
+`src/features/landing/telemetry/consent-source.ts` — single consent gate for both custom telemetry and Vercel analytics, synchronized to `localStorage`, bridges cross-tab changes via browser `storage` event.
+
+`src/features/landing/telemetry/runtime.ts` — event queueing, anonymous session ID generation, `landing_view` deduplication by `locale:route`, consent-aware flush. Only session ID is persisted; event queue is in memory.
+
+`src/features/landing/telemetry/validation.ts` — rejects PII-shaped keys and legacy fields (`transition_id`, `result_reason`, `final_q1_response`).
+
+**Active event surface:**
+
+| Event | Required fields |
+|---|---|
+| `landing_view` | deduplicated by locale:route |
+| `card_answered` | `source_card_id`, `target_route`, `landing_ingress_flag=true` |
+| `attempt_start` | `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag` |
+| `final_submit` | same as above + `final_responses` (semantic `A`/`B` codes only) |
+
+`src/app/api/telemetry/route.ts` accepts any parseable JSON and returns `204`. No server-side schema validation, field rejection, or persistence. All guarantees are client-side only.
+
+---
+
+## 6. Runtime Contracts and Storage
+
+Storage key changes should be treated as runtime-contract changes, not implementation details.
+
+**localStorage keys:**
+- `vivetest-theme`
+- `vivetest-current-path`
+- `vivetest-previous-path`
+- `vivetest-telemetry-consent`
+- `vivetest-telemetry-session-id`
+
+**sessionStorage keys:**
+- `vivetest-landing-pending-transition`
+- `vivetest-landing-return-scroll-y`
+- `vivetest-landing-return-card-id`
+- `vivetest-test-instruction-seen:{variant}`
+- `vivetest-landing-ingress:{variant}`
+
+**Browser events emitted:**
+- `landing:transition-signal`
+- `landing:transition-store-change`
+- `landing:transition-cleanup`
+
+**Prototype behaviors that are easy to miss:**
+
+- Landing ingress is consumed exactly once: deep-link `/test` entry starts at Q1 without `card_answered` or `transition_start`; landing-ingress entry starts at Q2.
+- `card_answered` fires at transition start for test cards — telemetry can record ingress intent even when the destination later fails closed.
+- Blog destination always resolves an article (silent fallback to first available).
+- Test variant URL segment validation is format-only, not registry-backed.
+- `history` page shares the full landing shell and GNB but is a non-functional placeholder.
+- Preferences button in the consent banner is a visible no-op.
+
+---
 
 ## 7. Testing and Quality Gates
 
-The testing strategy is one of the strongest aspects of the repository, and it is notably contract-oriented. `vitest.config.ts` scopes unit tests to `tests/unit`, where reducers, route helpers, localization helpers, telemetry validation, transition storage, and card/data contracts are exercised. `playwright.config.ts` defines 9 e2e spec files in `tests/e2e`, including a WebKit-only Safari ghosting suite. This is not a generic CRUD-style test stack; it is aimed at preserving very specific UI and runtime semantics.
+### 7.1 Unit Tests (Vitest)
 
-The custom QA layer in `scripts/qa` is even more distinctive. `scripts/qa/check-phase1-contracts.mjs` enforces architecture choices such as `proxy.ts` remaining the single request entry point, all real pages living under `src/app/[locale]/**`, and SSR-sensitive folders avoiding browser-only APIs. `scripts/qa/check-phase11-telemetry-contracts.mjs` validates the telemetry surface, requires a representative `PRIMARY_AVAILABLE_TEST_VARIANT`, checks that `/test/` routes in `tests/e2e/theme-matrix-manifest.json` align to that representative variant, and enforces exhaustive theme-matrix screenshot closure. `scripts/qa/check-blocker-traceability.mjs` ensures blocker IDs in `docs/blocker-traceability.json` are anchored to executable tests or QA scripts. This gives the project a documented release-gate philosophy rather than a purely ad hoc test suite.
+Scoped to `tests/unit/`. Covers: reducers, route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB message labels.
 
-The repository therefore has strong quality intent, but the current working tree still exposes a meaningful gap between executable contracts and committed visual assets. On 2026-03-22, `npm test` executed 26 unit test files and 106 tests, all passing. `npm run qa:static` also passed linting, type checking, and Phase 1/4/5/6/7/8/9/10 contract checks, but it currently fails at Phase 11 because the exhaustive theme-matrix screenshot set is incomplete.
+### 7.2 E2E Tests (Playwright)
 
-The baseline inventory behind Phase 11 is therefore only partially present in the current working tree. `tests/e2e/theme-matrix-manifest.json` still expands to 168 screenshot expectations (96 layout + 72 state), but only 36 corresponding PNGs are currently present in `tests/e2e/theme-matrix-smoke.spec.ts-snapshots`, and `tests/e2e/safari-hover-ghosting.spec.ts-snapshots` is currently empty. The strongest verified areas are therefore structural and behavioral: locale routing, duplicate-prefix handling, grid plan invariants, spacing/baseline contracts, keyboard flow, accessibility smoke states, transition signals, and telemetry field hygiene. The least verified areas are also the least implemented ones: scoring correctness, result semantics, history persistence, backend ingestion guarantees, and data-source synchronization.
+9 spec files in `tests/e2e/`:
 
-The release-gate scripts also matter strategically. `package.json` defines `qa:gate:once` as static checks, build, unit tests, and Playwright smoke, and `qa:gate` repeats that pipeline three times. That is a strong signal that the team values flake detection and contract repeatability, not just one-off green runs.
+| Spec | Contract covered |
+|---|---|
+| `routing-smoke.spec.ts` | Locale-prefix redirects, not-found split, SSR `<html lang>`, zero hydration warnings |
+| `gnb-smoke.spec.ts` | Desktop/mobile shell behavior, keyboard traversal matrices, theme-transition fallback |
+| `grid-smoke.spec.ts` | Row planning, underfilled-row rules, spacing compensation, baseline freeze, geometry invariants |
+| `state-smoke.spec.ts` | Keyboard-sequential traversal, overlay focus, mobile keyboard handoff, reduced-motion |
+| `a11y-smoke.spec.ts` | AxeBuilder audits for landing, GNB-open, transition-overlay, KR representative state |
+| `consent-smoke.spec.ts` | Consent-banner copy, accept/deny persistence, mobile action-stack layout |
+| `theme-matrix-smoke.spec.ts` | 168 representative theme/layout/state screenshots (96 layout + 72 state) |
+| `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (5 baselines) |
+| `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
 
-## 8. Technical Strengths
+Helper layer: `tests/e2e/helpers/landing-fixture.ts` pins `PRIMARY_AVAILABLE_TEST_CARD_ID` / `PRIMARY_AVAILABLE_TEST_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
 
-Several parts of the codebase are already thoughtfully engineered.
+### 7.3 Custom QA Scripts (`scripts/qa/`)
 
-- Locale handling is unusually robust for a small app. `src/proxy.ts`, `src/i18n/locale-resolution.ts`, `src/i18n/request-locale-header.ts`, and the root/locale layout split work together so that localized SSR responses emit the correct `<html lang>` and duplicate locale prefixes fail closed.
-- The route model is disciplined. `src/lib/routes/route-builder.ts` keeps route authoring locale-free, while `src/i18n/localized-path.ts` applies locale prefixes centrally. This is a good antidote to stringly-typed route construction.
-- The landing interaction system is decomposed around explicit contracts. Even though the controller is large, helpers such as `src/features/landing/model/interaction-state.ts`, `src/features/landing/grid/layout-plan.ts`, `src/features/landing/grid/spacing-plan.ts`, and `src/features/landing/grid/mobile-lifecycle.ts` give the behavior a deterministic core.
-- Consent handling is consistent across first-party telemetry and third-party Vercel analytics. `src/features/landing/telemetry/consent-source.ts` acts as a single consent source, which avoids split-brain privacy behavior.
-- Theme handling is implemented with both UX and hydration in mind. `public/theme-bootstrap.js` sets the theme before hydration, `src/features/landing/gnb/hooks/use-theme-preference.ts` persists manual overrides, and `src/features/landing/gnb/hooks/theme-transition.ts` adds a 2500ms blur-circle View Transition effect with reduced-motion fallback.
-- The project’s QA philosophy is unusually mature. The presence of contract scripts, blocker traceability, and exhaustive screenshot manifests shows strong process discipline even though the product scope is still narrow.
+`qa:rules` runs 10 phase checks:
 
-## 9. Risks, Gaps, and Likely Challenges
+| Script | Contract enforced |
+|---|---|
+| `check-phase1-contracts.mjs` | `proxy.ts` as single entry point; all pages under `src/app/[locale]/**`; SSR-sensitive folders free of browser APIs |
+| `check-phase4-grid-contracts.mjs` | Grid structure invariants |
+| `check-phase5-card-contracts.mjs` | Card contract surface |
+| `check-phase6-spacing-contracts.mjs` | Spacing compensation rules |
+| `check-phase7-state-contracts.mjs` | Page-state transition rules |
+| `check-phase8-accessibility-contracts.mjs` | Canonical accessibility coverage |
+| `check-phase9-performance-contracts.mjs` | Hydration/performance contracts |
+| `check-phase10-transition-contracts.mjs` | Transition correlation and closure |
+| `check-phase11-telemetry-contracts.mjs` | Telemetry surface + `PRIMARY_AVAILABLE_TEST_VARIANT` + theme-matrix screenshot closure |
+| `check-blocker-traceability.mjs` | All blockers in `docs/blocker-traceability.json` anchored to executable tests/scripts |
 
-Data authoring and data validation are also not aligned yet. The adapter in `src/features/landing/data/adapter.ts` recovers from malformed content by normalizing to empty strings and zeros, while the requirements and implementation plan describe blocking data errors. That mismatch will become acute once content moves out of static fixtures and into a sync pipeline.
+`docs/blocker-traceability.json` spans blockers `1..30`, mixing `automated_assertion` and `manual_checkpoint` evidence kinds.
 
-The landing runtime itself is a scaling risk. Geometry measurement, baseline freezing, `requestAnimationFrame` sequencing, hover timers, and mobile transient shells make for a precise experience, but they also create many browser-sensitive edges. As card count, content variability, or destination richness grows, this behavior will become harder to reason about unless the current controller is broken into smaller, independently testable orchestration units.
+**Release gate:** `qa:gate:once` = static checks + build + unit tests + Playwright smoke. `qa:gate` repeats the pipeline three times for flake detection.
 
-Telemetry is coherent on the client but weak on the server boundary. Because `src/app/api/telemetry/route.ts` accepts any parseable JSON, the privacy and schema guarantees currently rely on the client behaving correctly. That is acceptable for a prototype but not for a production ingestion contract, especially if external callers or edge transformations are introduced later.
+**Least verified areas** correspond directly to unimplemented product surfaces: scoring correctness, result semantics, history persistence, backend ingestion guarantees, data-source synchronization.
 
-The repository’s QA process is strong, but QA asset freshness is still an active coordination challenge. The current working tree has a green unit suite, yet Phase 11 is red because the manifest closes over 168 theme-matrix screenshots while only 36 baselines are present, and the Safari ghosting snapshot directory is empty. The risk is maintenance coupling: manifest closure, representative fixture helpers, screenshot baselines, and analysis documents now need to evolve together or the release narrative will drift from the actual gate surface.
+---
 
-## 10. Recommended Review Priorities for External Experts
+## 8. Task Entry Guide
 
-1. Review the missing domain model for variants, scoring, results, and history first.
-Why: the largest product risk is not UI quality but the absence of the core assessment model expected by `docs/requirements.md`. `src/app/[locale]/test/[variant]/page.tsx`, `src/features/landing/test/test-question-client.tsx`, and `src/features/landing/test/question-bank.ts` show a prototype entry flow, not a completed test platform.
+### Routing / locale / not-found
+`src/proxy.ts` · `src/i18n/locale-resolution.ts` · `src/i18n/proxy-policy.ts` · `src/i18n/routing.ts` · `src/app/layout.tsx` · `src/app/[locale]/layout.tsx` · `src/app/global-not-found.tsx` · `src/app/not-found.tsx` · `tests/e2e/routing-smoke.spec.ts`
 
-2. Review the landing interaction runtime as the primary technical complexity hotspot.
-Why: `src/features/landing/grid/use-landing-interaction-controller.ts` and `src/features/landing/grid/landing-catalog-grid.tsx` contain the most timing-sensitive logic in the codebase. This is where browser variance, future regressions, and refactoring cost will concentrate.
+### Landing grid / layout / interaction
+`src/features/landing/grid/use-landing-interaction-controller.ts` · `src/features/landing/grid/landing-catalog-grid.tsx` · `src/features/landing/model/interaction-state.ts` · `src/features/landing/grid/layout-plan.ts` · `src/features/landing/grid/spacing-plan.ts` · `tests/e2e/grid-smoke.spec.ts` · `tests/e2e/state-smoke.spec.ts`
 
-3. Review data-contract strategy before any remote content or sync work begins.
-Why: `src/features/landing/data/raw-fixtures.ts`, `src/features/landing/data/adapter.ts`, and `src/features/landing/data/fixture-contract.ts` currently mix editorial placeholders, UI stress cases, and tolerant normalization. That is workable for fixtures but risky for a future Sheets-backed pipeline.
+### GNB / theme / shared shell
+`src/features/landing/gnb/site-gnb.tsx` · `src/features/landing/gnb/hooks/use-theme-preference.ts` · `src/features/landing/gnb/hooks/theme-transition.ts` · `public/theme-bootstrap.js` · `src/features/landing/shell/page-shell.tsx` · `tests/e2e/gnb-smoke.spec.ts` · `tests/unit/gnb-message-labels.test.ts`
 
-4. Review transition and telemetry semantics end-to-end, including server authority.
-Why: `src/features/landing/transition/runtime.ts`, `src/features/landing/transition/store.ts`, `src/features/landing/telemetry/runtime.ts`, and `src/app/api/telemetry/route.ts` define a clear client contract, but server-side enforcement and persistence are missing. This affects both analytics trustworthiness and privacy posture.
+### Transition / destination continuity / return-restore
+`src/features/landing/transition/runtime.ts` · `src/features/landing/transition/store.ts` · `src/features/landing/transition/signals.ts` · `src/features/landing/transition/transition-runtime-monitor.tsx` · `src/features/landing/transition/use-pending-landing-transition.ts` · `src/features/landing/landing-runtime.tsx` · `tests/e2e/transition-telemetry-smoke.spec.ts`
 
-5. Review shell-level modularity and cross-cutting concern boundaries.
-Why: `src/features/landing/gnb/site-gnb.tsx`, `src/features/landing/shell/page-shell.tsx`, and the broad `src/features/landing` namespace suggest that the current feature boundary will become strained when result/history/admin surfaces arrive.
+### Telemetry / consent
+`src/features/landing/telemetry/runtime.ts` · `src/features/landing/telemetry/validation.ts` · `src/features/landing/telemetry/consent-source.ts` · `src/app/api/telemetry/route.ts` · `src/app/vercel-analytics-gate.tsx` · `scripts/qa/check-phase11-telemetry-contracts.mjs` · `tests/e2e/consent-smoke.spec.ts`
 
-6. Review the test and QA program for contract freshness, not just existence.
-Why: the project already has high-value QA infrastructure and a broad baseline inventory. External reviewers should focus less on whether gates exist and more on whether manifest, fixture, baseline, and documentation freshness can be maintained sustainably as the product surface changes.
+### Screenshot baseline / representative fixture
+`tests/e2e/theme-matrix-manifest.json` · `tests/e2e/theme-matrix-smoke.spec.ts` · `tests/e2e/helpers/landing-fixture.ts` · `tests/e2e/safari-hover-ghosting.spec.ts`
 
-## 11. Conclusion
+### Test domain completion (next major product work)
+`src/features/landing/test/test-question-client.tsx` · `src/features/landing/test/question-bank.ts` · `docs/req-test.md` · `docs/req-test-plan.md` · `docs/test-phase0-adr.md` · `docs/test-traceability-checkpoints.md`
 
-Technically, this repository is best described as a strong front-end interaction prototype with unusually mature contract discipline around localization, landing behavior, navigation state, and telemetry gating. It is not yet a complete implementation of the assessment platform described in the requirements. The most successful parts of the codebase are the parts that define entry semantics and UI behavior; the least mature parts are the parts that require a durable domain model, persistent data, and backend trust boundaries.
+### Data model / fixture contract
+`src/features/landing/data/raw-fixtures.ts` · `src/features/landing/data/adapter.ts` · `src/features/landing/data/types.ts` · `src/features/landing/data/fixture-contract.ts`
 
-For an external expert, the immediate value of the codebase lies in understanding that asymmetry clearly. If the next step is refinement of the current landing prototype, the main work is modularization and QA realignment. If the next step is product completion, the priority should shift quickly toward variant/result architecture, server-side contracts, and data-source design, because the current shell is already sophisticated enough that further feature layering without a stronger domain foundation will increase complexity faster than it increases product completeness.
+---
+
+## 9. Risks and Open Gaps
+
+**Test domain foundation is absent.** No variant registry, no schema-driven scoring, no result derivation, no invalid-variant recovery route, no result history. The current shell is sophisticated enough that further feature layering without this foundation will amplify complexity faster than it increases product completeness.
+
+**Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1582 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. Powerful but fragile under content-density or browser changes. The most likely future refactoring cost concentration point.
+
+**Data validation is tolerant where requirements call for blocking.** `src/features/landing/data/adapter.ts` normalizes silently; `docs/requirements.md` and `docs/req-test-plan.md` describe blocking failures for malformed data. This mismatch becomes critical once static fixtures are replaced by a remote data source.
+
+**Telemetry server authority is missing.** `src/app/api/telemetry/route.ts` returns `204` on any parseable JSON. Schema enforcement, forbidden-field rejection, and persistence exist only on the trusted client path.
+
+**`src/features/landing` namespace is overburdened.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Workable for V1, but the boundary will need restructuring as result/history/admin surfaces arrive. Two files stand out as the primary pressure points: `use-landing-interaction-controller.ts` (1582 lines) and `site-gnb.tsx` (~791 lines).
+
+**Current red status is narrow but real.** One failing assertion in `tests/unit/gnb-message-labels.test.ts` (spacing around `⋅` separator in locale JSON). Low severity, but it signals that locale message files, unit contracts, and analysis documents need to be kept synchronized as small product decisions land.
+
+**Tech stack notes:**
+- `next@16.1.6`, `react@19.2.4`, `next-intl@4.8.3`
+- `motion@12.34.0` installed but not imported anywhere — either abandoned direction or future migration path
+- Tailwind v4 packages installed but runtime is primarily `src/app/globals.css`

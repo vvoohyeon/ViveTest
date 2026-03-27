@@ -1,187 +1,302 @@
 [
   {
     "blocker": 1,
+    "kind": "automated_assertion",
     "file": "tests/e2e/routing-smoke.spec.ts",
     "assertionId": "assertion:B1-hydration"
   },
   {
     "blocker": 2,
+    "kind": "automated_assertion",
     "file": "tests/e2e/routing-smoke.spec.ts",
     "assertionId": "assertion:B2-locale-prefix"
   },
   {
     "blocker": 3,
+    "kind": "automated_assertion",
     "file": "tests/e2e/gnb-smoke.spec.ts",
     "assertionId": "assertion:B3-desktop-settings"
   },
   {
     "blocker": 3,
+    "kind": "automated_assertion",
     "file": "tests/e2e/gnb-smoke.spec.ts",
     "assertionId": "assertion:B3-gnb-keyboard-matrix"
   },
   {
     "blocker": 4,
+    "kind": "automated_assertion",
     "file": "tests/e2e/grid-smoke.spec.ts",
     "assertionId": "assertion:B4-inline-size"
   },
   {
     "blocker": 4,
+    "kind": "automated_assertion",
     "file": "tests/e2e/grid-smoke.spec.ts",
     "assertionId": "assertion:B4-geometry-active-frame"
   },
   {
     "blocker": 5,
+    "kind": "automated_assertion",
     "file": "tests/e2e/state-smoke.spec.ts",
     "assertionId": "assertion:B5-keyboard-sequential"
   },
   {
     "blocker": 5,
+    "kind": "automated_assertion",
     "file": "tests/e2e/state-smoke.spec.ts",
     "assertionId": "assertion:B5-overlay-focus"
   },
   {
     "blocker": 5,
+    "kind": "automated_assertion",
     "file": "tests/e2e/state-smoke.spec.ts",
     "assertionId": "assertion:B5-mobile-keyboard-handoff"
   },
   {
     "blocker": 5,
+    "kind": "automated_assertion",
     "file": "tests/e2e/a11y-smoke.spec.ts",
     "assertionId": "assertion:B5-axe-canonical"
   },
   {
     "blocker": 6,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B6-transition-ingress"
   },
   {
     "blocker": 7,
+    "kind": "automated_assertion",
     "file": "tests/e2e/gnb-smoke.spec.ts",
     "assertionId": "assertion:B7-mobile-overlay"
   },
   {
     "blocker": 7,
+    "kind": "automated_assertion",
     "file": "tests/e2e/gnb-smoke.spec.ts",
     "assertionId": "assertion:B7-gnb-keyboard-matrix"
   },
   {
     "blocker": 7,
+    "kind": "automated_assertion",
     "file": "tests/e2e/a11y-smoke.spec.ts",
     "assertionId": "assertion:B7-axe-canonical"
   },
   {
     "blocker": 8,
+    "kind": "automated_assertion",
     "file": "tests/e2e/theme-matrix-smoke.spec.ts",
     "assertionId": "assertion:B8-theme-matrix"
   },
   {
     "blocker": 9,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B9-opted-out-no-send"
   },
   {
     "blocker": 10,
+    "kind": "automated_assertion",
     "file": "tests/e2e/grid-smoke.spec.ts",
     "assertionId": "assertion:B10-spacing-model"
   },
   {
     "blocker": 11,
+    "kind": "automated_assertion",
     "file": "tests/e2e/grid-smoke.spec.ts",
     "assertionId": "assertion:B11-row-consistency"
   },
   {
     "blocker": 12,
+    "kind": "automated_assertion",
     "file": "tests/e2e/grid-smoke.spec.ts",
     "assertionId": "assertion:B12-underfilled-last-row"
   },
   {
     "blocker": 13,
+    "kind": "automated_assertion",
     "file": "tests/unit/landing-hover-intent.test.ts",
     "assertionId": "assertion:B13-handoff-available-only"
   },
   {
     "blocker": 13,
+    "kind": "automated_assertion",
     "file": "tests/e2e/grid-smoke.spec.ts",
     "assertionId": "assertion:B13-hover-collapse"
   },
   {
     "blocker": 14,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-baseline"
   },
   {
     "blocker": 14,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-open-continuity"
   },
   {
     "blocker": 14,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-close-perception"
   },
   {
     "blocker": 14,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-close-choreography"
   },
   {
     "blocker": 14,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-title-continuity"
   },
   {
     "blocker": 14,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-queue-close"
   },
   {
     "blocker": 14,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-reduced-motion"
   },
   {
     "blocker": 15,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B15-transition-correlation"
   },
   {
     "blocker": 16,
+    "kind": "automated_assertion",
     "file": "tests/unit/landing-transition-store.test.ts",
     "assertionId": "assertion:B16-rollback-cleanup"
   },
   {
     "blocker": 16,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B16-timeout"
   },
   {
     "blocker": 16,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B16-destination-load-error"
   },
   {
     "blocker": 16,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B16-user-cancel"
   },
   {
     "blocker": 17,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B17-return-restore"
   },
   {
     "blocker": 18,
+    "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B18-final-submit-payload"
   },
   {
     "blocker": 18,
+    "kind": "automated_assertion",
     "file": "tests/unit/landing-telemetry-validation.test.ts",
     "assertionId": "assertion:B18-final-submit-validation"
   },
   {
     "blocker": 19,
+    "kind": "automated_assertion",
     "file": "scripts/qa/check-blocker-traceability.mjs",
     "assertionId": "assertion:B19-traceability-registry"
+  },
+  {
+    "blocker": 20,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B20-result-entry-eligibility"
+  },
+  {
+    "blocker": 21,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B21-final-question-screen"
+  },
+  {
+    "blocker": 22,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B22-result-derivation-loading"
+  },
+  {
+    "blocker": 23,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B23-back-from-loading"
+  },
+  {
+    "blocker": 24,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B24-commit-failure"
+  },
+  {
+    "blocker": 25,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B25-derivation-failure"
+  },
+  {
+    "blocker": 26,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B26-traceability-closure"
+  },
+  {
+    "blocker": 27,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B27-type-segment-parsing-qualifier-validation"
+  },
+  {
+    "blocker": 28,
+    "kind": "automated_assertion",
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B28-cross-phase-event-integrity-ingress"
+  },
+  {
+    "blocker": 28,
+    "kind": "automated_assertion",
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B28-cross-phase-event-integrity-direct"
+  },
+  {
+    "blocker": 28,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B28-cross-phase-event-integrity-shared-fixture"
+  },
+  {
+    "blocker": 29,
+    "kind": "scenario_test",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B29-sheets-sync-action-validation"
+  },
+  {
+    "blocker": 30,
+    "kind": "manual_checkpoint",
+    "file": "docs/test-traceability-checkpoints.md",
+    "assertionId": "assertion:B30-runtime-lazy-validation-unavailable-guard"
   }
 ]

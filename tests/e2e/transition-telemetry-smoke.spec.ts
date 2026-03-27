@@ -119,7 +119,7 @@ async function readTransitionSignals(page: import('@playwright/test').Page) {
 }
 
 test.describe('Phase 10/11 transition + telemetry smoke', () => {
-  test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload landing test transition keeps source GNB until destination-ready and records card_answered, attempt_start, final_submit, and internal transition signals', async ({
+  test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload assertion:B28-cross-phase-event-integrity-ingress landing test transition keeps source GNB until destination-ready and records card_answered, attempt_start, final_submit, and internal transition signals', async ({
     page
   }) => {
     const events: Array<Record<string, unknown>> = [];
@@ -225,7 +225,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBe(0);
   });
 
-  test('@smoke direct /test entry emits attempt_start(question_index_1based=1) without card_answered or internal transition_start', async ({
+  test('@smoke assertion:B28-cross-phase-event-integrity-direct direct /test entry emits attempt_start(question_index_1based=1) without card_answered or internal transition_start', async ({
     page
   }) => {
     const events: Array<Record<string, unknown>> = [];
