@@ -29,24 +29,14 @@ async function installViewTransitionStub(page: Page) {
 async function readInteractiveSurfaceStyles(locator: Locator) {
   return locator.evaluate((element) => {
     const styles = getComputedStyle(element);
-    const normalizeColor = (value: string) => {
-      const probe = document.createElement('span');
-      probe.style.color = value;
-      document.body.appendChild(probe);
-      const resolved = getComputedStyle(probe).color;
-      probe.remove();
-      return resolved;
-    };
-    const borderTopColor = normalizeColor(styles.borderTopColor);
-    const boxShadow = styles.boxShadow;
+    const borderTopColor = styles.borderTopColor;
 
     return {
-      backgroundColor: normalizeColor(styles.backgroundColor),
-      borderColor: normalizeColor(styles.borderColor),
+      backgroundColor: styles.backgroundColor,
+      borderColor: styles.borderColor,
       borderTopColor,
-      color: normalizeColor(styles.color),
-      boxShadowPresent: boxShadow !== 'none',
-      boxShadowInset: boxShadow.includes('inset'),
+      color: styles.color,
+      boxShadow: styles.boxShadow,
       hasVisibleBorder: borderTopColor !== 'transparent' && borderTopColor !== 'rgba(0, 0, 0, 0)'
     };
   });
@@ -392,8 +382,8 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
       expect.soft(selectedLocaleBeforeHover.hasVisibleBorder).toBe(false);
       expect.soft(currentThemeBeforeHover.hasVisibleBorder).toBe(false);
-      expect.soft(selectedLocaleBeforeHover.boxShadowPresent).toBe(false);
-      expect.soft(currentThemeBeforeHover.boxShadowPresent).toBe(false);
+      expect.soft(selectedLocaleBeforeHover.boxShadow).toBe('none');
+      expect.soft(currentThemeBeforeHover.boxShadow).toBe('none');
       await expect(alternateButton).toHaveAttribute('data-chip-surface', `theme-preview-${alternateTheme}`);
       expect.soft(alternateThemeBeforeHover.backgroundColor).toBe(
         themePreviewRestStylesByTheme[alternateTheme].backgroundColor
