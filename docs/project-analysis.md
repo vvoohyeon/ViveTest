@@ -316,11 +316,11 @@ Theme-matrix, Safari ghosting, and related screenshot PNG baselines are local QA
 | `check-phase9-performance-contracts.mjs` | Hydration/performance contracts |
 | `check-phase10-transition-contracts.mjs` | Transition correlation and closure |
 | `check-phase11-telemetry-contracts.mjs` | Telemetry surface + `PRIMARY_AVAILABLE_TEST_VARIANT` + theme-matrix screenshot closure |
-| `check-blocker-traceability.mjs` | All blockers in `docs/blocker-traceability.json` anchored to executable tests/scripts |
+| `check-blocker-traceability.mjs` | All blockers in `docs/blocker-traceability.json` anchored to their declared evidence surfaces |
 
 `docs/blocker-traceability.json` spans blockers `1..30`, mixing `automated_assertion`, `scenario_test`, and `manual_checkpoint` evidence kinds.
 
-As part of the Phase 0 close-out review, test-flow blocker 27/28 entries were rechecked and found non-stale in both file-path and evidence-kind terms, so the registry itself did not need to change.
+Test-flow blockers 20~30 now anchor directly in `docs/req-test.md` §12.2 rather than a separate checkpoint document; the registry remains the machine-readable source for current evidence kind and file mapping.
 
 **Release gate:** `qa:gate:once` = static checks + build + unit tests + Playwright smoke. `qa:gate` repeats the pipeline three times for flake detection.
 
@@ -349,7 +349,7 @@ As part of the Phase 0 close-out review, test-flow blocker 27/28 entries were re
 `tests/e2e/theme-matrix-manifest.json` · `tests/e2e/theme-matrix-smoke.spec.ts` · `tests/e2e/helpers/landing-fixture.ts` · `tests/e2e/safari-hover-ghosting.spec.ts`
 
 ### Test domain completion (next major product work)
-`src/features/test/test-question-client.tsx` · `src/features/test/question-bank.ts` · `docs/req-test.md` · `docs/req-test-plan.md` · `docs/test-phase0-adr.md` · `docs/test-traceability-checkpoints.md`
+`src/features/test/test-question-client.tsx` · `src/features/test/question-bank.ts` · `docs/req-test.md` · `docs/req-test-plan.md`
 
 ### Data model / fixture contract
 `src/features/landing/data/raw-fixtures.ts` · `src/features/landing/data/adapter.ts` · `src/features/landing/data/types.ts` · `src/features/landing/data/fixture-contract.ts`

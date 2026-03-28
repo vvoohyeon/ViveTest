@@ -224,50 +224,74 @@
   {
     "blocker": 20,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B20-result-entry-eligibility"
   },
   {
     "blocker": 21,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B21-final-question-screen"
   },
   {
     "blocker": 22,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B22-result-derivation-loading"
   },
   {
     "blocker": 23,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B23-back-from-loading"
   },
   {
     "blocker": 24,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B24-commit-failure"
   },
   {
     "blocker": 25,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B25-derivation-failure"
   },
   {
     "blocker": 26,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B26-traceability-closure"
   },
   {
     "blocker": 27,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B27-type-segment-parsing-qualifier-validation"
+  },
+  {
+    "blocker": 7,
+    "kind": "automated_assertion",
+    "file": "tests/unit/test-domain-question-model.test.ts",
+    "assertionId": "assertion:B7-question-model-integrity"
+  },
+  {
+    "blocker": 11,
+    "kind": "automated_assertion",
+    "file": "tests/unit/test-domain-derivation.test.ts",
+    "assertionId": "assertion:B11-derivation-correctness"
+  },
+  {
+    "blocker": 12,
+    "kind": "automated_assertion",
+    "file": "tests/unit/test-domain-question-model.test.ts",
+    "assertionId": "assertion:B12-odd-count-validation"
+  },
+  {
+    "blocker": 27,
+    "kind": "automated_assertion",
+    "file": "tests/unit/test-domain-type-segment.test.ts",
+    "assertionId": "assertion:B27-type-segment-parsing-qualifier-validation-unit"
   },
   {
     "blocker": 28,
@@ -284,19 +308,19 @@
   {
     "blocker": 28,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B28-cross-phase-event-integrity-shared-fixture"
   },
   {
     "blocker": 29,
     "kind": "scenario_test",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B29-sheets-sync-action-validation"
   },
   {
     "blocker": 30,
     "kind": "manual_checkpoint",
-    "file": "docs/test-traceability-checkpoints.md",
+    "file": "docs/req-test.md",
     "assertionId": "assertion:B30-runtime-lazy-validation-unavailable-guard"
   }
 ]

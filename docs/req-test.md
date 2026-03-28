@@ -34,6 +34,8 @@
 - 프레임워크/라우팅/i18n 기반 구조 재설계 (랜딩 단계 계승)
 - telemetry 이벤트 계약 및 payload schema (skeleton 확보만 포함)
 - `requirements.md` 즉시 정합화
+- consent 게이트 (테스트 진입 시 consent 재확인 및 Disagree 차단 흐름)
+  — Landing Requirements §13.10 소유. 본 문서 구현 범위 외.
 
 ### 1.3 Locked Decisions
 
@@ -124,10 +126,29 @@
 - 검증 실패 시: session/run context 생성 없이 해당 variant 진입을 즉시 차단 → §6.1 에러 복구 페이지.
 - Landing 카탈로그 렌더링 시점에는 lazy validation이 실행되지 않는다. 랜딩에서는 `unavailable` 플래그 기준으로만 카드 표시 여부를 결정한다.
 
-**`unavailable` 플래그 계약**:
-- `unavailable` 여부는 오퍼레이터가 Landing Card Metadata Sheet의 해당 컬럼에 **직접 기입**한다.
-- 코드 레벨의 자동 `unavailable` 강등(§2.4 2차 방어선)과 오퍼레이터 직접 기입 모두 유효하다.
-- `unavailable: true`인 variant: Landing 카탈로그에서 제외. 직접 URL 접근 시 §6.1 에러 복구 페이지.
+**카드 타입 계약**:
+- Landing Card Metadata Sheet의 `cardType` 컬럼으로 카드의 가시성·진입 가능성을 결정한다.
+- 5종 타입: `available` | `unavailable` | `hide` | `opt_out` | `debug`.
+  각 타입의 정의와 consent 연동 규칙은 Landing Requirements §2, §13.9가 SSOT다.
+- 오퍼레이터 직접 기입과 코드 레벨 자동 강등(§2.4 2차 방어선) 모두 유효하다.
+
+**§2.4 2차 방어선 자동 강등 규칙**:
+- Landing Metadata에만 존재하고 Questions Sheet에 없는 variant
+  → `hide` 강등 (카탈로그에서 제외. 데이터 오류 variant를 사용자에게 노출하지 않는다).
+- Questions Sheet에 존재하고 Results Sheet에 없는 variant
+  → 해당 variant 진입 차단 → §6.1 에러 복구 페이지.
+  카탈로그 가시성은 `cardType` 값을 유지한다.
+- 불일치 variant만 처리하며, 나머지 variant는 정상 서비스한다.
+
+**`unavailable: true` 레거시 필드 처리**:
+- 기존 `unavailable: boolean` 필드가 Sheet에 존재하면
+  `true` → `cardType: 'unavailable'`으로 해석한다.
+- 신규 Sheet 구성에서는 `cardType` 컬럼을 단일 소스로 사용한다.
+
+**검증 범위**:
+- `validateCrossSheetIntegrity()` 및 런타임 lazy validation의 검증 대상은
+  `variant-registry.generated.json` 내 데이터에 한정한다.
+- i18n 메시지 파일(`src/messages/`)은 검증 대상 외다.
 
 ### 2.6 In-progress Session Protection
 
@@ -418,6 +439,43 @@ schema.qualifierFields = [{ key: 'sex', questionIndex: 1, values: ['m', 'f'], to
 // 결과 라벨 복원: content mapping['em'] → '에겐남'
 ```
 
+**나이대 qualifier 예시 (tokenLength=3, multi-value):**
+```
+schema.qualifierFields = [
+  { key: 'ageGroup', questionIndex: N, values: ['10s','20s','30s','40s','50s'], tokenLength: 3 }
+]
+// 응답: Q_N='20s', scoring 결과 dominant='e'
+// derivedType = 'e'
+// qualifier ageGroup = '20s'
+// type segment = 'e20s'   (전체 길이 = axisCount(1) + tokenLength(3) = 4)
+```
+
+**자기보고 MBTI qualifier 예시 (tokenLength=4, 16-value):**
+```
+schema.qualifierFields = [
+  {
+    key: 'selfMbti',
+    questionIndex: N,
+    values: [
+      'enfj','esfj','entp','enfp','infj','infp',
+      'intp','intj','entj','estj','esfp','estp',
+      'isfj','isfp','istj','istp'
+    ],
+    tokenLength: 4
+  }
+]
+// 응답: Q_N='infj', scoring 결과 dominant='e'
+// derivedType = 'e'
+// qualifier selfMbti = 'infj'
+// type segment = 'einfj'  (전체 길이 = axisCount(1) + tokenLength(4) = 5)
+```
+
+> `QUALIFIER_SPEC_INVALID` 검증 예:
+> - `values: []` → 빈 배열 → 차단
+> - `tokenLength: 0` → `<=0` → 차단
+> - `values: ['10s', '2s']` with `tokenLength: 3` → '2s'.length(2) ≠ 3 → 차단
+> - `DUPLICATE_QUALIFIER_VALUE` 검증 예: `values: ['20s', '20s', '30s']` → 중복 → 차단
+
 **Tie 처리 정책**:
 - `binary_majority` 정상 경로(odd-count rule 준수 데이터)에서 동점은 발생하지 않는다.
 - odd-count rule 위반은 §6.2 blocking data error로 사전 차단된다. 런타임 tiebreak 로직은 주 경로에 포함하지 않는다.
@@ -703,6 +761,11 @@ invalid variant 입력은 runtime을 시작하지 않고 에러 복구 페이지
 - `qualifierFields`의 `questionIndex`가 존재하지 않는 문항을 가리키는 경우
 - `qualifierFields`의 `questionIndex`가 `scoring` 문항을 가리키는 경우 (profile 문항이어야 함)
 - `qualifierFields` 내 중복 `key`
+- `qualifierFields` 항목의 `values` 배열이 비어 있거나, `tokenLength <= 0`이거나,
+  `values` 내 어느 값의 문자 수가 `tokenLength`와 불일치하는 경우
+  → `QUALIFIER_SPEC_INVALID` 반환
+- `qualifierFields` 항목의 `values` 배열 내 중복 값이 존재하는 경우
+  → `DUPLICATE_QUALIFIER_VALUE` 반환
 
 blocking data error 발생 시 실행을 계속하면 안 되며, 사용자에게 명시적 error state와 안전한 복귀 경로를 제공해야 한다.
 
@@ -1023,6 +1086,14 @@ skeleton으로 확보해야 할 hook 위치:
 - **Status**: ✅ 확정
 - **결정 내용**: variant schema의 `supportedSections` 필드에 섹션 ID 목록으로 선언. Mandatory 섹션(`derived_type`, `axis_chart`, `type_desc`)은 선언 불필요, 항상 렌더링. Optional 섹션(`trait_list` 등)은 `supportedSections` 선언 시에만 렌더링.
 - **Affected Sections**: 3.12, 6.4, 7.1
+- **AR-003 확장 요건 (신규 optional 섹션 추가 시 필요한 정의)**:
+  신규 `SectionId`를 `supportedSections`에 추가하려면 아래 5가지를 동일 변경셋에서 정의해야 한다.
+  1. `SectionId` — 코드베이스 전체에서 중복 없는 string literal
+  2. variant schema 선언 — 해당 variant의 `supportedSections` 배열에 명시
+  3. 데이터 소스 컬럼 — Sheets에 해당 섹션 content mapping 컬럼 추가
+  4. 콘텐츠 누락 fallback — AR-004 계약 동일 적용 (빈 컨테이너 + '준비 중' + console warning, hard crash 금지)
+  5. 렌더 순서 — mandatory 3개 섹션(`derived_type`, `axis_chart`, `type_desc`) 이후에만 배치
+  위 5가지 중 하나라도 미정의 상태로 섹션 ID를 추가하면 안 된다.
 
 ### AR-004 Minimal Fallback Message Scope
 - **Status**: ✅ 확정
@@ -1118,18 +1189,29 @@ skeleton으로 확보해야 할 hook 위치:
 17. **Cleanup Set 원자성**: cleanup 후 잔류 데이터 `0건`. 다른 variant 데이터 영향 `0건`.
 18. **Telemetry Skeleton**: §9.1에 명시된 6개 hook 위치 확보 누락 `0건`.
 19. **Staged Entry**: A/B 선택 시점으로부터 7분 만료. 재진입/새로고침으로 연장되지 않음. 만료 후 Direct Cold 처리. commit 경계 전후 우선 규칙 분기 정확성.
+<!-- assertion:B20-result-entry-eligibility -->
 20. **Result-entry Eligibility**: all-required-answered + 마지막 문항 유효 응답 조건 즉시 반영. tail reset 발생 즉시 false. 마지막 문항 변경 후 조건 충족 시 유지.
+<!-- assertion:B21-final-question-screen -->
 21. **Final Question Screen**: result-entry eligible 상태에서 "결과 보기" CTA 제공. back-from-loading / derivation-failure 복귀 후에도 마지막 문항 응답 보존 및 "결과 보기" 재제공.
+<!-- assertion:B22-result-derivation-loading -->
 22. **Result Derivation Loading**: 5초(설정값) 최소 로딩. result screen entry commit = `derivation_computed = true` AND `min_loading_duration_elapsed = true` 두 조건 동시 충족. persistence timing: commit 이후에만 확정 저장. state hygiene: 5개 상태 플래그 미혼용.
+<!-- assertion:B23-back-from-loading -->
 23. **Back-from-Loading**: 항상 마지막 문항 복귀 (last-viewed 기준 아님). 마지막 문항 응답 보존. derivation residue + loading residue 정리. `result_entry_committed` / `result_persisted` 미발생 확인.
+<!-- assertion:B24-commit-failure -->
 24. **Commit-failure**: old active run 유지. staged entry / pending context 폐기. 자동 복귀 금지. 허용 액션 3가지 제공. "이전 진행으로 돌아가기" 실행 시 old run validity 재검증.
+<!-- assertion:B25-derivation-failure -->
 25. **Derivation-failure**: commit-failure와 taxonomy 분리. cleanup bundle 적용 후 새 attempt. 응답 집합 + eligibility 유지. partial result carryover `0건`.
+<!-- assertion:B26-traceability-closure -->
 26. **Traceability Closure**: blocker 1~25 모두 최소 1개 자동 단언 매핑.
-27. **Type Segment Parsing / Qualifier Validation**: `qualifierFields` 없는 variant에서 `type` segment 길이 = `axisCount`. `qualifierFields` 있는 variant에서 `type` segment 길이 = `axisCount + tokenLength 합산`. qualifier 값이 `values` 목록 외 값이면 에러 렌더링. `qualifierFields.questionIndex`가 scoring 문항을 가리키면 blocking data error. blocking 항목 1~27 모두 최소 1개 자동 단언 매핑.
+<!-- assertion:B27-type-segment-parsing-qualifier-validation -->
+27. **Type Segment Parsing / Qualifier Validation**: `qualifierFields` 없는 variant에서 `type` segment 길이 = `axisCount`. `qualifierFields` 있는 variant에서 `type` segment 길이 = `axisCount + tokenLength 합산`. qualifier 값이 `values` 목록 외 값이면 에러 렌더링. `qualifierFields.questionIndex`가 scoring 문항을 가리키면 blocking data error. `qualifierFields` 항목의 `values` 빈 배열·`tokenLength<=0`·값 길이 불일치 시 `QUALIFIER_SPEC_INVALID` blocking error. `qualifierFields` 항목의 `values` 배열 내 중복 값 존재 시 `DUPLICATE_QUALIFIER_VALUE` blocking error.blocking 항목 1~27 모두 최소 1개 자동 단언 매핑.
+<!-- assertion:B28-cross-phase-event-integrity-shared-fixture -->
 28. **Cross-phase Event Integrity (Landing→Test)**: ingress 경로에서     `card_answered`(landing phase) → `attempt_start`(test phase) 순서 보장.     `card_answered.landing_ingress_flag = true`인 세션에서     `attempt_start.landing_ingress_flag = true`이고     `attempt_start.question_index_1based = 2`임을 검증한다.
 직접 진입 경로에서 `card_answered` 미발화 + `attempt_start.question_index_1based = 1` 임을 검증한다.
 Landing Requirements §14.3 Blocker #15와 연동하며, 두 블로커의 단언이 동일 픽스처를 공유해야 한다.
+<!-- assertion:B29-sheets-sync-action-validation -->
 29. **Sheets Sync: Action-level Validation**: GitHub Action cross-sheet 검증이 불일치 감지 시 `variant-registry.generated.json` 커밋을 차단한다. last-known-good 파일이 유지된다. partial activation(일부 variant만 반영하는 부분 커밋)이 발생하지 않는다. 검증 함수는 runtime 2차 방어선과 동일 구현을 공유해야 한다.
+<!-- assertion:B30-runtime-lazy-validation-unavailable-guard -->
 30. **Runtime Lazy Validation & Unavailable Guard**: `getLazyValidatedVariant(variantId)` 첫 호출 시 `validateVariantDataIntegrity()` 실행 후 결과가 캐싱된다. 검증 실패 variant는 session/run context 생성 없이 §6.1 에러 복구 페이지로 이동한다. `unavailable: true` variant는 Landing 카탈로그에서 제외되고, 직접 URL 접근 시에도 §6.1 에러 복구 페이지로 이동한다. 나머지 variant는 검증 실패 variant의 영향을 받지 않는다. blocker 1~30 모두 최소 1개 자동 단언 매핑.
 
 ### 12.3 Traceability Requirement

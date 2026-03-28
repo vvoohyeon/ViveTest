@@ -1,5 +1,58 @@
 # Test Flow 구현 계획
 
+---
+
+## 사전 구현 요구사항 — 카드 타입 시스템
+
+> **이 섹션은 Phase 0 착수 이전에 완료해야 하는 랜딩 측 구현 항목이다.**
+> Test Flow Phase 1 이상은 variant registry에서 `cardType` 컬럼을 읽는 것을
+> 전제하므로, 카드 타입 시스템 구현이 선행되지 않으면 Phase 2 registry
+> 인터페이스 설계가 불완전해진다.
+
+### 배경
+
+`available` | `unavailable` | `hide` | `opt_out` | `debug` 5종 카드 타입
+분류가 결정되었으나 현재 코드베이스에는 구현되지 않은 상태다.
+
+- **요구사항 SSOT**: `docs/req-landing.md` §2(Terms), §13.9(Opt-out Card Contract)
+- **데이터 소스 계약**: `docs/req-test.md` §2.5(카드 타입 계약)
+
+### 구현 대상
+
+| 산출물 | 내용 | 참조 |
+|---|---|---|
+| `cardType` 컬럼 인식 | `raw-fixtures.ts` 및 `adapter.ts`가 `cardType` 5종 값을 인식하도록 갱신 | req-landing.md §2 |
+| `normalizeLandingCards()` 갱신 | `hide`, `debug` 카드를 카탈로그에서 제외. production 환경에서 `debug` → `hide`와 동일 처리 | req-landing.md §2 |
+| consent 기반 필터링 | `available` 카드: Disagree All 시 비노출. `opt_out` 카드: consent 상태와 무관하게 항상 노출. `unavailable` 카드: consent 상태와 무관하게 badge 노출 유지 | req-landing.md §13.9 |
+| `unavailable: boolean` 레거시 필드 호환 | `true` → `cardType: 'unavailable'`로 해석 | req-test.md §2.5 |
+| 관련 unit/e2e/QA 스크립트 갱신 | `check-phase5-card-contracts.mjs`, `landing-card-contract.test.ts`, `grid-smoke.spec.ts` 등 5종 카드 타입 계약 반영 | — |
+
+### 완료 조건
+
+- [ ] `normalizeLandingCards()`가 `hide`, `debug` 카드를 카탈로그에서 제외함
+- [ ] Disagree All 상태에서 `available` 카드 0건, `opt_out` 카드 정상 노출을
+  자동으로 검증하는 단언이 존재함
+- [ ] `qa:gate:once` GREEN 유지
+- [ ] `docs/req-test.md` §2.5 `cardType` 계약과 코드베이스 구현이 정합함
+- [ ] default 상태 + available 카드 진입 시 consent 게이트가 발동하고, Agree → 정상 진행 / Disagree 최종 확인 → 차단·복귀의 동작이 자동으로 검증하는 단언이 존재함
+- [ ] opt_out 카드 진입 시 consent 게이트가 발동하지 않음이 자동으로 검증되는 단언이 존재함
+
+### 랜딩 QA Gate 재통과 범위
+
+이 구현은 랜딩 카드 계약을 변경하므로 아래 항목의 재통과가 필요하다:
+- blocker #13 (`assertion:B13-handoff-available-only`): `available` + `opt_out`
+  카드가 handoff 대상인지 확인 필요
+- `check-phase5-card-contracts.mjs`: 5종 타입 반영
+- `landing-card-contract.test.ts`: unavailable test 카드 fixture 2장의 위상 재확인
+- §13.10 consent 게이트: 신규 e2e 단언 추가 대상.
+  instruction overlay와 consent UI 동시 표시 시나리오를 blocker-traceability.json에 신규 blocker로 등록 여부를 구현 시 결정한다.
+
+> **blocker #13 주의**: `handoff-available-only` 단언은 현재 `available` 카드만
+> handoff 대상으로 전제한다. `opt_out` 카드가 진입 가능하므로 handoff 대상에
+> 포함해야 하는지 구현 시 명시적으로 결정하고 단언을 갱신해야 한다.
+
+---
+
 > **기준 문서**: `docs/req-test.md` (이하 요구사항)  
 > **구성**: Phase 전체 요약 (Phase 0~11) → Phase 0 선결 조건 → Phase 1 세부 계획 → Phase 2·3 예비 요약 → Phase Entry Gates (Phase 4·9·11 착수 전 확인)
 > **원칙**: 이 문서만으로 구현 착수 가능 수준. 구현 방식 결정은 구현자 재량이며, 요구사항이 명시한 계약과 검증 기준을 충족하는 한 어떤 접근도 허용.
@@ -45,7 +98,13 @@
 - Phase 0에서는 `src/features/test/test-question-client.tsx`, `src/features/test/question-bank.ts`, `src/app/[locale]/test/[variant]/page.tsx`를 수정 대상으로 취급하지 않으며, 소스 코드 변경도 하지 않는다.
 - 위 세 파일은 legacy compatibility shell로 간주하고, 경계 고정은 코드가 아니라 `docs/req-test-plan.md`와 `docs/project-analysis.md`의 문서 계약으로만 수행한다.
 - clean-room 구현은 Phase 1 첫 변경셋 소유다.
-- canonical semantic variant gate는 `validateVariant(input: unknown, registeredVariants: VariantId[]): VariantValidationResult`로 고정한다.
+- Phase 1 T1-1~T1-7 순수 도메인 산출물의 canonical 위치는 `src/features/test/domain/`으로 고정한다. 파일 네이밍은 `types.ts`, `validate-variant.ts`, `validate-question-model.ts`, `validate-variant-data-integrity.ts`, `derivation.ts`, `type-segment.ts`, `index.ts`를 기준으로 유지한다.
+- `src/features/test/domain/index.ts`는 Phase 1 pure domain의 유일한 public surface로 간주한다. `question-bank.ts`, `test-question-client.tsx`, route page는 Phase 1에서 이 public surface를 소비하지 않아도 된다.
+- `VariantId` 브랜드 타입은 `type VariantId = string & { readonly __brand: 'VariantId' }` 형태의 string intersection으로 구현한다. object-wrapping 방식은 Phase 3 storage key prefix(`test:${variant}:...`)와 타입 수준에서 충돌하므로 금지한다.
+- `QuestionIndex` 브랜드 타입은 `type QuestionIndex = number & { readonly __brand: 'QuestionIndex' }` 형태의 number intersection으로 구현한다. 동일 이유로 object-wrapping 방식은 금지한다.
+- `AxisCount` 브랜드 타입은 `type AxisCount = (1 | 2 | 4) & { readonly __brand: 'AxisCount' }` 형태로 구현한다. 단, `AxisCount`는 storage key prefix에 직접 사용되지 않으므로 위 두 타입과 달리 object-wrapping 금지 이유가 다르다 — 리터럴 유니온 제약을 타입 수준에서 유지하기 위함이다. 테스트 픽스처에서 숫자 리터럴 `1`, `2`, `4`를 이 타입으로 전달할 때는 `1 as AxisCount`와 같은 타입 단언이 필요하다. 이는 구현 오류가 아니라 branded literal union의 정상 사용 패턴이다.
+- canonical semantic variant gate는 `validateVariant(input: unknown, registeredVariants: VariantId[], availableVariants: VariantId[]): VariantValidationResult`로 고정한다.
+- `validateVariant()`의 `UNAVAILABLE` 판정 기준은 "registered에는 있으나 available에는 없음"으로 고정한다.
 - `VariantValidationResult = { ok: true; value: VariantId } | { ok: false; reason: 'MISSING' | 'UNKNOWN' | 'UNAVAILABLE' }` shape는 Phase 1에서 구현만 하며 변경하지 않는다. shape 변경은 새 ADR 대상이다.
 - `question-bank.ts`의 unknown variant generic fallback 제거와 recovery page 연결은 Phase 4 첫 커밋에서 함께 수행한다.
 
@@ -195,6 +254,11 @@ ResultPayload = {
 }
 ```
 
+**브랜드 타입 구현 제약**:
+- `VariantId`는 반드시 `string & { readonly __brand: 'VariantId' }` 형태의 intersection brand로 구현한다.
+- `QuestionIndex`는 반드시 `number & { readonly __brand: 'QuestionIndex' }` 형태의 intersection brand로 구현한다.
+- object wrapper, class wrapper, `{ value: ... }` 구조는 금지한다. brand 캐스팅은 domain 내부 helper로 제한하고 산발적 `as` 남용을 피한다.
+
 **검증 기준**:
 - `ScoringSchema.axes` 배열 길이가 `axisCount`와 다르면 T1-4 차단.
 - `DerivedType` 길이 = `axisCount` — 생성 함수에서 검증.
@@ -213,7 +277,8 @@ ResultPayload = {
 ```
 validateVariant(
   input: unknown,
-  registeredVariants: VariantId[]
+  registeredVariants: VariantId[],
+  availableVariants: VariantId[]
 ): VariantValidationResult
 
 type VariantValidationResult =
@@ -224,11 +289,21 @@ type VariantValidationResult =
 > 위 시그니처와 union shape는 Phase 0 ADR-A에서 canonical contract로 고정한다. Phase 1 구현은 이 shape를 변경하지 않으며, Phase 4의 invalid-variant recovery wiring은 이 exact union을 소비한다. shape 변경이 필요하면 새 ADR을 연다.
 
 **계약**:
-- `input`이 등록된 VariantId에 없으면 `ok: false`.
+- `input`이 null/undefined/빈 문자열이면 `ok: false; reason: 'MISSING'`.
+- `input`이 registeredVariants에 없으면 `ok: false; reason: 'UNKNOWN'`.
+- `input`이 registeredVariants에는 있으나 availableVariants에는 없으면 `ok: false; reason: 'UNAVAILABLE'`.
 - 성공 시 `ok: true; value: VariantId`.
 - 이 함수는 session/run context를 생성하거나 부수효과를 일으키지 않는다.
 - Phase 4 에서 이 결과를 소비해 경로 분기를 수행한다 (`ok: false` → §6.1 에러 복구 페이지).
-
+- MISSING 판정 기준:input이 null, undefined, 또는 빈 문자열('')인 경우
+- UNKNOWN 판정 기준:input이 non-empty string이지만 registeredVariants에 없는 경우
+- UNAVAILABLE 판정 기준:registeredVariants에는 있으나 availableVariants에는 없는 경우
+- 비-string 타입 입력(number, object 등) 처리: **MISSING으로 처리한다.**
+  URL 세그먼트는 항상 string이므로 비-string 입력은 사용자의 잘못된 URL이
+  아니라 코드 버그다. 에러 복구 페이지에서 MISSING 계열 메시지("테스트를
+  찾을 수 없습니다")를 표시하는 것이 자연스럽다.
+  런타임에서 Next.js App Router가 route segment를 string으로 강제하므로
+  이 분기는 주로 unit test fixture와 내부 호출 방어선으로 기능한다.
 ---
 
 #### T1-3 — Question Model 검증 (pure 함수)
@@ -281,6 +356,8 @@ type BlockingDataErrorReason =
   | 'QUALIFIER_QUESTION_NOT_FOUND'   // qualifierFields의 questionIndex에 해당하는 문항 없음
   | 'QUALIFIER_QUESTION_NOT_PROFILE' // qualifierFields의 questionIndex가 scoring 문항을 가리킴
   | 'DUPLICATE_QUALIFIER_KEY'        // qualifierFields 내 key 중복
+  | 'QUALIFIER_SPEC_INVALID'    // values 빈 배열, tokenLength<=0, 또는 values[i].length !== tokenLength
+  | 'DUPLICATE_QUALIFIER_VALUE' // values 배열 내 중복 값 존재
 
 validateVariantDataIntegrity(
   schema: VariantSchema
@@ -337,6 +414,22 @@ function checkQualifierFields(
     const question = questions.find(q => q.index === field.questionIndex)
     if (!question) return { ok: false, reason: 'QUALIFIER_QUESTION_NOT_FOUND', detail: String(field.questionIndex) }
     if (question.questionType !== 'profile') return { ok: false, reason: 'QUALIFIER_QUESTION_NOT_PROFILE', detail: String(field.questionIndex) }
+    // QUALIFIER_SPEC_INVALID 검증
+    if (field.tokenLength <= 0)
+      return { ok: false, reason: 'QUALIFIER_SPEC_INVALID', detail: `${field.key}: tokenLength must be > 0` }
+    if (field.values.length === 0)
+      return { ok: false, reason: 'QUALIFIER_SPEC_INVALID', detail: `${field.key}: values is empty` }
+    for (const v of field.values) {
+      if (v.length !== field.tokenLength)
+        return { ok: false, reason: 'QUALIFIER_SPEC_INVALID', detail: `${field.key}: value "${v}" length ${v.length} !== tokenLength ${field.tokenLength}` }
+    }
+    // DUPLICATE_QUALIFIER_VALUE 검증
+    const valueSet = new Set<string>()
+    for (const v of field.values) {
+      if (valueSet.has(v))
+        return { ok: false, reason: 'DUPLICATE_QUALIFIER_VALUE', detail: `${field.key}: duplicate value "${v}"` }
+      valueSet.add(v)
+    }
   }
   return { ok: true }
 }
@@ -502,6 +595,12 @@ ResultPayload = {
 // variant 하나로 schema를 유일하게 식별
 ```
 
+**T1-7 구현 산출물 범위**:
+- `ResultPayload`의 canonical definition은 `types.ts`에만 둔다. 이 파일에서 재선언하지 않는다.
+- T1-7의 실질적 코드 산출물은 `index.ts` 조립이다. `src/features/test/domain/index.ts`에서 T1-1~T1-6의 타입과 순수 함수를 모아 Phase 1 public surface를 구성한다.
+- `index.ts`에서 export할 대상: 모든 타입(T1-1), `validateVariant` (T1-2), `validateQuestionModel` (T1-3), `validateVariantDataIntegrity` (T1-4), `computeScoreStats` · `deriveDerivedType` (T1-5), `parseTypeSegment` · `buildTypeSegment` (T1-6).
+- `index.ts`에서 export하지 않을 대상: 내부 helper 함수(`checkOddCountRule`, `checkScoringModes`, `checkQualifierFields` 등).
+
 ---
 
 ### 단위 테스트 요구사항
@@ -510,8 +609,10 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 
 | 테스트 | 검증 내용 | 릴리스 블로커 |
 |---|---|---|
+| validateVariant — 누락 입력 | `ok: false; reason: 'MISSING'` | #1 |
 | validateVariant — 등록된 variant | `ok: true` 반환 | #1 (간접) |
 | validateVariant — 미등록 variant | `ok: false; reason: 'UNKNOWN'` | #1 |
+| validateVariant — 등록됐지만 비활성 variant | `ok: false; reason: 'UNAVAILABLE'` | #1 |
 | validateQuestionModel — poleA≠poleB | pass | #7 |
 | validateQuestionModel — poleA=poleB | `QUESTION_MODEL_VIOLATION` | #7 |
 | validateQuestionModel — poleA=poleB (동일값) | `QUESTION_MODEL_VIOLATION` | #7 |
@@ -541,6 +642,10 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 | validateVariantDataIntegrity — qualifierFields.questionIndex가 없는 index | `QUALIFIER_QUESTION_NOT_FOUND` | #27 |
 | validateVariantDataIntegrity — qualifierFields.questionIndex가 scoring 문항 | `QUALIFIER_QUESTION_NOT_PROFILE` | #27 |
 | validateVariantDataIntegrity — qualifierFields 중복 key | `DUPLICATE_QUALIFIER_KEY` | #27 |
+| validateVariantDataIntegrity — qualifierFields.values 빈 배열 | `QUALIFIER_SPEC_INVALID` | #27 |
+| validateVariantDataIntegrity — qualifierFields.tokenLength <= 0 | `QUALIFIER_SPEC_INVALID` | #27 |
+| validateVariantDataIntegrity — qualifierFields.values 항목 길이 ≠ tokenLength | `QUALIFIER_SPEC_INVALID` | #27 |
+| validateVariantDataIntegrity — qualifierFields.values 중복 값 | `DUPLICATE_QUALIFIER_VALUE` | #27 |
 | validateVariantDataIntegrity — 정상 EGTT schema | pass | — |
 | computeScoreStats — profile 문항 응답이 scoring 결과에 영향 없음 | ScoreStats에 profile axis 없음 | #11 |
 | computeScoreStats — scoring 문항 미응답 (profile 응답은 있음) | `INCOMPLETE_SCORING_RESPONSES` | #11 |
@@ -554,11 +659,22 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 
 ---
 
+### 구현 및 검증 순서
+
+1. `docs/req-test-plan.md` 문서 보완을 먼저 수행한다.
+2. 이 단계에서는 `docs/blocker-traceability.json`을 수정하지 않는다.
+3. `src/features/test/domain/` 구현은 `types → validators → derivation → type-segment → index` 순서로 진행한다.
+4. `tests/unit/` Phase 1 전용 테스트 파일을 생성하고 `npm test`로 GREEN을 먼저 확인한다.
+5. 테스트 파일 경로와 assertion id가 실제로 확정된 시점에만 `docs/blocker-traceability.json`에 Phase 1 automated_assertion entry를 append 한다.
+6. 최종 검증은 `npm test` 다음 `npm run qa:static` 순서로만 수행한다. 각 단계 실패 시 다음 단계로 진행하지 않는다.
+
 ### Phase 1 완료 정의 (DoD)
 
 - [ ] T1-1~T1-7 타입 및 pure 함수 구현 완료
 - [ ] 위 단위 테스트 전부 GREEN
-- [ ] 릴리스 블로커 #7, #11, #12, #27에 각각 최소 1개 자동 단언 매핑 기록
+- [ ] `tests/unit/` Phase 1 전용 테스트 파일 생성 이후에만 `docs/blocker-traceability.json`에 blocker #7, #11, #12, #27 automated_assertion entry append 완료
+- [ ] `npm test` GREEN
+- [ ] `npm run qa:static` GREEN
 - [ ] MBTI 4축 하드코딩 없음 (axisCount 1/2/4 동일 경로 처리 확인)
 - [ ] `qualifierFields` 부재 시 MBTI 기존 동작 회귀 없음 (`parseTypeSegment` + `buildTypeSegment` MBTI 케이스 통과)
 - [ ] `computeScoreStats`가 profile 문항을 scoring 결과에 포함하지 않음 확인
@@ -614,7 +730,8 @@ Phase 2의 목적은 variant registry 계약, cross-sheet integrity 검증, lazy
 | `getLazyValidatedVariant(variantId)` | 캐싱 포함 lazy validation. 첫 호출 시 `validateVariantDataIntegrity()` 실행 → 이후 캐시 반환 |
 | GitHub Action 스크립트 골격 | Sheets 읽기 → cross-sheet 검증 → 성공 시 registry 파일 생성 → 커밋 트리거. sync_script.js 인터페이스 확정 |
 | EGTT dev/test fixture | `axisCount=1`, `qualifierFields` 1개 구조의 dev fixture. Phase 1 EGTT schema 지원 검증 및 Phase 4 이후 진입 경로 테스트에 사용. fixture 구조는 `variant-registry.generated.json` 인터페이스와 동일해야 한다 |
-
+| consent 기반 카드 필터링 | `cardType` 컬럼을 registry에서 읽어 consent 상태에 따라 `available` 카드 비노출(Disagree All) / opt_out 카드 항상 노출 규칙을 적용. Landing Requirements §13.9가 SSOT. |
+  
 ### Phase 1과의 인터페이스 제약
 
 Phase 2는 Phase 1의 `VariantSchema`를 registry 계약의 기반 타입으로 사용한다. 따라서 Phase 1 타입이 불완전하면 Phase 2의 registry/validation 레이어가 즉시 불안정해진다.
@@ -696,6 +813,19 @@ Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. Phase 1
 | 소유 모듈 | landing fixture가 이미 blocker #15 단언을 포함하면 Phase 4에서 import. 없으면 Phase 4에서 공유 픽스처 생성 후 blocker #15 단언도 함께 포함 |
 | 픽스처 공유 확정 시점 | Phase 4 첫 번째 커밋 이전 |
 
+#### A-4. `question-bank.ts` unknown variant generic fallback 제거 (Phase 4 첫 커밋 필수)
+
+- **제거 대상**: `src/features/test/question-bank.ts`의 unknown variant → generic questions
+  fallback 분기 코드 전체.
+- **동시 처리**: `validateVariant()` (`ok: false; reason: 'UNKNOWN'`) 결과를 소비해
+  `question-bank.ts` 내부가 아닌 진입 경로에서 §6.1 에러 복구 페이지로 이동시킨다.
+- **Phase 1~3 동안**: 이 fallback은 AR-001 계약 위반 상태로 잔존한다.
+  known deviation으로 취급하며 Phase 1~3에서 수정하지 않는다.
+- **Phase 4 첫 커밋 완료 조건**: `question-bank.ts`에 fallback 분기가 존재하지 않음.
+  `validateVariant()` pure contract가 runtime에 연결되어 unknown variant 직접 URL 접근 시
+  에러 복구 페이지로 이동함.
+- **근거**: ADR-A 결정 요약 "Phase 4 첫 커밋에서 함께 수행"을 산출물 수준으로 격상.
+
 ---
 
 ## Gate B — Phase 9 착수 전 확인 (Result Page · Content Fallback)
@@ -731,11 +861,18 @@ Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. Phase 1
 
 #### C-1. blocker-traceability.mjs 상한 확장
 
-pre-start 단계에서는 mixed-evidence scaffold를 먼저 도입해 `1~30` coverage 상한을 열어 두고, Phase 11에서는 이를 executable-only closure 해석에 맞게 다시 조여야 한다. 현재 checkpoint anchor는 `docs/test-traceability-checkpoints.md`를 따른다.
+pre-start 단계에서는 mixed-evidence scaffold를 먼저 도입해 `1~30` coverage 상한을 열어 두고, Phase 11에서는 이를 executable-only closure 해석에 맞게 다시 조여야 한다. 현재 checkpoint anchor는 `docs/req-test.md` §12.2 blocker 20~30 항목에 직접 연결된다.
 
 - [x] `check-blocker-traceability.mjs` coverage 상한이 `1~30`으로 확장되어 있음
 - [x] mixed-evidence registry(`automated_assertion` / `scenario_test` / `manual_checkpoint`)가 `docs/blocker-traceability.json`에 반영되어 있음
-- [ ] Phase 11 executable-only closure 기준으로 future blocker entry를 재분류할 타이밍과 책임자 기록 완료
+- [x] Phase 11 executable-only closure 기준으로 future blocker entry를
+  재분류할 타이밍과 책임자 기록 완료.
+  **결정**: Phase 11 착수 시점에 `blocker-traceability.json`의
+  `manual_checkpoint` 항목(blocker 20~30) 전체를 검토해
+  자동화 가능한 항목은 `automated_assertion`으로 재분류한다.
+  재분류 책임은 Phase 11 첫 커밋 작성자가 진다.
+  재분류 불가 항목은 사유를 blocker-traceability.json 해당 entry에
+  `reason` 필드로 기록하고 `manual_checkpoint`를 유지한다.
 - 미완료 시: 현재는 pre-start traceability scaffolding까지만 확보된 상태로 남고, Phase 11 final closure 해석이 문서 없이 drift할 수 있다.
 
 #### C-2. test-flow telemetry hook 검사 추가
