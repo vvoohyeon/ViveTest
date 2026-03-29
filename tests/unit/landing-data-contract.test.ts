@@ -3,6 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {describe, expect, it} from 'vitest';
 
 import {createLandingCatalog, normalizeLandingCards} from '../../src/features/landing/data/adapter';
+import {normalizeRawLandingCardType} from '../../src/features/landing/data/card-type';
 import {buildFixtureContractReport} from '../../src/features/landing/data/fixture-contract';
 import {landingRawFixtures} from '../../src/features/landing/data/raw-fixtures';
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
@@ -16,6 +17,9 @@ describe('landing fixture and adapter contract', () => {
     expect(report.blogCount).toBeGreaterThanOrEqual(3);
     expect(report.unavailableTestCount).toBeGreaterThanOrEqual(2);
     expect(report.unavailableBlogCount).toBe(0);
+    expect(report.optOutTestCount).toBeGreaterThanOrEqual(1);
+    expect(report.hideCardCount).toBeGreaterThanOrEqual(1);
+    expect(report.debugCardCount).toBeGreaterThanOrEqual(1);
 
     expect(report.hasLongTokenSubtitle).toBe(true);
     expect(report.hasLongBodyText).toBe(true);
@@ -48,7 +52,7 @@ describe('landing fixture and adapter contract', () => {
     expect(opsHandbookBlog.tags).toEqual(['운영', '배포']);
     expect(opsHandbookBlog.blog.summary).toContain('사고 대응 태세');
     expect('primaryCTA' in opsHandbookBlog.blog).toBe(false);
-    expect(catalogKr.some((card) => card.type === 'blog' && card.availability === 'unavailable')).toBe(false);
+    expect(catalogKr.some((card) => card.type === 'blog' && card.cardType === 'unavailable')).toBe(false);
   });
 
   it('falls back to default-locale and default values for Japanese requests without localized text and tags', () => {
@@ -56,7 +60,7 @@ describe('landing fixture and adapter contract', () => {
       {
         id: 'fallback-test',
         type: 'test',
-        availability: 'available',
+        cardType: 'available',
         title: {
           en: 'English fallback title'
         },
@@ -105,9 +109,24 @@ describe('landing fixture and adapter contract', () => {
   it('hides debug/sample fixtures from the end-user catalog while keeping them available for QA', () => {
     const endUserCatalog = createLandingCatalog('en');
     const qaCatalog = createLandingCatalog('en', {audience: 'qa'});
+    const inventory = createLandingCatalog('en', {audience: 'qa', includeHiddenCards: true});
 
     expect(endUserCatalog.some((card) => card.id === 'test-debug-sample')).toBe(false);
     expect(qaCatalog.some((card) => card.id === 'test-debug-sample')).toBe(true);
+    expect(qaCatalog.some((card) => card.id === 'test-hidden-labs')).toBe(false);
+    expect(inventory.some((card) => card.id === 'test-hidden-labs')).toBe(true);
+  });
+
+  it('filters available cards immediately when consent is opted out while keeping opt-out and unavailable cards visible', () => {
+    const defaultCatalog = createLandingCatalog('en');
+    const optedOutCatalog = createLandingCatalog('en', {consentState: 'OPTED_OUT'});
+
+    expect(defaultCatalog.some((card) => card.id === 'test-qmbti')).toBe(true);
+    expect(defaultCatalog.some((card) => card.id === 'test-energy-check')).toBe(true);
+
+    expect(optedOutCatalog.some((card) => card.id === 'test-qmbti')).toBe(false);
+    expect(optedOutCatalog.some((card) => card.id === 'test-energy-check')).toBe(true);
+    expect(optedOutCatalog.some((card) => card.id === 'test-coming-soon-1')).toBe(true);
   });
 
   it('inserts defaults for missing required slots instead of throwing', () => {
@@ -115,7 +134,7 @@ describe('landing fixture and adapter contract', () => {
       {
         id: 'broken-test',
         type: 'test',
-        availability: 'available',
+        cardType: 'available',
         tags: [''],
         test: {
           variant: ''
@@ -124,7 +143,7 @@ describe('landing fixture and adapter contract', () => {
       {
         id: 'broken-blog',
         type: 'blog',
-        availability: 'unavailable'
+        unavailable: true
       } as unknown as Partial<RawLandingCard>
     ];
 
@@ -153,6 +172,37 @@ describe('landing fixture and adapter contract', () => {
       shares: 0,
       attempts: 0
     });
+  });
+
+  it('normalizes legacy unavailable flags into the unavailable card type', () => {
+    expect(normalizeRawLandingCardType({unavailable: true})).toBe('unavailable');
+    expect(
+      normalizeLandingCards(
+        [
+          {
+            id: 'legacy-unavailable',
+            type: 'test',
+            unavailable: true,
+            title: {en: 'Legacy unavailable'},
+            subtitle: {en: 'Legacy unavailable subtitle'},
+            thumbnailOrIcon: 'icon-legacy',
+            tags: {en: ['legacy']},
+            test: {
+              variant: 'legacy-unavailable',
+              previewQuestion: {en: 'Legacy preview'},
+              answerChoiceA: {en: 'A'},
+              answerChoiceB: {en: 'B'},
+              meta: {
+                estimatedMinutes: 1,
+                shares: 0,
+                attempts: 0
+              }
+            }
+          }
+        ],
+        'en'
+      )[0]?.cardType
+    ).toBe('unavailable');
   });
 
   it('renders blog CTA text from copy even if a legacy fixture CTA leaks in', () => {

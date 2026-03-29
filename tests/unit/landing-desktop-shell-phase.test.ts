@@ -8,7 +8,7 @@ import {
 describe('landing desktop shell phase', () => {
   it('keeps same-card hover-out collapse in closing and cleanup-pending phases until cleanup finishes', () => {
     const closing = resolveDesktopShellPhase({
-      available: true,
+      enterable: true,
       isMobileViewport: false,
       motionRole: 'closing',
       visuallyExpanded: true,
@@ -16,7 +16,7 @@ describe('landing desktop shell phase', () => {
     });
 
     const cleanupPending = resolveDesktopShellPhase({
-      available: true,
+      enterable: true,
       isMobileViewport: false,
       motionRole: 'idle',
       visuallyExpanded: false,
@@ -31,7 +31,7 @@ describe('landing desktop shell phase', () => {
 
   it('skips close-stage rendering for handoff source while preserving handoff target shell', () => {
     const handoffSource = resolveDesktopShellPhase({
-      available: true,
+      enterable: true,
       isMobileViewport: false,
       motionRole: 'handoff-source',
       visuallyExpanded: false,
@@ -39,7 +39,7 @@ describe('landing desktop shell phase', () => {
     });
 
     const handoffTarget = resolveDesktopShellPhase({
-      available: true,
+      enterable: true,
       isMobileViewport: false,
       motionRole: 'handoff-target',
       visuallyExpanded: true,

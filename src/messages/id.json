@@ -39,7 +39,11 @@
     "goHistory": "Buka riwayat",
     "instructionTitle": "Sebelum mulai",
     "instructionBody": "Baca setiap pertanyaan dan pilih satu jawaban. Anda dapat kembali dan mengubah jawaban sebelumnya sebelum pengiriman akhir.",
-    "start": "Mulai"
+    "start": "Mulai",
+    "blockedTitle": "This test is unavailable with your current consent choice",
+    "blockedBody": "This test requires opt-in consent before it can start. You can return to landing or choose an opt-out test instead.",
+    "blockedSuggestionsTitle": "Tests you can start without opting in",
+    "blockedSuggestionCta": "Start this test"
   },
   "blog": {
     "selected": "Artikel terpilih",
@@ -59,6 +63,12 @@
     "accept": "Terima semua",
     "deny": "Tolak",
     "preferences": "Preferensi",
-    "preferencesTitle": "Panel preferensi akan segera hadir"
+    "preferencesTitle": "Panel preferensi akan segera hadir",
+    "gateRegionLabel": "Test entry consent gate",
+    "gateTitle": "This test requires opt-in consent",
+    "gateMessage": "Accept all to continue into this test. If you disagree, this test will stay blocked and we will suggest opt-out tests instead.",
+    "gateConfirmMessage": "If you disagree, this test cannot start. Do you want to keep the test blocked and save that choice now?",
+    "gateKeepTesting": "Go back",
+    "gateConfirmDisagree": "Confirm disagree"
   }
 }

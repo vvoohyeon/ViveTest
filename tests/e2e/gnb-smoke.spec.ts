@@ -162,7 +162,7 @@ async function seedManualTheme(page: Page, theme: 'light' | 'dark') {
 
 test.describe('Phase 3 gnb shell smoke', () => {
   test.beforeEach(async ({page}) => {
-    await seedTelemetryConsent(page, 'OPTED_OUT');
+    await seedTelemetryConsent(page, 'OPTED_IN');
   });
 
   test('@smoke assertion:B3-desktop-settings desktop settings open-close and overlay contract', async ({page}) => {

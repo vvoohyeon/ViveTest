@@ -9,6 +9,10 @@ const AVAILABLE_TEST_CARD_SELECTOR =
 const HOVER_OUT_SAMPLE_TIMES_MS = [0, 16, 32, 64, 100, 140, 180] as const;
 const LANDING_INTERACTION_RAMP_SETTLE_MS = 180;
 const TRANSITION_OVERLAY_READY_DELAY_MS = 300;
+const IGNORABLE_CONSOLE_ERROR_PATTERNS = [
+  '/_vercel/speed-insights/script.js',
+  '/_vercel/insights/script.js'
+] as const;
 
 interface InteractiveMetrics {
   x: number;
@@ -93,6 +97,10 @@ async function waitForThemeApplied(page: Page, theme: 'light' | 'dark') {
 
 async function waitForLandingInteractionRamp(page: Page) {
   await page.waitForTimeout(LANDING_INTERACTION_RAMP_SETTLE_MS);
+}
+
+function isIgnorableConsoleError(message: string): boolean {
+  return IGNORABLE_CONSOLE_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
 }
 
 function getPrimaryAvailableTestCard(page: Page): Locator {
@@ -193,7 +201,7 @@ async function expandLandingCardViaTrigger(card: Locator) {
 
 test.describe('Phase 7 state + capability smoke', () => {
   test.beforeEach(async ({page}) => {
-    await seedTelemetryConsent(page, 'OPTED_OUT');
+    await seedTelemetryConsent(page, 'OPTED_IN');
   });
 
   test('@smoke capability gate keeps tap on mobile and hover on desktop-capable environments', async ({page}) => {
@@ -375,7 +383,7 @@ test.describe('Phase 7 state + capability smoke', () => {
       pageErrors.push(error.message);
     });
     page.on('console', (message) => {
-      if (message.type() === 'error') {
+      if (message.type() === 'error' && !isIgnorableConsoleError(message.location().url)) {
         consoleErrors.push(message.text());
       }
     });

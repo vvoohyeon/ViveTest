@@ -225,7 +225,7 @@ async function readDesktopExpandedOverlayMetrics(card: Locator) {
 
 test.describe('Safari hover-out ghosting regression', () => {
   test.beforeEach(async ({page}) => {
-    await seedTelemetryConsent(page, 'OPTED_OUT');
+    await seedTelemetryConsent(page, 'OPTED_IN');
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await page.goto('/en');
   });

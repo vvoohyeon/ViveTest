@@ -1,5 +1,5 @@
 import type {AppLocale} from '@/config/site';
-import {createLandingCatalog} from '@/features/landing/data';
+import {createLandingCatalog, isEnterableCard} from '@/features/landing/data';
 
 export interface LandingTestQuestion {
   id: string;
@@ -59,8 +59,8 @@ function buildLocalizedFallbackQuestions(locale: AppLocale): LandingTestQuestion
 }
 
 export function buildLandingTestQuestionBank(locale: AppLocale, variant: string): LandingTestQuestion[] {
-  const matchingCard = createLandingCatalog(locale).find(
-    (card) => card.type === 'test' && card.availability === 'available' && card.sourceParam === variant
+  const matchingCard = createLandingCatalog(locale, {audience: 'qa', includeHiddenCards: true}).find(
+    (card) => card.type === 'test' && isEnterableCard(card) && card.sourceParam === variant
   );
   const useKoreanFallbackCopy = usesKoreanFallbackCopy(locale);
 

@@ -16,7 +16,7 @@ export type LandingCardDesktopShellPhase =
   | 'handoff-source';
 
 export interface DesktopShellPhaseInput {
-  available: boolean;
+  enterable: boolean;
   isMobileViewport: boolean;
   motionRole: LandingCardDesktopMotionRole;
   visuallyExpanded: boolean;
@@ -24,7 +24,7 @@ export interface DesktopShellPhaseInput {
 }
 
 export function resolveDesktopShellPhase(input: DesktopShellPhaseInput): LandingCardDesktopShellPhase {
-  if (input.isMobileViewport || !input.available) {
+  if (input.isMobileViewport || !input.enterable) {
     return 'idle';
   }
 

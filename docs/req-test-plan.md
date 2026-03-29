@@ -40,16 +40,21 @@
 ### 랜딩 QA Gate 재통과 범위
 
 이 구현은 랜딩 카드 계약을 변경하므로 아래 항목의 재통과가 필요하다:
-- blocker #13 (`assertion:B13-handoff-available-only`): `available` + `opt_out`
+- blocker #13 (`assertion:B13-handoff-enterable-only`): `available` + `opt_out`
   카드가 handoff 대상인지 확인 필요
 - `check-phase5-card-contracts.mjs`: 5종 타입 반영
 - `landing-card-contract.test.ts`: unavailable test 카드 fixture 2장의 위상 재확인
 - §13.10 consent 게이트: 신규 e2e 단언 추가 대상.
   instruction overlay와 consent UI 동시 표시 시나리오를 blocker-traceability.json에 신규 blocker로 등록 여부를 구현 시 결정한다.
 
-> **blocker #13 주의**: `handoff-available-only` 단언은 현재 `available` 카드만
-> handoff 대상으로 전제한다. `opt_out` 카드가 진입 가능하므로 handoff 대상에
-> 포함해야 하는지 구현 시 명시적으로 결정하고 단언을 갱신해야 한다.
+> **blocker #13 주의**: `handoff-enterable-only` 단언은 `available` + `opt_out`
+> enterable 카드를 handoff 대상으로 본다. 기존 available-only 단언은 본 변경셋에서
+> enterable 기준으로 동기화한다.
+
+> **instruction + gate blocker 결정 규칙**: `qa:gate:once` 안에서 instruction overlay와
+> consent gate 공존이 독립 `@smoke assertion:*` 시나리오로 분리될 때만 신규 blocker를
+> 발급한다. 현재 결정은 신규 blocker 미발급이며, 공존 검증은 consent-gate smoke
+> coverage 안에 유지한다.
 
 ---
 

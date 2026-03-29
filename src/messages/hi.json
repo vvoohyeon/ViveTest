@@ -39,7 +39,11 @@
     "goHistory": "इतिहास खोलें",
     "instructionTitle": "शुरू करने से पहले",
     "instructionBody": "हर प्रश्न पढ़ें और एक उत्तर चुनें। अंतिम सबमिट से पहले आप पहले के उत्तरों पर वापस जाकर उन्हें बदल सकते हैं।",
-    "start": "शुरू करें"
+    "start": "शुरू करें",
+    "blockedTitle": "This test is unavailable with your current consent choice",
+    "blockedBody": "This test requires opt-in consent before it can start. You can return to landing or choose an opt-out test instead.",
+    "blockedSuggestionsTitle": "Tests you can start without opting in",
+    "blockedSuggestionCta": "Start this test"
   },
   "blog": {
     "selected": "चुना गया लेख",
@@ -59,6 +63,12 @@
     "accept": "सभी स्वीकार करें",
     "deny": "अस्वीकार करें",
     "preferences": "प्राथमिकताएँ",
-    "preferencesTitle": "प्राथमिकता पैनल जल्द आ रहा है"
+    "preferencesTitle": "प्राथमिकता पैनल जल्द आ रहा है",
+    "gateRegionLabel": "Test entry consent gate",
+    "gateTitle": "This test requires opt-in consent",
+    "gateMessage": "Accept all to continue into this test. If you disagree, this test will stay blocked and we will suggest opt-out tests instead.",
+    "gateConfirmMessage": "If you disagree, this test cannot start. Do you want to keep the test blocked and save that choice now?",
+    "gateKeepTesting": "Go back",
+    "gateConfirmDisagree": "Confirm disagree"
   }
 }

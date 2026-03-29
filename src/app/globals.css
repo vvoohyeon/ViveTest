@@ -145,50 +145,90 @@ a {
   min-height: 100vh;
 }
 
-.telemetry-consent-banner-spacer {
-  flex: 0 0 auto;
-}
-
-.telemetry-consent-banner-layer {
+.telemetry-consent-shell-layer {
   position: fixed;
-  right: 0;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  left: 0;
   z-index: 1075;
-  display: flex;
-  justify-content: center;
-  padding-inline: 16px;
   pointer-events: none;
 }
 
+.telemetry-consent-shell-layer-banner {
+  right: 0;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 0;
+  display: flex;
+  justify-content: center;
+  padding-inline: 16px;
+}
+
+.telemetry-consent-shell-layer-gate {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.telemetry-consent-gate-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 36%, transparent), transparent 24%),
+    color-mix(in srgb, var(--surface) 42%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 .telemetry-consent-banner {
-  width: min(1280px, 100%);
   border: 1px solid var(--surface-divider);
   border-radius: 18px;
   background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
   box-shadow: var(--surface-shadow);
+  pointer-events: auto;
+  position: relative;
+}
+
+.telemetry-consent-banner-banner {
+  width: min(1280px, 100%);
   display: flex;
   gap: 20px;
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  pointer-events: auto;
+}
+
+.telemetry-consent-banner-gate {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 20px 22px;
+}
+
+.telemetry-consent-banner-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 1.08rem;
+  line-height: 1.3;
 }
 
 .telemetry-consent-banner-message {
-  flex: 1 1 520px;
-  min-width: 0;
   margin: 0;
   color: var(--muted-ink);
   font-size: 0.96rem;
 }
 
+.telemetry-consent-banner-banner .telemetry-consent-banner-message {
+  flex: 1 1 520px;
+  min-width: 0;
+}
+
 .telemetry-consent-banner-actions {
-  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+
+.telemetry-consent-banner-banner .telemetry-consent-banner-actions {
+  flex: 0 0 auto;
   justify-content: flex-end;
 }
 
@@ -289,19 +329,23 @@ a {
 }
 
 @media (width < 720px) {
-  .telemetry-consent-banner {
+  .telemetry-consent-shell-layer-gate {
+    padding: 16px;
+  }
+
+  .telemetry-consent-banner-banner {
     flex-wrap: wrap;
     justify-content: flex-start;
     gap: 14px;
     padding: 14px;
   }
 
-  .telemetry-consent-banner-message,
-  .telemetry-consent-banner-actions {
+  .telemetry-consent-banner-banner .telemetry-consent-banner-message,
+  .telemetry-consent-banner-banner .telemetry-consent-banner-actions {
     flex-basis: 100%;
   }
 
-  .telemetry-consent-banner-actions {
+  .telemetry-consent-banner-banner .telemetry-consent-banner-actions {
     justify-content: flex-start;
   }
 }
@@ -1548,7 +1592,8 @@ span.landing-grid-card-primary-cta {
 
 .test-instruction-card,
 .test-question-panel,
-.test-result-panel {
+.test-result-panel,
+.test-consent-blocked-panel {
   border-radius: 18px;
   background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
   box-shadow: var(--dialog-shadow);
@@ -1565,8 +1610,39 @@ span.landing-grid-card-primary-cta {
 .test-instruction-card p,
 .test-question-panel h2,
 .test-result-panel h2,
-.test-result-panel p {
+.test-result-panel p,
+.test-consent-blocked-panel h2,
+.test-consent-blocked-panel p,
+.test-consent-blocked-panel h3 {
   margin: 0;
+}
+
+.test-consent-blocked-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.test-consent-blocked-suggestions,
+.test-consent-blocked-suggestion-list {
+  display: grid;
+  gap: 12px;
+}
+
+.test-consent-blocked-suggestion {
+  display: grid;
+  gap: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--interactive-neutral-border);
+  background: var(--interactive-neutral-bg-soft);
+  padding: 14px;
+}
+
+.test-consent-blocked-suggestion strong {
+  display: block;
+}
+
+.test-consent-blocked-suggestion p {
+  margin-top: 4px;
 }
 
 .test-answer-grid {
@@ -1742,6 +1818,13 @@ span.landing-grid-card-primary-cta {
     width: 100%;
     align-content: start;
     padding-top: 88px;
+  }
+}
+
+@media (min-width: 768px) {
+  .test-consent-blocked-suggestion {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
   }
 }
 

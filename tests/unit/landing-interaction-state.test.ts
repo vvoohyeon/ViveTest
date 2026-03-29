@@ -26,7 +26,7 @@ describe('landing interaction state machine', () => {
         nowMs: 5,
         interactionMode: 'hover',
         cardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       }
     ]);
 
@@ -44,7 +44,7 @@ describe('landing interaction state machine', () => {
         nowMs: 100 + ACTIVE_RAMP_UP_MS - 1,
         interactionMode: 'tap',
         cardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       }
     ]);
 
@@ -56,7 +56,7 @@ describe('landing interaction state machine', () => {
       nowMs: 100 + ACTIVE_RAMP_UP_MS + 1,
       interactionMode: 'tap',
       cardId: 'test-rhythm-a',
-      available: true
+      enterable: true
     });
 
     expect(postRamp.activeRampUntilMs).toBeNull();
@@ -70,7 +70,7 @@ describe('landing interaction state machine', () => {
         nowMs: 1,
         interactionMode: 'hover',
         cardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       },
       {type: 'KEYBOARD_MODE_ENTER'}
     ]);
@@ -90,7 +90,7 @@ describe('landing interaction state machine', () => {
         nowMs: 1,
         interactionMode: 'hover',
         cardId: 'test-coming-soon-1',
-        available: false
+        enterable: false
       }
     ]);
 
@@ -107,7 +107,7 @@ describe('landing interaction state machine', () => {
         nowMs: 1,
         interactionMode: 'hover',
         cardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       },
       {type: 'KEYBOARD_MODE_ENTER'},
       {type: 'KEYBOARD_MODE_EXIT'}
@@ -126,7 +126,7 @@ describe('landing interaction state machine', () => {
         nowMs: 10,
         interactionMode: 'hover',
         cardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       }
     ]);
 
@@ -142,7 +142,7 @@ describe('landing interaction state machine', () => {
         nowMs: 1,
         interactionMode: 'tap',
         cardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       },
       {type: 'PAGE_HIDDEN', nowMs: 2}
     ]);
@@ -190,7 +190,7 @@ describe('landing interaction state machine', () => {
         nowMs: 1,
         interactionMode: 'hover',
         cardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       },
       {type: 'REDUCED_MOTION_ENABLE', nowMs: 10},
       {type: 'PAGE_TRANSITION_START', nowMs: 11},
@@ -199,7 +199,7 @@ describe('landing interaction state machine', () => {
         nowMs: 12,
         interactionMode: 'hover',
         cardId: 'test-rhythm-b',
-        available: true
+        enterable: true
       }
     ]);
 
@@ -217,7 +217,7 @@ describe('landing interaction state machine', () => {
         nowMs: 10,
         interactionMode: 'hover',
         cardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       },
       {type: 'KEYBOARD_MODE_ENTER'},
       {
@@ -231,7 +231,7 @@ describe('landing interaction state machine', () => {
         nowMs: 30,
         interactionMode: 'hover',
         cardId: 'test-rhythm-b',
-        available: true
+        enterable: true
       }
     ];
 

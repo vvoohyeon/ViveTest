@@ -36,6 +36,9 @@
 - `requirements.md` 즉시 정합화
 - consent 게이트 (테스트 진입 시 consent 재확인 및 Disagree 차단 흐름)
   — Landing Requirements §13.10 소유. 본 문서 구현 범위 외.
+  shared implementation은 허용하되 ownership boundary는 유지해야 한다:
+  `§6.1`은 route-level invalid-variant recovery를 소유하고,
+  consent-gate recovery는 available-test opt-in enforcement용 same-route blocked panel만 소유한다.
 
 ### 1.3 Locked Decisions
 
@@ -60,8 +63,6 @@
 | Telemetry | skeleton(hook 자리)만 확보. 계약 정의는 다음 단계 의무 |
 | Share CTA | 이번 단계 미구현 |
 | Nickname 입력 | 이번 단계 미구현 |
-
----
 
 ---
 

@@ -266,6 +266,10 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B6-transition-ingress test route re-entry without ingress falls back to Q1 after start consumes ingress', async ({
     page
   }) => {
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, 'OPTED_IN');
+    }, TELEMETRY_CONSENT_STORAGE_KEY);
+
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 

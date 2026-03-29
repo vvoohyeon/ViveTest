@@ -20,4 +20,15 @@ describe('landing question bank locale fallbacks', () => {
       choiceB: 'Afternoon work sessions'
     });
   });
+
+  it('uses opt-out card copy for direct question-bank lookup as another enterable route', () => {
+    const questions = buildLandingTestQuestionBank('en', 'energy-check');
+
+    expect(questions[0]).toEqual({
+      id: 'q1',
+      prompt: 'Which block drains your energy the most?',
+      choiceA: 'Context switching',
+      choiceB: 'Long meetings'
+    });
+  });
 });

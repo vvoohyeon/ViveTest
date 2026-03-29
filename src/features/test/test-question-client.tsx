@@ -6,7 +6,9 @@ import {useTranslations} from 'next-intl';
 import {useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
+import {createLandingCatalog, type LandingTestCard} from '@/features/landing/data';
 import {trackAttemptStart, trackFinalSubmit} from '@/features/landing/telemetry/runtime';
+import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
 import {
   completePendingLandingTransition,
   terminatePendingLandingTransition
@@ -20,6 +22,7 @@ import {
   readPendingLandingTransition,
   type PendingLandingTransition
 } from '@/features/landing/transition/store';
+import {resolveTestEntryConsentMode} from '@/features/test/entry-consent';
 import {buildLandingTestQuestionBank} from '@/features/test/question-bank';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
@@ -81,7 +84,24 @@ export function resolveQuestionBootstrapState(input: {
 export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   const t = useTranslations('test');
   const pathname = usePathname();
+  const consentSnapshot = useTelemetryConsentSource();
 
+  const catalog = useMemo(() => createLandingCatalog(locale, {audience: 'qa', includeHiddenCards: true}), [locale]);
+  const activeTestCard = useMemo(
+    () =>
+      catalog.find((card): card is LandingTestCard => card.type === 'test' && card.sourceParam === variant) ?? null,
+    [catalog, variant]
+  );
+  const blockedSuggestions = useMemo(
+    () =>
+      catalog
+        .filter(
+          (card): card is LandingTestCard =>
+            card.type === 'test' && card.cardType === 'opt_out' && card.sourceParam !== variant
+        )
+        .slice(0, 2),
+    [catalog, variant]
+  );
   const questions = useMemo(() => buildLandingTestQuestionBank(locale, variant), [locale, variant]);
   const [runtimeState, setRuntimeState] = useState<QuestionRuntimeState>(buildInitialRuntimeState);
   const [started, setStarted] = useState(false);
@@ -92,6 +112,12 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   const attemptStartedRef = useRef(false);
   const bootstrapRuntimeStateRef = useRef<QuestionRuntimeState | null>(null);
   const pendingTransitionToCompleteRef = useRef<string | null>(null);
+  const entryConsentMode = resolveTestEntryConsentMode({
+    card: activeTestCard,
+    consentState: consentSnapshot.consentState,
+    synced: consentSnapshot.synced
+  });
+  const effectiveInstructionVisible = runtimeState.instructionVisible || entryConsentMode === 'gate';
 
   useEffect(() => {
     if (bootstrapRuntimeStateRef.current) {
@@ -150,7 +176,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   }, [locale, pathname, runtimeState.ready]);
 
   useEffect(() => {
-    if (!runtimeState.ready || runtimeState.instructionVisible || attemptStartedRef.current) {
+    if (!runtimeState.ready || effectiveInstructionVisible || attemptStartedRef.current || entryConsentMode !== 'open') {
       return;
     }
 
@@ -172,10 +198,11 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
       consumeLandingIngress(variant);
     }
   }, [
+    effectiveInstructionVisible,
+    entryConsentMode,
     locale,
     pathname,
     runtimeState.currentQuestionIndex,
-    runtimeState.instructionVisible,
     runtimeState.landingIngressFlag,
     runtimeState.ready,
     variant
@@ -197,7 +224,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   };
 
   const startAttemptFromInstruction = () => {
-    if (!runtimeState.ready || attemptStartedRef.current) {
+    if (!runtimeState.ready || attemptStartedRef.current || entryConsentMode !== 'open') {
       return;
     }
 
@@ -209,7 +236,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   };
 
   const updateAnswer = (choice: 'A' | 'B') => {
-    if (!currentQuestion || submitted) {
+    if (!currentQuestion || submitted || entryConsentMode !== 'open') {
       return;
     }
 
@@ -223,7 +250,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   };
 
   const moveQuestion = (direction: -1 | 1) => {
-    if (!started || !currentQuestion) {
+    if (!started || !currentQuestion || entryConsentMode !== 'open') {
       return;
     }
 
@@ -235,7 +262,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   };
 
   const handleSubmit = () => {
-    if (!started || !allAnswered) {
+    if (!started || !allAnswered || entryConsentMode !== 'open') {
       return;
     }
 
@@ -298,7 +325,44 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
           </div>
         ) : (
           <>
-            {runtimeState.instructionVisible ? (
+            {entryConsentMode === 'blocked' ? (
+              <div className="test-consent-blocked-panel" data-testid="test-consent-blocked-panel">
+                <h2>{t('blockedTitle')}</h2>
+                <p>{t('blockedBody')}</p>
+
+                <div className="test-result-actions">
+                  <Link className="test-primary-button" href={buildLocalizedPath(RouteBuilder.landing(), locale)}>
+                    {t('goHome')}
+                  </Link>
+                </div>
+
+                {blockedSuggestions.length > 0 ? (
+                  <section className="test-consent-blocked-suggestions" data-testid="test-consent-blocked-suggestions">
+                    <h3>{t('blockedSuggestionsTitle')}</h3>
+                    <div className="test-consent-blocked-suggestion-list">
+                      {blockedSuggestions.map((card, index) => (
+                        <article
+                          key={card.id}
+                          className="test-consent-blocked-suggestion"
+                          data-testid={`test-consent-blocked-suggestion-${index}`}
+                        >
+                          <div>
+                            <strong>{card.title}</strong>
+                            <p>{card.subtitle}</p>
+                          </div>
+                          <Link
+                            className="test-secondary-button"
+                            href={buildLocalizedPath(RouteBuilder.question(card.sourceParam), locale)}
+                          >
+                            {t('blockedSuggestionCta')}
+                          </Link>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+              </div>
+            ) : effectiveInstructionVisible ? (
               <div className="test-instruction-overlay" data-testid="test-instruction-overlay">
                 <div className="test-instruction-card">
                   <h2>{t('instructionTitle')}</h2>
@@ -308,6 +372,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
                     className="test-primary-button"
                     onClick={startAttemptFromInstruction}
                     data-testid="test-start-button"
+                    disabled={entryConsentMode !== 'open'}
                   >
                     {t('start')}
                   </button>
@@ -315,11 +380,12 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
               </div>
             ) : null}
 
-            <article
-              className="test-question-panel"
-              aria-hidden={runtimeState.instructionVisible ? 'true' : undefined}
-              data-testid="test-question-panel"
-            >
+            {entryConsentMode === 'blocked' ? null : (
+              <article
+                className="test-question-panel"
+                aria-hidden={effectiveInstructionVisible ? 'true' : undefined}
+                data-testid="test-question-panel"
+              >
               <h2>{currentQuestion.prompt}</h2>
               <div className="test-answer-grid">
                 <button
@@ -383,7 +449,8 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
                   </button>
                 )}
               </div>
-            </article>
+              </article>
+            )}
           </>
         )}
       </div>

@@ -1,242 +1,279 @@
-import type { RawLandingCard } from "@/features/landing/data/types";
+import type {RawLandingCard} from '@/features/landing/data/types';
 
 export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
-    id: "test-qmbti", // 필요할지???
-    type: "test",
-    availability: "available",
+    id: 'test-qmbti',
+    type: 'test',
+    cardType: 'available',
     title: {
-      en: "10m MBTI test",
-      kr: "10분컷 MBTI",
+      en: '10m MBTI test',
+      kr: '10분컷 MBTI'
     },
     subtitle: {
-      en: "Find your default deep-work cadence.",
-      kr: "내 기본 딥워크 리듬을 빠르게 찾아보세요.",
+      en: 'Find your default deep-work cadence.',
+      kr: '내 기본 딥워크 리듬을 빠르게 찾아보세요.'
     },
-    thumbnailOrIcon: "icon-test-rhythm-a",
+    thumbnailOrIcon: 'icon-test-rhythm-a',
     tags: {
-      en: ["Rapid", "ipsum", "Lorem"],
-      kr: ["순식간에", "쌉가능", "어서와"],
+      en: ['Rapid', 'ipsum', 'Lorem'],
+      kr: ['순식간에', '쌉가능', '어서와']
     },
     isHero: true,
     test: {
-      variant: "qmbti", // id 대체하고 싶음
+      variant: 'qmbti',
       previewQuestion: {
-        en: "🎉 When do you feel most focused?",
-        kr: "🎉 파티나 생일잔치에 가면 나는",
+        en: '🎉 When do you feel most focused?',
+        kr: '🎉 파티나 생일잔치에 가면 나는'
       },
       answerChoiceA: {
-        en: "Early morning blocks", // pole 추가 필요
-        kr: "처음 보는 친구랑도 금방 친해져",
+        en: 'Early morning blocks',
+        kr: '처음 보는 친구랑도 금방 친해져'
       },
       answerChoiceB: {
-        en: "Late-night sprints",
-        kr: "원래 잘 아는 친구랑 주로 어울려",
+        en: 'Late-night sprints',
+        kr: '원래 잘 아는 친구랑 주로 어울려'
       },
       meta: {
         estimatedMinutes: 3,
         shares: 2184,
-        attempts: 15236,
-      },
-    },
+        attempts: 15236
+      }
+    }
   },
   {
-    id: "test-rhythm-b",
-    type: "test",
-    availability: "available",
+    id: 'test-rhythm-b',
+    type: 'test',
+    cardType: 'available',
     title: {
-      // 타이틀은 Expanded 시 숨겨져야 함
-      en: "Focus Rhythm B Long String example here goes ipsum lorem varaint string edge case here example",
-      kr: "집중 리듬 B Long String example here goes ipsum lorem varaint string edge case here example",
+      en: 'Focus Rhythm B Long String example here goes ipsum lorem varaint string edge case here example',
+      kr: '집중 리듬 B Long String example here goes ipsum lorem varaint string edge case here example'
     },
     subtitle: {
-      en: "LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT",
-      kr: "집중기준점_LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT",
+      en: 'LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT',
+      kr: '집중기준점_LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT'
     },
-    thumbnailOrIcon: "icon-test-rhythm-b",
+    thumbnailOrIcon: 'icon-test-rhythm-b',
     tags: {
-      en: ["workflow", "ipsum lorem long tag", "Lorem long tag example"],
-      kr: ["워크플로", "ipsum lorem long tag", "Lorem long tag example here"], // 하나라도 길어지면 3개 모두 말줄임????
+      en: ['workflow', 'ipsum lorem long tag', 'Lorem long tag example'],
+      kr: ['워크플로', 'ipsum lorem long tag', 'Lorem long tag example here']
     },
     test: {
-      variant: "rhythm-b",
+      variant: 'rhythm-b',
       previewQuestion: {
-        en: "How often do interruptions break your pace? How often do interruptions break your pace? How often do interruptions break your pace?",
-        kr: "방해가 흐름을 끊는 빈도는 어느 정도인가요? 방해가 흐름을 끊는 빈도는 어느 정도인가요? 방해가 흐름을 끊는 빈도는 어느 정도인가요?",
+        en: 'How often do interruptions break your pace? How often do interruptions break your pace? How often do interruptions break your pace?',
+        kr: '방해가 흐름을 끊는 빈도는 어느 정도인가요? 방해가 흐름을 끊는 빈도는 어느 정도인가요? 방해가 흐름을 끊는 빈도는 어느 정도인가요?'
       },
       answerChoiceA: {
-        en: "Almost never",
-        kr: "거의 없다 동해물과 백두산이 마르고 닳도록 긴 응답 예시 여기",
+        en: 'Almost never',
+        kr: '거의 없다 동해물과 백두산이 마르고 닳도록 긴 응답 예시 여기'
       },
       answerChoiceB: {
-        en: "Multiple times each hour",
-        kr: "한 시간에도 여러 번 있다 동해물과 백두산이 마르고 닳도록 긴 응답 예시 여기",
+        en: 'Multiple times each hour',
+        kr: '한 시간에도 여러 번 있다 동해물과 백두산이 마르고 닳도록 긴 응답 예시 여기'
       },
       meta: {
         estimatedMinutes: 4,
         shares: 982,
-        attempts: 8392,
-      },
-    },
+        attempts: 8392
+      }
+    }
   },
   {
-    id: "test-debug-sample",
-    type: "test",
-    availability: "available",
+    id: 'test-debug-sample',
+    type: 'test',
+    cardType: 'debug',
     title: {
-      en: "Sample Debug Variant",
-      kr: "샘플 디버그 변형",
+      en: 'Sample Debug Variant',
+      kr: '샘플 디버그 변형'
     },
     subtitle: {
-      en: "Internal reference card for QA and snapshots.",
-      kr: "QA와 스냅샷 검증을 위한 내부 참조 카드입니다.",
+      en: 'Internal reference card for QA and snapshots.',
+      kr: 'QA와 스냅샷 검증을 위한 내부 참조 카드입니다.'
     },
-    thumbnailOrIcon: "icon-test-debug",
+    thumbnailOrIcon: 'icon-test-debug',
     tags: {
       en: [],
-      kr: [],
+      kr: []
     },
     debug: true,
     sample: true,
     test: {
-      variant: "debug-sample",
+      variant: 'debug-sample',
       previewQuestion: {
-        en: "Do you prefer deterministic or exploratory planning?",
-        kr: "계획은 정해진 흐름과 탐색형 접근 중 어느 쪽이 더 편한가요?",
+        en: 'Do you prefer deterministic or exploratory planning?',
+        kr: '계획은 정해진 흐름과 탐색형 접근 중 어느 쪽이 더 편한가요?'
       },
       answerChoiceA: {
-        en: "Deterministic",
-        kr: "정해진 흐름",
+        en: 'Deterministic',
+        kr: '정해진 흐름'
       },
       answerChoiceB: {
-        en: "Exploratory",
-        kr: "탐색형 접근",
+        en: 'Exploratory',
+        kr: '탐색형 접근'
       },
       meta: {
         estimatedMinutes: 2,
         shares: 74,
-        attempts: 640,
-      },
-    },
+        attempts: 640
+      }
+    }
   },
   {
-    id: "test-energy-check",
-    type: "test",
-    availability: "available",
+    id: 'test-hidden-labs',
+    type: 'test',
+    cardType: 'hide',
     title: {
-      en: "Energy Allocation Check",
-      kr: "에너지 배분 점검",
+      en: 'Hidden Labs Prototype',
+      kr: '숨김 실험실 프로토타입'
     },
     subtitle: {
-      en: "Identify where your mental load leaks each day.",
-      kr: "하루 동안 정신 에너지가 새는 지점을 찾아봅니다.",
+      en: 'Temporarily removed from the public catalog.',
+      kr: '공개 카탈로그에서 일시적으로 제외된 카드입니다.'
     },
-    thumbnailOrIcon: "icon-test-energy",
+    thumbnailOrIcon: 'icon-test-hidden-labs',
     tags: {
-      en: ["energy", "planning"],
-      kr: ["에너지", "계획"],
+      en: ['internal'],
+      kr: ['내부용']
     },
     test: {
-      variant: "energy-check",
+      variant: 'hidden-labs',
       previewQuestion: {
-        en: "Which block drains your energy the most?",
-        kr: "어떤 시간대가 에너지를 가장 많이 소모시키나요?",
+        en: 'Hidden prototype prompt placeholder.',
+        kr: '숨김 프로토타입용 임시 질문입니다.'
       },
       answerChoiceA: {
-        en: "Context switching",
-        kr: "잦은 맥락 전환",
+        en: 'Option A',
+        kr: '옵션 A'
       },
       answerChoiceB: {
-        en: "Long meetings",
-        kr: "긴 회의",
+        en: 'Option B',
+        kr: '옵션 B'
+      },
+      meta: {
+        estimatedMinutes: 3,
+        shares: 0,
+        attempts: 0
+      }
+    }
+  },
+  {
+    id: 'test-energy-check',
+    type: 'test',
+    cardType: 'opt_out',
+    title: {
+      en: 'Energy Allocation Check',
+      kr: '에너지 배분 점검'
+    },
+    subtitle: {
+      en: 'Identify where your mental load leaks each day.',
+      kr: '하루 동안 정신 에너지가 새는 지점을 찾아봅니다.'
+    },
+    thumbnailOrIcon: 'icon-test-energy',
+    tags: {
+      en: ['energy', 'planning'],
+      kr: ['에너지', '계획']
+    },
+    test: {
+      variant: 'energy-check',
+      previewQuestion: {
+        en: 'Which block drains your energy the most?',
+        kr: '어떤 시간대가 에너지를 가장 많이 소모시키나요?'
+      },
+      answerChoiceA: {
+        en: 'Context switching',
+        kr: '잦은 맥락 전환'
+      },
+      answerChoiceB: {
+        en: 'Long meetings',
+        kr: '긴 회의'
       },
       meta: {
         estimatedMinutes: 5,
         shares: 1445,
-        attempts: 10448,
-      },
-    },
+        attempts: 10448
+      }
+    }
   },
   {
-    id: "test-coming-soon-1",
-    type: "test",
-    availability: "unavailable",
+    id: 'test-coming-soon-1',
+    type: 'test',
+    cardType: 'unavailable',
     title: {
-      en: "Creativity Profile (Soon)",
-      kr: "창의성 프로필 (곧 공개)",
+      en: 'Creativity Profile (Soon)',
+      kr: '창의성 프로필 (곧 공개)'
     },
     subtitle: {
-      en: "Upcoming variant under editorial review.",
-      kr: "에디토리얼 검토 중인 예정 변형입니다.",
+      en: 'Upcoming variant under editorial review.',
+      kr: '에디토리얼 검토 중인 예정 변형입니다.'
     },
-    thumbnailOrIcon: "icon-test-coming-soon-1",
+    thumbnailOrIcon: 'icon-test-coming-soon-1',
     tags: {
-      en: ["coming-soon"],
-      kr: ["출시예정"],
+      en: ['coming-soon'],
+      kr: ['출시예정']
     },
     test: {
-      variant: "creativity-profile",
+      variant: 'creativity-profile',
       previewQuestion: {
-        en: "Placeholder preview question for upcoming card.",
-        kr: "공개 예정 카드를 위한 임시 미리보기 질문입니다.",
+        en: 'Placeholder preview question for upcoming card.',
+        kr: '공개 예정 카드를 위한 임시 미리보기 질문입니다.'
       },
       answerChoiceA: {
-        en: "Option A",
-        kr: "옵션 A",
+        en: 'Option A',
+        kr: '옵션 A'
       },
       answerChoiceB: {
-        en: "Option B",
-        kr: "옵션 B",
+        en: 'Option B',
+        kr: '옵션 B'
       },
       meta: {
         estimatedMinutes: 4,
         shares: 0,
-        attempts: 0,
-      },
-    },
+        attempts: 0
+      }
+    }
   },
   {
-    id: "test-coming-soon-2",
-    type: "test",
-    availability: "unavailable",
+    id: 'test-coming-soon-2',
+    type: 'test',
+    cardType: 'unavailable',
     title: {
-      en: "Burnout Risk Signal (Soon)",
-      kr: "번아웃 위험 신호 (곧 공개)",
+      en: 'Burnout Risk Signal (Soon)',
+      kr: '번아웃 위험 신호 (곧 공개)'
     },
     subtitle: {
-      en: "Upcoming resilience check for recurring fatigue patterns.",
-      kr: "반복되는 피로 패턴을 살피는 회복탄력성 체크가 곧 추가됩니다.",
+      en: 'Upcoming resilience check for recurring fatigue patterns.',
+      kr: '반복되는 피로 패턴을 살피는 회복탄력성 체크가 곧 추가됩니다.'
     },
-    thumbnailOrIcon: "icon-test-coming-soon-2",
+    thumbnailOrIcon: 'icon-test-coming-soon-2',
     tags: {
-      en: ["coming-soon", "wellbeing"],
-      kr: ["출시예정", "웰빙"],
+      en: ['coming-soon', 'wellbeing'],
+      kr: ['출시예정', '웰빙']
     },
     test: {
-      variant: "burnout-risk",
+      variant: 'burnout-risk',
       previewQuestion: {
-        en: "Placeholder preview question for upcoming card.",
-        kr: "공개 예정 카드를 위한 임시 미리보기 질문입니다.",
+        en: 'Placeholder preview question for upcoming card.',
+        kr: '공개 예정 카드를 위한 임시 미리보기 질문입니다.'
       },
       answerChoiceA: {
-        en: "Option A",
-        kr: "옵션 A",
+        en: 'Option A',
+        kr: '옵션 A'
       },
       answerChoiceB: {
-        en: "Option B",
-        kr: "옵션 B",
+        en: 'Option B',
+        kr: '옵션 B'
       },
       meta: {
         estimatedMinutes: 4,
         shares: 0,
-        attempts: 0,
-      },
-    },
+        attempts: 0
+      }
+    }
   },
   {
-    id: "blog-ops-handbook",
-    type: "blog",
-    availability: "available",
+    id: 'blog-ops-handbook',
+    type: 'blog',
+    cardType: 'available',
     title: {
       en: "Operational Handbook for Stable Releases",
       kr: "안정적인 배포를 위한 운영 핸드북",
@@ -245,7 +282,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
       en: "Patterns to reduce release-day surprises.",
       kr: "배포 당일의 돌발 변수를 줄이는 운영 패턴을 정리했습니다.",
     },
-    thumbnailOrIcon: "icon-blog-ops",
+    thumbnailOrIcon: 'icon-blog-ops',
     tags: {
       en: ["operations", "release"],
       kr: ["운영", "배포"],
@@ -264,9 +301,9 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     },
   },
   {
-    id: "blog-build-metrics",
-    type: "blog",
-    availability: "available",
+    id: 'blog-build-metrics',
+    type: 'blog',
+    cardType: 'available',
     title: {
       en: "Build Metrics That Actually Matter",
       kr: "정말 중요한 빌드 지표",
@@ -275,7 +312,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
       en: "Avoid vanity charts and pick deterministic release indicators.",
       kr: "허영 지표를 걷어내고 배포를 막을 수 있는 결정적 신호에 집중합니다.",
     },
-    thumbnailOrIcon: "icon-blog-build-metrics",
+    thumbnailOrIcon: 'icon-blog-build-metrics',
     tags: {
       en: [],
       kr: [],
@@ -294,9 +331,9 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     },
   },
   {
-    id: "blog-release-gate",
-    type: "blog",
-    availability: "available",
+    id: 'blog-release-gate',
+    type: 'blog',
+    cardType: 'available',
     title: {
       en: "Designing a Reliable Release Gate",
       kr: "신뢰할 수 있는 릴리스 게이트 설계",
@@ -305,7 +342,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
       en: "How to turn quality assumptions into blocking assertions.",
       kr: "품질 가정을 실제 차단 규칙으로 바꾸는 방법을 설명합니다.",
     },
-    thumbnailOrIcon: "icon-blog-release-gate",
+    thumbnailOrIcon: 'icon-blog-release-gate',
     tags: {
       en: ["qa", "gate"],
       kr: ["QA", "게이트"],

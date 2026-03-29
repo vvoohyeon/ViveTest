@@ -1,4 +1,5 @@
 import {defaultLocale} from '@/config/site';
+import {normalizeRawLandingCardType} from '@/features/landing/data/card-type';
 import type {
   FixtureContractReport,
   LocalizedStringList,
@@ -82,7 +83,7 @@ function hasLocalizedListShape(value: unknown): boolean {
 }
 
 function hasRequiredSlotOmission(card: RawLandingCard): boolean {
-  if (!card.id || !card.type || !card.availability) {
+  if (!card.id || !card.type || !card.cardType) {
     return true;
   }
 
@@ -108,11 +109,16 @@ export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCar
   const testCount = fixtures.filter((card) => card.type === 'test').length;
   const blogCount = fixtures.filter((card) => card.type === 'blog').length;
   const unavailableTestCount = fixtures.filter(
-    (card) => card.type === 'test' && card.availability === 'unavailable'
+    (card) => card.type === 'test' && normalizeRawLandingCardType(card) === 'unavailable'
   ).length;
   const unavailableBlogCount = fixtures.filter(
-    (card) => card.type === 'blog' && card.availability === 'unavailable'
+    (card) => card.type === 'blog' && normalizeRawLandingCardType(card) === 'unavailable'
   ).length;
+  const optOutTestCount = fixtures.filter(
+    (card) => card.type === 'test' && normalizeRawLandingCardType(card) === 'opt_out'
+  ).length;
+  const hideCardCount = fixtures.filter((card) => normalizeRawLandingCardType(card) === 'hide').length;
+  const debugCardCount = fixtures.filter((card) => normalizeRawLandingCardType(card) === 'debug').length;
 
   const hasLongTokenSubtitle = fixtures.some((card) => hasLongToken(resolveForInspection(card.subtitle)));
   const hasLongBodyText = fixtures
@@ -127,6 +133,9 @@ export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCar
     blogCount,
     unavailableTestCount,
     unavailableBlogCount,
+    optOutTestCount,
+    hideCardCount,
+    debugCardCount,
     hasLongTokenSubtitle,
     hasLongBodyText,
     hasEmptyTags,

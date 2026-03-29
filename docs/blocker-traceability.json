@@ -117,7 +117,7 @@
     "blocker": 13,
     "kind": "automated_assertion",
     "file": "tests/unit/landing-hover-intent.test.ts",
-    "assertionId": "assertion:B13-handoff-available-only"
+    "assertionId": "assertion:B13-handoff-enterable-only"
   },
   {
     "blocker": 13,

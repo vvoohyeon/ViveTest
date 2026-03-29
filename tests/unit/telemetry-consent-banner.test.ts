@@ -9,6 +9,7 @@ import enMessages from '../../src/messages/en.json';
 import jaMessages from '../../src/messages/ja.json';
 import krMessages from '../../src/messages/kr.json';
 import {TelemetryConsentBanner} from '../../src/features/landing/shell/telemetry-consent-banner';
+import {TelemetryConsentShell} from '../../src/features/landing/shell/telemetry-consent-shell';
 import {
   resetTelemetryConsentSourceForTests,
   setTelemetryConsentState,
@@ -86,7 +87,7 @@ function uninstallDom() {
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 }
 
-async function renderBanner(locale: BannerTestLocale) {
+async function renderNode(node: React.ReactNode, locale: BannerTestLocale) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -97,7 +98,7 @@ async function renderBanner(locale: BannerTestLocale) {
       locale,
       messages: testMessagesByLocale[locale]
     },
-    React.createElement(TelemetryConsentBanner)
+    node
   );
 
   await act(async () => {
@@ -106,6 +107,20 @@ async function renderBanner(locale: BannerTestLocale) {
   });
 
   return container;
+}
+
+async function renderBanner(locale: BannerTestLocale) {
+  return renderNode(React.createElement(TelemetryConsentBanner), locale);
+}
+
+async function renderGate(locale: BannerTestLocale) {
+  return renderNode(
+    React.createElement(TelemetryConsentShell, {
+      instanceId: 'test-shell',
+      mode: 'gate'
+    }),
+    locale
+  );
 }
 
 function queryBanner() {
@@ -216,5 +231,44 @@ describe('TelemetryConsentBanner', () => {
     setTelemetryConsentState('OPTED_IN');
     await renderBanner('en');
     expect(queryBanner()).toBeNull();
+  });
+
+  it('keeps consent untouched on the first gate deny click until final confirmation', async () => {
+    await renderGate('en');
+
+    const denyButton = document.querySelector<HTMLButtonElement>('[data-testid="telemetry-consent-deny"]');
+    expect(denyButton).not.toBeNull();
+
+    await act(async () => {
+      denyButton?.click();
+      await Promise.resolve();
+    });
+
+    expect(window.localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)).toBeNull();
+    expect(document.querySelector('[data-testid="telemetry-consent-deny-confirm"]')?.textContent).toBe(
+      'Confirm disagree'
+    );
+  });
+
+  it('writes OPTED_OUT only after final gate deny confirmation', async () => {
+    await renderGate('en');
+
+    const denyButton = document.querySelector<HTMLButtonElement>('[data-testid="telemetry-consent-deny"]');
+    expect(denyButton).not.toBeNull();
+
+    await act(async () => {
+      denyButton?.click();
+      await Promise.resolve();
+    });
+
+    const confirmButton = document.querySelector<HTMLButtonElement>('[data-testid="telemetry-consent-deny-confirm"]');
+    expect(confirmButton).not.toBeNull();
+
+    await act(async () => {
+      confirmButton?.click();
+      await Promise.resolve();
+    });
+
+    expect(window.localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)).toBe('OPTED_OUT');
   });
 });

@@ -1,7 +1,15 @@
 import {defaultLocale, type AppLocale} from '@/config/site';
+import {
+  isCatalogVisibleCard,
+  normalizeRawLandingCardType,
+  resolveAvailabilityFromCardType,
+  resolveLandingCatalogEnvironment,
+  type LandingCatalogAudience,
+  type LandingCatalogEnvironment
+} from '@/features/landing/data/card-type';
 import {getLandingRawFixtures} from '@/features/landing/data/raw-fixtures';
+import type {TelemetryConsentState} from '@/features/landing/telemetry/types';
 import type {
-  LandingAvailability,
   LandingBlogCard,
   LandingCard,
   LandingCardType,
@@ -15,16 +23,18 @@ import type {
 
 const DEFAULT_THUMBNAIL_OR_ICON = 'icon-placeholder';
 const DEFAULT_CATALOG_AUDIENCE = 'end-user';
+const DEFAULT_CONSENT_STATE: TelemetryConsentState = 'UNKNOWN';
 
 type LooseRawLandingCard = Partial<RawLandingCard> & {
   test?: Partial<RawTestPayload>;
   blog?: Partial<RawBlogPayload>;
 };
 
-export type LandingCatalogAudience = 'end-user' | 'qa';
-
 export interface LandingCatalogOptions {
   audience?: LandingCatalogAudience;
+  consentState?: TelemetryConsentState;
+  includeHiddenCards?: boolean;
+  environment?: LandingCatalogEnvironment;
 }
 
 function asLocalizedText(value: LocalizedText | undefined): LocalizedText {
@@ -122,32 +132,19 @@ function normalizeType(value: unknown): LandingCardType {
   return value === 'blog' ? 'blog' : 'test';
 }
 
-function normalizeAvailability(value: unknown): LandingAvailability {
-  return value === 'unavailable' ? 'unavailable' : 'available';
-}
-
-function shouldIncludeCard(card: Pick<LandingCard, 'debug' | 'sample'>, audience: LandingCatalogAudience): boolean {
-  if (audience === 'qa') {
-    return true;
-  }
-
-  return !card.debug && !card.sample;
-}
-
 export function normalizeLandingCards(
   rawCards: ReadonlyArray<Partial<RawLandingCard>>,
-  locale: AppLocale,
-  options: LandingCatalogOptions = {}
+  locale: AppLocale
 ): LandingCard[] {
   const normalizedCards: LandingCard[] = [];
-  const audience = options.audience ?? DEFAULT_CATALOG_AUDIENCE;
 
   for (const [index, inputCard] of rawCards.entries()) {
     const rawCard = (inputCard ?? {}) as LooseRawLandingCard;
     const type = normalizeType(rawCard.type);
-    const availability = normalizeAvailability(rawCard.availability);
+    const cardType = normalizeRawLandingCardType(rawCard);
+    const availability = resolveAvailabilityFromCardType(cardType);
 
-    if (type === 'blog' && availability === 'unavailable') {
+    if (type === 'blog' && cardType === 'unavailable') {
       continue;
     }
 
@@ -168,6 +165,7 @@ export function normalizeLandingCards(
       const normalizedBlogCard: LandingBlogCard = {
         id,
         type,
+        cardType,
         availability,
         title,
         subtitle,
@@ -192,9 +190,7 @@ export function normalizeLandingCards(
         }
       };
 
-      if (shouldIncludeCard(normalizedBlogCard, audience)) {
-        normalizedCards.push(normalizedBlogCard);
-      }
+      normalizedCards.push(normalizedBlogCard);
       continue;
     }
 
@@ -207,6 +203,7 @@ export function normalizeLandingCards(
     const normalizedTestCard: LandingTestCard = {
       id,
       type,
+      cardType,
       availability,
       title,
       subtitle,
@@ -235,14 +232,21 @@ export function normalizeLandingCards(
       }
     };
 
-    if (shouldIncludeCard(normalizedTestCard, audience)) {
-      normalizedCards.push(normalizedTestCard);
-    }
+    normalizedCards.push(normalizedTestCard);
   }
 
   return normalizedCards;
 }
 
 export function createLandingCatalog(locale: AppLocale, options: LandingCatalogOptions = {}): LandingCard[] {
-  return normalizeLandingCards(getLandingRawFixtures(), locale, options);
+  const audience = options.audience ?? DEFAULT_CATALOG_AUDIENCE;
+  const consentState = options.consentState ?? DEFAULT_CONSENT_STATE;
+  const environment = options.environment ?? resolveLandingCatalogEnvironment();
+  const cards = normalizeLandingCards(getLandingRawFixtures(), locale);
+
+  if (options.includeHiddenCards) {
+    return cards;
+  }
+
+  return cards.filter((card) => isCatalogVisibleCard(card, consentState, audience, environment));
 }

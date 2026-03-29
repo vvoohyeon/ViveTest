@@ -113,7 +113,7 @@ async function openThemedPage(
   viewport?: ViewportSize
 ): Promise<Page> {
   const page = await browser.newPage({viewport});
-  await seedTelemetryConsent(page, 'OPTED_OUT');
+  await seedTelemetryConsent(page, 'OPTED_IN');
   await setTheme(page, theme);
   return page;
 }

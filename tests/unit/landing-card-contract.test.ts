@@ -92,7 +92,7 @@ describe('landing card slot contract', () => {
 
   it('renders Test Expanded slots without subtitle/thumbnail/tags and keeps exactly three meta items', () => {
     const catalog = createLandingCatalog('en');
-    const card = catalog.find((candidate) => candidate.type === 'test' && candidate.availability === 'available');
+    const card = catalog.find((candidate) => candidate.type === 'test' && candidate.cardType === 'available');
 
     if (!card || card.type !== 'test') {
       throw new Error('Expected an available test card fixture');

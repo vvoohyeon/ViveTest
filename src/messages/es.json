@@ -39,7 +39,11 @@
     "goHistory": "Abrir historial",
     "instructionTitle": "Antes de empezar",
     "instructionBody": "Lee cada pregunta y elige una respuesta. Puedes volver a las preguntas anteriores y cambiar tus respuestas antes del envío final.",
-    "start": "Empezar"
+    "start": "Empezar",
+    "blockedTitle": "This test is unavailable with your current consent choice",
+    "blockedBody": "This test requires opt-in consent before it can start. You can return to landing or choose an opt-out test instead.",
+    "blockedSuggestionsTitle": "Tests you can start without opting in",
+    "blockedSuggestionCta": "Start this test"
   },
   "blog": {
     "selected": "Artículo seleccionado",
@@ -59,6 +63,12 @@
     "accept": "Aceptar todo",
     "deny": "Rechazar",
     "preferences": "Preferencias",
-    "preferencesTitle": "El panel de preferencias llegará pronto"
+    "preferencesTitle": "El panel de preferencias llegará pronto",
+    "gateRegionLabel": "Test entry consent gate",
+    "gateTitle": "This test requires opt-in consent",
+    "gateMessage": "Accept all to continue into this test. If you disagree, this test will stay blocked and we will suggest opt-out tests instead.",
+    "gateConfirmMessage": "If you disagree, this test cannot start. Do you want to keep the test blocked and save that choice now?",
+    "gateKeepTesting": "Go back",
+    "gateConfirmDisagree": "Confirm disagree"
   }
 }

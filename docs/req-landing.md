@@ -98,7 +98,7 @@
 **Rule**: 아래 규칙은 모든 구현에서 동시에 성립해야 한다.
 1. 유효 라우트는 항상 `/{locale}` prefix 1회만 가진다.
 2. `src/app/layout.tsx`는 top-level 루트 레이아웃이며 `html/body`를 포함한다. request-scoped document `lang` 해석만 예외적으로 허용한다.
-3. `src/app/[locale]/layout.tsx`는 locale 검증/i18n 주입 전용 중첩 레이아웃이다.
+3. `src/app/[locale]/layout.tsx`는 locale 검증/i18n 주입 전용 중첩 레이아웃이다. 단, pathname/params/pending transition/consent state를 읽어 overlay mode만 결정하는 runtime-only passive shell/monitor mount는 예외적으로 허용한다.
 4. 모든 실제 페이지는 `src/app/[locale]/**` 하위에만 존재한다.
 5. Expanded에서 콘텐츠 crop/clip으로 식별 불가 상태를 만들면 안 된다.
 
@@ -110,7 +110,7 @@
 ### 5.1 Layout Responsibility Split
 **Rule**: 루트/locale 레이아웃 책임은 분리 고정한다.
 - `src/app/layout.tsx`: 전역 HTML/Body, 전역 스타일, 전역 Provider 골격. locale 검증/i18n 메시지 주입 없이 request-scoped document `lang` 반영만 허용한다.
-- `src/app/[locale]/layout.tsx`: locale 파라미터 검증, 메시지 로드, locale 컨텍스트 주입.
+- `src/app/[locale]/layout.tsx`: locale 파라미터 검증, 메시지 로드, locale 컨텍스트 주입. runtime-only passive shell/monitor는 허용하되 locale 검증, message loading, redirect, route branching, business-content fetching을 수행하면 안 된다.
 
 **Verification**:
 1. Manual: 루트 레이아웃이 top-level `html/body` 책임을 유지하고, locale 검증/i18n 메시지 로드를 수행하지 않는지 확인한다.
@@ -497,7 +497,7 @@
 - 활성 Expanded 카드의 경계는 확장된 카드의 실제 상호작용 영역 전체로 정의한다.
 - hover leave로 위 경계를 완전히 벗어나면 collapse 전이를 수행해야 하며, 다른 카드 hover 여부와 무관하게 동작해야 한다.
 - hover leave 기반 collapse는 허용 유예 `100~180ms` 범위 내에서 수행한다.
-- handoff는 `다른 available 카드 진입`에서만 성립한다(unavailable 진입은 handoff로 간주하지 않는다).
+- handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`에서만 성립한다(unavailable 진입은 handoff로 간주하지 않는다).
 - 카드 간 handoff 시 직전 카드의 pending/진행 transition은 즉시 취소하고 마지막 hover 카드만 Expanded로 진입한다.
 - handoff(카드 A→B)에서 카드 A는 scale/높이/빈공간 잔류 없이 즉시 Normal 정착해야 하며, same-row 비대상 카드 하단 여백 증가를 금지한다.
 - Tap Mode fallback(`width>=768`): tap으로 Expanded 진입, 전환 비주얼 계약은 hover 경로와 동일하다.
@@ -960,6 +960,10 @@ opt_out 카드 노출 규칙 변경 시 §2(Terms), §13.9, req-test.md §2.5를
 opt_out 카드 진입 시 consent 재확인 없이 바로 테스트를 시작한다.
 (§13.9 참조)
 
+**`available` 카드에 OPTED_OUT 상태로 직접 진입한 경우**:
+- consent 게이트는 발동하지 않는다.
+- 동일 라우트에서 즉시 blocked recovery panel을 노출한다.
+
 #### 동작 계약
 
 **게이트 표시**:
@@ -979,8 +983,15 @@ opt_out 카드 진입 시 consent 재확인 없이 바로 테스트를 시작한
 - 최종 확인 후 Disagree 유지 시:
   - consent를 Disagree All로 기록한다.
   - 테스트 진행을 차단한다.
-  - 복귀 경로(랜딩 또는 동등한 안전한 상태)를 제공한다.
-    구체적인 복귀 UX는 구현 재량이다.
+  - 아래 복구 패널 계약에 따라 동일 라우트 blocked recovery panel을 노출한다.
+
+#### 복구 패널 구성
+
+- consent blocked recovery는 `§6.1` invalid-variant recovery와 별도 소유다.
+- 동일 라우트에서 panel만 교체하며 redirect를 기본 동작으로 사용하지 않는다.
+- 기본 CTA는 landing 복귀다.
+- `opt_out` 테스트 제안은 declaration order 기준 최대 2개까지 표시할 수 있다.
+- 각 제안은 직접 진입 CTA를 가져야 한다.
 
 **불변식**:
 - 게이트가 발동한 상태에서 consent 확인 없이 테스트 runtime에
@@ -1004,6 +1015,7 @@ consent 게이트 발동 조건·동작 변경 시
 4. Automated: opt_out 카드 진입 시 게이트가 발동하지 않음을 검증한다.
 5. Automated: 이미 Agree All 또는 Disagree All인 사용자에게
    게이트가 발동하지 않음을 검증한다.
+6. Automated: OPTED_OUT 상태에서 available 테스트 direct entry 시 gate 없이 즉시 blocked recovery panel이 노출됨을 검증한다.
 
 ---
 
@@ -1021,7 +1033,7 @@ consent 게이트 발동 조건·동작 변경 시
 1. SSR/Hydration: warning `0건`, typedRoutes build PASS, `useSearchParams()` Suspense 경계 위반 `0건` (Section 5, 11).
 2. Routing/i18n: single locale prefix, duplicate prefix `0건`, `proxy.ts` 단일 책임, locale-less allowlist/404 분기 PASS (Section 5, 13).
 3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, trigger-layer gap `0px`, focus out close `<=1 frame`, hover 유예 hover-only, Mobile overlay/backdrop/scroll lock, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
-4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Expanded/handoff 활성 중 grid plan freeze, 폭 변경 시 강제 종료 후 재계산, same-row 비대상 카드 top/bottom/outer height 오차 `0px`, Desktop Normal same-row bottom edge `0px`, 텍스트 overflow(특히 subtitle long-token)로 인한 카드/row inline-size 확장 `0건`, 텍스트 overflow로 인한 형제 슬롯(썸네일/태그) inline-size 변형 `0건`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, shell scale/crop PASS (Section 6, 7, 8, 9).
+4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Expanded/handoff 활성 중 grid plan freeze, 폭 변경 시 강제 종료 후 재계산, same-row 비대상 카드 top/bottom/outer height 오차 `0px`, Desktop Normal same-row bottom edge `0px`, 텍스트 overflow(특히 subtitle long-token)로 인한 카드/row inline-size 확장 `0건`, 텍스트 overflow로 인한 형제 슬롯(썸네일/태그) inline-size 변형 `0건`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, handoff는 enterable 카드(available 또는 opt_out) 기준으로만 성립, shell scale/crop PASS (Section 6, 7, 8, 9).
 5. Keyboard/A11y: 카드 Shell focus 경계, Tab 순차 Expanded override, 카드 내부 포커스 순회, Esc 우선순위 해제, aria 규칙, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 9).
 6. Transition/Test Handshake: ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, Q2→Q1 역전 `0건`, Blog article 식별자 전달, `start=1 -> terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, Mobile lifecycle atomicity(`OPENING -> OPEN -> CLOSING -> NORMAL`), single sequence 상태 전이 1회, OPENING close queue 처리, CLOSING 인터럽트 무시, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op, return scroll 복원 1회+즉시 consume PASS (Section 8, 12, 13).
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
@@ -1030,7 +1042,7 @@ consent 게이트 발동 조건·동작 변경 시
 10. Normal Spacing Model: Desktop/Tablet Normal에서 `subtitle -> tags` 기본 간격 비-0 유지, 보정 불필요 카드의 `보정 간격=0` + 추가 잉여 여백 `0`, 보정 필요 카드만 추가 보정 간격 허용, empty-tags에서 chip `0개` + 슬롯 높이 유지 PASS (Section 6.7, 13.1).
 11. Row 1/Row 2+ Consistency: `보정 필요` 판정이 row index와 무관하게 동일 규칙(해당 row의 Normal 자연 높이 비교 결과)으로 적용되고, row index 기반 우회 신호 사용 `0건` PASS (Section 6.7).
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
-13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 available 카드 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
+13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
 15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_card_id`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `attempt_start`의 `question_index_1based`가 ingress 경로에서 `2`, 직접 진입에서 `1`로 정확히 발화, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
 Test Flow Requirements §12.2 Blocker #28에 단방향으로 참조된다. 연계 검증 단언의 픽스처 공유 계약은 §12.2 Blocker #28이 소유한다.

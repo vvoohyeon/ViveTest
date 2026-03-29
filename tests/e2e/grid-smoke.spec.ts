@@ -231,7 +231,7 @@ async function readExpandedWidthContract(card: Locator) {
 
 test.describe('Phase 4 grid smoke', () => {
   test.beforeEach(async ({page}) => {
-    await seedTelemetryConsent(page, 'OPTED_OUT');
+    await seedTelemetryConsent(page, 'OPTED_IN');
   });
 
   test('@smoke assertion:B12-underfilled-last-row desktop wide row rules and underfilled final row contract', async ({page}) => {
@@ -865,14 +865,14 @@ test.describe('Phase 4 grid smoke', () => {
     ).toBeLessThanOrEqual(1);
   });
 
-  test('@smoke assertion:B13-hover-collapse desktop hover-out collapse stays independent and handoff remains available-only', async ({
+  test('@smoke assertion:B13-hover-collapse desktop hover-out collapse stays independent and handoff remains enterable-only', async ({
     page
   }) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
     const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const secondCard = page.locator('[data-card-id="test-energy-check"]');
     const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
 
     await firstCard.hover();

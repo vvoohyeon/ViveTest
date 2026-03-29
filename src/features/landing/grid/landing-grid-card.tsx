@@ -14,7 +14,7 @@ import type {
 import {useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import type {LandingCard} from '@/features/landing/data';
+import {isUnavailablePresentation, type LandingCard} from '@/features/landing/data';
 import {useLandingCardTitleSplit} from '@/features/landing/grid/landing-card-title-continuity';
 import {
   type LandingCardDesktopMotionRole,
@@ -413,7 +413,7 @@ export function LandingGridCard({
   onPrimaryCtaClick,
   onMobileClose
 }: LandingGridCardProps) {
-  const isUnavailable = card.availability === 'unavailable';
+  const isUnavailable = isUnavailablePresentation(card);
   const resolvedState: LandingCardVisualState = isUnavailable && state === 'expanded' ? 'normal' : state;
   const isMobileViewport = viewportTier === 'mobile';
   const isMobileOpening = isMobileViewport && mobileTransientMode === 'OPENING' && !isUnavailable;
@@ -448,7 +448,8 @@ export function LandingGridCard({
       data-testid="landing-grid-card"
       data-card-id={card.id}
       data-card-seq={typeof sequence === 'number' ? sequence : undefined}
-      data-card-type={card.type}
+      data-card-kind={card.type}
+      data-card-type={card.cardType}
       data-card-availability={card.availability}
       data-card-state={resolvedState}
       data-interaction-mode={interactionMode}

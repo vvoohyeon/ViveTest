@@ -3,7 +3,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {createLandingCatalog} from '@/features/landing/data';
+import {createLandingCatalog, isEnterableCard} from '@/features/landing/data';
 import type {LandingBlogCard} from '@/features/landing/data/types';
 import {
   completePendingLandingTransition,
@@ -24,8 +24,8 @@ export function BlogDestinationClient({
 }: BlogDestinationClientProps) {
   const articles = useMemo(
     () =>
-      createLandingCatalog(locale).filter(
-        (card): card is LandingBlogCard => card.type === 'blog' && card.availability === 'available'
+      createLandingCatalog(locale, {audience: 'qa', includeHiddenCards: true}).filter(
+        (card): card is LandingBlogCard => card.type === 'blog' && isEnterableCard(card)
       ),
     [locale]
   );

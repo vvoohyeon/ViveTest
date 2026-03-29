@@ -46,21 +46,21 @@ export type LandingInteractionEvent =
       nowMs: number;
       interactionMode: 'hover' | 'tap';
       cardId: string;
-      available: boolean;
+      enterable: boolean;
     }
   | {
       type: 'CARD_ACTIVATE';
       nowMs: number;
       interactionMode: 'hover' | 'tap';
       cardId: string;
-      available: boolean;
+      enterable: boolean;
     }
   | {
       type: 'CARD_EXPAND';
       nowMs: number;
       interactionMode: 'hover' | 'tap';
       cardId: string;
-      available: boolean;
+      enterable: boolean;
     }
   | {
       type: 'CARD_COLLAPSE';
@@ -73,7 +73,7 @@ export type LandingInteractionEvent =
       nowMs: number;
       interactionMode: 'hover' | 'tap';
       cardId: string;
-      available: boolean;
+      enterable: boolean;
     }
   | {
       type: 'CARD_HOVER_LEAVE';
@@ -277,7 +277,7 @@ export function reduceLandingInteractionState(
 
       const nextExpandedCardId =
         event.interactionMode === 'hover'
-          ? event.available
+          ? event.enterable
             ? event.cardId
             : null
           : settledState.expandedCardId;
@@ -291,14 +291,14 @@ export function reduceLandingInteractionState(
         return clearHoverLock(focusedState);
       }
 
-      if (!event.available) {
+      if (!event.enterable) {
         return clearHoverLock(focusedState);
       }
 
       return enableHoverLock(focusedState, event.cardId);
     }
     case 'CARD_ACTIVATE': {
-      if (isInteractionBlocked(settledState) || !event.available) {
+      if (isInteractionBlocked(settledState) || !event.enterable) {
         return settledState;
       }
 
@@ -320,7 +320,7 @@ export function reduceLandingInteractionState(
       return enableHoverLock(activatedState, nextExpandedCardId);
     }
     case 'CARD_EXPAND': {
-      if (isInteractionBlocked(settledState) || !event.available) {
+      if (isInteractionBlocked(settledState) || !event.enterable) {
         return settledState;
       }
 
@@ -360,7 +360,7 @@ export function reduceLandingInteractionState(
         return settledState;
       }
 
-      if (event.available) {
+      if (event.enterable) {
         return {
           ...enableHoverLock(
             {

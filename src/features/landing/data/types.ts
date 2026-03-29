@@ -1,6 +1,7 @@
 import type {AppLocale} from '@/config/site';
 
 export type LandingCardType = 'test' | 'blog';
+export type LandingCatalogCardType = 'available' | 'unavailable' | 'hide' | 'opt_out' | 'debug';
 export type LandingAvailability = 'available' | 'unavailable';
 
 export type LocalizedText = Partial<Record<AppLocale, string>> & {
@@ -36,7 +37,12 @@ export interface RawBlogPayload {
 interface RawLandingCardCommon {
   id: string;
   type: LandingCardType;
-  availability: LandingAvailability;
+  cardType?: LandingCatalogCardType;
+  unavailable?: boolean;
+  /**
+   * @deprecated Presentation-only fallback for legacy fixtures. Business logic must use `cardType`.
+   */
+  availability?: LandingAvailability;
   title: LocalizedText;
   subtitle: LocalizedText;
   thumbnailOrIcon: string;
@@ -70,6 +76,10 @@ export interface LocaleResolvedText {
 export interface LandingCardCommon {
   id: string;
   type: LandingCardType;
+  cardType: LandingCatalogCardType;
+  /**
+   * @deprecated Derived presentation signal for CSS/test selectors only. Business logic must use `cardType`.
+   */
   availability: LandingAvailability;
   title: string;
   subtitle: string;
@@ -115,6 +125,9 @@ export interface FixtureContractReport {
   blogCount: number;
   unavailableTestCount: number;
   unavailableBlogCount: number;
+  optOutTestCount: number;
+  hideCardCount: number;
+  debugCardCount: number;
   hasLongTokenSubtitle: boolean;
   hasLongBodyText: boolean;
   hasEmptyTags: boolean;
