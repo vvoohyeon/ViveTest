@@ -266,6 +266,9 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B6-transition-ingress test route re-entry without ingress falls back to Q1 after start consumes ingress', async ({
     page
   }) => {
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, 'OPTED_IN');
+    }, TELEMETRY_CONSENT_STORAGE_KEY);
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -555,6 +558,12 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(card).toHaveAttribute('data-mobile-transient-mode', 'CLOSING');
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
 
+    // 닫힘 직후 애니메이션 이름을 먼저 읽어 transient shell 정리 타이머와의 경합을 피한다.
+    const closingPreviewAnimation = await card
+      .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
+      .evaluate((element) => getComputedStyle(element).animationName);
+    expect(closingPreviewAnimation).toContain('landing-card-detail-quiet-exit');
+
     const afterClose = await card.boundingBox();
     expect(Math.abs((afterClose?.width ?? 0) - (before?.width ?? 0))).toBeLessThanOrEqual(2);
     expect(Math.abs((afterClose?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(2);
@@ -570,11 +579,6 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     expect(rootTitleOpacity).toBe(0);
     expect(transientTitleOpacity).toBeGreaterThanOrEqual(0.95);
-
-    const closingPreviewAnimation = await card
-      .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
-      .evaluate((element) => getComputedStyle(element).animationName);
-    expect(closingPreviewAnimation).toContain('landing-card-detail-quiet-exit');
 
     const zOrder = await page.evaluate(() => {
       const transient = document.querySelector<HTMLElement>('[data-slot="mobileTransientShell"]');

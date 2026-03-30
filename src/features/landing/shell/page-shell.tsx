@@ -10,16 +10,17 @@ interface PageShellProps {
   locale: AppLocale;
   context: GnbContext;
   currentRoute: LocaleFreeRoute;
+  showDefaultConsentBanner?: boolean;
   children: ReactNode;
 }
 
-export function PageShell({locale, context, currentRoute, children}: PageShellProps) {
+export function PageShell({locale, context, currentRoute, showDefaultConsentBanner = true, children}: PageShellProps) {
   return (
     <div className="page-shell" data-page-context={context}>
       <TransitionGnbOverlay locale={locale} context={context} currentRoute={currentRoute} />
       <SiteGnb locale={locale} context={context} currentRoute={currentRoute} />
       <main className="page-shell-main">{children}</main>
-      <TelemetryConsentBanner />
+      {showDefaultConsentBanner ? <TelemetryConsentBanner /> : null}
     </div>
   );
 }

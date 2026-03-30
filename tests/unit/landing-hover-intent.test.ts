@@ -3,7 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {
   DESKTOP_COLLAPSE_DELAY_MS,
   DESKTOP_EXPAND_DELAY_MS,
-  isAvailableHandoffCandidate,
+  isEnterableHandoffCandidate,
   nextHoverIntentToken,
   resolveDesktopTransformOriginX
 } from '../../src/features/landing/grid/hover-intent';
@@ -22,28 +22,28 @@ describe('landing hover intent helpers', () => {
     });
   });
 
-  it('assertion:B13-handoff-available-only allows handoff only between different available cards', () => {
+  it('assertion:B13-handoff-enterable-only allows handoff only between different enterable cards', () => {
     expect(
-      isAvailableHandoffCandidate({
+      isEnterableHandoffCandidate({
         previousExpandedCardId: 'test-rhythm-a',
         nextCardId: 'test-rhythm-b',
-        available: true
+        enterable: true
       })
     ).toBe(true);
 
     expect(
-      isAvailableHandoffCandidate({
+      isEnterableHandoffCandidate({
         previousExpandedCardId: 'test-rhythm-a',
         nextCardId: 'test-rhythm-a',
-        available: true
+        enterable: true
       })
     ).toBe(false);
 
     expect(
-      isAvailableHandoffCandidate({
+      isEnterableHandoffCandidate({
         previousExpandedCardId: 'test-rhythm-a',
         nextCardId: 'test-coming-soon-1',
-        available: false
+        enterable: false
       })
     ).toBe(false);
   });

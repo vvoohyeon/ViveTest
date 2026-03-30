@@ -1,12 +1,25 @@
 'use client';
 
-import type {LandingCard} from '@/features/landing/data';
+import {useMemo} from 'react';
+
+import type {AppLocale} from '@/config/site';
+import {createLandingCatalog} from '@/features/landing/data';
 import {LandingCatalogGrid} from '@/features/landing/grid/landing-catalog-grid';
+import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
 
 interface LandingCatalogGridLoaderProps {
-  cards: LandingCard[];
+  locale: AppLocale;
 }
 
-export function LandingCatalogGridLoader({cards}: LandingCatalogGridLoaderProps) {
+export function LandingCatalogGridLoader({locale}: LandingCatalogGridLoaderProps) {
+  const consentSnapshot = useTelemetryConsentSource();
+  const cards = useMemo(
+    () =>
+      createLandingCatalog(locale, {
+        consentState: consentSnapshot.synced ? consentSnapshot.consentState : 'UNKNOWN'
+      }),
+    [consentSnapshot.consentState, consentSnapshot.synced, locale]
+  );
+
   return <LandingCatalogGrid cards={cards} />;
 }

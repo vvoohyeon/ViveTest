@@ -19,12 +19,12 @@ export function nextHoverIntentToken(previousToken: number, cardId: string, acti
   };
 }
 
-export function isAvailableHandoffCandidate(input: {
+export function isEnterableHandoffCandidate(input: {
   previousExpandedCardId: string | null;
   nextCardId: string;
-  available: boolean;
+  enterable: boolean;
 }): boolean {
-  if (!input.available) {
+  if (!input.enterable) {
     return false;
   }
 

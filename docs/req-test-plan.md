@@ -4,15 +4,12 @@
 
 ## 사전 구현 요구사항 — 카드 타입 시스템
 
-> **이 섹션은 Phase 0 착수 이전에 완료해야 하는 랜딩 측 구현 항목이다.**
-> Test Flow Phase 1 이상은 variant registry에서 `cardType` 컬럼을 읽는 것을
-> 전제하므로, 카드 타입 시스템 구현이 선행되지 않으면 Phase 2 registry
-> 인터페이스 설계가 불완전해진다.
+ **이 섹션은 Phase 0 착수 이전에 완료해야 하는 랜딩 측 구현 항목이다.**
+> Test Flow Phase 1 이상은 variant registry에서 `cardType` 컬럼을 읽는 것을 전제하므로, 카드 타입 시스템 구현이 선행되지 않으면 Phase 2 registry 인터페이스 설계가 불완전해진다.
 
 ### 배경
 
-`available` | `unavailable` | `hide` | `opt_out` | `debug` 5종 카드 타입
-분류가 결정되었으나 현재 코드베이스에는 구현되지 않은 상태다.
+`available` | `unavailable` | `hide` | `opt_out` | `debug` 5종 카드 타입 분류가 결정되었음
 
 - **요구사항 SSOT**: `docs/req-landing.md` §2(Terms), §13.9(Opt-out Card Contract)
 - **데이터 소스 계약**: `docs/req-test.md` §2.5(카드 타입 계약)
@@ -22,30 +19,37 @@
 | 산출물 | 내용 | 참조 |
 |---|---|---|
 | `cardType` 컬럼 인식 | `raw-fixtures.ts` 및 `adapter.ts`가 `cardType` 5종 값을 인식하도록 갱신 | req-landing.md §2 |
-| `normalizeLandingCards()` 갱신 | `hide`, `debug` 카드를 카탈로그에서 제외. production 환경에서 `debug` → `hide`와 동일 처리 | req-landing.md §2 |
+| `normalizeAllLandingCards()` / `createLandingCatalog()` 갱신 | `hide`, `debug` 카드를 end-user 카탈로그에서 제외하고, `cardType` 5종을 현재 fixture 경로에 즉시 반영 | req-landing.md §2, §13.9 |
 | consent 기반 필터링 | `available` 카드: Disagree All 시 비노출. `opt_out` 카드: consent 상태와 무관하게 항상 노출. `unavailable` 카드: consent 상태와 무관하게 badge 노출 유지 | req-landing.md §13.9 |
 | `unavailable: boolean` 레거시 필드 호환 | `true` → `cardType: 'unavailable'`로 해석 | req-test.md §2.5 |
 | 관련 unit/e2e/QA 스크립트 갱신 | `check-phase5-card-contracts.mjs`, `landing-card-contract.test.ts`, `grid-smoke.spec.ts` 등 5종 카드 타입 계약 반영 | — |
 
 ### 완료 조건
 
-- [ ] `normalizeLandingCards()`가 `hide`, `debug` 카드를 카탈로그에서 제외함
-- [ ] Disagree All 상태에서 `available` 카드 0건, `opt_out` 카드 정상 노출을
-  자동으로 검증하는 단언이 존재함
-- [ ] `qa:gate:once` GREEN 유지
-- [ ] `docs/req-test.md` §2.5 `cardType` 계약과 코드베이스 구현이 정합함
+- [x] `normalizeAllLandingCards()`와 `createLandingCatalog()`가 `hide`, `debug` 카드를 end-user 카탈로그에서 제외함
+- [x] Disagree All 상태에서 `available` 카드 0건, `opt_out` 카드 정상 노출을 자동으로 검증하는 단언이 존재함
+- [x] `docs/req-test.md` §2.5 `cardType` 계약과 코드베이스 구현이 정합함
+- [x] `qa:gate:once` GREEN 유지
 
-### 완료 조건 — Instruction Consent-branch 분기
+### 완료 조건 — Instruction Contract 분기
 
 > **관심사**: 테스트 페이지 진입 시 consent 상태 기반 instruction 분기.
 > SSOT: `docs/req-landing.md` §13.5
 
-- [ ] Landing ingress + consent 미선택 상태에서 Consent-branch variant가 표시되고, [Accept All and Start] → Agree All 저장 + 정상 진행 / [Deny and Abandon] → Disagree All 저장 + 랜딩 복귀의 동작이 자동으로 검증하는 단언이 존재함 (§14.2 check 20~22 기준)
-- [ ] opt_out 카드 진입 시 consent 분기가 발동하지 않음이 자동으로 검증되는 단언이 존재함 (§13.5, §13.9 기준)
-- [ ] OPTED_OUT 상태에서 available 카드 직접 URL 접근 시 즉시 랜딩 복귀하고 opt_out 카드만 카탈로그에 표시됨이 자동으로 검증하는 단언이 존재함 (§13.5, §14.2 check 23 기준)
-- [ ] OPTED_OUT 상태에서 opt_out 카드 직접 URL 접근 시 정상 진입함이 자동으로 검증하는 단언이 존재함 (§13.5, §13.9 기준)
+- [x] Landing ingress + consent 미선택 상태에서 variant별 instruction 본문과 divider/note가 표시되고, `available` 카드는 [Accept All and Start] / [Deny and Abandon], `opt_out` 카드는 [Accept All and Start] / [Deny and Start] 계약으로 분기함을 자동 검증하는 단언이 존재함 (`tests/e2e/consent-smoke.spec.ts` blocker 20/22)
+- [x] landing ingress + `OPTED_IN` + `available` 경로에서 variant별 instruction 본문 + [Start]만 표시되고 Q2부터 진행함을 자동 검증하는 단언이 존재함 (`tests/e2e/transition-telemetry-smoke.spec.ts` blocker 6/28)
+- [x] landing ingress + `OPTED_OUT` + `opt_out` 경로에서 variant별 instruction 본문 + [Start]만 표시되고 Q2부터 진행함을 직접 검증하는 자동 단언이 존재함 (`tests/e2e/transition-telemetry-smoke.spec.ts` blocker 6)
+- [x] landing ingress + `OPTED_OUT` + `available`가 랜딩 카탈로그 단계에서 비도달 상태임을 자동 검증하는 단언이 존재함 (`tests/unit/landing-data-contract.test.ts`)
+- [x] 딥링크 유입 + `UNKNOWN` 상태에서 test 페이지 하단 Consent UI 없이 variant별 instruction 본문 + divider + consent note + CTA 세트만 표시됨을 자동 검증하는 단언이 존재함 (`tests/e2e/consent-smoke.spec.ts`)
+- [x] 딥링크 유입 + `OPTED_OUT` + `available` 카드가 즉시 redirect되지 않고 warning note + [Keep Current Preference]를 표시함을 자동 검증하는 단언이 존재함 (`tests/e2e/consent-smoke.spec.ts` blocker 23)
+- [x] 딥링크 유입 + `OPTED_IN` + `available` 경로에서 plain instruction + [Start]만 표시되고 Q1부터 진행함을 자동 검증하는 단언이 존재함 (`tests/e2e/consent-smoke.spec.ts`, `tests/e2e/transition-telemetry-smoke.spec.ts` blocker 28)
+- [x] 딥링크 유입 + `OPTED_OUT` + `opt_out` 경로에서 [Start] 클릭 후 Q1부터 진행함을 직접 검증하는 자동 단언이 존재함 (`tests/e2e/consent-smoke.spec.ts`)
+- [x] 모든 fixture test variant에 서로 다른 dummy instruction 메시지가 연결되어 있음을 unit으로 검증한다 (`tests/unit/landing-data-contract.test.ts`)
+- [x] e2e에서 variant별 instruction 본문 노출을 모든 fixture variant에 대해 순회 검증하는 단언이 존재하며, 각 variant의 resolved instruction body가 fixture와 정확히 일치함을 검증한다 (`tests/e2e/consent-smoke.spec.ts`)
 
 ### 랜딩 QA Gate 재통과 범위
+
+blocker #13(handoff-enterable-only)은 현재 traceability/unit/runtime 기준으로 enterable(available + opt_out) 해석에 맞게 동기화되어 있다. `tests/unit/landing-hover-intent.test.ts` 4/4와 `tests/e2e/grid-smoke.spec.ts` blocker B13이 representative `available` 카드뿐 아니라 `PRIMARY_OPT_OUT_TEST_CARD_ID`(`test-energy-check`)의 실카드 handoff source/target 참여까지 직접 고정한다.
 
 이 구현은 랜딩 카드 계약을 변경하므로 아래 항목의 재통과가 필요하다:
 - blocker #13 (`assertion:B13-handoff-enterable-only`): `available` + `opt_out`
@@ -54,15 +58,12 @@
 - `landing-card-contract.test.ts`: unavailable test 카드 fixture 2장의 위상 재확인
 
 > **blocker #13 주의**: `handoff-enterable-only` 단언은 `available` + `opt_out`
-> enterable 카드를 handoff 대상으로 본다. 기존 available-only 단언은 본 변경셋에서
-> enterable 기준으로 동기화한다.
+> enterable 카드를 handoff 대상으로 본다. 현재 자동화는 generic enterable 판정(unit),
+> representative `available` 카드 간 handoff(e2e), 그리고 representative `opt_out`
+> 실카드 handoff source/target 참여(e2e)를 함께 고정한다.
 
-- §13.5 consent-branch: 아래 3개 시나리오에 대한 신규 e2e 단언을 추가한다.
-  1. Landing ingress + 미선택 → Consent-branch variant 표시 및 CTA 동작
-  2. 딥링크 + 미선택 → Default variant + 하단 Consent UI 동시 노출 및 Deny 분기
-  3. OPTED_OUT direct access → 즉시 랜딩 복귀
-  §14.3 check 20~23이 SSOT이며, 별도 신규 blocker는 발급하지 않는다.
-  검증은 consent-branch smoke coverage 안에 유지한다.
+- §13.5 instruction contract 자동화는 현재 `tests/e2e/consent-smoke.spec.ts` + `tests/e2e/transition-telemetry-smoke.spec.ts`에 반영되어 있다.
+- blocker 20~23은 traceability registry에 이미 연결되어 있으며, 상단 pre-Phase1 instruction contract 체크리스트의 잔여 갭도 현재 자동화로 모두 해소되었다.
 
 > **기준 문서**: `docs/req-test.md` (이하 요구사항)  
 > **구성**: Phase 전체 요약 (Phase 0~11) → Phase 0 선결 조건 → Phase 1 세부 계획 → Phase 2·3 예비 요약 → Phase Entry Gates (Phase 4·9·11 착수 전 확인)
@@ -97,32 +98,33 @@
 
 ### ADR-A — `src/features/test` 네임스페이스 분리 + `test-question-client.tsx` clean-room 교체
 
-현재 워크트리에서는 canonical test runtime이 `src/features/test/*`로 이동했고, route/unit/QA consumer도 모두 이 경로를 기준으로 본다. 이 cutover는 병행 경로 추가가 아니라 기존 `src/features/landing/test/*` 구현 파일 제거까지 끝난 상태이며, shim/alias도 남아 있지 않다. Phase 0에서는 clean-room implementation 자체를 수행하지 않으며, ADR-A의 완료 의미는 **clean-room 범위, 타이밍, 인터페이스를 문서로 확정했다는 뜻**이다. 현재 구현은 provisional runtime으로 유지된다.
+현재 워크트리에서는 canonical test runtime이 `src/features/test/*`로 이동했고, route/unit/QA consumer도 모두 이 경로를 기준으로 본다. 이 cutover는 병행 경로 추가가 아니라 기존 `src/features/landing/test/*` 구현 파일 제거까지 끝난 상태이며, shim/alias도 남아 있지 않다. 또한 `src/features/test/domain/*` 아래에는 provisional pure domain foundation과 전용 unit test가 이미 존재한다. 다만 live route/runtime는 아직 이 public surface를 소비하지 않으므로, 현재 구현은 여전히 provisional runtime으로 유지된다.
 
 **완료 조건**:
 - [x] `src/features/test` 디렉토리 분리 범위 결정 및 문서화
 - [x] test 런타임 파일의 `src/features/test/` 이관 대상 목록 확정 및 cutover 완료
 - [x] `test-question-client.tsx` clean-room 교체 범위 및 타이밍 ADR 확정
 - [x] Phase 1 T1-1~T1-7 파일이 생성될 디렉토리 경로 결정
+- [x] `src/features/test/domain/*` provisional pure-domain baseline과 전용 unit test가 현재 워크트리에 존재함
 
 **결정 요약**:
 - Phase 0에서는 `src/features/test/test-question-client.tsx`, `src/features/test/question-bank.ts`, `src/app/[locale]/test/[variant]/page.tsx`를 수정 대상으로 취급하지 않으며, 소스 코드 변경도 하지 않는다.
 - 위 세 파일은 legacy compatibility shell로 간주하고, 경계 고정은 코드가 아니라 `docs/req-test-plan.md`와 `docs/project-analysis.md`의 문서 계약으로만 수행한다.
-- clean-room 구현은 Phase 1 첫 변경셋 소유다.
-- Phase 1 T1-1~T1-7 순수 도메인 산출물의 canonical 위치는 `src/features/test/domain/`으로 고정한다. 파일 네이밍은 `types.ts`, `validate-variant.ts`, `validate-question-model.ts`, `validate-variant-data-integrity.ts`, `derivation.ts`, `type-segment.ts`, `index.ts`를 기준으로 유지한다.
+- `src/features/test/domain/*` 순수 도메인 산출물의 canonical 위치는 이미 `src/features/test/domain/`으로 고정되어 있다. 현재 파일 네이밍은 `types.ts`, `validate-variant.ts`, `validate-question-model.ts`, `validate-variant-data-integrity.ts`, `derivation.ts`, `type-segment.ts`, `index.ts`이며 dedicated unit test가 이를 소비한다.
+- Phase 1 착수 시점의 실제 선택지는 "기존 provisional pure domain을 harden할지" 또는 "동일 경로에서 clean-room replacement를 수행할지"를 정하는 것이다. live runtime wiring 부재 자체는 여전히 유지된다.
 - `src/features/test/domain/index.ts`는 Phase 1 pure domain의 유일한 public surface로 간주한다. `question-bank.ts`, `test-question-client.tsx`, route page는 Phase 1에서 이 public surface를 소비하지 않아도 된다.
 - `VariantId` 브랜드 타입은 `type VariantId = string & { readonly __brand: 'VariantId' }` 형태의 string intersection으로 구현한다. object-wrapping 방식은 Phase 3 storage key prefix(`test:${variant}:...`)와 타입 수준에서 충돌하므로 금지한다.
 - `QuestionIndex` 브랜드 타입은 `type QuestionIndex = number & { readonly __brand: 'QuestionIndex' }` 형태의 number intersection으로 구현한다. 동일 이유로 object-wrapping 방식은 금지한다.
-- `AxisCount` 브랜드 타입은 `type AxisCount = (1 | 2 | 4) & { readonly __brand: 'AxisCount' }` 형태로 구현한다. 단, `AxisCount`는 storage key prefix에 직접 사용되지 않으므로 위 두 타입과 달리 object-wrapping 금지 이유가 다르다 — 리터럴 유니온 제약을 타입 수준에서 유지하기 위함이다. 테스트 픽스처에서 숫자 리터럴 `1`, `2`, `4`를 이 타입으로 전달할 때는 `1 as AxisCount`와 같은 타입 단언이 필요하다. 이는 구현 오류가 아니라 branded literal union의 정상 사용 패턴이다.
+- `AxisCount`는 현재 코드베이스에서 plain union `1 | 2 | 4`로 구현되어 있다. branded literal union으로 격상하는 결정은 아직 코드와 동기화되지 않았으므로, Phase 1 착수 전 baseline 설명은 현행 구현 기준을 따른다.
 - canonical semantic variant gate는 `validateVariant(input: unknown, registeredVariants: VariantId[], availableVariants: VariantId[]): VariantValidationResult`로 고정한다.
 - `validateVariant()`의 `UNAVAILABLE` 판정 기준은 "registered에는 있으나 available에는 없음"으로 고정한다.
 - `VariantValidationResult = { ok: true; value: VariantId } | { ok: false; reason: 'MISSING' | 'UNKNOWN' | 'UNAVAILABLE' }` shape는 Phase 1에서 구현만 하며 변경하지 않는다. shape 변경은 새 ADR 대상이다.
-- `question-bank.ts`의 unknown variant generic fallback 제거와 recovery page 연결은 Phase 4 첫 커밋에서 함께 수행한다.
+- `question-bank.ts`의 unknown variant generic fallback은 이미 제거되었다. 현재 route bootstrap은 `findLandingTestCardByVariant()` miss 시 `notFound()`로 fail-close 하며, same-route recoverable invalid-variant recovery page 연결만 미구현 상태로 남아 있다.
 
 **후속 구현 경계**:
-- malformed variant `notFound()`와 unknown variant generic fallback은 현행 runtime 동작으로 남아 있다.
+- malformed variant와 fixture miss variant 모두 `notFound()`로 fail-close 하는 현행 runtime 동작으로 남아 있다.
 - same-route recoverable invalid-variant는 아직 구현되지 않았으며, 그 부재는 Phase 0 미완료가 아니라 Phase 4 invalid-variant recovery 산출물의 소유 경계로 본다.
-- 따라서 Phase 1에서 `validateVariant()` pure contract를 도입하더라도 runtime same-route recovery wiring은 Phase 4까지 연결하지 않는다.
+- `validateVariant()` pure contract 자체는 이미 존재하지만, runtime same-route recovery wiring은 여전히 Phase 4까지 연결하지 않는다.
 - Phase 0 closure review에서는 `docs/blocker-traceability.json`의 blocker 27/28 entry에 대해 file path와 evidence kind를 점검했고, stale이 아니어서 registry JSON은 그대로 유지한다.
 
 ### ADR-B — Storage Key 네이밍 + 5개 상태 플래그 계약
@@ -142,14 +144,14 @@
 
 ### ADR-E — Representative Variant 범위 + QA Baseline 정비
 
-representative test route anchor의 single source of truth는 `tests/e2e/helpers/landing-fixture.ts`의 `PRIMARY_AVAILABLE_TEST_VARIANT`다. local-only baseline 정책과 mixed-evidence blocker registry(`automated_assertion` / `scenario_test` / `manual_checkpoint`)는 이 anchor를 기준으로 유지한다. combined theme label은 메시지 JSON의 의도값인 `Language ⋅ Theme` 계열로 고정했고, 관련 스냅샷 baseline까지 현재 워크트리에 맞게 갱신했다.
+representative test route anchor의 source of truth는 `tests/e2e/helpers/landing-fixture.ts`다. 현재 anchor는 card type별로 분리되어 있으며, `PRIMARY_AVAILABLE_TEST_VARIANT`는 theme-matrix / telemetry representative route를, `PRIMARY_OPT_OUT_TEST_VARIANT`는 consent contract representative route를 맡는다. local-only baseline 정책과 mixed-evidence blocker registry(`automated_assertion` / `scenario_test` / `manual_checkpoint`)는 이 helper를 기준으로 유지한다. combined theme label은 메시지 JSON의 의도값인 `Language ⋅ Theme` 계열로 고정했고, 관련 스냅샷 baseline까지 현재 워크트리에 맞게 갱신했다.
 
 **완료 조건**:
-- [x] representative route anchor single source(`PRIMARY_AVAILABLE_TEST_VARIANT`)와 `theme-matrix-manifest.json` 대표 케이스 유지 기준이 본 ADR-E 요약에 반영되어 있음
+- [x] representative route anchor helper single source(`PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_VARIANT`)와 `theme-matrix-manifest.json` 대표 케이스 유지 기준이 본 ADR-E 요약에 반영되어 있음
 - [x] baseline PNG는 로컬 QA 자산이며 Git tracked completeness를 완료 조건으로 보지 않음을 문서화
 - [x] Safari ghosting baseline 디렉토리 유지 범위를 local QA 기준으로 기록
 - [x] test flow 신규 settle recipe 케이스 추가 시 manifest + local baseline 갱신 기준 문서화
-- [x] `qa:gate:once` GREEN 복구 완료
+- [x] `qa:gate:once` GREEN 복구 완료 (`docs/project-analysis.md` 2026-03-31 rerun 기준)
 
 **상태 요약**: ADR-E는 완료다.
 
@@ -681,16 +683,18 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 
 ### Phase 1 완료 정의 (DoD)
 
-- [ ] T1-1~T1-7 타입 및 pure 함수 구현 완료
-- [ ] 위 단위 테스트 전부 GREEN
-- [ ] `tests/unit/` Phase 1 전용 테스트 파일 생성 이후에만 `docs/blocker-traceability.json`에 blocker #7, #11, #12, #27 automated_assertion entry append 완료
-- [ ] `npm test` GREEN
-- [ ] `npm run qa:static` GREEN
-- [ ] MBTI 4축 하드코딩 없음 (axisCount 1/2/4 동일 경로 처리 확인)
-- [ ] `qualifierFields` 부재 시 MBTI 기존 동작 회귀 없음 (`parseTypeSegment` + `buildTypeSegment` MBTI 케이스 통과)
-- [ ] `computeScoreStats`가 profile 문항을 scoring 결과에 포함하지 않음 확인
-- [ ] `scale` scoringMode 선언 variant에서 blocking error 확인
-- [ ] storage, UI, 라우팅 의존 없음 (import 트리 검사)
+ src/features/test/domain/ 하위 7개 파일(index.ts, types.ts, validate-variant.ts, validate-question-model.ts, validate-variant-data-integrity.ts, derivation.ts, type-segment.ts)은 현재 워크트리에 존재하며, `npm run qa:gate:once`까지 GREEN 복구를 확인했다. `typecheck`는 `next typegen` 선행으로 stale `.next/types`를 self-heal하도록 보강되었고, Phase 11 로컬 QA baseline 자산까지 복구한 상태를 기준으로 아래 DoD를 최종 갱신한다.
+
+- [x] T1-1~T1-7 타입 및 pure 함수 구현 완료
+- [x] 위 단위 테스트 전부 GREEN
+- [x] `tests/unit/` Phase 1 전용 테스트 파일 생성 이후에만 `docs/blocker-traceability.json`에 blocker #7, #11, #12, #27 automated_assertion entry append 완료
+- [x] `npm test` GREEN
+- [x] `npm run qa:static` GREEN
+- [x] MBTI 4축 하드코딩 없음 (axisCount 1/2/4 동일 경로 처리 확인)
+- [x] `qualifierFields` 부재 시 MBTI 기존 동작 회귀 없음 (`parseTypeSegment` + `buildTypeSegment` MBTI 케이스 통과)
+- [x] `computeScoreStats`가 profile 문항을 scoring 결과에 포함하지 않음 확인
+- [x] `scale` scoringMode 선언 variant에서 blocking error 확인
+- [x] storage, UI, 라우팅 의존 없음 (import 트리 검사)
 
 ### Cross-phase Migration Note — `question-bank.ts` fallback 제거
 
@@ -717,9 +721,9 @@ Phase 1 T1-2 `validateVariant()` pure 함수 구현은 canonical variant gate를
 |---|---|---|---|
 | ADR-C | Google Sheets API 인증 방식 | Service Account vs OAuth (GitHub Action 시크릿 구성 포함) | ⬜ 미결 |
 | ADR-D | `variant-registry.generated.json` 버전 관리 방식 | `.gitignore` 제외 / versioned file / 별도 아티팩트 저장소 | ⬜ 미결 |
-| ADR-F | 카드 타입 필터링 레이어 결정 | **landing-side 단독 처리로 확정.** `normalizeLandingCards()`가 `cardType` 5종(`available` \| `unavailable` \| `hide` \| `opt_out` \| `debug`)을 인식해 필터링을 수행한다. consent 상태 기반 필터링(`available` 비노출 / `opt_out` 항상 노출)도 동일 레이어에서 처리한다.     registry-side 처리는 채택하지 않는다. 상세 계약: `docs/req-landing.md` §2, §13.9, `docs/req-test.md` §2.5. | ⬜ 미결 |
+| ADR-F | 카드 타입 필터링 레이어 결정 | **landing-side 단독 처리로 확정.**    `normalizeAllLandingCards()`와 `createLandingCatalog()`가 `cardType` 5종 (`available` \| `unavailable` \| `hide` \| `opt_out` \| `debug`)을 인식해 필터링을 수행한다. consent 상태 기반 필터링(`available` 비노출 / `opt_out` 항상 노출)도 동일 레이어에서 처리한다. registry-side 처리는 채택하지 않는다. 상세 계약: `docs/req-landing.md` §2, §13.9, `docs/req-test.md` §2.5. | ✅ 완료 |
 
-> ADR-F는 landing-side 처리로 확정됐다. `normalizeLandingCards()` 수정으로 인해 landing Phase QA 재통과가 Phase 2 DoD에 포함된다.
+> ADR-F는 landing-side 처리로 확정됐다. `normalizeAllLandingCards()` / `createLandingCatalog()` 수정으로 인해 landing Phase QA 재통과가 Phase 2 DoD에 포함된다.
 > 재통과 범위는 `docs/req-test-plan.md` 사전 구현 섹션의 "랜딩 QA Gate 재통과 범위"를 따른다.
 
 ### ⚠️ Phase 2 착수 전 코드 정리
@@ -811,6 +815,7 @@ Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. Phase 1
 - staged entry 7분 만료 판정은 test 단에서만 수행한다.
 - `createdAtMs`가 landing storage에 저장되어 있으면 Phase 4 착수 조건을 충족한 것으로 간주한다.
 - 만약 `createdAtMs` 구조 변경이 필요하다고 판단되면 Phase 4 착수를 멈추고 landing 계약과의 충돌을 별도 확인한 뒤 재개한다. landing Phase QA 재실행 없이 Phase 4 구현이 완결되어야 한다.
+- vivetest-landing-ingress:{variant} 레코드는 현재 landing runtime에서 { variant, preAnswerChoice, createdAtMs, landingIngressFlag } 형태로 저장된다. createdAtMs 필드는 beginLandingTransition() → writeLandingIngress() 경로에서 기록되며, Phase 4 Gate A-2의 전제 조건은 현재 코드베이스에서 이미 충족된 상태다.
 
 #### A-3. Cross-phase Event Integrity 픽스처 소유권 확인
 

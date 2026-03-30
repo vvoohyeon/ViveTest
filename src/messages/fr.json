@@ -38,8 +38,14 @@
     "goHome": "Retour à l'accueil",
     "goHistory": "Ouvrir l'historique",
     "instructionTitle": "Avant de commencer",
-    "instructionBody": "Lisez chaque question et choisissez une réponse. Vous pouvez revenir aux questions précédentes et modifier vos réponses avant l'envoi final.",
-    "start": "Commencer"
+    "start": "Commencer",
+    "acceptAllAndStart": "Accept all and start",
+    "denyAndAbandon": "Deny and abandon",
+    "denyAndStart": "Deny and start",
+    "keepCurrentPreference": "Keep current preference",
+    "unknownAvailableNote": "For a better experience, please agree to the terms to proceed with the test.",
+    "unknownOptOutNote": "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing.",
+    "optedOutAvailableWarning": "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test."
   },
   "blog": {
     "selected": "Article sélectionné",

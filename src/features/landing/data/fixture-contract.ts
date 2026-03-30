@@ -1,4 +1,5 @@
 import {defaultLocale} from '@/config/site';
+import {resolveCardType} from '@/features/landing/data/card-type';
 import type {
   FixtureContractReport,
   LocalizedStringList,
@@ -10,7 +11,11 @@ function hasLongToken(value: string): boolean {
   return /[A-Za-z0-9_\-]{30,}/u.test(value);
 }
 
-function resolveForInspection(text: LocalizedText | undefined): string {
+function resolveForInspection(text: LocalizedText | string | undefined): string {
+  if (typeof text === 'string') {
+    return text;
+  }
+
   if (!text || typeof text !== 'object') {
     return '';
   }
@@ -82,7 +87,7 @@ function hasLocalizedListShape(value: unknown): boolean {
 }
 
 function hasRequiredSlotOmission(card: RawLandingCard): boolean {
-  if (!card.id || !card.type || !card.availability) {
+  if (!card.id || !card.type) {
     return true;
   }
 
@@ -94,6 +99,7 @@ function hasRequiredSlotOmission(card: RawLandingCard): boolean {
     return (
       !card.test ||
       !card.test.variant ||
+      !card.test.instruction ||
       !card.test.previewQuestion ||
       !card.test.answerChoiceA ||
       !card.test.answerChoiceB ||
@@ -107,12 +113,11 @@ function hasRequiredSlotOmission(card: RawLandingCard): boolean {
 export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCard>): FixtureContractReport {
   const testCount = fixtures.filter((card) => card.type === 'test').length;
   const blogCount = fixtures.filter((card) => card.type === 'blog').length;
-  const unavailableTestCount = fixtures.filter(
-    (card) => card.type === 'test' && card.availability === 'unavailable'
-  ).length;
-  const unavailableBlogCount = fixtures.filter(
-    (card) => card.type === 'blog' && card.availability === 'unavailable'
-  ).length;
+  const cardTypeCounts = fixtures.reduce<Record<string, number>>((counts, card) => {
+    const cardType = resolveCardType(card);
+    counts[cardType] = (counts[cardType] ?? 0) + 1;
+    return counts;
+  }, {});
 
   const hasLongTokenSubtitle = fixtures.some((card) => hasLongToken(resolveForInspection(card.subtitle)));
   const hasLongBodyText = fixtures
@@ -125,8 +130,11 @@ export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCar
   return {
     testCount,
     blogCount,
-    unavailableTestCount,
-    unavailableBlogCount,
+    availableCount: cardTypeCounts.available ?? 0,
+    unavailableCount: cardTypeCounts.unavailable ?? 0,
+    optOutCount: cardTypeCounts.opt_out ?? 0,
+    hideCount: cardTypeCounts.hide ?? 0,
+    debugCount: cardTypeCounts.debug ?? 0,
     hasLongTokenSubtitle,
     hasLongBodyText,
     hasEmptyTags,

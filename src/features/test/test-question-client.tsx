@@ -1,17 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import {usePathname} from 'next/navigation';
+import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
+import type {LandingTestCard} from '@/features/landing/data';
+import {setTelemetryConsentState, useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
 import {trackAttemptStart, trackFinalSubmit} from '@/features/landing/telemetry/runtime';
 import {
   completePendingLandingTransition,
   terminatePendingLandingTransition
 } from '@/features/landing/transition/runtime';
 import {
+  clearLandingIngress,
   consumeLandingIngress,
   hasSeenInstruction,
   markInstructionSeen,
@@ -20,18 +23,19 @@ import {
   readPendingLandingTransition,
   type PendingLandingTransition
 } from '@/features/landing/transition/store';
+import {resolveTestEntryPolicy, type TestInstructionAction} from '@/features/test/entry-policy';
+import {InstructionOverlay} from '@/features/test/instruction-overlay';
 import {buildLandingTestQuestionBank} from '@/features/test/question-bank';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
 interface TestQuestionClientProps {
   locale: AppLocale;
-  variant: string;
+  card: LandingTestCard;
 }
 
 interface QuestionRuntimeState {
   ready: boolean;
-  instructionVisible: boolean;
   landingIngressFlag: boolean;
   currentQuestionIndex: number;
   answers: Record<string, 'A' | 'B'>;
@@ -40,12 +44,12 @@ interface QuestionRuntimeState {
 interface QuestionBootstrapState {
   runtimeState: QuestionRuntimeState;
   pendingTransitionToComplete: string | null;
+  instructionSeen: boolean;
 }
 
 function buildInitialRuntimeState(): QuestionRuntimeState {
   return {
     ready: false,
-    instructionVisible: true,
     landingIngressFlag: false,
     currentQuestionIndex: 1,
     answers: {}
@@ -69,29 +73,36 @@ export function resolveQuestionBootstrapState(input: {
   return {
     runtimeState: {
       ready: true,
-      instructionVisible: !input.instructionSeen,
       landingIngressFlag,
       currentQuestionIndex: landingIngressFlag ? 2 : 1,
       answers: input.landingIngress ? {q1: input.landingIngress.preAnswerChoice} : {}
     },
-    pendingTransitionToComplete: matchingPendingTransition?.transitionId ?? null
+    pendingTransitionToComplete: matchingPendingTransition?.transitionId ?? null,
+    instructionSeen: input.instructionSeen
   };
 }
 
-export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
+export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const t = useTranslations('test');
   const pathname = usePathname();
-
-  const questions = useMemo(() => buildLandingTestQuestionBank(locale, variant), [locale, variant]);
+  const router = useRouter();
+  const consentSnapshot = useTelemetryConsentSource();
+  const variant = card.sourceParam;
+  const landingPath = useMemo(() => buildLocalizedPath(RouteBuilder.landing(), locale), [locale]);
+  const questions = useMemo(() => buildLandingTestQuestionBank(card, locale), [card, locale]);
   const [runtimeState, setRuntimeState] = useState<QuestionRuntimeState>(buildInitialRuntimeState);
+  const [instructionSeen, setInstructionSeen] = useState(false);
+  const [entryCommitted, setEntryCommitted] = useState(false);
   const [started, setStarted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   const dwellStartRef = useRef<number | null>(null);
   const dwellByQuestionRef = useRef<Record<string, number>>({});
   const attemptStartedRef = useRef(false);
   const bootstrapRuntimeStateRef = useRef<QuestionRuntimeState | null>(null);
   const pendingTransitionToCompleteRef = useRef<string | null>(null);
+  const runtimeEntryCommittedRef = useRef(false);
 
   useEffect(() => {
     if (bootstrapRuntimeStateRef.current) {
@@ -111,20 +122,19 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
 
     const nextPendingTransition = readPendingLandingTransition();
     const landingIngress = readLandingIngress(variant);
-    const instructionSeen = hasSeenInstruction(variant);
+    const nextInstructionSeen = hasSeenInstruction(variant);
     const bootstrapState = resolveQuestionBootstrapState({
-      instructionSeen,
+      instructionSeen: nextInstructionSeen,
       landingIngress,
       pendingTransition: nextPendingTransition,
       variant
     });
 
     pendingTransitionToCompleteRef.current = bootstrapState.pendingTransitionToComplete;
-    const nextRuntimeState = bootstrapState.runtimeState;
-
-    bootstrapRuntimeStateRef.current = nextRuntimeState;
+    bootstrapRuntimeStateRef.current = bootstrapState.runtimeState;
     queueMicrotask(() => {
-      setRuntimeState(nextRuntimeState);
+      setInstructionSeen(bootstrapState.instructionSeen);
+      setRuntimeState(bootstrapState.runtimeState);
     });
   }, [locale, pathname, variant]);
 
@@ -147,10 +157,88 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [locale, pathname, runtimeState.ready]);
+  }, [runtimeState.ready]);
+
+  const consentState = consentSnapshot.synced ? consentSnapshot.consentState : 'UNKNOWN';
+  const entryPolicy = useMemo(
+    () =>
+      resolveTestEntryPolicy({
+        instructionText: card.test.instruction,
+        cardType: card.cardType,
+        consentState,
+        landingIngressFlag: runtimeState.landingIngressFlag
+      }),
+    [card.cardType, card.test.instruction, consentState, runtimeState.landingIngressFlag]
+  );
+
+  const isBooting = !runtimeState.ready || !consentSnapshot.synced;
+  const instructionVisible =
+    !isBooting &&
+    !entryCommitted &&
+    !redirecting &&
+    (!instructionSeen || !entryPolicy.canAutoCommitAfterInstructionSeen);
+
+  const executeInstructionAction = useCallback(
+    (action: TestInstructionAction) => {
+      const effect = entryPolicy.effects[action];
+      if (!runtimeState.ready || redirecting) {
+        return;
+      }
+
+      if (effect.writesConsent) {
+        setTelemetryConsentState(effect.writesConsent);
+      }
+
+      if (effect.recordsInstructionSeen && !instructionSeen) {
+        markInstructionSeen(variant);
+        setInstructionSeen(true);
+      }
+
+      if (effect.redirectHome) {
+        if (runtimeState.landingIngressFlag) {
+          clearLandingIngress(variant);
+        }
+
+        setRedirecting(true);
+        router.replace(landingPath);
+        return;
+      }
+
+      if (!effect.commitsRuntimeEntry || runtimeEntryCommittedRef.current) {
+        return;
+      }
+
+      runtimeEntryCommittedRef.current = true;
+      setEntryCommitted(true);
+    },
+    [entryPolicy.effects, instructionSeen, landingPath, redirecting, router, runtimeState.landingIngressFlag, runtimeState.ready, variant]
+  );
 
   useEffect(() => {
-    if (!runtimeState.ready || runtimeState.instructionVisible || attemptStartedRef.current) {
+    if (
+      isBooting ||
+      redirecting ||
+      entryCommitted ||
+      !instructionSeen ||
+      !entryPolicy.canAutoCommitAfterInstructionSeen
+    ) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      executeInstructionAction('start');
+    });
+  }, [
+    entryCommitted,
+    entryPolicy.canAutoCommitAfterInstructionSeen,
+    executeInstructionAction,
+    instructionSeen,
+    isBooting,
+    redirecting
+  ]);
+
+  useEffect(() => {
+    if (!runtimeState.ready || !entryCommitted || attemptStartedRef.current) {
       return;
     }
 
@@ -171,15 +259,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     if (runtimeState.landingIngressFlag) {
       consumeLandingIngress(variant);
     }
-  }, [
-    locale,
-    pathname,
-    runtimeState.currentQuestionIndex,
-    runtimeState.instructionVisible,
-    runtimeState.landingIngressFlag,
-    runtimeState.ready,
-    variant
-  ]);
+  }, [entryCommitted, locale, pathname, runtimeState.currentQuestionIndex, runtimeState.landingIngressFlag, runtimeState.ready, variant]);
 
   const currentQuestion = questions[runtimeState.currentQuestionIndex - 1] ?? questions[0];
   const totalQuestions = questions.length;
@@ -194,18 +274,6 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     const delta = Math.max(0, Date.now() - dwellStartRef.current);
     dwellByQuestionRef.current[currentQuestion.id] = (dwellByQuestionRef.current[currentQuestion.id] ?? 0) + delta;
     dwellStartRef.current = Date.now();
-  };
-
-  const startAttemptFromInstruction = () => {
-    if (!runtimeState.ready || attemptStartedRef.current) {
-      return;
-    }
-
-    markInstructionSeen(variant);
-    setRuntimeState((previous) => ({
-      ...previous,
-      instructionVisible: false
-    }));
   };
 
   const updateAnswer = (choice: 'A' | 'B') => {
@@ -265,11 +333,19 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     setSubmitted(true);
   };
 
+  const primaryButton = entryPolicy.cta.primary;
+  const secondaryButton = entryPolicy.cta.secondary;
+  const instructionNote = entryPolicy.content.consentNoteKey ? t(entryPolicy.content.consentNoteKey) : undefined;
+
   return (
-    <section className="landing-shell-card test-shell-card" data-testid="test-shell-card">
+    <section
+      className="landing-shell-card test-shell-card"
+      data-testid="test-shell-card"
+      data-entry-status={redirecting ? 'redirecting' : isBooting ? 'booting' : started ? 'started' : 'ready'}
+    >
       <header className="test-shell-header">
         <div>
-          <h1>{variant}</h1>
+          <h1>{card.title}</h1>
           <p data-testid="test-progress">{t('progress', {current: runtimeState.currentQuestionIndex, total: totalQuestions})}</p>
         </div>
       </header>
@@ -288,7 +364,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
               ))}
             </dl>
             <div className="test-result-actions">
-              <Link className="test-primary-button" href={buildLocalizedPath(RouteBuilder.landing(), locale)}>
+              <Link className="test-primary-button" href={landingPath}>
                 {t('goHome')}
               </Link>
               <Link className="test-secondary-button" href={buildLocalizedPath(RouteBuilder.history(), locale)}>
@@ -298,26 +374,32 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
           </div>
         ) : (
           <>
-            {runtimeState.instructionVisible ? (
-              <div className="test-instruction-overlay" data-testid="test-instruction-overlay">
-                <div className="test-instruction-card">
-                  <h2>{t('instructionTitle')}</h2>
-                  <p>{t('instructionBody')}</p>
-                  <button
-                    type="button"
-                    className="test-primary-button"
-                    onClick={startAttemptFromInstruction}
-                    data-testid="test-start-button"
-                  >
-                    {t('start')}
-                  </button>
-                </div>
-              </div>
+            {instructionVisible ? (
+              <InstructionOverlay
+                title={t('instructionTitle')}
+                instructionText={entryPolicy.content.instructionText}
+                consentNote={instructionNote}
+                showDivider={entryPolicy.content.showDivider}
+                primaryLabel={t(primaryButton.labelKey)}
+                secondaryLabel={secondaryButton ? t(secondaryButton.labelKey) : undefined}
+                onPrimaryAction={() => {
+                  executeInstructionAction(primaryButton.action);
+                }}
+                onSecondaryAction={
+                  secondaryButton
+                    ? () => {
+                        executeInstructionAction(secondaryButton.action);
+                      }
+                    : undefined
+                }
+                primaryTestId={primaryButton.testId}
+                secondaryTestId={secondaryButton?.testId}
+              />
             ) : null}
 
             <article
               className="test-question-panel"
-              aria-hidden={runtimeState.instructionVisible ? 'true' : undefined}
+              aria-hidden={instructionVisible ? 'true' : undefined}
               data-testid="test-question-panel"
             >
               <h2>{currentQuestion.prompt}</h2>

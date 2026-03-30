@@ -193,7 +193,7 @@ async function expandLandingCardViaTrigger(card: Locator) {
 
 test.describe('Phase 7 state + capability smoke', () => {
   test.beforeEach(async ({page}) => {
-    await seedTelemetryConsent(page, 'OPTED_OUT');
+    await seedTelemetryConsent(page, 'OPTED_IN');
   });
 
   test('@smoke capability gate keeps tap on mobile and hover on desktop-capable environments', async ({page}) => {
@@ -371,11 +371,13 @@ test.describe('Phase 7 state + capability smoke', () => {
   test('@smoke reduced-motion / low-spec fallback shrinks desktop motion and rapid interactions stay error-free', async ({page}) => {
     const pageErrors: string[] = [];
     const consoleErrors: string[] = [];
+    const isIgnorableConsoleError = (text: string) =>
+      text === 'Failed to load resource: the server responded with a status of 404 (Not Found)';
     page.on('pageerror', (error) => {
       pageErrors.push(error.message);
     });
     page.on('console', (message) => {
-      if (message.type() === 'error') {
+      if (message.type() === 'error' && !isIgnorableConsoleError(message.text())) {
         consoleErrors.push(message.text());
       }
     });

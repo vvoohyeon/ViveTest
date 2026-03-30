@@ -38,8 +38,14 @@
     "goHome": "Back to landing",
     "goHistory": "Open history",
     "instructionTitle": "Before we start",
-    "instructionBody": "Read each question and choose one answer. You can revisit and revise earlier answers before final submit.",
-    "start": "Start"
+    "start": "Start",
+    "acceptAllAndStart": "Accept all and start",
+    "denyAndAbandon": "Deny and abandon",
+    "denyAndStart": "Deny and start",
+    "keepCurrentPreference": "Keep current preference",
+    "unknownAvailableNote": "For a better experience, please agree to the terms to proceed with the test.",
+    "unknownOptOutNote": "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing.",
+    "optedOutAvailableWarning": "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test."
   },
   "blog": {
     "selected": "Selected article",

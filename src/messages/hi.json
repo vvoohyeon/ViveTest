@@ -38,8 +38,14 @@
     "goHome": "मुखपृष्ठ पर लौटें",
     "goHistory": "इतिहास खोलें",
     "instructionTitle": "शुरू करने से पहले",
-    "instructionBody": "हर प्रश्न पढ़ें और एक उत्तर चुनें। अंतिम सबमिट से पहले आप पहले के उत्तरों पर वापस जाकर उन्हें बदल सकते हैं।",
-    "start": "शुरू करें"
+    "start": "शुरू करें",
+    "acceptAllAndStart": "Accept all and start",
+    "denyAndAbandon": "Deny and abandon",
+    "denyAndStart": "Deny and start",
+    "keepCurrentPreference": "Keep current preference",
+    "unknownAvailableNote": "For a better experience, please agree to the terms to proceed with the test.",
+    "unknownOptOutNote": "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing.",
+    "optedOutAvailableWarning": "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test."
   },
   "blog": {
     "selected": "चुना गया लेख",

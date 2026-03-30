@@ -7,7 +7,7 @@ import type {
 } from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
 
-import type {LandingCard} from '@/features/landing/data';
+import {isEnterableCard, type LandingCard} from '@/features/landing/data';
 import {
   resolveDesktopShellPhase,
   type LandingCardDesktopMotionRole,
@@ -24,7 +24,7 @@ import {
   CORE_MOTION_DURATION_MS,
   DESKTOP_COLLAPSE_DELAY_MS,
   DESKTOP_EXPAND_DELAY_MS,
-  isAvailableHandoffCandidate,
+  isEnterableHandoffCandidate,
   nextHoverIntentToken,
   type HoverIntentAction
 } from '@/features/landing/grid/hover-intent';
@@ -321,8 +321,8 @@ export function useLandingInteractionController({
     [hoverCapability, viewportWidth]
   );
   const cardIds = useMemo(() => cards.map((card) => card.id), [cards]);
-  const firstAvailableCardId = useMemo(
-    () => cards.find((card) => card.availability === 'available')?.id ?? null,
+  const firstEnterableCardId = useMemo(
+    () => cards.find((card) => isEnterableCard(card))?.id ?? null,
     [cards]
   );
   const isMobileViewport = viewportTier === 'mobile';
@@ -553,7 +553,7 @@ export function useLandingInteractionController({
           type: 'KEYBOARD_MODE_ENTER'
         });
 
-        if (!event.shiftKey && isDocumentLevelFocusTarget(event.target) && focusCardById(shellRef.current, firstAvailableCardId)) {
+        if (!event.shiftKey && isDocumentLevelFocusTarget(event.target) && focusCardById(shellRef.current, firstEnterableCardId)) {
           event.preventDefault();
           return;
         }
@@ -592,7 +592,7 @@ export function useLandingInteractionController({
       window.removeEventListener('mousedown', handleGlobalPointerEvent);
       window.removeEventListener('wheel', handleGlobalPointerEvent);
     };
-  }, [firstAvailableCardId, shellRef]);
+  }, [firstEnterableCardId, shellRef]);
 
   const mobilePageScrollLocked = shouldLockMobilePageScroll(mobileLifecycleState.phase);
 
@@ -1087,21 +1087,22 @@ export function useLandingInteractionController({
   ]);
 
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
+    const cardEnterable = isEnterableCard(card);
     const pointerBlocked = isCardPointerInteractionBlocked(interactionState, card.id);
-    const keyboardAriaDisabled = isCardKeyboardAriaDisabled(interactionState, card.id) || card.availability !== 'available';
+    const keyboardAriaDisabled = isCardKeyboardAriaDisabled(interactionState, card.id) || !cardEnterable;
     const cardState = resolveCardStateForId(interactionState, card.id);
     const transitionExpanded =
       interactionState.pageState === 'TRANSITIONING' &&
       transitionSourceCardId === card.id &&
-      card.availability === 'available';
+      cardEnterable;
     const mobileOwnsCard = mobileLifecycleState.cardId === card.id;
     const mobilePhase: LandingCardMobilePhase = mobileOwnsCard ? mobileLifecycleState.phase : 'NORMAL';
     const mobileTransientMode: LandingCardMobileTransientMode =
       mobileTransientShellState.cardId === card.id ? mobileTransientShellState.mode : 'NONE';
     const desktopClosingVisible =
-      !isMobileViewport && desktopMotionState.closingCardId === card.id && card.availability === 'available';
+      !isMobileViewport && desktopMotionState.closingCardId === card.id && cardEnterable;
     const desktopCleanupPending =
-      !isMobileViewport && desktopMotionState.cleanupPendingCardId === card.id && card.availability === 'available';
+      !isMobileViewport && desktopMotionState.cleanupPendingCardId === card.id && cardEnterable;
     const desktopMotionRole: LandingCardDesktopMotionRole =
       desktopMotionState.handoffSourceCardId === card.id
         ? 'handoff-source'
@@ -1111,15 +1112,14 @@ export function useLandingInteractionController({
             ? 'opening'
             : desktopMotionState.closingCardId === card.id
               ? 'closing'
-              : !isMobileViewport &&
-                  (transitionExpanded || (cardState === 'EXPANDED' && card.availability === 'available'))
+              : !isMobileViewport && (transitionExpanded || (cardState === 'EXPANDED' && cardEnterable))
                 ? 'steady'
                 : 'idle';
     const desktopShellPhase = resolveDesktopShellPhase({
-      available: card.availability === 'available',
+      available: cardEnterable,
       isMobileViewport,
       motionRole: desktopMotionRole,
-      visuallyExpanded: transitionExpanded || (cardState === 'EXPANDED' && card.availability === 'available'),
+      visuallyExpanded: transitionExpanded || (cardState === 'EXPANDED' && cardEnterable),
       cleanupPending: desktopCleanupPending
     });
     const mobileInteractionLocked =
@@ -1130,7 +1130,7 @@ export function useLandingInteractionController({
       transitionExpanded ||
       desktopClosingVisible ||
       desktopCleanupPending ||
-      (cardState === 'EXPANDED' && card.availability === 'available')
+      (cardState === 'EXPANDED' && cardEnterable)
         ? 'expanded'
         : cardState === 'FOCUSED'
           ? 'focused'
@@ -1153,7 +1153,7 @@ export function useLandingInteractionController({
         }
       : null;
     const handleExpandedBodyKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-      if (event.key !== 'Tab' || card.availability !== 'available') {
+      if (event.key !== 'Tab' || !cardEnterable) {
         return;
       }
 
@@ -1232,7 +1232,7 @@ export function useLandingInteractionController({
       mobileSnapshot,
       onFocus: (event) => {
         desktopTransitionReasonRef.current =
-          interactionState.expandedCardId && interactionState.expandedCardId !== card.id && card.availability === 'available'
+          interactionState.expandedCardId && interactionState.expandedCardId !== card.id && cardEnterable
             ? 'handoff'
             : interactionState.expandedCardId && interactionState.expandedCardId !== card.id
               ? 'collapse'
@@ -1242,14 +1242,14 @@ export function useLandingInteractionController({
           nowMs: event.timeStamp,
           interactionMode,
           cardId: card.id,
-          available: card.availability === 'available'
+          available: cardEnterable
         });
       },
       onKeyDown: (event) => {
         if (event.key === 'Tab') {
           dispatchInteraction({type: 'KEYBOARD_MODE_ENTER'});
 
-          if (card.availability !== 'available') {
+          if (!cardEnterable) {
             return;
           }
 
@@ -1339,7 +1339,7 @@ export function useLandingInteractionController({
         if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
           event.preventDefault();
 
-          if (card.availability !== 'available') {
+          if (!cardEnterable) {
             return;
           }
 
@@ -1356,7 +1356,7 @@ export function useLandingInteractionController({
             nowMs: event.timeStamp,
             interactionMode,
             cardId: card.id,
-            available: true
+            available: cardEnterable
           });
         }
       },
@@ -1367,7 +1367,7 @@ export function useLandingInteractionController({
           return;
         }
 
-        if (card.availability !== 'available') {
+        if (!cardEnterable) {
           event.preventDefault();
           return;
         }
@@ -1385,7 +1385,7 @@ export function useLandingInteractionController({
           nowMs: event.timeStamp,
           interactionMode,
           cardId: card.id,
-          available: true
+          available: cardEnterable
         });
       },
       onMouseEnter: (event) => {
@@ -1393,11 +1393,11 @@ export function useLandingInteractionController({
           return;
         }
 
-        pointerWithinCardIdRef.current = card.availability === 'available' ? card.id : null;
-        const handoff = isAvailableHandoffCandidate({
+        pointerWithinCardIdRef.current = cardEnterable ? card.id : null;
+        const handoff = isEnterableHandoffCandidate({
           previousExpandedCardId: interactionState.expandedCardId,
           nextCardId: card.id,
-          available: card.availability === 'available'
+          enterable: cardEnterable
         });
 
         if (handoff) {
@@ -1413,12 +1413,12 @@ export function useLandingInteractionController({
             nowMs: event.timeStamp,
             interactionMode,
             cardId: card.id,
-            available: true
+            available: cardEnterable
           });
           return;
         }
 
-        if (card.availability !== 'available') {
+        if (!cardEnterable) {
           clearHoverTimer();
           if (interactionState.expandedCardId) {
             desktopTransitionReasonRef.current = 'collapse';
@@ -1447,7 +1447,7 @@ export function useLandingInteractionController({
               nowMs: typeof window !== 'undefined' ? window.performance.now() : event.timeStamp,
               interactionMode,
               cardId: card.id,
-              available: true
+              available: cardEnterable
             });
           }
         });
@@ -1464,7 +1464,7 @@ export function useLandingInteractionController({
 
         pointerWithinCardIdRef.current = null;
 
-        if (card.availability !== 'available') {
+        if (!cardEnterable) {
           return;
         }
 

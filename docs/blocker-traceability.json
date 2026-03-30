@@ -117,7 +117,7 @@
     "blocker": 13,
     "kind": "automated_assertion",
     "file": "tests/unit/landing-hover-intent.test.ts",
-    "assertionId": "assertion:B13-handoff-available-only"
+    "assertionId": "assertion:B13-handoff-enterable-only"
   },
   {
     "blocker": 13,
@@ -223,27 +223,27 @@
   },
   {
     "blocker": 20,
-    "kind": "manual_checkpoint",
-    "file": "docs/req-test.md",
-    "assertionId": "assertion:B20-result-entry-eligibility"
+    "kind": "automated_assertion",
+    "file": "tests/e2e/consent-smoke.spec.ts",
+    "assertionId": "assertion:B20-instruction-contract-display"
   },
   {
     "blocker": 21,
-    "kind": "manual_checkpoint",
-    "file": "docs/req-test.md",
-    "assertionId": "assertion:B21-final-question-screen"
+    "kind": "automated_assertion",
+    "file": "tests/e2e/consent-smoke.spec.ts",
+    "assertionId": "assertion:B21-accept-all-and-start-contract"
   },
   {
     "blocker": 22,
-    "kind": "manual_checkpoint",
-    "file": "docs/req-test.md",
-    "assertionId": "assertion:B22-result-derivation-loading"
+    "kind": "automated_assertion",
+    "file": "tests/e2e/consent-smoke.spec.ts",
+    "assertionId": "assertion:B22-secondary-cta-contract"
   },
   {
     "blocker": 23,
-    "kind": "manual_checkpoint",
-    "file": "docs/req-test.md",
-    "assertionId": "assertion:B23-back-from-loading"
+    "kind": "automated_assertion",
+    "file": "tests/e2e/consent-smoke.spec.ts",
+    "assertionId": "assertion:B23-opted-out-available-warning-contract"
   },
   {
     "blocker": 24,

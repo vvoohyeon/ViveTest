@@ -38,8 +38,14 @@
     "goHome": "랜딩으로",
     "goHistory": "이력 보기",
     "instructionTitle": "시작 전 안내",
-    "instructionBody": "각 문항에서 하나를 선택하세요. 제출 전에는 이전 문항으로 돌아가 답변을 수정할 수 있습니다.",
-    "start": "시작"
+    "start": "시작",
+    "acceptAllAndStart": "모두 허용하고 시작",
+    "denyAndAbandon": "거부하고 중단",
+    "denyAndStart": "거부하고 시작",
+    "keepCurrentPreference": "현재 설정 유지",
+    "unknownAvailableNote": "더 나은 경험을 위해 테스트를 진행하기 전에 약관에 동의해 주세요.",
+    "unknownOptOutNote": "더 나은 경험을 위해 테스트를 진행하기 전에 약관에 동의해 주세요. 동의하지 않아도 계속 진행할 수 있습니다.",
+    "optedOutAvailableWarning": "이 테스트는 동의한 사용자만 이용할 수 있습니다. 현재 설정을 유지하면 이 테스트를 진행할 수 없습니다."
   },
   "blog": {
     "selected": "선택된 글",

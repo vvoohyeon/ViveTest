@@ -1,5 +1,5 @@
 import type {AppLocale} from '@/config/site';
-import {createLandingCatalog} from '@/features/landing/data';
+import type {LandingTestCard} from '@/features/landing/data';
 
 export interface LandingTestQuestion {
   id: string;
@@ -58,32 +58,14 @@ function buildLocalizedFallbackQuestions(locale: AppLocale): LandingTestQuestion
   ];
 }
 
-export function buildLandingTestQuestionBank(locale: AppLocale, variant: string): LandingTestQuestion[] {
-  const matchingCard = createLandingCatalog(locale).find(
-    (card) => card.type === 'test' && card.availability === 'available' && card.sourceParam === variant
-  );
-  const useKoreanFallbackCopy = usesKoreanFallbackCopy(locale);
-
-  const q1: LandingTestQuestion = matchingCard && matchingCard.type === 'test'
-    ? {
-        id: 'q1',
-        prompt: matchingCard.test.previewQuestion,
-        choiceA: matchingCard.test.answerChoiceA,
-        choiceB: matchingCard.test.answerChoiceB
-      }
-    : useKoreanFallbackCopy
-      ? {
-          id: 'q1',
-          prompt: '지금 가장 집중하기 좋은 시작 방식은 무엇인가요?',
-          choiceA: '조용한 단독 시작',
-          choiceB: '짧은 정렬 후 시작'
-        }
-      : {
-          id: 'q1',
-          prompt: 'What feels like the cleanest way to begin?',
-          choiceA: 'A quiet solo start',
-          choiceB: 'A short alignment first'
-        };
-
-  return [q1, ...buildLocalizedFallbackQuestions(locale)];
+export function buildLandingTestQuestionBank(card: LandingTestCard, locale: AppLocale): LandingTestQuestion[] {
+  return [
+    {
+      id: 'q1',
+      prompt: card.test.previewQuestion,
+      choiceA: card.test.answerChoiceA,
+      choiceB: card.test.answerChoiceB
+    },
+    ...buildLocalizedFallbackQuestions(locale)
+  ];
 }

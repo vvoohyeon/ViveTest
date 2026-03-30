@@ -17,7 +17,7 @@ describe('test question bootstrap state', () => {
     });
 
     expect(bootstrap.pendingTransitionToComplete).toBeNull();
-    expect(bootstrap.runtimeState.instructionVisible).toBe(true);
+    expect(bootstrap.instructionSeen).toBe(false);
     expect(bootstrap.runtimeState.landingIngressFlag).toBe(true);
     expect(bootstrap.runtimeState.currentQuestionIndex).toBe(2);
     expect(bootstrap.runtimeState.answers).toEqual({q1: 'A'});
@@ -45,6 +45,7 @@ describe('test question bootstrap state', () => {
     });
 
     expect(bootstrap.pendingTransitionToComplete).toBe('pending-transition');
+    expect(bootstrap.instructionSeen).toBe(false);
     expect(bootstrap.runtimeState.landingIngressFlag).toBe(true);
     expect(bootstrap.runtimeState.currentQuestionIndex).toBe(2);
     expect(bootstrap.runtimeState.answers).toEqual({q1: 'B'});
@@ -59,7 +60,7 @@ describe('test question bootstrap state', () => {
     });
 
     expect(bootstrap.pendingTransitionToComplete).toBeNull();
-    expect(bootstrap.runtimeState.instructionVisible).toBe(false);
+    expect(bootstrap.instructionSeen).toBe(true);
     expect(bootstrap.runtimeState.landingIngressFlag).toBe(false);
     expect(bootstrap.runtimeState.currentQuestionIndex).toBe(1);
     expect(bootstrap.runtimeState.answers).toEqual({});

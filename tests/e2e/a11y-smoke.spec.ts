@@ -93,7 +93,7 @@ async function tabUntilCardFocused(page: Page, cardId: string): Promise<void> {
 
 test.describe('Canonical accessibility smoke', () => {
   test.beforeEach(async ({page}) => {
-    await seedTelemetryConsent(page, 'OPTED_OUT');
+    await seedTelemetryConsent(page, 'OPTED_IN');
   });
 
   test('@smoke assertion:B5-axe-canonical landing canonical states remain axe-clean', async ({page}) => {

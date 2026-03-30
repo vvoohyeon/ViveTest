@@ -1,10 +1,16 @@
 import {describe, expect, it} from 'vitest';
 
+import {findLandingTestCardByVariant} from '../../src/features/landing/data/adapter';
 import {buildLandingTestQuestionBank} from '../../src/features/test/question-bank';
 
 describe('landing question bank locale fallbacks', () => {
-  it('reuses English fallback copy for Japanese until dedicated card content exists', () => {
-    const questions = buildLandingTestQuestionBank('ja', 'qmbti');
+  it('builds q1 from the resolved landing card while keeping the shared locale fallback questions', () => {
+    const card = findLandingTestCardByVariant('ja', 'qmbti');
+    if (!card) {
+      throw new Error('Expected qmbti fixture card');
+    }
+
+    const questions = buildLandingTestQuestionBank(card, 'ja');
 
     expect(questions[0]).toEqual({
       id: 'q1',

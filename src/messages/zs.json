@@ -38,8 +38,14 @@
     "goHome": "返回首页",
     "goHistory": "打开历史记录",
     "instructionTitle": "开始之前",
-    "instructionBody": "请阅读每道题并选择一个答案。在最终提交之前，你可以返回并修改之前的答案。",
-    "start": "开始"
+    "start": "开始",
+    "acceptAllAndStart": "Accept all and start",
+    "denyAndAbandon": "Deny and abandon",
+    "denyAndStart": "Deny and start",
+    "keepCurrentPreference": "Keep current preference",
+    "unknownAvailableNote": "For a better experience, please agree to the terms to proceed with the test.",
+    "unknownOptOutNote": "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing.",
+    "optedOutAvailableWarning": "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test."
   },
   "blog": {
     "selected": "已选文章",

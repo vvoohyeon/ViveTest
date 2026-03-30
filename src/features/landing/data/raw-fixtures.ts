@@ -4,7 +4,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
     id: "test-qmbti", // 필요할지???
     type: "test",
-    availability: "available",
+    cardType: "available",
     title: {
       en: "10m MBTI test",
       kr: "10분컷 MBTI",
@@ -21,6 +21,10 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     isHero: true,
     test: {
       variant: "qmbti", // id 대체하고 싶음
+      instruction: {
+        en: "Instruction dummy: QMBTI opens with a quick personality rhythm check before you move into the main questions.",
+        kr: "더미 안내문: QMBTI는 본 문항에 들어가기 전에 작업 리듬 성향을 짧게 점검하는 테스트입니다.",
+      },
       previewQuestion: {
         en: "🎉 When do you feel most focused?",
         kr: "🎉 파티나 생일잔치에 가면 나는",
@@ -43,7 +47,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
     id: "test-rhythm-b",
     type: "test",
-    availability: "available",
+    cardType: "available",
     title: {
       // 타이틀은 Expanded 시 숨겨져야 함
       en: "Focus Rhythm B Long String example here goes ipsum lorem varaint string edge case here example",
@@ -60,6 +64,10 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     },
     test: {
       variant: "rhythm-b",
+      instruction: {
+        en: "Instruction dummy: Rhythm B asks you to compare interruption patterns and pacing signals across your work blocks.",
+        kr: "더미 안내문: 리듬 B는 작업 블록마다 방해 패턴과 페이스 신호를 비교하도록 구성된 테스트입니다.",
+      },
       previewQuestion: {
         en: "How often do interruptions break your pace? How often do interruptions break your pace? How often do interruptions break your pace?",
         kr: "방해가 흐름을 끊는 빈도는 어느 정도인가요? 방해가 흐름을 끊는 빈도는 어느 정도인가요? 방해가 흐름을 끊는 빈도는 어느 정도인가요?",
@@ -82,7 +90,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
     id: "test-debug-sample",
     type: "test",
-    availability: "available",
+    cardType: "debug",
     title: {
       en: "Sample Debug Variant",
       kr: "샘플 디버그 변형",
@@ -96,10 +104,13 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
       en: [],
       kr: [],
     },
-    debug: true,
     sample: true,
     test: {
       variant: "debug-sample",
+      instruction: {
+        en: "Instruction dummy: Debug Sample exists only for internal QA and uses a deterministic planning prompt.",
+        kr: "더미 안내문: 디버그 샘플은 내부 QA 전용이며 결정형 계획 선호를 확인하는 프롬프트를 사용합니다.",
+      },
       previewQuestion: {
         en: "Do you prefer deterministic or exploratory planning?",
         kr: "계획은 정해진 흐름과 탐색형 접근 중 어느 쪽이 더 편한가요?",
@@ -122,7 +133,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
     id: "test-energy-check",
     type: "test",
-    availability: "available",
+    cardType: "opt_out",
     title: {
       en: "Energy Allocation Check",
       kr: "에너지 배분 점검",
@@ -138,6 +149,10 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     },
     test: {
       variant: "energy-check",
+      instruction: {
+        en: "Instruction dummy: Energy Check maps where your daily load leaks and asks you to follow the strongest drain signal.",
+        kr: "더미 안내문: 에너지 체크는 하루의 부담이 새는 지점을 추적하고 가장 큰 소모 신호를 따라가게 합니다.",
+      },
       previewQuestion: {
         en: "Which block drains your energy the most?",
         kr: "어떤 시간대가 에너지를 가장 많이 소모시키나요?",
@@ -160,7 +175,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
     id: "test-coming-soon-1",
     type: "test",
-    availability: "unavailable",
+    cardType: "unavailable",
     title: {
       en: "Creativity Profile (Soon)",
       kr: "창의성 프로필 (곧 공개)",
@@ -176,6 +191,10 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     },
     test: {
       variant: "creativity-profile",
+      instruction: {
+        en: "Instruction dummy: Creativity Profile preview is a placeholder for the upcoming editorial release.",
+        kr: "더미 안내문: 창의성 프로필은 곧 공개될 에디토리얼 버전용 임시 안내문을 사용합니다.",
+      },
       previewQuestion: {
         en: "Placeholder preview question for upcoming card.",
         kr: "공개 예정 카드를 위한 임시 미리보기 질문입니다.",
@@ -198,7 +217,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
     id: "test-coming-soon-2",
     type: "test",
-    availability: "unavailable",
+    cardType: "unavailable",
     title: {
       en: "Burnout Risk Signal (Soon)",
       kr: "번아웃 위험 신호 (곧 공개)",
@@ -214,6 +233,10 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     },
     test: {
       variant: "burnout-risk",
+      instruction: {
+        en: "Instruction dummy: Burnout Risk preview is a placeholder for the future recovery-signal test.",
+        kr: "더미 안내문: 번아웃 위험 신호 카드는 향후 회복 신호 테스트를 위한 임시 안내문을 사용합니다.",
+      },
       previewQuestion: {
         en: "Placeholder preview question for upcoming card.",
         kr: "공개 예정 카드를 위한 임시 미리보기 질문입니다.",
@@ -234,9 +257,51 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     },
   },
   {
+    id: "test-hidden-beta",
+    type: "test",
+    cardType: "hide",
+    title: {
+      en: "Hidden Beta Track",
+      kr: "비공개 베타 트랙",
+    },
+    subtitle: {
+      en: "Temporarily removed from the public catalog while content is being reworked.",
+      kr: "콘텐츠를 손보는 동안 퍼블릭 카탈로그에서는 잠시 숨겨둔 카드입니다.",
+    },
+    thumbnailOrIcon: "icon-test-hidden-beta",
+    tags: {
+      en: ["internal", "beta"],
+      kr: ["내부", "베타"],
+    },
+    test: {
+      variant: "hidden-beta",
+      instruction: {
+        en: "Instruction dummy: Hidden Beta explains the private prototype track that is temporarily hidden from the public catalog.",
+        kr: "더미 안내문: 히든 베타는 현재 퍼블릭 카탈로그에서 숨겨진 비공개 프로토타입 트랙을 설명합니다.",
+      },
+      previewQuestion: {
+        en: "Which signal tells you a prototype is ready to share?",
+        kr: "프로토타입을 공유해도 된다는 신호는 무엇인가요?",
+      },
+      answerChoiceA: {
+        en: "Stable enough to explain",
+        kr: "설명 가능한 수준으로 안정적일 때",
+      },
+      answerChoiceB: {
+        en: "Rough, but directionally useful",
+        kr: "거칠어도 방향성 검증에는 충분할 때",
+      },
+      meta: {
+        estimatedMinutes: 3,
+        shares: 0,
+        attempts: 0,
+      },
+    },
+  },
+  {
     id: "blog-ops-handbook",
     type: "blog",
-    availability: "available",
+    cardType: "available",
     title: {
       en: "Operational Handbook for Stable Releases",
       kr: "안정적인 배포를 위한 운영 핸드북",
@@ -266,7 +331,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
     id: "blog-build-metrics",
     type: "blog",
-    availability: "available",
+    cardType: "available",
     title: {
       en: "Build Metrics That Actually Matter",
       kr: "정말 중요한 빌드 지표",
@@ -296,7 +361,7 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
   {
     id: "blog-release-gate",
     type: "blog",
-    availability: "available",
+    cardType: "available",
     title: {
       en: "Designing a Reliable Release Gate",
       kr: "신뢰할 수 있는 릴리스 게이트 설계",

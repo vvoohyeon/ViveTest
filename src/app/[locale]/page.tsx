@@ -2,7 +2,6 @@ import {notFound} from 'next/navigation';
 import {getTranslations} from 'next-intl/server';
 
 import {isLocale} from '@/config/site';
-import {createLandingCatalog} from '@/features/landing/data';
 import {LandingCatalogGridLoader} from '@/features/landing/grid';
 import {LandingRuntime} from '@/features/landing/landing-runtime';
 import {PageShell} from '@/features/landing/shell';
@@ -20,7 +19,6 @@ export default async function LandingPage({
   }
 
   const t = await getTranslations({locale, namespace: 'landing'});
-  const catalog = createLandingCatalog(locale);
 
   return (
     <PageShell locale={locale} context="landing" currentRoute={RouteBuilder.landing()}>
@@ -30,7 +28,7 @@ export default async function LandingPage({
         <p>{t('heroBody')}</p>
       </section>
 
-      <LandingCatalogGridLoader cards={catalog} />
+      <LandingCatalogGridLoader locale={locale} />
     </PageShell>
   );
 }

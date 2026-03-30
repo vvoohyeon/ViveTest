@@ -33,10 +33,8 @@
 - 닉네임 입력
 - 프레임워크/라우팅/i18n 기반 구조 재설계 (랜딩 단계 계승)
 - telemetry 이벤트 계약 및 payload schema (skeleton 확보만 포함)
-- `requirements.md` 즉시 정합화
-- consent 분기 UX (instruction overlay의 Consent-branch variant,  OPTED_OUT 상태 진입 차단 및 랜딩 복귀 흐름)
-  — Landing Requirements §13.5 소유. 본 문서 구현 범위 외.
-  `§6.1`은 route-level invalid-variant recovery를 소유하며, consent 관련 진입 차단은 §13.5 OPTED_OUT direct access 계약을 따른다. shared implementation은 허용하되 ownership boundary는 유지한다.
+- consent instruction 분기 UX (`ingress type + consent state + card type` 조합 기반 instruction 메시지·divider·CTA set 결정, `OPTED_OUT + available` 딥링크 진입 시  warning note + [Keep Current Preference] 표시, `OPTED_OUT + available` 랜딩 진입 카탈로그 단계 비도달 처리 포함)
+  — Landing Requirements §13.5 소유. 본 문서 구현 범위 외. `§6.1`은 route-level invalid-variant recovery를 소유하며,consent 관련 진입 분기는 §13.5 정책 매트릭스 계약을 따른다. shared implementation은 허용하되 ownership boundary는 유지한다.
 
 ### 1.3 Locked Decisions
 
@@ -123,7 +121,7 @@
 - 각 variant가 실제로 **첫 진입 요청**될 때 해당 variant에 대한 검증을 1회 실행한다.
 - 첫 검증 이후: 동일 variant는 캐싱된 결과를 사용한다.
 - 검증 실패 시: session/run context 생성 없이 해당 variant 진입을 즉시 차단 → §6.1 에러 복구 페이지.
-- Landing 카탈로그 렌더링 시점에는 lazy validation이 실행되지 않는다. 랜딩에서는 `unavailable` 플래그 기준으로만 카드 표시 여부를 결정한다.
+- Landing 카탈로그 렌더링 시점에는 lazy validation이 실행되지 않는다. 랜딩에서는 `cardType`과 enterable 계약 기준으로만 카드 표시 여부를 결정한다.
 
 **카드 타입 계약**:
 - Landing Card Metadata Sheet의 `cardType` 컬럼으로 카드의 가시성·진입 가능성을 결정한다.
@@ -285,12 +283,20 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - instruction 진입 후 start 이전에 이탈하는 경우, 이는 **pre-test abandonment context**로 취급한다.
 - instruction은 기존 Q1 pre-answer를 무효화하거나 덮어쓰면 안 된다.
 
-**Consent-branch 분기 조건 (SSOT: Landing Requirements §13.5)**:
-- instruction 표시 시 Consent-branch variant와 Default variant 중 하나로 분류된다.
-- 분류 기준과 각 CTA 계약은 Landing Requirements §13.5가 SSOT다.
-- [Accept All and Start]는 runtime entry commit 관점에서 [Start] 클릭과 동일하게 처리한다.
-- [Deny and Abandon]은 pre-test abandonment context로 처리한다.
-  instructionSeen은 기록하지 않는다.
+**Instruction contract 분기 조건 (SSOT: Landing Requirements §13.5)**:
+- instruction 본문은 variant별 고유 `instruction` 데이터가 소유한다. generic fallback을 금지한다.
+- consent note / divider / CTA set은 `ingress type + consent state + card type` 조합으로 결정한다.
+- 이 섹션에서 `딥링크 유입`은 landing ingress flag가 없는 test route 진입을 뜻한다.
+- test route는 route-local consent banner, confirm dialog, blocked popup을 렌더하지 않는다.
+- landing ingress + `OPTED_IN` + `available|opt_out`, landing ingress + `OPTED_OUT` + `opt_out`: plain instruction + [Start], Q2부터 진행한다.
+- landing ingress + `UNKNOWN` + `available`: instruction + divider + "For a better experience, please agree to the terms to proceed with the test." + [Accept All and Start] / [Deny and Abandon], Accept/Deny 결과에 따라 Q2 continue 또는 랜딩 복귀를 수행한다.
+- landing ingress + `UNKNOWN` + `opt_out`: instruction + divider + "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing." + [Accept All and Start] / [Deny and Start], 두 CTA 모두 Q2부터 진행한다.
+- 딥링크 유입 + `OPTED_IN` + `available|opt_out`, 딥링크 유입 + `OPTED_OUT` + `opt_out`: plain instruction + [Start], Q1부터 진행한다.
+- 딥링크 유입 + `UNKNOWN` + `available`: instruction + divider + "For a better experience, please agree to the terms to proceed with the test." + [Accept All and Start] / [Deny and Abandon], Accept는 Q1 start, Deny는 랜딩 복귀를 수행한다.
+- 딥링크 유입 + `UNKNOWN` + `opt_out`: instruction + divider + "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing." + [Accept All and Start] / [Deny and Start], 두 CTA 모두 Q1부터 진행한다.
+- 딥링크 유입 + `OPTED_OUT` + `available`: instruction + divider + "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test." + [Accept All and Start] / [Keep Current Preference].
+- landing ingress + `OPTED_OUT` + `available`는 카탈로그 단계에서 비도달 상태로 유지한다. test route fallback branch를 두지 않는다.
+- route-level invalid-variant recovery owner와 consent instruction owner를 혼합하지 않는다.
 
 **instructionSeen 생명주기**:
 - **기록 시점**: Start 버튼 클릭 직후, test_start 진입 직전에 `instructionSeen:{variantId} = true`로 기록한다.

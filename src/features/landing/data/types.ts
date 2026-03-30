@@ -1,7 +1,9 @@
 import type {AppLocale} from '@/config/site';
 
-export type LandingCardType = 'test' | 'blog';
+export type LandingContentType = 'test' | 'blog';
+export type LandingCardType = 'available' | 'unavailable' | 'hide' | 'opt_out' | 'debug';
 export type LandingAvailability = 'available' | 'unavailable';
+export type LandingCatalogAudience = 'end-user' | 'qa';
 
 export type LocalizedText = Partial<Record<AppLocale, string>> & {
   default?: string;
@@ -13,6 +15,7 @@ export type LocalizedStringList = Partial<Record<AppLocale, ReadonlyArray<string
 
 export interface RawTestPayload {
   variant: string;
+  instruction: LocalizedText | string;
   previewQuestion: LocalizedText;
   answerChoiceA: LocalizedText;
   answerChoiceB: LocalizedText;
@@ -35,8 +38,10 @@ export interface RawBlogPayload {
 
 interface RawLandingCardCommon {
   id: string;
-  type: LandingCardType;
-  availability: LandingAvailability;
+  type: LandingContentType;
+  cardType?: LandingCardType;
+  availability?: LandingAvailability;
+  unavailable?: boolean;
   title: LocalizedText;
   subtitle: LocalizedText;
   thumbnailOrIcon: string;
@@ -61,6 +66,7 @@ export type RawLandingCard = RawTestCard | RawBlogCard;
 export interface LocaleResolvedText {
   title: string;
   subtitle: string;
+  instruction?: string;
   previewQuestion?: string;
   answerChoiceA?: string;
   answerChoiceB?: string;
@@ -69,7 +75,8 @@ export interface LocaleResolvedText {
 
 export interface LandingCardCommon {
   id: string;
-  type: LandingCardType;
+  type: LandingContentType;
+  cardType: LandingCardType;
   availability: LandingAvailability;
   title: string;
   subtitle: string;
@@ -85,6 +92,7 @@ export interface LandingCardCommon {
 export interface LandingTestCard extends LandingCardCommon {
   type: 'test';
   test: {
+    instruction: string;
     previewQuestion: string;
     answerChoiceA: string;
     answerChoiceB: string;
@@ -113,8 +121,11 @@ export type LandingCard = LandingTestCard | LandingBlogCard;
 export interface FixtureContractReport {
   testCount: number;
   blogCount: number;
-  unavailableTestCount: number;
-  unavailableBlogCount: number;
+  availableCount: number;
+  unavailableCount: number;
+  optOutCount: number;
+  hideCount: number;
+  debugCount: number;
   hasLongTokenSubtitle: boolean;
   hasLongBodyText: boolean;
   hasEmptyTags: boolean;

@@ -3,8 +3,9 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {createLandingCatalog} from '@/features/landing/data';
+import {createLandingCatalog, isEnterableCard} from '@/features/landing/data';
 import type {LandingBlogCard} from '@/features/landing/data/types';
+import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
 import {
   completePendingLandingTransition,
   terminatePendingLandingTransition
@@ -22,12 +23,15 @@ export function BlogDestinationClient({
   selectedLabel,
   allArticlesLabel
 }: BlogDestinationClientProps) {
+  const consentSnapshot = useTelemetryConsentSource();
   const articles = useMemo(
     () =>
-      createLandingCatalog(locale).filter(
-        (card): card is LandingBlogCard => card.type === 'blog' && card.availability === 'available'
+      createLandingCatalog(locale, {
+        consentState: consentSnapshot.synced ? consentSnapshot.consentState : 'UNKNOWN'
+      }).filter(
+        (card): card is LandingBlogCard => card.type === 'blog' && isEnterableCard(card)
       ),
-    [locale]
+    [consentSnapshot.consentState, consentSnapshot.synced, locale]
   );
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const bootstrapSelectedArticleIdRef = useRef<string | null | undefined>(undefined);

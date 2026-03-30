@@ -38,8 +38,14 @@
     "goHome": "ランディングへ",
     "goHistory": "履歴を見る",
     "instructionTitle": "始める前に",
-    "instructionBody": "各設問を読んで、回答を1つ選択してください。最終送信前であれば、前の設問に戻って回答を修正できます。",
-    "start": "開始"
+    "start": "開始",
+    "acceptAllAndStart": "すべて許可して開始",
+    "denyAndAbandon": "拒否して中止",
+    "denyAndStart": "拒否して開始",
+    "keepCurrentPreference": "Keep current preference",
+    "unknownAvailableNote": "For a better experience, please agree to the terms to proceed with the test.",
+    "unknownOptOutNote": "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing.",
+    "optedOutAvailableWarning": "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test."
   },
   "blog": {
     "selected": "選択した記事",
