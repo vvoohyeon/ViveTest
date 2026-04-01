@@ -817,9 +817,8 @@
 - Tap Mode에서는 오버레이 상시 노출
 
 **Adapter 레이어 책임 (Landing-side 계약)**:
-- `unavailable` 판정의 단일 소스는 `variant-registry.generated.json`(또는 동등한 fixture 파일)의 `unavailable` 플래그다.
-- 랜딩 카탈로그 데이터 정규화 레이어(`normalizeLandingCards` 또는 동등 함수)가 이 플래그를 기준으로 Coming Soon 표시 상태 지정과 진입 차단을 모두 담당한다.
-- 이 레이어에서 처리된 unavailable 상태는 런타임 재검증 없이 카드 렌더링에 직접 사용된다.
+- `unavailable` 판정의 단일 소스는 fixture(또는 `variant-registry.generated.json`) 파일의 `cardType` 필드다. `unavailable: boolean` 레거시 필드는 `cardType: 'unavailable'`로 해석한다 (req-test.md §2.5 레거시 호환 기준).
+- `normalizeAllLandingCards()`가 각 카드의 `cardType`을 정규화하고,  `createLandingCatalog()`가 그 결과를 카탈로그 구성에 반영한다. 렌더링/상호작용 레이어는 이 값을 런타임 재검증 없이 그대로 사용해 Coming Soon 표시와 진입 차단을 수행한다.
 - 직접 URL 접근(딥링크)을 통한 unavailable variant 진입 차단은 Test Flow Requirements §2.5 / §6.1 계약이 담당한다. 이 섹션의 계약과 중복되지 않는다.
 
 ### 13.3 Landing→Destination Handshake

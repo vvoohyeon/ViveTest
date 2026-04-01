@@ -408,5 +408,5 @@ Consent-specific blockers 20~23 now anchor in `tests/e2e/consent-smoke.spec.ts`;
 
 **Tech stack notes:**
 - `next@16.1.6`, `react@19.2.4`, `next-intl@4.8.3`
-- `motion@12.34.0` installed but not imported anywhere in `src` or `tests`; any adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract
+- `motion@12.34.0` installed but not imported anywhere in `src` or `tests`; any adoption should stay aligned with `docs/req-landing.md` §16 Landing Motion Contract
 - Tailwind v4 packages installed but runtime is primarily `src/app/globals.css`

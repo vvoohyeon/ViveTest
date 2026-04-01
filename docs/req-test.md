@@ -1164,8 +1164,9 @@ skeleton으로 확보해야 할 hook 위치:
 | 응답 데이터 휘발 시점 변경 | 4.6, 6.8, 8.3, 12.2 |
 | Telemetry skeleton hook 위치 변경 | 9.1, 9.2, 12.2 |
 | 에러 심각도 분류 변경 | 6.1, 6.2, 6.3, 6.4, 6.5, 12.2 |
-| cross-phase event integrity 정책 변경 (`card_answered`↔`attempt_start` 연계, `landing_ingress_flag` 계약) | 3.1, 9.1, 9.2, 12.2, Landing Requirements §12.1, §14.3 |
+| cross-phase event integrity 정책 변경 (`card_answered`↔`attempt_start` 연계, `landing_ingress_flag` 계약) | 3.1, 9.1, 9.2, 12.2, Landing Requirements §12.1, §14.2 |
 | Sheets sync 계약 변경 (sheet 구성, cross-sheet 검증 범위, lazy validation 정책, `unavailable` 처리 방식) | 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 12.2 |
+| cross-phase event integrity 정책 변경 (`card_answered`↔`attempt_start` 연계, `landing_ingress_flag` 계약) | 3.1, 9.1, 9.2, 12.2, Landing Requirements §12.1, §14.2 |
 
 ---
 
@@ -1220,15 +1221,15 @@ skeleton으로 확보해야 할 hook 위치:
 <!-- assertion:B28-cross-phase-event-integrity-shared-fixture -->
 28. **Cross-phase Event Integrity (Landing→Test)**: ingress 경로에서     `card_answered`(landing phase) → `attempt_start`(test phase) 순서 보장.     `card_answered.landing_ingress_flag = true`인 세션에서     `attempt_start.landing_ingress_flag = true`이고     `attempt_start.question_index_1based = 2`임을 검증한다.
 직접 진입 경로에서 `card_answered` 미발화 + `attempt_start.question_index_1based = 1` 임을 검증한다.
-Landing Requirements §14.3 Blocker #15와 연동하며, 두 블로커의 단언이 동일 픽스처를 공유해야 한다.
+Landing Requirements §14.2 check 15와 연동하며, 두 블로커의 단언이 동일 픽스처를 공유해야 한다.
 <!-- assertion:B29-sheets-sync-action-validation -->
 29. **Sheets Sync: Action-level Validation**: GitHub Action cross-sheet 검증이 불일치 감지 시 `variant-registry.generated.json` 커밋을 차단한다. last-known-good 파일이 유지된다. partial activation(일부 variant만 반영하는 부분 커밋)이 발생하지 않는다. 검증 함수는 runtime 2차 방어선과 동일 구현을 공유해야 한다.
 <!-- assertion:B30-runtime-lazy-validation-unavailable-guard -->
-30. **Runtime Lazy Validation & Unavailable Guard**: `getLazyValidatedVariant(variantId)` 첫 호출 시 `validateVariantDataIntegrity()` 실행 후 결과가 캐싱된다. 검증 실패 variant는 session/run context 생성 없이 §6.1 에러 복구 페이지로 이동한다. `unavailable: true` variant는 Landing 카탈로그에서 제외되고, 직접 URL 접근 시에도 §6.1 에러 복구 페이지로 이동한다. 나머지 variant는 검증 실패 variant의 영향을 받지 않는다. blocker 1~30 모두 최소 1개 자동 단언 매핑.
+30. **Runtime Lazy Validation & Unavailable Guard**: `getLazyValidatedVariant(variantId)` 첫 호출 시 `validateVariantDataIntegrity()` 실행 후 결과가 캐싱된다. 검증 실패 variant는 session/run context 생성 없이 §6.1 에러 복구 페이지로 이동한다. 데이터 불일치로 자동 강등된 variant(`hide` 강등 — Landing Metadata에만 존재하고 Questions Sheet에 없는 경우, §2.5 2차 방어선 기준)는 카탈로그에서 제외된다. 직접 URL 접근 시 §6.1 에러 복구 페이지로 이동한다. `unavailable` 카드의 Coming Soon badge 노출 및 진입 차단은 landing-side 계약 (req-landing.md §13.2, §13.9)이 소유하며 이 blocker의 단언 범위에 포함하지 않는다. 나머지 variant는 검증 실패 variant의 영향을 받지 않는다. blocker 1~30 모두 최소 1개 자동 단언 매핑.
 
 ### 12.3 Traceability Requirement
 
-- Section 11.2의 모든 블로킹 항목은 최소 1개 이상의 검증 단위와 매핑되어야 한다.
+- Section 12.2의 모든 블로킹 항목은 최소 1개 이상의 검증 단위와 매핑되어야 한다.
 - 검증 단위는 **automated assertion**, **scenario test**, 또는 **manual QA checkpoint** 중 하나 이상이어야 한다.
 - 미매핑 항목이 존재하면 릴리스를 차단한다.
-- Section 10 동기화 트리거 변경 시 traceability 매핑을 동일 변경셋에서 갱신한다.
+- Section 11 동기화 트리거 변경 시 traceability 매핑을 동일 변경셋에서 갱신한다.
