@@ -33,14 +33,14 @@ export function BlogDestinationClient({
       ),
     [consentSnapshot.consentState, consentSnapshot.synced, locale]
   );
-  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
-  const bootstrapSelectedArticleIdRef = useRef<string | null | undefined>(undefined);
+  const [selectedArticleVariant, setSelectedArticleVariant] = useState<string | null>(null);
+  const bootstrapSelectedArticleVariantRef = useRef<string | null | undefined>(undefined);
   const pendingTransitionToCompleteRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (bootstrapSelectedArticleIdRef.current !== undefined) {
+    if (bootstrapSelectedArticleVariantRef.current !== undefined) {
       queueMicrotask(() => {
-        setSelectedArticleId(bootstrapSelectedArticleIdRef.current ?? null);
+        setSelectedArticleVariant(bootstrapSelectedArticleVariantRef.current ?? null);
       });
       return;
     }
@@ -63,30 +63,42 @@ export function BlogDestinationClient({
           resultReason: 'BLOG_FALLBACK_EMPTY'
         });
       }
-      bootstrapSelectedArticleIdRef.current = null;
+      bootstrapSelectedArticleVariantRef.current = null;
       queueMicrotask(() => {
-        setSelectedArticleId(null);
+        setSelectedArticleVariant(null);
       });
       return;
     }
 
     const matchedArticle =
       nextPendingTransition && nextPendingTransition.targetType === 'blog'
-        ? articles.find((candidate) => candidate.sourceParam === nextPendingTransition.blogArticleId) ?? fallbackArticle
+        ? articles.find((candidate) => candidate.variant === nextPendingTransition.variant) ?? null
         : fallbackArticle;
+
+    if (!matchedArticle) {
+      terminatePendingLandingTransition({
+        signal: 'transition_fail',
+        resultReason: 'DESTINATION_LOAD_ERROR'
+      });
+      bootstrapSelectedArticleVariantRef.current = fallbackArticle.variant;
+      queueMicrotask(() => {
+        setSelectedArticleVariant(fallbackArticle.variant);
+      });
+      return;
+    }
 
     if (nextPendingTransition && nextPendingTransition.targetType === 'blog') {
       pendingTransitionToCompleteRef.current = nextPendingTransition.transitionId;
     }
 
-    bootstrapSelectedArticleIdRef.current = matchedArticle.id;
+    bootstrapSelectedArticleVariantRef.current = matchedArticle.variant;
     queueMicrotask(() => {
-      setSelectedArticleId(matchedArticle.id);
+      setSelectedArticleVariant(matchedArticle.variant);
     });
   }, [articles, locale]);
 
   useEffect(() => {
-    if (selectedArticleId === null || pendingTransitionToCompleteRef.current === null) {
+    if (selectedArticleVariant === null || pendingTransitionToCompleteRef.current === null) {
       return;
     }
 
@@ -104,9 +116,9 @@ export function BlogDestinationClient({
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [selectedArticleId]);
+  }, [selectedArticleVariant]);
 
-  const selectedArticle = articles.find((candidate) => candidate.id === selectedArticleId) ?? articles[0] ?? null;
+  const selectedArticle = articles.find((candidate) => candidate.variant === selectedArticleVariant) ?? articles[0] ?? null;
 
   return (
     <section className="landing-shell-card blog-shell-card" data-testid="blog-shell-card">
@@ -123,9 +135,9 @@ export function BlogDestinationClient({
             <ul>
               {articles.map((article) => (
                 <li
-                  key={article.id}
+                  key={article.variant}
                   className="blog-article-list-item"
-                  data-selected={article.id === selectedArticle.id ? 'true' : 'false'}
+                  data-selected={article.variant === selectedArticle.variant ? 'true' : 'false'}
                 >
                   <strong>{article.title}</strong>
                   <span>{article.subtitle}</span>

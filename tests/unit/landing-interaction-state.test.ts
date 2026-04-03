@@ -8,7 +8,7 @@ import {
   isCardKeyboardAriaDisabled,
   isCardPointerInteractionBlocked,
   reduceLandingInteractionState,
-  resolveCardStateForId,
+  resolveCardStateForVariant,
   resolveCardTabIndex,
   type LandingInteractionEvent
 } from '../../src/features/landing/model/interaction-state';
@@ -25,14 +25,14 @@ describe('landing interaction state machine', () => {
         type: 'CARD_FOCUS',
         nowMs: 5,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         available: true
       }
     ]);
 
     expect(state.pageState).toBe('INACTIVE');
-    expect(state.expandedCardId).toBeNull();
-    expect(state.focusedCardId).toBeNull();
+    expect(state.expandedCardVariant).toBeNull();
+    expect(state.focusedCardVariant).toBeNull();
   });
 
   it('enforces ACTIVE ramp-up guard after INACTIVE -> ACTIVE recovery', () => {
@@ -43,24 +43,24 @@ describe('landing interaction state machine', () => {
         type: 'CARD_ACTIVATE',
         nowMs: 100 + ACTIVE_RAMP_UP_MS - 1,
         interactionMode: 'tap',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         available: true
       }
     ]);
 
-    expect(preRamp.expandedCardId).toBeNull();
+    expect(preRamp.expandedCardVariant).toBeNull();
     expect(preRamp.activeRampUntilMs).toBe(100 + ACTIVE_RAMP_UP_MS);
 
     const postRamp = reduceLandingInteractionState(preRamp, {
       type: 'CARD_ACTIVATE',
       nowMs: 100 + ACTIVE_RAMP_UP_MS + 1,
       interactionMode: 'tap',
-      cardId: 'test-rhythm-a',
+      cardVariant: 'qmbti',
       available: true
     });
 
     expect(postRamp.activeRampUntilMs).toBeNull();
-    expect(postRamp.expandedCardId).toBe('test-rhythm-a');
+    expect(postRamp.expandedCardVariant).toBe('qmbti');
   });
 
   it('applies HOVER_LOCK keyboard mode split for non-target cards', () => {
@@ -69,18 +69,18 @@ describe('landing interaction state machine', () => {
         type: 'CARD_FOCUS',
         nowMs: 1,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         available: true
       },
       {type: 'KEYBOARD_MODE_ENTER'}
     ]);
 
     expect(hoverLocked.hoverLock.enabled).toBe(true);
-    expect(hoverLocked.hoverLock.cardId).toBe('test-rhythm-a');
+    expect(hoverLocked.hoverLock.cardVariant).toBe('qmbti');
     expect(hoverLocked.hoverLock.keyboardMode).toBe(true);
-    expect(isCardKeyboardAriaDisabled(hoverLocked, 'test-rhythm-b')).toBe(true);
-    expect(resolveCardTabIndex(hoverLocked, 'test-rhythm-b')).toBe(0);
-    expect(isCardPointerInteractionBlocked(hoverLocked, 'test-rhythm-b')).toBe(true);
+    expect(isCardKeyboardAriaDisabled(hoverLocked, 'rhythm-b')).toBe(true);
+    expect(resolveCardTabIndex(hoverLocked, 'rhythm-b')).toBe(0);
+    expect(isCardPointerInteractionBlocked(hoverLocked, 'rhythm-b')).toBe(true);
   });
 
   it('collapses hover-lock state when keyboard focus moves onto an unavailable card', () => {
@@ -89,15 +89,15 @@ describe('landing interaction state machine', () => {
         type: 'CARD_FOCUS',
         nowMs: 1,
         interactionMode: 'hover',
-        cardId: 'test-coming-soon-1',
+        cardVariant: 'creativity-profile',
         available: false
       }
     ]);
 
     expect(state.hoverLock.enabled).toBe(false);
-    expect(state.hoverLock.cardId).toBeNull();
-    expect(state.focusedCardId).toBe('test-coming-soon-1');
-    expect(state.expandedCardId).toBeNull();
+    expect(state.hoverLock.cardVariant).toBeNull();
+    expect(state.focusedCardVariant).toBe('creativity-profile');
+    expect(state.expandedCardVariant).toBeNull();
   });
 
   it('exits keyboard mode on pointer input and restores non-target tab blocking', () => {
@@ -106,7 +106,7 @@ describe('landing interaction state machine', () => {
         type: 'CARD_FOCUS',
         nowMs: 1,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         available: true
       },
       {type: 'KEYBOARD_MODE_ENTER'},
@@ -114,9 +114,9 @@ describe('landing interaction state machine', () => {
     ]);
 
     expect(state.hoverLock.keyboardMode).toBe(false);
-    expect(isCardKeyboardAriaDisabled(state, 'test-rhythm-b')).toBe(false);
-    expect(resolveCardTabIndex(state, 'test-rhythm-b')).toBe(-1);
-    expect(isCardPointerInteractionBlocked(state, 'test-rhythm-b')).toBe(false);
+    expect(isCardKeyboardAriaDisabled(state, 'rhythm-b')).toBe(false);
+    expect(resolveCardTabIndex(state, 'rhythm-b')).toBe(-1);
+    expect(isCardPointerInteractionBlocked(state, 'rhythm-b')).toBe(false);
   });
 
   it('keeps non-target cards pointer-reachable during pointer hover lock for desktop handoff', () => {
@@ -125,14 +125,14 @@ describe('landing interaction state machine', () => {
         type: 'CARD_HOVER_ENTER',
         nowMs: 10,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         available: true
       }
     ]);
 
     expect(state.hoverLock.enabled).toBe(true);
     expect(state.hoverLock.keyboardMode).toBe(false);
-    expect(isCardPointerInteractionBlocked(state, 'test-rhythm-b')).toBe(false);
+    expect(isCardPointerInteractionBlocked(state, 'rhythm-b')).toBe(false);
   });
 
   it('resolves card state with deterministic priority over page lock states', () => {
@@ -141,13 +141,13 @@ describe('landing interaction state machine', () => {
         type: 'CARD_FOCUS',
         nowMs: 1,
         interactionMode: 'tap',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         available: true
       },
       {type: 'PAGE_HIDDEN', nowMs: 2}
     ]);
 
-    expect(resolveCardStateForId(state, 'test-rhythm-a')).toBe('NORMAL');
+    expect(resolveCardStateForVariant(state, 'qmbti')).toBe('NORMAL');
   });
 
   it('rejects forbidden page-state transition as no-op and accepts declared table transitions', () => {
@@ -189,7 +189,7 @@ describe('landing interaction state machine', () => {
         type: 'CARD_FOCUS',
         nowMs: 1,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         available: true
       },
       {type: 'REDUCED_MOTION_ENABLE', nowMs: 10},
@@ -198,15 +198,15 @@ describe('landing interaction state machine', () => {
         type: 'CARD_FOCUS',
         nowMs: 12,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-b',
+        cardVariant: 'rhythm-b',
         available: true
       }
     ]);
 
     expect(state.pageState).toBe('TRANSITIONING');
-    expect(state.focusedCardId).toBeNull();
-    expect(state.expandedCardId).toBeNull();
-    expect(resolveCardStateForId(state, 'test-rhythm-b')).toBe('NORMAL');
+    expect(state.focusedCardVariant).toBeNull();
+    expect(state.expandedCardVariant).toBeNull();
+    expect(resolveCardStateForVariant(state, 'rhythm-b')).toBe('NORMAL');
   });
 
   it('keeps settled output deterministic for identical input sequences', () => {
@@ -216,7 +216,7 @@ describe('landing interaction state machine', () => {
         type: 'CARD_HOVER_ENTER',
         nowMs: 10,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         available: true
       },
       {type: 'KEYBOARD_MODE_ENTER'},
@@ -224,13 +224,13 @@ describe('landing interaction state machine', () => {
         type: 'CARD_HOVER_LEAVE',
         nowMs: 20,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-a'
+        cardVariant: 'qmbti'
       },
       {
         type: 'CARD_FOCUS',
         nowMs: 30,
         interactionMode: 'hover',
-        cardId: 'test-rhythm-b',
+        cardVariant: 'rhythm-b',
         available: true
       }
     ];

@@ -14,7 +14,6 @@ export type LocalizedStringList = Partial<Record<AppLocale, ReadonlyArray<string
 };
 
 export interface RawTestPayload {
-  variant: string;
   instruction: LocalizedText | string;
   previewQuestion: LocalizedText;
   answerChoiceA: LocalizedText;
@@ -27,7 +26,6 @@ export interface RawTestPayload {
 }
 
 export interface RawBlogPayload {
-  articleId: string;
   meta: {
     readMinutes: number;
     shares: number;
@@ -36,14 +34,13 @@ export interface RawBlogPayload {
 }
 
 interface RawLandingCardCommon {
-  id: string;
+  variant: string;
   type: LandingContentType;
   cardType?: LandingCardType;
   availability?: LandingAvailability;
   unavailable?: boolean;
   title: LocalizedText;
   subtitle: LocalizedText;
-  thumbnailOrIcon: string;
   tags: LocalizedStringList;
   isHero?: boolean;
   debug?: boolean;
@@ -72,16 +69,14 @@ export interface LocaleResolvedText {
 }
 
 export interface LandingCardCommon {
-  id: string;
+  variant: string;
   type: LandingContentType;
   cardType: LandingCardType;
   availability: LandingAvailability;
   title: string;
   subtitle: string;
-  thumbnailOrIcon: string;
   tags: string[];
   isHero: boolean;
-  sourceParam: string;
   localeResolvedText: LocaleResolvedText;
   debug: boolean;
   sample: boolean;

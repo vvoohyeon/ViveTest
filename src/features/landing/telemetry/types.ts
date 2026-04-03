@@ -24,7 +24,7 @@ export interface LandingViewTelemetryEvent extends TelemetryBaseEvent {
 
 export interface CardAnsweredTelemetryEvent extends TelemetryBaseEvent {
   event_type: 'card_answered';
-  source_card_id: string;
+  source_variant: string;
   target_route: string;
   landing_ingress_flag: true;
 }

@@ -49,7 +49,7 @@
 
 ### 랜딩 QA Gate 재통과 범위
 
-blocker #13(handoff-enterable-only)은 현재 traceability/unit/runtime 기준으로 enterable(available + opt_out) 해석에 맞게 동기화되어 있다. `tests/unit/landing-hover-intent.test.ts` 4/4와 `tests/e2e/grid-smoke.spec.ts` blocker B13이 representative `available` 카드뿐 아니라 `PRIMARY_OPT_OUT_TEST_CARD_ID`(`test-energy-check`)의 실카드 handoff source/target 참여까지 직접 고정한다.
+blocker #13(handoff-enterable-only)은 현재 traceability/unit/runtime 기준으로 enterable(available + opt_out) 해석에 맞게 동기화되어 있다. `tests/unit/landing-hover-intent.test.ts` 4/4와 `tests/e2e/grid-smoke.spec.ts` blocker B13이 representative `available` 카드뿐 아니라 `PRIMARY_OPT_OUT_TEST_VARIANT`(`energy-check`)의 실카드 handoff source/target 참여까지 직접 고정한다.
 
 이 구현은 랜딩 카드 계약을 변경하므로 아래 항목의 재통과가 필요하다:
 - blocker #13 (`assertion:B13-handoff-enterable-only`): `available` + `opt_out`

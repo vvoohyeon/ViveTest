@@ -16,7 +16,7 @@ export {
   isCardKeyboardAriaDisabled,
   isCardPointerInteractionBlocked,
   reduceLandingInteractionState,
-  resolveCardStateForId,
+  resolveCardStateForVariant,
   resolveCardTabIndex
 } from '@/features/landing/model/interaction-state';
 export type {LandingInteractionEvent, LandingInteractionState} from '@/features/landing/model/interaction-state';

@@ -7,7 +7,7 @@ import {
   consumeLandingIngress,
   consumeLandingReturnScrollY,
   readLandingIngress,
-  readLandingReturnCardId,
+  readLandingReturnVariant,
   readLandingReturnScrollY,
   readPendingLandingTransition,
   rollbackLandingTransition,
@@ -47,36 +47,36 @@ describe('landing transition store', () => {
     installDom();
     writePendingLandingTransition({
       transitionId: 'transition-1',
-      sourceCardId: 'test-rhythm-a',
-      targetRoute: '/en/test/rhythm-a',
+      sourceVariant: 'qmbti',
+      targetRoute: '/en/test/qmbti',
       targetType: 'test',
       startedAtMs: 1,
-      variant: 'rhythm-a',
+      variant: 'qmbti',
       preAnswerChoice: 'A'
     });
 
     expect(readPendingLandingTransition()?.transitionId).toBe('transition-1');
 
-    saveLandingReturnScrollY(742.8, 'blog-build-metrics');
+    saveLandingReturnScrollY(742.8, 'build-metrics');
     expect(readLandingReturnScrollY()).toBe(742);
-    expect(readLandingReturnCardId()).toBe('blog-build-metrics');
+    expect(readLandingReturnVariant()).toBe('build-metrics');
     expect(consumeLandingReturnScrollY()).toBe(742);
     expect(consumeLandingReturnScrollY()).toBeNull();
-    expect(readLandingReturnCardId()).toBeNull();
+    expect(readLandingReturnVariant()).toBeNull();
     clearPendingLandingTransition();
   });
 
   it('clears return scroll keys atomically', () => {
     installDom();
 
-    saveLandingReturnScrollY(128.4, 'test-rhythm-a');
+    saveLandingReturnScrollY(128.4, 'qmbti');
     expect(readLandingReturnScrollY()).toBe(128);
-    expect(readLandingReturnCardId()).toBe('test-rhythm-a');
+    expect(readLandingReturnVariant()).toBe('qmbti');
 
     clearLandingReturnScroll();
 
     expect(readLandingReturnScrollY()).toBeNull();
-    expect(readLandingReturnCardId()).toBeNull();
+    expect(readLandingReturnVariant()).toBeNull();
   });
 
   it('assertion:B16-rollback-cleanup rolls back pending transition, ingress flag, and body lock state without leaks', () => {
@@ -86,30 +86,30 @@ describe('landing transition store', () => {
 
     writePendingLandingTransition({
       transitionId: 'transition-1',
-      sourceCardId: 'test-rhythm-a',
-      targetRoute: '/en/test/rhythm-a',
+      sourceVariant: 'qmbti',
+      targetRoute: '/en/test/qmbti',
       targetType: 'test',
       startedAtMs: 1,
-      variant: 'rhythm-a',
+      variant: 'qmbti',
       preAnswerChoice: 'A'
     });
     writeLandingIngress({
-      variant: 'rhythm-a',
+      variant: 'qmbti',
       preAnswerChoice: 'A',
       createdAtMs: 1,
       landingIngressFlag: true
     });
-    saveLandingReturnScrollY(256, 'test-rhythm-a');
+    saveLandingReturnScrollY(256, 'qmbti');
 
-    expect(readLandingIngress('rhythm-a')?.preAnswerChoice).toBe('A');
+    expect(readLandingIngress('qmbti')?.preAnswerChoice).toBe('A');
 
-    rollbackLandingTransition({variant: 'rhythm-a'});
+    rollbackLandingTransition({variant: 'qmbti'});
 
     expect(readPendingLandingTransition()).toBeNull();
-    expect(readLandingIngress('rhythm-a')).toBeNull();
-    expect(consumeLandingIngress('rhythm-a')).toBeNull();
+    expect(readLandingIngress('qmbti')).toBeNull();
+    expect(consumeLandingIngress('qmbti')).toBeNull();
     expect(readLandingReturnScrollY()).toBeNull();
-    expect(readLandingReturnCardId()).toBeNull();
+    expect(readLandingReturnVariant()).toBeNull();
     expect(document.body.style.overflow).toBe('');
     expect(document.body.style.touchAction).toBe('');
   });

@@ -36,7 +36,7 @@ describe('landing runtime return restoration helpers', () => {
 
   it('consumes saved return scroll immediately on landing re-entry', () => {
     installDom();
-    saveLandingReturnScrollY(512.7, 'blog-build-metrics');
+    saveLandingReturnScrollY(512.7, 'build-metrics');
 
     const pendingRestore = consumePendingReturnScrollRestore('/en');
 

@@ -86,11 +86,11 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
     fail('Interaction controller must exit keyboard mode on pointer input.');
   }
 
-  if (!/resolveCardStateForId/u.test(controllerFile) || !/resolveCardTabIndex/u.test(controllerFile)) {
+  if (!/resolveCardStateForVariant/u.test(controllerFile) || !/resolveCardTabIndex/u.test(controllerFile)) {
     fail('Interaction controller must resolve per-card visual state and tab policy.');
   }
 
-  if (!/getExpandedFocusableElements/u.test(controllerFile) || !/resolveAdjacentCardId/u.test(controllerFile)) {
+  if (!/getExpandedFocusableElements/u.test(controllerFile) || !/resolveAdjacentCardVariant/u.test(controllerFile)) {
     fail('Interaction controller must implement keyboard sequential override traversal helpers.');
   }
 }

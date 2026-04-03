@@ -7,32 +7,32 @@ export type HoverIntentAction = 'expand' | 'collapse' | 'handoff';
 
 export interface HoverIntentToken {
   token: number;
-  cardId: string;
+  cardVariant: string;
   action: HoverIntentAction;
 }
 
-export function nextHoverIntentToken(previousToken: number, cardId: string, action: HoverIntentAction): HoverIntentToken {
+export function nextHoverIntentToken(previousToken: number, cardVariant: string, action: HoverIntentAction): HoverIntentToken {
   return {
     token: previousToken + 1,
-    cardId,
+    cardVariant,
     action
   };
 }
 
 export function isEnterableHandoffCandidate(input: {
-  previousExpandedCardId: string | null;
-  nextCardId: string;
+  previousExpandedCardVariant: string | null;
+  nextCardVariant: string;
   enterable: boolean;
 }): boolean {
   if (!input.enterable) {
     return false;
   }
 
-  if (!input.previousExpandedCardId) {
+  if (!input.previousExpandedCardVariant) {
     return false;
   }
 
-  return input.previousExpandedCardId !== input.nextCardId;
+  return input.previousExpandedCardVariant !== input.nextCardVariant;
 }
 
 export function resolveDesktopTransformOriginX(input: {

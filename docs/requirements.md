@@ -297,7 +297,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 - **Payload requirements (non-PII):**
   - Every public telemetry event MUST include `event_id`, `ts_ms`, `locale`, `route`, and `consent_state`.
   - `session_id` is transport-patched when consent/session are available; queued pre-sync events may originate with `session_id=null` before transport patching.
-  - `card_answered` MUST include `source_card_id`, `target_route`, and `landing_ingress_flag=true`.
+  - `card_answered` MUST include `source_variant`, `target_route`, and `landing_ingress_flag=true`.
   - `attempt_start` and `final_submit` MUST include `variant`, `question_index_1based`, `dwell_ms_accumulated`, and `landing_ingress_flag`.
   - `final_submit` MUST include `final_responses` using semantic `A|B` codes only.
   - `transition_id`, `result_reason`, and `final_q1_response` are reserved for internal transition logic and MUST NOT appear in public telemetry payloads.

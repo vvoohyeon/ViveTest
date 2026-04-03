@@ -9,9 +9,7 @@ import {
   buildLocalizedTestRoute,
   buildLocalizedPrimaryOptOutTestRoute,
   buildLocalizedPrimaryTestRoute,
-  PRIMARY_AVAILABLE_TEST_CARD_ID,
   PRIMARY_AVAILABLE_TEST_VARIANT,
-  PRIMARY_OPT_OUT_TEST_CARD_ID,
   PRIMARY_OPT_OUT_TEST_VARIANT,
   TEST_VARIANT_INSTRUCTION_FIXTURES_EN
 } from './helpers/landing-fixture';
@@ -43,8 +41,8 @@ async function readInstructionSeen(page: Page, variant: string) {
   return page.evaluate((key) => window.sessionStorage.getItem(key), `vivetest-test-instruction-seen:${variant}`);
 }
 
-async function beginLandingTestIngress(page: Page, cardId: string) {
-  const card = page.locator(`[data-card-id="${cardId}"]`);
+async function beginLandingTestIngress(page: Page, cardVariant: string) {
+  const card = page.locator(`[data-card-variant="${cardVariant}"]`);
   await card.getByTestId('landing-grid-card-trigger').click();
   await card.locator('[data-slot="answerChoiceA"]').click();
 }
@@ -64,7 +62,7 @@ test.describe('Instruction consent contract smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    await beginLandingTestIngress(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
+    await beginLandingTestIngress(page, PRIMARY_AVAILABLE_TEST_VARIANT);
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-instruction-body')).toHaveText(AVAILABLE_INSTRUCTION_EN);
     await expect(page.getByTestId('test-instruction-divider')).toBeVisible();
@@ -77,8 +75,8 @@ test.describe('Instruction consent contract smoke', () => {
     await expect(page).toHaveURL(/\/en$/u);
     await expect.poll(() => readConsent(page)).toBe('OPTED_OUT');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_AVAILABLE_TEST_VARIANT)).toBeNull();
-    await expect(page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`)).toHaveCount(0);
-    await expect(page.locator(`[data-card-id="${PRIMARY_OPT_OUT_TEST_CARD_ID}"]`)).toHaveCount(1);
+    await expect(page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`)).toHaveCount(0);
+    await expect(page.locator(`[data-card-variant="${PRIMARY_OPT_OUT_TEST_VARIANT}"]`)).toHaveCount(1);
   });
 
   test('@smoke assertion:B22-secondary-cta-contract landing UNKNOWN opt_out shows variant instruction with divider/note and Deny and Start continues from Q2', async ({
@@ -88,7 +86,7 @@ test.describe('Instruction consent contract smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    await beginLandingTestIngress(page, PRIMARY_OPT_OUT_TEST_CARD_ID);
+    await beginLandingTestIngress(page, PRIMARY_OPT_OUT_TEST_VARIANT);
     await expect(page.getByTestId('test-instruction-body')).toHaveText(OPT_OUT_INSTRUCTION_EN);
     await expect(page.getByTestId('test-instruction-divider')).toBeVisible();
     await expect(page.getByTestId('test-instruction-note')).toHaveText(UNKNOWN_OPT_OUT_NOTE);
@@ -134,7 +132,7 @@ test.describe('Instruction consent contract smoke', () => {
     await expect(page).toHaveURL(/\/en$/u);
     await expect.poll(() => readConsent(page)).toBe('OPTED_OUT');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_AVAILABLE_TEST_VARIANT)).toBeNull();
-    await expect(page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`)).toHaveCount(0);
+    await expect(page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`)).toHaveCount(0);
     await expectNoLegacyInstructionUi(page);
   });
 

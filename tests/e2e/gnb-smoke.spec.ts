@@ -2,7 +2,7 @@ import {expect, test, type Locator, type Page} from '@playwright/test';
 
 import {localeOptions, type AppLocale} from '../../src/config/site';
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_CARD_ID, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_VARIANT, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const DESKTOP_SETTINGS_PANEL_EXTRA_TOP_PX = 12;
@@ -347,7 +347,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
       await seedManualTheme(page, theme);
       await page.goto('/en');
 
-      const testCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+      const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
       await testCard.getByTestId('landing-grid-card-trigger').click();
 
       const answerChoice = testCard.locator('.landing-grid-card-answer-choice').first();

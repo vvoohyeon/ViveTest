@@ -9,7 +9,7 @@
 ## 2. 랜딩 카드 `motion` 적용
 
 - 파일 기준으로 `motion`은 이미 설치되어 있고 React 엔트리포인트는 `motion/react`를 쓰는 형태가 맞습니다. 근거는 [package.json:19](/package.json#L19)와 [node_modules/motion/package.json:26](/node_modules/motion/package.json#L26)입니다.
-- 1차 파일럿 카드는 `test-qmbti`보다 `test-energy-check`를 권장합니다. `test-qmbti`는 현재 주 smoke 카드라서 전환/모바일/reduced-motion 테스트가 이 카드의 애니메이션 이름까지 직접 보고 있습니다. 근거는 [tests/e2e/helpers/landing-fixture.ts:3](/tests/e2e/helpers/landing-fixture.ts#L3), [tests/e2e/transition-telemetry-smoke.spec.ts:633](/tests/e2e/transition-telemetry-smoke.spec.ts#L633), [tests/e2e/state-smoke.spec.ts:414](/tests/e2e/state-smoke.spec.ts#L414)입니다.
+- 1차 파일럿 카드는 `qmbti`보다 `energy-check`를 권장합니다. `qmbti`는 현재 주 smoke 카드라서 전환/모바일/reduced-motion 테스트가 이 카드의 애니메이션 이름까지 직접 보고 있습니다. 근거는 [tests/e2e/helpers/landing-fixture.ts:3](/tests/e2e/helpers/landing-fixture.ts#L3), [tests/e2e/transition-telemetry-smoke.spec.ts:633](/tests/e2e/transition-telemetry-smoke.spec.ts#L633), [tests/e2e/state-smoke.spec.ts:414](/tests/e2e/state-smoke.spec.ts#L414)입니다.
 - 파일럿 범위는 `LandingGridCard` 내부 표현 레이어만 바꾸고, 상태 소유권은 유지하는 방식이 가장 안전합니다. 상태 권한은 [src/features/landing/grid/use-landing-interaction-controller.ts:788](/src/features/landing/grid/use-landing-interaction-controller.ts#L788)부터 [src/features/landing/grid/use-landing-interaction-controller.ts:1582](/src/features/landing/grid/use-landing-interaction-controller.ts#L1582)에 있습니다.
 - 외부 에이전트에게는 `isMotionPilotCard(card)` 같은 헬퍼로 카드 1개만 opt-in 하라고 전달하는 편이 좋습니다. 현재 fixture상 후보는 [src/features/landing/data/raw-fixtures.ts:123](/src/features/landing/data/raw-fixtures.ts#L123)입니다.
 
@@ -45,9 +45,9 @@
 ### 5. QA gate 처리 방향
 - static gate는 가능하면 수정하지 않는 것이 최선입니다. 현재 Phase 9/10 스크립트가 CSS selector와 keyframe 이름을 regex로 강하게 검사합니다. 근거는 [scripts/qa/check-phase9-performance-contracts.mjs:110](/scripts/qa/check-phase9-performance-contracts.mjs#L110), [scripts/qa/check-phase10-transition-contracts.mjs:128](/scripts/qa/check-phase10-transition-contracts.mjs#L128)입니다.
 - 그래서 1차 파일럿은 “기존 CSS keyframe과 selector는 남기고, pilot card에만 `motion` override를 얹는 방식”이 가장 좋습니다. 이 경우 static gate는 그대로 통과할 가능성이 높습니다.
-- e2e는 카드 선택에 따라 전략이 갈립니다. `test-energy-check` 같은 비-primary 카드에 적용하면 기존 smoke를 거의 건드리지 않고 pilot 전용 smoke만 추가하면 됩니다.
+- e2e는 카드 선택에 따라 전략이 갈립니다. `energy-check` 같은 비-primary 카드에 적용하면 기존 smoke를 거의 건드리지 않고 pilot 전용 smoke만 추가하면 됩니다.
 - pilot 전용 smoke는 최소한 hover open, mobile open/close, reduced-motion, focus ring 유지, scroll lock hidden/unhidden, `restoreReady`, console/page error 0을 검증해야 합니다. 참고할 기존 assertion 묶음은 [tests/e2e/transition-telemetry-smoke.spec.ts:399](/tests/e2e/transition-telemetry-smoke.spec.ts#L399), [tests/e2e/transition-telemetry-smoke.spec.ts:621](/tests/e2e/transition-telemetry-smoke.spec.ts#L621), [tests/e2e/state-smoke.spec.ts:371](/tests/e2e/state-smoke.spec.ts#L371), [tests/e2e/state-smoke.spec.ts:307](/tests/e2e/state-smoke.spec.ts#L307)입니다.
-- 만약 pilot를 `test-qmbti`에 적용한다면 기존 e2e의 `animationName` 체크를 motion-agnostic한 geometry/phase/assertion으로 바꿔야 합니다. 수정 대상은 최소 [tests/e2e/transition-telemetry-smoke.spec.ts:576](/tests/e2e/transition-telemetry-smoke.spec.ts#L576), [tests/e2e/transition-telemetry-smoke.spec.ts:633](/tests/e2e/transition-telemetry-smoke.spec.ts#L633), [tests/e2e/transition-telemetry-smoke.spec.ts:661](/tests/e2e/transition-telemetry-smoke.spec.ts#L661), [tests/e2e/state-smoke.spec.ts:414](/tests/e2e/state-smoke.spec.ts#L414)입니다.
+- 만약 pilot를 `qmbti`에 적용한다면 기존 e2e의 `animationName` 체크를 motion-agnostic한 geometry/phase/assertion으로 바꿔야 합니다. 수정 대상은 최소 [tests/e2e/transition-telemetry-smoke.spec.ts:576](/tests/e2e/transition-telemetry-smoke.spec.ts#L576), [tests/e2e/transition-telemetry-smoke.spec.ts:633](/tests/e2e/transition-telemetry-smoke.spec.ts#L633), [tests/e2e/transition-telemetry-smoke.spec.ts:661](/tests/e2e/transition-telemetry-smoke.spec.ts#L661), [tests/e2e/state-smoke.spec.ts:414](/tests/e2e/state-smoke.spec.ts#L414)입니다.
 
 ### 6. 핵심 요약
 - 이 작업의 정답은 “상태 머신을 `motion`으로 바꾸는 것”이 아니라 “기존 상태 머신을 그대로 두고, 파일럿 카드 1개에 한해 overlay/transient shell만 `motion`으로 시각화하는 것”입니다.  

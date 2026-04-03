@@ -1,7 +1,7 @@
 import {expect, test, type Locator, type Page} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_CARD_ID} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
 
 const DESKTOP_VIEWPORT = {width: 1440, height: 980} as const;
 const STAGE_SHADOW_BLEED_X_PX = 72;
@@ -53,9 +53,9 @@ async function openDesktopSettingsPanel(page: Page) {
   return {trigger, panel};
 }
 
-async function installDesktopShellPhaseObserver(page: Page, cardId: string) {
+async function installDesktopShellPhaseObserver(page: Page, cardVariant: string) {
   await page.evaluate((observedCardId) => {
-    const cardElement = document.querySelector<HTMLElement>(`[data-card-id="${observedCardId}"]`);
+    const cardElement = document.querySelector<HTMLElement>(`[data-card-variant="${observedCardId}"]`);
     if (!cardElement) {
       throw new Error(`Missing card element for ${observedCardId}`);
     }
@@ -84,27 +84,27 @@ async function installDesktopShellPhaseObserver(page: Page, cardId: string) {
       attributeFilter: ['data-desktop-shell-phase']
     });
     observers[observedCardId] = observer;
-  }, cardId);
+  }, cardVariant);
 }
 
-async function resetDesktopShellPhaseLog(page: Page, cardId: string) {
+async function resetDesktopShellPhaseLog(page: Page, cardVariant: string) {
   await page.evaluate((observedCardId) => {
-    const cardElement = document.querySelector<HTMLElement>(`[data-card-id="${observedCardId}"]`);
+    const cardElement = document.querySelector<HTMLElement>(`[data-card-variant="${observedCardId}"]`);
     const globalWindow = window as typeof window & {
       __desktopShellPhaseLog?: Record<string, string[]>;
     };
     const logs = (globalWindow.__desktopShellPhaseLog ??= {});
     logs[observedCardId] = [cardElement?.getAttribute('data-desktop-shell-phase') ?? ''];
-  }, cardId);
+  }, cardVariant);
 }
 
-async function readDesktopShellPhaseLog(page: Page, cardId: string): Promise<string[]> {
+async function readDesktopShellPhaseLog(page: Page, cardVariant: string): Promise<string[]> {
   return page.evaluate((observedCardId) => {
     const globalWindow = window as typeof window & {
       __desktopShellPhaseLog?: Record<string, string[]>;
     };
     return [...(globalWindow.__desktopShellPhaseLog?.[observedCardId] ?? [])];
-  }, cardId);
+  }, cardVariant);
 }
 
 async function settleDesktopExpandedCard(page: Page, card: Locator) {
@@ -131,16 +131,16 @@ async function settleDesktopExpandedCard(page: Page, card: Locator) {
 async function runHoverOutCollapseCycles(input: {
   page: Page;
   card: Locator;
-  cardId: string;
+  cardVariant: string;
   leavePointForBox: (box: NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>) => {x: number; y: number};
 }) {
   let settledBox: NonNullable<Awaited<ReturnType<Locator['boundingBox']>>> | null = null;
 
-  await installDesktopShellPhaseObserver(input.page, input.cardId);
+  await installDesktopShellPhaseObserver(input.page, input.cardVariant);
 
   for (let iteration = 0; iteration < HOVER_OUT_REPEAT_COUNT; iteration += 1) {
     settledBox = await settleDesktopExpandedCard(input.page, input.card);
-    await resetDesktopShellPhaseLog(input.page, input.cardId);
+    await resetDesktopShellPhaseLog(input.page, input.cardVariant);
     const leavePoint = input.leavePointForBox(settledBox);
     await input.page.mouse.move(
       leavePoint.x,
@@ -149,7 +149,7 @@ async function runHoverOutCollapseCycles(input: {
     await expect(input.card).toHaveAttribute('data-desktop-shell-phase', 'closing');
     await expect(input.card).toHaveAttribute('data-desktop-shell-phase', 'idle');
 
-    const phaseLog = await readDesktopShellPhaseLog(input.page, input.cardId);
+    const phaseLog = await readDesktopShellPhaseLog(input.page, input.cardVariant);
     expect(phaseLog).toContain('closing');
     expect(phaseLog).toContain('cleanup-pending');
     expect(phaseLog.at(-1)).toBe('idle');
@@ -231,11 +231,11 @@ test.describe('Safari hover-out ghosting regression', () => {
   });
 
   test('@smoke row1 same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}) => {
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const firstCardBox = await runHoverOutCollapseCycles({
       page,
       card: firstCard,
-      cardId: PRIMARY_AVAILABLE_TEST_CARD_ID,
+      cardVariant: PRIMARY_AVAILABLE_TEST_VARIANT,
       leavePointForBox: (box) => ({
         x: box.x + box.width / 2,
         y: Math.max(12, box.y - 48)
@@ -249,11 +249,11 @@ test.describe('Safari hover-out ghosting regression', () => {
   });
 
   test('@smoke lower-row same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}) => {
-    const lowerRowCard = page.locator('[data-card-id="blog-build-metrics"]');
+    const lowerRowCard = page.locator('[data-card-variant="build-metrics"]');
     const lowerRowCardBox = await runHoverOutCollapseCycles({
       page,
       card: lowerRowCard,
-      cardId: 'blog-build-metrics',
+      cardVariant: 'build-metrics',
       leavePointForBox: (box) => ({
         x: box.x + box.width / 2,
         y: Math.min(DESKTOP_VIEWPORT.height - 16, box.y + box.height + STAGE_SHADOW_BLEED_BOTTOM_PX + 48)
@@ -267,8 +267,8 @@ test.describe('Safari hover-out ghosting regression', () => {
   });
 
   test('@smoke row1 handoff source skips close and cleanup phases', async ({page}) => {
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
 
     await settleDesktopExpandedCard(page, firstCard);
     await secondCard.hover();
@@ -281,7 +281,7 @@ test.describe('Safari hover-out ghosting regression', () => {
   });
 
   test('@smoke row1 steady expanded short card stays content-fit without leaking the in-flow shell', async ({page}) => {
-    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await settleDesktopExpandedCard(page, card);
     const overlayMetrics = await readDesktopExpandedOverlayMetrics(card);
 
@@ -299,7 +299,7 @@ test.describe('Safari hover-out ghosting regression', () => {
   test('@smoke lower-row steady expanded shadow keeps a full envelope', async ({page}) => {
     await expectSteadyExpandedShadowSnapshot({
       page,
-      card: page.locator('[data-card-id="blog-build-metrics"]'),
+      card: page.locator('[data-card-variant="build-metrics"]'),
       snapshotName: 'steady-lower-row-expanded-shadow.png'
     });
   });

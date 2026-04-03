@@ -11,7 +11,7 @@ import {RouteBuilder} from '@/lib/routes/route-builder';
 
 interface UseLandingTransitionInput {
   locale: AppLocale;
-  onTransitionStart?: (cardId: string) => void;
+  onTransitionStart?: (cardVariant: string) => void;
 }
 
 export function useLandingTransition({locale, onTransitionStart}: UseLandingTransitionInput) {
@@ -20,14 +20,14 @@ export function useLandingTransition({locale, onTransitionStart}: UseLandingTran
 
   const beginTestTransition = useCallback(
     (card: LandingTestCard, choice: 'A' | 'B') => {
-      const targetRoute = buildLocalizedPath(RouteBuilder.question(card.sourceParam), locale);
+      const targetRoute = buildLocalizedPath(RouteBuilder.question(card.variant), locale);
       const pendingTransition = beginLandingTransition({
         locale,
         route: pathname,
-        sourceCardId: card.id,
+        sourceVariant: card.variant,
         targetType: 'test',
         targetRoute,
-        variant: card.sourceParam,
+        variant: card.variant,
         preAnswerChoice: choice
       });
 
@@ -35,7 +35,7 @@ export function useLandingTransition({locale, onTransitionStart}: UseLandingTran
         return false;
       }
 
-      onTransitionStart?.(card.id);
+      onTransitionStart?.(card.variant);
       router.push(targetRoute);
       return true;
     },
@@ -48,17 +48,17 @@ export function useLandingTransition({locale, onTransitionStart}: UseLandingTran
       const pendingTransition = beginLandingTransition({
         locale,
         route: pathname,
-        sourceCardId: card.id,
+        sourceVariant: card.variant,
         targetType: 'blog',
         targetRoute,
-        blogArticleId: card.sourceParam
+        variant: card.variant
       });
 
       if (!pendingTransition) {
         return false;
       }
 
-      onTransitionStart?.(card.id);
+      onTransitionStart?.(card.variant);
       router.push(targetRoute);
       return true;
     },

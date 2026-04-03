@@ -14,7 +14,7 @@ describe('landing mobile lifecycle reducer', () => {
   it('queues close during OPENING and settles back to NORMAL after close', () => {
     const opening = reduceLandingMobileLifecycleState(initialLandingMobileLifecycleState, {
       type: 'OPEN_START',
-      cardId: 'test-rhythm-a',
+      cardVariant: 'qmbti',
       snapshot: {
         cardHeightPx: 200,
         anchorTopPx: 32,
@@ -54,12 +54,12 @@ describe('landing mobile lifecycle reducer', () => {
     };
     const opening = reduceLandingMobileLifecycleState(initialLandingMobileLifecycleState, {
       type: 'OPEN_START',
-      cardId: 'test-rhythm-a',
+      cardVariant: 'qmbti',
       snapshot
     });
     const restarted = reduceLandingMobileLifecycleState(opening, {
       type: 'OPEN_START',
-      cardId: 'test-rhythm-a',
+      cardVariant: 'qmbti',
       snapshot: {
         cardHeightPx: 420,
         anchorTopPx: 72,
@@ -77,7 +77,7 @@ describe('landing mobile lifecycle reducer', () => {
     const closing = reduceLandingMobileLifecycleState(
       {
         phase: 'CLOSING',
-        cardId: 'test-rhythm-a',
+        cardVariant: 'qmbti',
         queuedClose: false,
         snapshot: {
           cardHeightPx: 200,

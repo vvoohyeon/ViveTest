@@ -4,19 +4,19 @@ const ROW_HEIGHT_EPSILON_PX = 0.5;
 const SPACING_PRECISION_SCALE = 10000;
 
 export interface RowNaturalMeasurement {
-  cardId: string;
+  cardVariant: string;
   naturalHeight: number;
 }
 
 export interface RowNaturalGeometryMeasurement {
-  cardId: string;
+  cardVariant: string;
   contentTop: number;
   tagsBottom: number;
   appliedCompGap: number;
 }
 
 export interface RowCompensationDecision {
-  cardId: string;
+  cardVariant: string;
   naturalHeight: number;
   rowMaxNaturalHeight: number;
   needsComp: boolean;
@@ -51,7 +51,7 @@ export function deriveNaturalHeightFromGeometry(measurement: RowNaturalGeometryM
   const naturalHeight = Math.max(0, filledHeight - appliedCompGap);
 
   return {
-    cardId: measurement.cardId,
+    cardVariant: measurement.cardVariant,
     naturalHeight: roundToPrecision(naturalHeight)
   };
 }
@@ -64,7 +64,7 @@ export function buildRowCompensationModel(
   }
 
   const normalized = rowMeasurements.map((measurement) => ({
-    cardId: measurement.cardId,
+    cardVariant: measurement.cardVariant,
     naturalHeight: normalizeHeight(measurement.naturalHeight)
   }));
 
@@ -77,7 +77,7 @@ export function buildRowCompensationModel(
     const delta = rowMaxNaturalHeight - measurement.naturalHeight;
     const needsComp = delta > ROW_HEIGHT_EPSILON_PX;
     return {
-      cardId: measurement.cardId,
+      cardVariant: measurement.cardVariant,
       naturalHeight: roundToPrecision(measurement.naturalHeight),
       rowMaxNaturalHeight: roundToPrecision(rowMaxNaturalHeight),
       needsComp,

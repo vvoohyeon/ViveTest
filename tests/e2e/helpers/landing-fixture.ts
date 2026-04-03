@@ -3,16 +3,13 @@ import {normalizeAllLandingCards} from '../../../src/features/landing/data/adapt
 import {landingRawFixtures} from '../../../src/features/landing/data/raw-fixtures';
 import type {LandingCardType, LandingTestCard} from '../../../src/features/landing/data/types';
 
-export const PRIMARY_AVAILABLE_TEST_CARD_ID = 'test-qmbti';
 export const PRIMARY_AVAILABLE_TEST_VARIANT = 'qmbti';
 export const PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY =
   `vivetest-landing-ingress:${PRIMARY_AVAILABLE_TEST_VARIANT}`;
-export const PRIMARY_OPT_OUT_TEST_CARD_ID = 'test-energy-check';
 export const PRIMARY_OPT_OUT_TEST_VARIANT = 'energy-check';
 export const PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY = `vivetest-landing-ingress:${PRIMARY_OPT_OUT_TEST_VARIANT}`;
 
 export interface TestVariantInstructionFixture {
-  cardId: string;
   variant: string;
   cardType: LandingCardType;
   instruction: string;
@@ -22,8 +19,7 @@ export const TEST_VARIANT_INSTRUCTION_FIXTURES_EN: ReadonlyArray<TestVariantInst
   normalizeAllLandingCards(landingRawFixtures, 'en')
     .filter((card): card is LandingTestCard => card.type === 'test')
     .map((card) => ({
-      cardId: card.id,
-      variant: card.sourceParam,
+      variant: card.variant,
       cardType: card.cardType,
       instruction: card.test.instruction
     }));

@@ -59,12 +59,12 @@ export function validateTelemetryEvent(event: TelemetryEvent): TelemetryEvent {
   switch (event.event_type) {
     case 'card_answered':
       if (
-        !event.source_card_id.trim() ||
+        !event.source_variant.trim() ||
         !event.target_route.trim() ||
         !event.target_route.startsWith('/') ||
         event.landing_ingress_flag !== true
       ) {
-        throw new Error('card_answered requires source_card_id, target_route, and landing_ingress_flag=true.');
+        throw new Error('card_answered requires source_variant, target_route, and landing_ingress_flag=true.');
       }
       break;
     case 'attempt_start':

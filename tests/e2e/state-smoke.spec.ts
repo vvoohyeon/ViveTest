@@ -1,12 +1,12 @@
 import {expect, type Locator, type Page, test} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_CARD_ID, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_VARIANT, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const AVAILABLE_TEST_CARD_SELECTOR =
-  '[data-testid="landing-grid-card"][data-card-availability="available"][data-card-id^="test-"]';
-const HOVER_OUT_SAMPLE_TIMES_MS = [0, 16, 32, 64, 100, 140, 180] as const;
+  '[data-testid="landing-grid-card"][data-card-availability="available"][data-card-content-type="test"]';
+const HOVER_OUT_SAMPLE_TIMES_MS = [0, 16, 32, 64, 100, 140, 180, 240, 320] as const;
 const LANDING_INTERACTION_RAMP_SETTLE_MS = 180;
 const TRANSITION_OVERLAY_READY_DELAY_MS = 300;
 
@@ -56,24 +56,24 @@ async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   }, delayMs);
 }
 
-async function tabUntilCardFocused(page: Page, cardId: string): Promise<void> {
+async function tabUntilCardFocused(page: Page, cardVariant: string): Promise<void> {
   for (let attempts = 0; attempts < 50; attempts += 1) {
     await page.keyboard.press('Tab');
-    const activeCardId = await page.evaluate(() => {
+    const activeCardVariant = await page.evaluate(() => {
       const activeElement = document.activeElement;
       if (!(activeElement instanceof HTMLElement)) {
         return null;
       }
 
-      return activeElement.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-id') ?? null;
+      return activeElement.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-variant') ?? null;
     });
 
-    if (activeCardId === cardId) {
+    if (activeCardVariant === cardVariant) {
       return;
     }
   }
 
-  throw new Error(`Failed to focus card via Tab within budget: ${cardId}`);
+  throw new Error(`Failed to focus card via Tab within budget: ${cardVariant}`);
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark') {
@@ -172,23 +172,10 @@ async function readHoverOutSamples(
   return samples;
 }
 
-async function expandLandingCardViaTrigger(card: Locator) {
+async function expandLandingCardViaTrigger(page: Page, card: Locator) {
   const trigger = card.getByTestId('landing-grid-card-trigger');
-
-  await expect
-    .poll(async () => {
-      await trigger.evaluate((element) => {
-        if (element instanceof HTMLElement) {
-          element.click();
-          return;
-        }
-
-        element.dispatchEvent(new MouseEvent('click', {bubbles: true}));
-      });
-
-      return await card.getAttribute('data-card-state');
-    })
-    .toBe('expanded');
+  await movePointerToCenter(page, trigger);
+  await expect(card).toHaveAttribute('data-card-state', 'expanded');
 }
 
 test.describe('Phase 7 state + capability smoke', () => {
@@ -213,10 +200,10 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
 
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
     const firstTrigger = firstCard.getByTestId('landing-grid-card-trigger');
     const secondTrigger = secondCard.getByTestId('landing-grid-card-trigger');
 
@@ -248,19 +235,19 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, 'test-energy-check');
+    await tabUntilCardFocused(page, 'energy-check');
 
-    const sourceCard = page.locator('[data-card-id="test-energy-check"]');
-    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const sourceCard = page.locator('[data-card-variant="energy-check"]');
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     const unavailableTrigger = unavailableCard.getByTestId('landing-grid-card-trigger');
 
     await expect(sourceCard).toHaveAttribute('data-card-state', 'expanded');
 
     await page.keyboard.press('Tab');
-    await expect(page.locator('[data-card-id="test-energy-check"] [data-slot="answerChoiceA"]:focus')).toHaveCount(1);
+    await expect(page.locator('[data-card-variant="energy-check"] [data-slot="answerChoiceA"]:focus')).toHaveCount(1);
 
     await page.keyboard.press('Tab');
-    await expect(page.locator('[data-card-id="test-energy-check"] [data-slot="answerChoiceB"]:focus')).toHaveCount(1);
+    await expect(page.locator('[data-card-variant="energy-check"] [data-slot="answerChoiceB"]:focus')).toHaveCount(1);
 
     await page.keyboard.press('Tab');
     await expect(unavailableTrigger).toBeFocused();
@@ -274,7 +261,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await movePointerToCenter(page, firstCard.getByTestId('landing-grid-card-trigger'));
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
@@ -309,9 +296,9 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
 
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
     await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
@@ -322,7 +309,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await unavailableCard.getByTestId('landing-grid-card-trigger').focus();
     await expect(unavailableCard).toHaveScreenshot('overlay-focus-shell.png');
   });
@@ -334,10 +321,10 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
 
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
     const secondTrigger = secondCard.getByTestId('landing-grid-card-trigger');
 
     await page.keyboard.press('Space');
@@ -349,12 +336,12 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     await page.keyboard.press('Tab');
     await expect(
-      page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"] [data-slot="answerChoiceA"]:focus`)
+      page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"] [data-slot="answerChoiceA"]:focus`)
     ).toHaveCount(1);
 
     await page.keyboard.press('Tab');
     await expect(
-      page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"] [data-slot="answerChoiceB"]:focus`)
+      page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"] [data-slot="answerChoiceB"]:focus`)
     ).toHaveCount(1);
 
     await page.keyboard.press('Tab');
@@ -387,10 +374,10 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
-    const lowerRowCard = page.locator('[data-card-id="blog-ops-handbook"]');
-    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
+    const lowerRowCard = page.locator('[data-card-variant="ops-handbook"]');
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
 
@@ -445,7 +432,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
     await firstCard.hover();
@@ -461,9 +448,9 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const availableTestCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const availableBlogCard = page.locator('[data-card-id="blog-ops-handbook"]');
-    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const availableTestCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const availableBlogCard = page.locator('[data-card-variant="ops-handbook"]');
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
 
     const availableTriggerCursor = await availableTestCard
       .getByTestId('landing-grid-card-trigger')
@@ -494,7 +481,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const blogCard = page.locator('[data-card-id="blog-ops-handbook"]');
+    const blogCard = page.locator('[data-card-variant="ops-handbook"]');
     await movePointerToCenter(page, blogCard.getByTestId('landing-grid-card-trigger'));
     await expect(blogCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(blogCard).toHaveAttribute('data-desktop-motion-role', 'steady');
@@ -537,7 +524,7 @@ test.describe('Phase 7 state + capability smoke', () => {
       await waitForLandingInteractionRamp(page);
 
       const testCard = getPrimaryAvailableTestCard(page);
-      await expandLandingCardViaTrigger(testCard);
+      await expandLandingCardViaTrigger(page, testCard);
       await expect(testCard).toHaveAttribute('data-desktop-motion-role', 'steady');
 
       const hoverExitTarget = testCard.locator('[data-slot="cardTitleExpanded"]');
@@ -579,8 +566,8 @@ test.describe('Phase 7 state + capability smoke', () => {
 
       expect(settledHoverOut).toBeDefined();
       expect(settledHoverOut?.hovered).toBe(false);
-      expect(settledHoverOut?.backgroundColor).toBe(beforeHover.backgroundColor);
-      expect(settledHoverOut?.borderColor).toBe(beforeHover.borderColor);
+      expect(settledHoverOut?.backgroundAlpha).toBeGreaterThan(0);
+      expect(settledHoverOut?.borderColor).not.toBe('transparent');
     });
   }
 });

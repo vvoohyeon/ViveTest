@@ -13,7 +13,7 @@ export type LandingTransitionSignal =
 export interface LandingTransitionSignalDetail {
   signal: LandingTransitionSignal;
   transitionId: string;
-  sourceCardId: string;
+  sourceVariant: string;
   targetRoute: string;
   resultReason?: LandingTransitionResultReason;
 }

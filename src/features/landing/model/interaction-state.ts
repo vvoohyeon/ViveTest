@@ -20,11 +20,11 @@ export const ALLOWED_PAGE_TRANSITIONS: Record<PageState, ReadonlySet<PageState>>
 export interface LandingInteractionState {
   pageState: PageState;
   activeRampUntilMs: number | null;
-  focusedCardId: string | null;
-  expandedCardId: string | null;
+  focusedCardVariant: string | null;
+  expandedCardVariant: string | null;
   hoverLock: {
     enabled: boolean;
-    cardId: string | null;
+    cardVariant: string | null;
     keyboardMode: boolean;
   };
 }
@@ -45,52 +45,52 @@ export type LandingInteractionEvent =
       type: 'CARD_FOCUS';
       nowMs: number;
       interactionMode: 'hover' | 'tap';
-      cardId: string;
+      cardVariant: string;
       available: boolean;
     }
   | {
       type: 'CARD_ACTIVATE';
       nowMs: number;
       interactionMode: 'hover' | 'tap';
-      cardId: string;
+      cardVariant: string;
       available: boolean;
     }
   | {
       type: 'CARD_EXPAND';
       nowMs: number;
       interactionMode: 'hover' | 'tap';
-      cardId: string;
+      cardVariant: string;
       available: boolean;
     }
   | {
       type: 'CARD_COLLAPSE';
       nowMs: number;
       interactionMode: 'hover' | 'tap';
-      cardId: string | null;
+      cardVariant: string | null;
     }
   | {
       type: 'CARD_HOVER_ENTER';
       nowMs: number;
       interactionMode: 'hover' | 'tap';
-      cardId: string;
+      cardVariant: string;
       available: boolean;
     }
   | {
       type: 'CARD_HOVER_LEAVE';
       nowMs: number;
       interactionMode: 'hover' | 'tap';
-      cardId: string;
+      cardVariant: string;
     }
   | {type: 'ESCAPE'; nowMs: number};
 
 export const initialLandingInteractionState: LandingInteractionState = {
   pageState: 'ACTIVE',
   activeRampUntilMs: null,
-  focusedCardId: null,
-  expandedCardId: null,
+  focusedCardVariant: null,
+  expandedCardVariant: null,
   hoverLock: {
     enabled: false,
-    cardId: null,
+    cardVariant: null,
     keyboardMode: false
   }
 };
@@ -100,11 +100,11 @@ const INTERACTION_BLOCKING_PAGE_STATES: ReadonlySet<PageState> = new Set(['INACT
 function clearInteractionForPageState(state: LandingInteractionState): LandingInteractionState {
   return {
     ...state,
-    focusedCardId: null,
-    expandedCardId: null,
+    focusedCardVariant: null,
+    expandedCardVariant: null,
     hoverLock: {
       enabled: false,
-      cardId: null,
+      cardVariant: null,
       keyboardMode: false
     }
   };
@@ -149,7 +149,7 @@ function transitionPageState(
           hoverLock: {
             ...state.hoverLock,
             enabled: false,
-            cardId: null
+            cardVariant: null
           }
         }
       : {
@@ -167,7 +167,7 @@ function transitionPageState(
     hoverLock: {
       ...baseState.hoverLock,
       enabled: false,
-      cardId: null
+      cardVariant: null
     }
   };
 }
@@ -191,12 +191,12 @@ function isInteractionBlocked(state: LandingInteractionState): boolean {
   return state.activeRampUntilMs !== null;
 }
 
-function enableHoverLock(state: LandingInteractionState, cardId: string): LandingInteractionState {
+function enableHoverLock(state: LandingInteractionState, cardVariant: string): LandingInteractionState {
   return {
     ...state,
     hoverLock: {
       enabled: true,
-      cardId,
+      cardVariant,
       keyboardMode: state.hoverLock.keyboardMode
     }
   };
@@ -207,7 +207,7 @@ function clearHoverLock(state: LandingInteractionState): LandingInteractionState
     ...state,
     hoverLock: {
       enabled: false,
-      cardId: null,
+      cardVariant: null,
       keyboardMode: state.hoverLock.keyboardMode
     }
   };
@@ -246,7 +246,7 @@ export function reduceLandingInteractionState(
         ...settledState,
         hoverLock: {
           enabled: false,
-          cardId: null,
+          cardVariant: null,
           keyboardMode: settledState.hoverLock.keyboardMode
         }
       };
@@ -275,16 +275,16 @@ export function reduceLandingInteractionState(
         return settledState;
       }
 
-      const nextExpandedCardId =
+      const nextExpandedCardVariant =
         event.interactionMode === 'hover'
           ? event.available
-            ? event.cardId
+            ? event.cardVariant
             : null
-          : settledState.expandedCardId;
+          : settledState.expandedCardVariant;
       const focusedState: LandingInteractionState = {
         ...settledState,
-        focusedCardId: event.cardId,
-        expandedCardId: nextExpandedCardId
+        focusedCardVariant: event.cardVariant,
+        expandedCardVariant: nextExpandedCardVariant
       };
 
       if (event.interactionMode !== 'hover') {
@@ -295,29 +295,29 @@ export function reduceLandingInteractionState(
         return clearHoverLock(focusedState);
       }
 
-      return enableHoverLock(focusedState, event.cardId);
+      return enableHoverLock(focusedState, event.cardVariant);
     }
     case 'CARD_ACTIVATE': {
       if (isInteractionBlocked(settledState) || !event.available) {
         return settledState;
       }
 
-      const nextExpandedCardId = settledState.expandedCardId === event.cardId ? null : event.cardId;
+      const nextExpandedCardVariant = settledState.expandedCardVariant === event.cardVariant ? null : event.cardVariant;
       const activatedState: LandingInteractionState = {
         ...settledState,
-        focusedCardId: event.cardId,
-        expandedCardId: nextExpandedCardId
+        focusedCardVariant: event.cardVariant,
+        expandedCardVariant: nextExpandedCardVariant
       };
 
       if (event.interactionMode !== 'hover') {
         return clearHoverLock(activatedState);
       }
 
-      if (!nextExpandedCardId) {
+      if (!nextExpandedCardVariant) {
         return clearHoverLock(activatedState);
       }
 
-      return enableHoverLock(activatedState, nextExpandedCardId);
+      return enableHoverLock(activatedState, nextExpandedCardVariant);
     }
     case 'CARD_EXPAND': {
       if (isInteractionBlocked(settledState) || !event.available) {
@@ -326,24 +326,24 @@ export function reduceLandingInteractionState(
 
       const expandedState: LandingInteractionState = {
         ...settledState,
-        focusedCardId: event.cardId,
-        expandedCardId: event.cardId
+        focusedCardVariant: event.cardVariant,
+        expandedCardVariant: event.cardVariant
       };
 
       if (event.interactionMode !== 'hover') {
         return clearHoverLock(expandedState);
       }
 
-      return enableHoverLock(expandedState, event.cardId);
+      return enableHoverLock(expandedState, event.cardVariant);
     }
     case 'CARD_COLLAPSE': {
       if (isInteractionBlocked(settledState)) {
         return settledState;
       }
 
-      const nextCardId = event.cardId;
+      const nextCardVariant = event.cardVariant;
       const shouldCollapseCurrent =
-        nextCardId === null || settledState.expandedCardId === nextCardId || settledState.focusedCardId === nextCardId;
+        nextCardVariant === null || settledState.expandedCardVariant === nextCardVariant || settledState.focusedCardVariant === nextCardVariant;
 
       if (!shouldCollapseCurrent) {
         return settledState;
@@ -351,8 +351,8 @@ export function reduceLandingInteractionState(
 
       return clearHoverLock({
         ...settledState,
-        focusedCardId: settledState.focusedCardId === nextCardId || nextCardId === null ? null : settledState.focusedCardId,
-        expandedCardId: settledState.expandedCardId === nextCardId || nextCardId === null ? null : settledState.expandedCardId
+        focusedCardVariant: settledState.focusedCardVariant === nextCardVariant || nextCardVariant === null ? null : settledState.focusedCardVariant,
+        expandedCardVariant: settledState.expandedCardVariant === nextCardVariant || nextCardVariant === null ? null : settledState.expandedCardVariant
       });
     }
     case 'CARD_HOVER_ENTER': {
@@ -365,24 +365,24 @@ export function reduceLandingInteractionState(
           ...enableHoverLock(
             {
               ...settledState,
-              focusedCardId: event.cardId,
-              expandedCardId: event.cardId
+              focusedCardVariant: event.cardVariant,
+              expandedCardVariant: event.cardVariant
             },
-            event.cardId
+            event.cardVariant
           ),
           hoverLock: {
             enabled: true,
-            cardId: event.cardId,
+            cardVariant: event.cardVariant,
             keyboardMode: false
           }
         };
       }
 
       return {
-        ...enableHoverLock(settledState, event.cardId),
+        ...enableHoverLock(settledState, event.cardVariant),
         hoverLock: {
           enabled: true,
-          cardId: event.cardId,
+          cardVariant: event.cardVariant,
           keyboardMode: false
         }
       };
@@ -391,7 +391,7 @@ export function reduceLandingInteractionState(
       if (
         event.interactionMode !== 'hover' ||
         isInteractionBlocked(settledState) ||
-        settledState.hoverLock.cardId !== event.cardId ||
+        settledState.hoverLock.cardVariant !== event.cardVariant ||
         settledState.hoverLock.keyboardMode
       ) {
         return settledState;
@@ -399,8 +399,8 @@ export function reduceLandingInteractionState(
 
       return clearHoverLock({
         ...settledState,
-        expandedCardId: settledState.expandedCardId === event.cardId ? null : settledState.expandedCardId,
-        focusedCardId: settledState.focusedCardId === event.cardId ? null : settledState.focusedCardId
+        expandedCardVariant: settledState.expandedCardVariant === event.cardVariant ? null : settledState.expandedCardVariant,
+        focusedCardVariant: settledState.focusedCardVariant === event.cardVariant ? null : settledState.focusedCardVariant
       });
     }
     case 'ESCAPE':
@@ -410,27 +410,27 @@ export function reduceLandingInteractionState(
 
       return clearHoverLock({
         ...settledState,
-        focusedCardId: null,
-        expandedCardId: null
+        focusedCardVariant: null,
+        expandedCardVariant: null
       });
     default:
       return settledState;
   }
 }
 
-export function resolveCardStateForId(
+export function resolveCardStateForVariant(
   state: LandingInteractionState,
-  cardId: string
+  cardVariant: string
 ): CardState {
   if (state.pageState === 'INACTIVE' || state.pageState === 'TRANSITIONING') {
     return 'NORMAL';
   }
 
-  if (state.expandedCardId === cardId) {
+  if (state.expandedCardVariant === cardVariant) {
     return 'EXPANDED';
   }
 
-  if (state.focusedCardId === cardId) {
+  if (state.focusedCardVariant === cardVariant) {
     return 'FOCUSED';
   }
 
@@ -439,9 +439,9 @@ export function resolveCardStateForId(
 
 export function isCardPointerInteractionBlocked(
   state: LandingInteractionState,
-  cardId: string
+  cardVariant: string
 ): boolean {
-  if (!state.hoverLock.enabled || state.hoverLock.cardId === cardId) {
+  if (!state.hoverLock.enabled || state.hoverLock.cardVariant === cardVariant) {
     return false;
   }
 
@@ -450,24 +450,24 @@ export function isCardPointerInteractionBlocked(
 
 export function isCardKeyboardAriaDisabled(
   state: LandingInteractionState,
-  cardId: string
+  cardVariant: string
 ): boolean {
   if (!state.hoverLock.enabled || !state.hoverLock.keyboardMode) {
     return false;
   }
 
-  return state.hoverLock.cardId !== cardId;
+  return state.hoverLock.cardVariant !== cardVariant;
 }
 
 export function resolveCardTabIndex(
   state: LandingInteractionState,
-  cardId: string
+  cardVariant: string
 ): number {
   if (!state.hoverLock.enabled) {
     return 0;
   }
 
-  if (state.hoverLock.cardId === cardId) {
+  if (state.hoverLock.cardVariant === cardVariant) {
     return 0;
   }
 

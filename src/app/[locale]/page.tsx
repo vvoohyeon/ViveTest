@@ -4,6 +4,7 @@ import {getTranslations} from 'next-intl/server';
 import {isLocale} from '@/config/site';
 import {LandingCatalogGridLoader} from '@/features/landing/grid';
 import {LandingRuntime} from '@/features/landing/landing-runtime';
+import {loadLandingCardMediaAssetVariants} from '@/features/landing/media/manifest.server';
 import {PageShell} from '@/features/landing/shell';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
@@ -19,6 +20,7 @@ export default async function LandingPage({
   }
 
   const t = await getTranslations({locale, namespace: 'landing'});
+  const assetBackedVariants = await loadLandingCardMediaAssetVariants();
 
   return (
     <PageShell locale={locale} context="landing" currentRoute={RouteBuilder.landing()}>
@@ -28,7 +30,7 @@ export default async function LandingPage({
         <p>{t('heroBody')}</p>
       </section>
 
-      <LandingCatalogGridLoader locale={locale} />
+      <LandingCatalogGridLoader locale={locale} assetBackedVariants={assetBackedVariants} />
     </PageShell>
   );
 }

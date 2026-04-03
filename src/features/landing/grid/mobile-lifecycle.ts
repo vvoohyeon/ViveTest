@@ -12,7 +12,7 @@ export interface LandingMobileSnapshot {
 
 export interface LandingMobileLifecycleState {
   phase: LandingMobileExpandedPhase;
-  cardId: string | null;
+  cardVariant: string | null;
   queuedClose: boolean;
   snapshot: LandingMobileSnapshot | null;
   snapshotWriteCount: number;
@@ -20,7 +20,7 @@ export interface LandingMobileLifecycleState {
 }
 
 export type LandingMobileLifecycleEvent =
-  | {type: 'OPEN_START'; cardId: string; snapshot: LandingMobileSnapshot}
+  | {type: 'OPEN_START'; cardVariant: string; snapshot: LandingMobileSnapshot}
   | {type: 'OPEN_SETTLED'}
   | {type: 'QUEUE_CLOSE'}
   | {type: 'QUEUE_CLOSE_CANCEL'}
@@ -31,7 +31,7 @@ export type LandingMobileLifecycleEvent =
 
 export const initialLandingMobileLifecycleState: LandingMobileLifecycleState = {
   phase: 'NORMAL',
-  cardId: null,
+  cardVariant: null,
   queuedClose: false,
   snapshot: null,
   snapshotWriteCount: 0,
@@ -48,7 +48,7 @@ export function reduceLandingMobileLifecycleState(
         return state;
       }
 
-      if (state.phase !== 'NORMAL' && state.cardId === event.cardId && state.snapshot) {
+      if (state.phase !== 'NORMAL' && state.cardVariant === event.cardVariant && state.snapshot) {
         return {
           ...state,
           phase: 'OPENING',
@@ -59,7 +59,7 @@ export function reduceLandingMobileLifecycleState(
 
       return {
         phase: 'OPENING',
-        cardId: event.cardId,
+        cardVariant: event.cardVariant,
         queuedClose: false,
         snapshot: event.snapshot,
         snapshotWriteCount: 1,

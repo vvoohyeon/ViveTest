@@ -1,10 +1,8 @@
 import {expect, test} from '@playwright/test';
 
 import {
-  PRIMARY_AVAILABLE_TEST_CARD_ID,
-  PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY,
   PRIMARY_AVAILABLE_TEST_VARIANT,
-  PRIMARY_OPT_OUT_TEST_CARD_ID,
+  PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY,
   PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY,
   PRIMARY_OPT_OUT_TEST_VARIANT,
   TEST_VARIANT_INSTRUCTION_FIXTURES_EN,
@@ -155,7 +153,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const testCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await testCard.getByTestId('landing-grid-card-trigger').click();
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
@@ -210,10 +208,10 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(1);
     expect(transitionSignals.filter((signal) => signal.signal === 'transition_complete')).toHaveLength(1);
 
-    expect(cardAnswered?.source_card_id).toBe(PRIMARY_AVAILABLE_TEST_CARD_ID);
+    expect(cardAnswered?.source_variant).toBe(PRIMARY_AVAILABLE_TEST_VARIANT);
     expect(cardAnswered?.target_route).toBe(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     expect(cardAnswered?.landing_ingress_flag).toBe(true);
-    expect(transitionStart?.sourceCardId).toBe(PRIMARY_AVAILABLE_TEST_CARD_ID);
+    expect(transitionStart?.sourceVariant).toBe(PRIMARY_AVAILABLE_TEST_VARIANT);
     expect(transitionStart?.targetRoute).toBe(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     expect(transitionComplete?.transitionId).toBe(transitionStart?.transitionId);
     expect(attemptStart?.landing_ingress_flag).toBe(true);
@@ -290,7 +288,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const testCard = page.locator(`[data-card-id="${PRIMARY_OPT_OUT_TEST_CARD_ID}"]`);
+    const testCard = page.locator(`[data-card-variant="${PRIMARY_OPT_OUT_TEST_VARIANT}"]`);
     await testCard.getByTestId('landing-grid-card-trigger').click();
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
@@ -333,7 +331,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const testCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await testCard.getByTestId('landing-grid-card-trigger').click();
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
@@ -366,7 +364,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const blogCard = page.locator('[data-card-id="blog-ops-handbook"]');
+    const blogCard = page.locator('[data-card-variant="ops-handbook"]');
     await blogCard.getByTestId('landing-grid-card-trigger').click();
     await blogCard.locator('[data-slot="primaryCTA"]').click();
     await expect(page).toHaveURL(/\/en\/blog$/u);
@@ -395,7 +393,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 720});
     await page.goto('/en');
 
-    const blogCard = page.locator('[data-card-id="blog-build-metrics"]');
+    const blogCard = page.locator('[data-card-variant="build-metrics"]');
     const setupScrollTop = await blogCard.evaluate((element) => {
       const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
       return Math.max(0, Math.round(absoluteTop - window.innerHeight / 2 + 40));
@@ -457,7 +455,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     const restoredScroll = await page.evaluate(() => window.scrollY);
     expect(Math.round(restoredScroll)).toBeGreaterThanOrEqual(Math.max(0, Math.round(scrollBefore) - 1));
     expect(Math.abs(restoredScroll - expectedRestoredScroll)).toBeLessThanOrEqual(2);
-    const restoredSourceAnchor = await page.locator('[data-card-id="blog-build-metrics"]').evaluate((element) =>
+    const restoredSourceAnchor = await page.locator('[data-card-variant="build-metrics"]').evaluate((element) =>
       Math.max(0, Math.round(element.getBoundingClientRect().top + window.scrollY - 96))
     );
     expect(Math.abs(restoredSourceAnchor - expectedRestoredScroll)).toBeGreaterThan(40);
@@ -471,7 +469,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'mobile');
 
-    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const trigger = card.getByTestId('landing-grid-card-trigger');
     const before = await card.boundingBox();
     const beforeTitleTop = await card
@@ -515,9 +513,9 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     const activeCardElementAtPoint = await card.evaluate((element) => {
       const rect = element.getBoundingClientRect();
       const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + 32);
-      return target?.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-id') ?? null;
+      return target?.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-variant') ?? null;
     });
-    expect(activeCardElementAtPoint).toBe(PRIMARY_AVAILABLE_TEST_CARD_ID);
+    expect(activeCardElementAtPoint).toBe(PRIMARY_AVAILABLE_TEST_VARIANT);
 
     await backdrop.dispatchEvent('pointerdown', {
       pointerType: 'touch',
@@ -534,8 +532,8 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
     await expect(trigger).toHaveAttribute('data-trigger-state', 'collapsed');
     await expect
-      .poll(() => shell.getAttribute('data-mobile-restore-ready-card-id'))
-      .toBe(PRIMARY_AVAILABLE_TEST_CARD_ID);
+      .poll(() => shell.getAttribute('data-mobile-restore-ready-card-variant'))
+      .toBe(PRIMARY_AVAILABLE_TEST_VARIANT);
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
   });
 
@@ -545,7 +543,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const before = await card.boundingBox();
     const beforeTitleTop = await card
       .locator('[data-slot="cardTitle"]')
@@ -587,7 +585,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const before = await card.boundingBox();
 
     expect(before).not.toBeNull();
@@ -683,7 +681,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
-    const card = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const trigger = card.getByTestId('landing-grid-card-trigger');
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
@@ -749,8 +747,8 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
     await firstCard.getByTestId('landing-grid-card-trigger').click();
 
     const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
@@ -788,7 +786,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const card = page.locator('[data-card-id="blog-ops-handbook"]');
+    const card = page.locator('[data-card-variant="ops-handbook"]');
     await card.getByTestId('landing-grid-card-trigger').click();
 
     const expandedBody = card.locator('[data-slot="expandedBody"]');
@@ -810,7 +808,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const card = page.locator('[data-card-id="blog-ops-handbook"]');
+    const card = page.locator('[data-card-variant="ops-handbook"]');
     const rootSubtitleText = ((await card.locator('[data-slot="cardSubtitle"]').textContent()) ?? '').trim();
 
     expect(rootSubtitleText.length).toBeGreaterThan(0);
@@ -852,7 +850,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       },
       {
         transitionId: 'transition-timeout-1',
-        sourceCardId: PRIMARY_AVAILABLE_TEST_CARD_ID,
+        sourceVariant: PRIMARY_AVAILABLE_TEST_VARIANT,
         targetRoute: PRIMARY_AVAILABLE_TEST_ROUTE_EN,
         targetType: 'test',
         startedAtMs: Date.now(),
@@ -883,11 +881,11 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       },
       {
         transitionId: 'transition-load-error-1',
-        sourceCardId: 'blog-build-metrics',
+        sourceVariant: 'build-metrics',
         targetRoute: '/en/blog',
         targetType: 'blog',
-        startedAtMs: Date.now(),
-        blogArticleId: 'build-metrics'
+        variant: 'build-metrics',
+        startedAtMs: Date.now()
       }
     );
 
@@ -910,7 +908,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       },
       {
         transitionId: 'transition-user-cancel-1',
-        sourceCardId: PRIMARY_AVAILABLE_TEST_CARD_ID,
+        sourceVariant: PRIMARY_AVAILABLE_TEST_VARIANT,
         targetRoute: PRIMARY_AVAILABLE_TEST_ROUTE_EN,
         targetType: 'test',
         startedAtMs: Date.now(),

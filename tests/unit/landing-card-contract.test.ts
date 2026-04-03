@@ -17,6 +17,7 @@ function renderCardDocument({
   state,
   locale = 'en',
   interactionMode = 'tap',
+  hasAssetMedia = false,
   desktopMotionRole = 'idle',
   desktopShellPhase = 'idle'
 }: {
@@ -24,12 +25,14 @@ function renderCardDocument({
   state: LandingCardVisualState;
   locale?: AppLocale;
   interactionMode?: LandingCardInteractionMode;
+  hasAssetMedia?: boolean;
   desktopMotionRole?: LandingCardDesktopMotionRole;
   desktopShellPhase?: LandingCardDesktopShellPhase;
 }): Document {
   const html = renderToStaticMarkup(
     createElement(LandingGridCard, {
       card,
+      hasAssetMedia,
       locale,
       state,
       interactionMode,
@@ -66,10 +69,10 @@ function renderDesktopExpandedCardDocument({
 describe('landing card slot contract', () => {
   it('keeps Normal slot order as title -> thumbnail -> subtitle -> tags and preserves empty-tags container', () => {
     const catalog = createLandingCatalog('en', {audience: 'qa'});
-    const card = catalog.find((candidate) => candidate.id === 'test-debug-sample');
+    const card = catalog.find((candidate) => candidate.variant === 'debug-sample');
 
     if (!card) {
-      throw new Error('Expected fixture card test-debug-sample');
+      throw new Error('Expected fixture card debug-sample');
     }
 
     const doc = renderCardDocument({card, state: 'normal'});
@@ -88,6 +91,25 @@ describe('landing card slot contract', () => {
     expect(Number(cardElement?.getAttribute('data-base-gap') ?? '0')).toBeGreaterThan(0);
     expect(cardElement?.getAttribute('data-needs-comp')).toBe('false');
     expect(Number(cardElement?.getAttribute('data-comp-gap') ?? '1')).toBe(0);
+  });
+
+  it('resolves thumbnail media from variant assets first and falls back to generated SVG when missing', () => {
+    const catalog = createLandingCatalog('en', {audience: 'qa'});
+    const assetCard = catalog.find((candidate) => candidate.variant === 'qmbti');
+    const fallbackCard = catalog.find((candidate) => candidate.variant === 'build-metrics');
+
+    if (!assetCard || !fallbackCard) {
+      throw new Error('Expected qmbti and build-metrics fixture cards');
+    }
+
+    const assetDoc = renderCardDocument({card: assetCard, state: 'normal', hasAssetMedia: true});
+    const fallbackDoc = renderCardDocument({card: fallbackCard, state: 'normal'});
+
+    const assetSrc = assetDoc.querySelector('.landing-grid-card-thumbnail')?.getAttribute('src');
+    const fallbackSrc = fallbackDoc.querySelector('.landing-grid-card-thumbnail')?.getAttribute('src');
+
+    expect(assetSrc).toContain('/landing-card-media/qmbti/thumbnail.svg');
+    expect(fallbackSrc).toMatch(/^data:image\/svg\+xml,/u);
   });
 
   it('renders Test Expanded slots without subtitle/thumbnail/tags and keeps exactly three meta items', () => {
@@ -120,10 +142,10 @@ describe('landing card slot contract', () => {
 
   it('forces unavailable cards to stay normal even when expanded state is requested', () => {
     const catalog = createLandingCatalog('en');
-    const unavailableCard = catalog.find((candidate) => candidate.id === 'test-coming-soon-1');
+    const unavailableCard = catalog.find((candidate) => candidate.variant === 'creativity-profile');
 
     if (!unavailableCard) {
-      throw new Error('Expected test-coming-soon-1 unavailable card fixture');
+      throw new Error('Expected creativity-profile unavailable card fixture');
     }
 
     const doc = renderCardDocument({
@@ -144,10 +166,10 @@ describe('landing card slot contract', () => {
 
   it('renders Blog Expanded subtitle/meta/primaryCTA contract and formats numbers with comma separators', () => {
     const catalog = createLandingCatalog('en');
-    const card = catalog.find((candidate) => candidate.id === 'blog-ops-handbook');
+    const card = catalog.find((candidate) => candidate.variant === 'ops-handbook');
 
     if (!card || card.type !== 'blog') {
-      throw new Error('Expected blog-ops-handbook as a blog card fixture');
+      throw new Error('Expected ops-handbook as a blog card fixture');
     }
 
     const doc = renderDesktopExpandedCardDocument({card});
@@ -176,10 +198,10 @@ describe('landing card slot contract', () => {
 
   it('keeps desktop blog expanded subtitle continuity as lead + overflow === source subtitle', () => {
     const catalog = createLandingCatalog('en');
-    const card = catalog.find((candidate) => candidate.id === 'blog-ops-handbook');
+    const card = catalog.find((candidate) => candidate.variant === 'ops-handbook');
 
     if (!card || card.type !== 'blog') {
-      throw new Error('Expected blog-ops-handbook as a blog card fixture');
+      throw new Error('Expected ops-handbook as a blog card fixture');
     }
 
     const doc = renderDesktopExpandedCardDocument({card});
@@ -196,10 +218,10 @@ describe('landing card slot contract', () => {
 
   it('renders desktop expanded title continuity markers while preserving the full title text', () => {
     const catalog = createLandingCatalog('en');
-    const card = catalog.find((candidate) => candidate.id === 'test-rhythm-b');
+    const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
 
     if (!card) {
-      throw new Error('Expected test-rhythm-b as a long-title card fixture');
+      throw new Error('Expected rhythm-b as a long-title card fixture');
     }
 
     const doc = renderDesktopExpandedCardDocument({card});

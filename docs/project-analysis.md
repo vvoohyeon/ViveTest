@@ -206,7 +206,7 @@ Current fixture inventory:
 - Test card types: 2 `available`, 1 `opt_out`, 2 `unavailable`, 1 `hide`, 1 `debug`
 - Blog card types: 3 `available`
 - Publicly enterable test variant ids: `qmbti`, `rhythm-b`, `energy-check`
-- Blog article ids: `ops-handbook`, `build-metrics`, `release-gate`
+- Blog variants: `ops-handbook`, `build-metrics`, `release-gate`
 
 `src/features/landing/data/card-type.ts` now owns `cardType` normalization and the helper surface that matters to the rest of the app: `deriveAvailability()`, `isEnterableCard()`, `isCatalogVisibleCard()`, and `isUnavailablePresentation()`.
 
@@ -214,7 +214,7 @@ Current fixture inventory:
 
 The adapter still normalizes malformed copy silently (empty strings, zeroed metadata) where the long-term requirements describe blocking validation. This divergence will become critical once fixtures are replaced by a remote data source.
 
-Active e2e representative anchors now split by card type: `PRIMARY_AVAILABLE_TEST_CARD_ID` / `PRIMARY_AVAILABLE_TEST_VARIANT` (`test-qmbti` / `qmbti`) and `PRIMARY_OPT_OUT_TEST_CARD_ID` / `PRIMARY_OPT_OUT_TEST_VARIANT` (`test-energy-check` / `energy-check`). Theme-matrix screenshots still key off the available representative route.
+Active e2e representative anchors now use canonical landing variants directly: `PRIMARY_AVAILABLE_TEST_VARIANT` (`qmbti`) and `PRIMARY_OPT_OUT_TEST_VARIANT` (`energy-check`). Theme-matrix screenshots still key off the available representative route.
 
 ### 5.4 Transition Runtime
 
@@ -253,7 +253,7 @@ The important boundary is that the live route/runtime path does not import this 
 | Event | Required fields |
 |---|---|
 | `landing_view` | deduplicated by locale:route |
-| `card_answered` | `source_card_id`, `target_route`, `landing_ingress_flag=true` |
+| `card_answered` | `source_variant`, `target_route`, `landing_ingress_flag=true` |
 | `attempt_start` | `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag` |
 | `final_submit` | same as above + `final_responses` (semantic `A`/`B` codes only) |
 
@@ -326,7 +326,7 @@ Scoped to `tests/unit/`. The rerun on 2026-03-31 passed with 33 files / 135 test
 | `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (5 baselines) |
 | `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
 
-Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for the representative test-route anchors via `PRIMARY_AVAILABLE_TEST_CARD_ID` / `PRIMARY_AVAILABLE_TEST_VARIANT` and `PRIMARY_OPT_OUT_TEST_CARD_ID` / `PRIMARY_OPT_OUT_TEST_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
+Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for the representative test-route anchors via `PRIMARY_AVAILABLE_TEST_VARIANT` / `PRIMARY_AVAILABLE_TEST_VARIANT` and `PRIMARY_OPT_OUT_TEST_VARIANT` / `PRIMARY_OPT_OUT_TEST_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
 
 The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
 

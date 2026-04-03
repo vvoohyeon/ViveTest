@@ -1056,7 +1056,7 @@ skeleton으로 확보해야 할 hook 위치:
    **Landing phase 이벤트 (이번 단계 재구현 불필요, 연계 정합성 확인 의무)**:
    - `landing_view`: landing phase 발화. test flow 재발화 없음.
    - `card_answered`: ingress 경로 전용, landing phase 발화. test flow 재발화 없음.
-     `source_card_id`, `target_route`, `landing_ingress_flag(=true)` 필수 필드.
+     `source_variant`, `target_route`, `landing_ingress_flag(=true)` 필수 필드.
    - 위 두 이벤트와 `attempt_start`·`question_answered` 간의 연계 정합성은
      릴리스 블로커 #28에서 검증한다.
 

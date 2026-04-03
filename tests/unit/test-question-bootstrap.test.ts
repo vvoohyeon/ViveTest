@@ -7,13 +7,13 @@ describe('test question bootstrap state', () => {
     const bootstrap = resolveQuestionBootstrapState({
       instructionSeen: false,
       landingIngress: {
-        variant: 'rhythm-a',
+        variant: 'qmbti',
         preAnswerChoice: 'A',
         createdAtMs: 1,
         landingIngressFlag: true
       },
       pendingTransition: null,
-      variant: 'rhythm-a'
+      variant: 'qmbti'
     });
 
     expect(bootstrap.pendingTransitionToComplete).toBeNull();
@@ -27,21 +27,21 @@ describe('test question bootstrap state', () => {
     const bootstrap = resolveQuestionBootstrapState({
       instructionSeen: false,
       landingIngress: {
-        variant: 'rhythm-a',
+        variant: 'qmbti',
         preAnswerChoice: 'B',
         createdAtMs: 1,
         landingIngressFlag: true
       },
       pendingTransition: {
         transitionId: 'pending-transition',
-        sourceCardId: 'test-rhythm-a',
-        targetRoute: '/en/test/rhythm-a',
+        sourceVariant: 'qmbti',
+        targetRoute: '/en/test/qmbti',
         targetType: 'test',
         startedAtMs: 2,
-        variant: 'rhythm-a',
+        variant: 'qmbti',
         preAnswerChoice: 'B'
       },
-      variant: 'rhythm-a'
+      variant: 'qmbti'
     });
 
     expect(bootstrap.pendingTransitionToComplete).toBe('pending-transition');
@@ -56,7 +56,7 @@ describe('test question bootstrap state', () => {
       instructionSeen: true,
       landingIngress: null,
       pendingTransition: null,
-      variant: 'rhythm-a'
+      variant: 'qmbti'
     });
 
     expect(bootstrap.pendingTransitionToComplete).toBeNull();

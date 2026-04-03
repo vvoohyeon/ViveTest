@@ -23,11 +23,10 @@ const DUPLICATE_LOCALE_PATH_PATTERN = new RegExp(
 interface BeginLandingTransitionInput {
   locale: AppLocale;
   route: string;
-  sourceCardId: string;
+  sourceVariant: string;
   targetType: 'test' | 'blog';
   targetRoute: string;
-  variant?: string;
-  blogArticleId?: string;
+  variant: string;
   preAnswerChoice?: 'A' | 'B';
 }
 
@@ -35,21 +34,20 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
   const transitionId = createCorrelationId('transition');
   const pendingTransition: PendingLandingTransition = {
     transitionId,
-    sourceCardId: input.sourceCardId,
+    sourceVariant: input.sourceVariant,
     targetRoute: input.targetRoute,
     targetType: input.targetType,
     startedAtMs: Date.now(),
     variant: input.variant,
-    blogArticleId: input.blogArticleId,
     preAnswerChoice: input.preAnswerChoice
   };
 
   writePendingLandingTransition(pendingTransition);
   if (typeof window !== 'undefined') {
-    saveLandingReturnScrollY(window.scrollY, input.sourceCardId);
+    saveLandingReturnScrollY(window.scrollY, input.sourceVariant);
   }
 
-  if (input.targetType === 'test' && input.variant && input.preAnswerChoice) {
+  if (input.targetType === 'test' && input.preAnswerChoice) {
     writeLandingIngress({
       variant: input.variant,
       preAnswerChoice: input.preAnswerChoice,
@@ -60,7 +58,7 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
     trackCardAnswered({
       locale: input.locale,
       route: input.route,
-      sourceCardId: input.sourceCardId,
+      sourceVariant: input.sourceVariant,
       targetRoute: input.targetRoute
     });
   }
@@ -68,7 +66,7 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
   emitLandingTransitionSignal({
     signal: 'transition_start',
     transitionId,
-    sourceCardId: input.sourceCardId,
+    sourceVariant: input.sourceVariant,
     targetRoute: input.targetRoute
   });
 
@@ -94,7 +92,7 @@ export function completePendingLandingTransition(input: {
   emitLandingTransitionSignal({
     signal: 'transition_complete',
     transitionId: pendingTransition.transitionId,
-    sourceCardId: pendingTransition.sourceCardId,
+    sourceVariant: pendingTransition.sourceVariant,
     targetRoute: pendingTransition.targetRoute
   });
   clearPendingLandingTransition();
@@ -113,7 +111,7 @@ export function terminatePendingLandingTransition(input: {
   emitLandingTransitionSignal({
     signal: input.signal,
     transitionId: pendingTransition.transitionId,
-    sourceCardId: pendingTransition.sourceCardId,
+    sourceVariant: pendingTransition.sourceVariant,
     targetRoute: pendingTransition.targetRoute,
     resultReason: input.resultReason
   });

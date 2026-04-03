@@ -2,7 +2,7 @@ import {expect, test, type Page} from '@playwright/test';
 
 import {expectPageToBeAxeClean} from './helpers/axe';
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_CARD_ID, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_VARIANT, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 const TRANSITION_OVERLAY_READY_DELAY_MS = 300;
 
@@ -71,24 +71,24 @@ async function focusMobileMenuByKeyboard(page: Page) {
   await expect(page.getByTestId('gnb-mobile-menu-panel')).toBeVisible();
 }
 
-async function tabUntilCardFocused(page: Page, cardId: string): Promise<void> {
+async function tabUntilCardFocused(page: Page, cardVariant: string): Promise<void> {
   for (let attempts = 0; attempts < 50; attempts += 1) {
     await page.keyboard.press('Tab');
-    const activeCardId = await page.evaluate(() => {
+    const activeCardVariant = await page.evaluate(() => {
       const activeElement = document.activeElement;
       if (!(activeElement instanceof HTMLElement)) {
         return null;
       }
 
-      return activeElement.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-id') ?? null;
+      return activeElement.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-variant') ?? null;
     });
 
-    if (activeCardId === cardId) {
+    if (activeCardVariant === cardVariant) {
       return;
     }
   }
 
-  throw new Error(`Failed to focus card via Tab within budget: ${cardId}`);
+  throw new Error(`Failed to focus card via Tab within budget: ${cardVariant}`);
 }
 
 test.describe('Canonical accessibility smoke', () => {
@@ -101,7 +101,7 @@ test.describe('Canonical accessibility smoke', () => {
     await page.goto('/en');
     await expectPageToBeAxeClean(page);
 
-    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await unavailableCard.getByTestId('landing-grid-card-trigger').focus();
     await expectPageToBeAxeClean(page);
   });
@@ -129,9 +129,9 @@ test.describe('Canonical accessibility smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
     await page.keyboard.press('Space');
-    await expect(page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`)).toHaveAttribute(
+    await expect(page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`)).toHaveAttribute(
       'data-mobile-phase',
       'OPEN'
     );
@@ -148,7 +148,7 @@ test.describe('Canonical accessibility smoke', () => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
 
-    const blogCard = page.locator('[data-card-id="blog-build-metrics"]');
+    const blogCard = page.locator('[data-card-variant="build-metrics"]');
     await blogCard.getByTestId('landing-grid-card-trigger').click();
     await blogCard.locator('[data-slot="primaryCTA"]').click();
 
@@ -165,9 +165,9 @@ test.describe('Canonical accessibility smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/kr');
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
     await page.keyboard.press('Space');
-    await expect(page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`)).toHaveAttribute(
+    await expect(page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`)).toHaveAttribute(
       'data-mobile-phase',
       'OPEN'
     );

@@ -19,12 +19,18 @@ import type {
   RawTestPayload
 } from '@/features/landing/data/types';
 
-const DEFAULT_THUMBNAIL_OR_ICON = 'icon-placeholder';
 const DEFAULT_CATALOG_AUDIENCE = 'end-user';
+const LANDING_VARIANT_PATTERN = /^[a-z0-9-]+$/u;
 
 type LooseRawLandingCard = Partial<RawLandingCard> & {
-  test?: Partial<RawTestPayload>;
-  blog?: Partial<RawBlogPayload>;
+  id?: unknown;
+  thumbnailOrIcon?: unknown;
+  test?: Partial<RawTestPayload> & {
+    variant?: unknown;
+  };
+  blog?: Partial<RawBlogPayload> & {
+    articleId?: unknown;
+  };
 };
 
 export interface LandingCatalogOptions {
@@ -119,54 +125,97 @@ function resolveLocalizedTagList(
   return [];
 }
 
-function normalizeString(value: unknown, fallback: string): string {
-  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
-}
-
 function normalizeNumber(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-function normalizeType(value: unknown): LandingContentType {
-  return value === 'blog' ? 'blog' : 'test';
+function normalizeType(value: unknown, variant: string): LandingContentType {
+  if (value === 'test' || value === 'blog') {
+    return value;
+  }
+
+  throw new Error(`Landing card "${variant}" must declare type "test" or "blog".`);
+}
+
+function normalizeVariant(value: unknown, index: number): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`Landing card at index ${index} is missing required top-level variant.`);
+  }
+
+  const variant = value.trim();
+  if (!LANDING_VARIANT_PATTERN.test(variant)) {
+    throw new Error(`Landing card "${variant}" must match ${LANDING_VARIANT_PATTERN}.`);
+  }
+
+  return variant;
+}
+
+function assertNoLegacyIdentifierFields(rawCard: LooseRawLandingCard, variant: string): void {
+  if (rawCard.id !== undefined) {
+    throw new Error(`Landing card "${variant}" must not define legacy id.`);
+  }
+
+  if (rawCard.thumbnailOrIcon !== undefined) {
+    throw new Error(`Landing card "${variant}" must not define legacy thumbnailOrIcon.`);
+  }
+
+  if (rawCard.test?.variant !== undefined) {
+    throw new Error(`Landing card "${variant}" must not define nested test.variant.`);
+  }
+
+  if (rawCard.blog?.articleId !== undefined) {
+    throw new Error(`Landing card "${variant}" must not define nested blog.articleId.`);
+  }
+}
+
+function assertUniqueVariants(rawCards: ReadonlyArray<LooseRawLandingCard>): void {
+  const seenVariants = new Set<string>();
+
+  rawCards.forEach((rawCard, index) => {
+    const variant = normalizeVariant(rawCard.variant, index);
+    if (seenVariants.has(variant)) {
+      throw new Error(`Landing variant "${variant}" must be globally unique across test and blog cards.`);
+    }
+    seenVariants.add(variant);
+  });
 }
 
 export function normalizeAllLandingCards(
   rawCards: ReadonlyArray<Partial<RawLandingCard>>,
   locale: AppLocale
 ): LandingCard[] {
-  const normalizedCards: LandingCard[] = [];
+  const looseCards = rawCards.map((rawCard) => (rawCard ?? {}) as LooseRawLandingCard);
+  assertUniqueVariants(looseCards);
 
-  for (const [index, inputCard] of rawCards.entries()) {
-    const rawCard = (inputCard ?? {}) as LooseRawLandingCard;
-    const type = normalizeType(rawCard.type);
+  return looseCards.map((rawCard, index) => {
+    const variant = normalizeVariant(rawCard.variant, index);
+    assertNoLegacyIdentifierFields(rawCard, variant);
+
+    const type = normalizeType(rawCard.type, variant);
     const cardType = resolveCardType(rawCard);
     const availability = deriveAvailability(cardType);
-
-    const id = normalizeString(rawCard.id, `missing-card-${index + 1}`);
     const title = resolveLocalizedText(rawCard.title, locale);
     const subtitle = resolveLocalizedText(rawCard.subtitle, locale);
-    const thumbnailOrIcon = normalizeString(rawCard.thumbnailOrIcon, DEFAULT_THUMBNAIL_OR_ICON);
     const tags = resolveLocalizedTagList(rawCard.tags, locale);
     const isHero = rawCard.isHero === true;
     const debug = rawCard.debug === true;
     const sample = rawCard.sample === true;
 
     if (type === 'blog') {
-      const blog = rawCard.blog ?? {};
-      const sourceParam = normalizeString(blog.articleId, id);
+      if (!rawCard.blog) {
+        throw new Error(`Landing blog card "${variant}" must define blog payload.`);
+      }
 
+      const blog = rawCard.blog;
       const normalizedBlogCard: LandingBlogCard = {
-        id,
+        variant,
         type,
         cardType,
         availability,
         title,
         subtitle,
-        thumbnailOrIcon,
         tags,
         isHero,
-        sourceParam,
         debug,
         sample,
         localeResolvedText: {
@@ -182,28 +231,28 @@ export function normalizeAllLandingCards(
         }
       };
 
-      normalizedCards.push(normalizedBlogCard);
-      continue;
+      return normalizedBlogCard;
     }
 
-    const test = rawCard.test ?? {};
-    const sourceParam = normalizeString(test.variant, id);
+    if (!rawCard.test) {
+      throw new Error(`Landing test card "${variant}" must define test payload.`);
+    }
+
+    const test = rawCard.test;
     const instruction = resolveLocalizedText(test.instruction, locale);
     const previewQuestion = resolveLocalizedText(test.previewQuestion, locale);
     const answerChoiceA = resolveLocalizedText(test.answerChoiceA, locale);
     const answerChoiceB = resolveLocalizedText(test.answerChoiceB, locale);
 
     const normalizedTestCard: LandingTestCard = {
-      id,
+      variant,
       type,
       cardType,
       availability,
       title,
       subtitle,
-      thumbnailOrIcon,
       tags,
       isHero,
-      sourceParam,
       debug,
       sample,
       localeResolvedText: {
@@ -227,10 +276,8 @@ export function normalizeAllLandingCards(
       }
     };
 
-    normalizedCards.push(normalizedTestCard);
-  }
-
-  return normalizedCards;
+    return normalizedTestCard;
+  });
 }
 
 export const normalizeLandingCards = normalizeAllLandingCards;
@@ -254,7 +301,7 @@ export function createLandingCatalog(locale: AppLocale, options: LandingCatalogO
 export function findLandingTestCardByVariant(locale: AppLocale, variant: string): LandingTestCard | null {
   return (
     normalizeAllLandingCards(getLandingRawFixtures(), locale).find(
-      (card): card is LandingTestCard => card.type === 'test' && card.sourceParam === variant
+      (card): card is LandingTestCard => card.type === 'test' && card.variant === variant
     ) ?? null
   );
 }

@@ -87,7 +87,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const pathname = usePathname();
   const router = useRouter();
   const consentSnapshot = useTelemetryConsentSource();
-  const variant = card.sourceParam;
+  const variant = card.variant;
   const landingPath = useMemo(() => buildLocalizedPath(RouteBuilder.landing(), locale), [locale]);
   const questions = useMemo(() => buildLandingTestQuestionBank(card, locale), [card, locale]);
   const [runtimeState, setRuntimeState] = useState<QuestionRuntimeState>(buildInitialRuntimeState);

@@ -66,10 +66,10 @@ describe('landing transition runtime', () => {
     const pending = beginLandingTransition({
       locale: 'en',
       route: '/en',
-      sourceCardId: 'blog-build-metrics',
+      sourceVariant: 'build-metrics',
       targetType: 'blog',
       targetRoute: '/en/blog',
-      blogArticleId: 'build-metrics'
+      variant: 'build-metrics'
     });
 
     expect(pending?.transitionId).toBeTruthy();
@@ -84,7 +84,7 @@ describe('landing transition runtime', () => {
     expect(readPendingLandingTransition()).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
     expect(signals.map((signal) => signal.signal)).toEqual(['transition_start', 'transition_cancel']);
-    expect(signals[0]?.sourceCardId).toBe('blog-build-metrics');
+    expect(signals[0]?.sourceVariant).toBe('build-metrics');
     expect(signals[1]?.transitionId).toBe(signals[0]?.transitionId);
     expect(signals[1]?.resultReason).toBe('USER_CANCEL');
 
@@ -107,16 +107,16 @@ describe('landing transition runtime', () => {
     const pending = beginLandingTransition({
       locale: 'ja',
       route: '/ja',
-      sourceCardId: 'test-rhythm-a',
+      sourceVariant: 'qmbti',
       targetType: 'test',
-      targetRoute: '/ja/ja/test/rhythm-a',
-      variant: 'rhythm-a',
+      targetRoute: '/ja/ja/test/qmbti',
+      variant: 'qmbti',
       preAnswerChoice: 'A'
     });
 
     expect(pending).toBeNull();
     expect(readPendingLandingTransition()).toBeNull();
-    expect(readLandingIngress('rhythm-a')).toBeNull();
+    expect(readLandingIngress('qmbti')).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(signals.map((signal) => signal.signal)).toEqual(['transition_start', 'transition_fail']);
     expect(signals[1]?.resultReason).toBe('DUPLICATE_LOCALE');
@@ -124,8 +124,8 @@ describe('landing transition runtime', () => {
     const [cardAnsweredCall] = vi.mocked(fetch).mock.calls;
     const cardAnsweredPayload = JSON.parse(String(cardAnsweredCall?.[1]?.body ?? '{}'));
     expect(cardAnsweredPayload.event_type).toBe('card_answered');
-    expect(cardAnsweredPayload.source_card_id).toBe('test-rhythm-a');
-    expect(cardAnsweredPayload.target_route).toBe('/ja/ja/test/rhythm-a');
+    expect(cardAnsweredPayload.source_variant).toBe('qmbti');
+    expect(cardAnsweredPayload.target_route).toBe('/ja/ja/test/qmbti');
     expect(cardAnsweredPayload.landing_ingress_flag).toBe(true);
   });
 });

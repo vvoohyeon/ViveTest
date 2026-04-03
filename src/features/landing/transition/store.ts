@@ -8,12 +8,11 @@ export type LandingTransitionResultReason =
 
 export interface PendingLandingTransition {
   transitionId: string;
-  sourceCardId: string;
+  sourceVariant: string;
   targetRoute: string;
   targetType: 'test' | 'blog';
   startedAtMs: number;
-  variant?: string;
-  blogArticleId?: string;
+  variant: string;
   preAnswerChoice?: 'A' | 'B';
 }
 
@@ -29,7 +28,7 @@ export const LANDING_TRANSITION_CLEANUP_EVENT = 'landing:transition-cleanup';
 
 const PENDING_TRANSITION_KEY = 'vivetest-landing-pending-transition';
 const RETURN_SCROLL_Y_KEY = 'vivetest-landing-return-scroll-y';
-const RETURN_SCROLL_CARD_ID_KEY = 'vivetest-landing-return-card-id';
+const RETURN_SCROLL_VARIANT_KEY = 'vivetest-landing-return-variant';
 const INSTRUCTION_SEEN_PREFIX = 'vivetest-test-instruction-seen:';
 const LANDING_INGRESS_PREFIX = 'vivetest-landing-ingress:';
 
@@ -149,22 +148,22 @@ export function hasSeenInstruction(variant: string): boolean {
   return storage?.getItem(`${INSTRUCTION_SEEN_PREFIX}${variant}`) === 'true';
 }
 
-export function saveLandingReturnScrollY(scrollY: number, sourceCardId?: string): void {
+export function saveLandingReturnScrollY(scrollY: number, sourceVariant?: string): void {
   const storage = getSessionStorage();
   if (!storage) {
     return;
   }
 
   storage.setItem(RETURN_SCROLL_Y_KEY, String(Math.max(0, Math.trunc(scrollY))));
-  if (sourceCardId) {
-    storage.setItem(RETURN_SCROLL_CARD_ID_KEY, sourceCardId);
+  if (sourceVariant) {
+    storage.setItem(RETURN_SCROLL_VARIANT_KEY, sourceVariant);
   } else {
-    storage.removeItem(RETURN_SCROLL_CARD_ID_KEY);
+    storage.removeItem(RETURN_SCROLL_VARIANT_KEY);
   }
 
   dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
     key: RETURN_SCROLL_Y_KEY,
-    sourceCardId: sourceCardId ?? null
+    sourceVariant: sourceVariant ?? null
   });
 }
 
@@ -189,18 +188,18 @@ export function consumeLandingReturnScrollY(): number | null {
   return value;
 }
 
-export function readLandingReturnCardId(): string | null {
+export function readLandingReturnVariant(): string | null {
   const storage = getSessionStorage();
   if (!storage) {
     return null;
   }
 
-  const value = storage.getItem(RETURN_SCROLL_CARD_ID_KEY);
+  const value = storage.getItem(RETURN_SCROLL_VARIANT_KEY);
   return value && value.trim().length > 0 ? value : null;
 }
 
-export function consumeLandingReturnCardId(): string | null {
-  const value = readLandingReturnCardId();
+export function consumeLandingReturnVariant(): string | null {
+  const value = readLandingReturnVariant();
   clearLandingReturnScroll();
   return value;
 }
@@ -212,10 +211,10 @@ export function clearLandingReturnScroll(): void {
   }
 
   storage.removeItem(RETURN_SCROLL_Y_KEY);
-  storage.removeItem(RETURN_SCROLL_CARD_ID_KEY);
+  storage.removeItem(RETURN_SCROLL_VARIANT_KEY);
   dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
     key: RETURN_SCROLL_Y_KEY,
-    sourceCardId: null
+    sourceVariant: null
   });
 }
 

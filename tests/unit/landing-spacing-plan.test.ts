@@ -5,13 +5,13 @@ import {buildRowCompensationModel, deriveNaturalHeightFromGeometry} from '../../
 describe('landing row compensation model', () => {
   it('derives natural height from geometry while neutralizing applied comp gap', () => {
     const beforeComp = deriveNaturalHeightFromGeometry({
-      cardId: 'card-a',
+      cardVariant: 'card-a',
       contentTop: 120,
       tagsBottom: 290,
       appliedCompGap: 0
     });
     const afterComp = deriveNaturalHeightFromGeometry({
-      cardId: 'card-a',
+      cardVariant: 'card-a',
       contentTop: 120,
       tagsBottom: 314,
       appliedCompGap: 24
@@ -23,7 +23,7 @@ describe('landing row compensation model', () => {
 
   it('supports viewport-relative coordinates that can be negative while preserving geometry distance', () => {
     const measurement = deriveNaturalHeightFromGeometry({
-      cardId: 'card-b',
+      cardVariant: 'card-b',
       contentTop: -40,
       tagsBottom: 82,
       appliedCompGap: 10
@@ -34,12 +34,12 @@ describe('landing row compensation model', () => {
 
   it('applies comp gap only to cards shorter than row max natural height', () => {
     const model = buildRowCompensationModel([
-      {cardId: 'a', naturalHeight: 200},
-      {cardId: 'b', naturalHeight: 176},
-      {cardId: 'c', naturalHeight: 200}
+      {cardVariant: 'a', naturalHeight: 200},
+      {cardVariant: 'b', naturalHeight: 176},
+      {cardVariant: 'c', naturalHeight: 200}
     ]);
 
-    const byId = new Map(model.map((entry) => [entry.cardId, entry]));
+    const byId = new Map(model.map((entry) => [entry.cardVariant, entry]));
 
     expect(byId.get('a')?.needsComp).toBe(false);
     expect(byId.get('a')?.compGap).toBe(0);
@@ -53,8 +53,8 @@ describe('landing row compensation model', () => {
 
   it('keeps comp gap at zero for equal natural heights', () => {
     const model = buildRowCompensationModel([
-      {cardId: 'r1-a', naturalHeight: 188},
-      {cardId: 'r1-b', naturalHeight: 188}
+      {cardVariant: 'r1-a', naturalHeight: 188},
+      {cardVariant: 'r1-b', naturalHeight: 188}
     ]);
 
     for (const entry of model) {
@@ -66,12 +66,12 @@ describe('landing row compensation model', () => {
 
   it('uses the same row-local decision rule regardless of row index context', () => {
     const rowOneLike = buildRowCompensationModel([
-      {cardId: 'x1', naturalHeight: 210},
-      {cardId: 'x2', naturalHeight: 198}
+      {cardVariant: 'x1', naturalHeight: 210},
+      {cardVariant: 'x2', naturalHeight: 198}
     ]);
     const rowTwoLike = buildRowCompensationModel([
-      {cardId: 'y1', naturalHeight: 210},
-      {cardId: 'y2', naturalHeight: 198}
+      {cardVariant: 'y1', naturalHeight: 210},
+      {cardVariant: 'y2', naturalHeight: 198}
     ]);
 
     expect(rowOneLike[0].needsComp).toBe(rowTwoLike[0].needsComp);

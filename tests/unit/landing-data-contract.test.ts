@@ -34,10 +34,10 @@ describe('landing fixture and adapter contract', () => {
   it('normalizes localized Korean text and tags while blocking unavailable blog cards', () => {
     const catalogKr = createLandingCatalog('kr');
 
-    const qmbtiTest = catalogKr.find((card) => card.id === 'test-qmbti');
+    const qmbtiTest = catalogKr.find((card) => card.variant === 'qmbti');
     expect(qmbtiTest?.type).toBe('test');
     if (!qmbtiTest || qmbtiTest.type !== 'test') {
-      throw new Error('Expected test-qmbti to be present as a test card');
+      throw new Error('Expected qmbti to be present as a test card');
     }
 
     expect(qmbtiTest.title).toBe('10분컷 MBTI');
@@ -46,10 +46,10 @@ describe('landing fixture and adapter contract', () => {
     expect(qmbtiTest.test.instruction).toBe('더미 안내문: QMBTI는 본 문항에 들어가기 전에 작업 리듬 성향을 짧게 점검하는 테스트입니다.');
     expect(qmbtiTest.test.previewQuestion).toBe('🎉 파티나 생일잔치에 가면 나는');
 
-    const opsHandbookBlog = catalogKr.find((card) => card.id === 'blog-ops-handbook');
+    const opsHandbookBlog = catalogKr.find((card) => card.variant === 'ops-handbook');
     expect(opsHandbookBlog?.type).toBe('blog');
     if (!opsHandbookBlog || opsHandbookBlog.type !== 'blog') {
-      throw new Error('Expected blog-ops-handbook to be present as a blog card');
+      throw new Error('Expected ops-handbook to be present as a blog card');
     }
 
     expect(opsHandbookBlog.title).toBe('안정적인 배포를 위한 운영 핸드북');
@@ -63,7 +63,7 @@ describe('landing fixture and adapter contract', () => {
   it('falls back to default-locale and default values for Japanese requests without localized text and tags', () => {
     const fallbackInput: Array<Partial<RawLandingCard>> = [
       {
-        id: 'fallback-test',
+        variant: 'fallback-variant',
         type: 'test',
         availability: 'available',
         title: {
@@ -72,12 +72,10 @@ describe('landing fixture and adapter contract', () => {
         subtitle: {
           default: 'Default subtitle'
         },
-        thumbnailOrIcon: 'icon-fallback',
         tags: {
           en: ['fallback-tag']
         },
         test: {
-          variant: 'fallback-variant',
           instruction: {
             en: 'English fallback instruction'
           },
@@ -119,86 +117,75 @@ describe('landing fixture and adapter contract', () => {
     const endUserCatalog = createLandingCatalog('en');
     const qaCatalog = createLandingCatalog('en', {audience: 'qa'});
 
-    expect(endUserCatalog.some((card) => card.id === 'test-debug-sample')).toBe(false);
-    expect(endUserCatalog.some((card) => card.id === 'test-hidden-beta')).toBe(false);
-    expect(qaCatalog.some((card) => card.id === 'test-debug-sample')).toBe(true);
-    expect(qaCatalog.some((card) => card.id === 'test-hidden-beta')).toBe(true);
+    expect(endUserCatalog.some((card) => card.variant === 'debug-sample')).toBe(false);
+    expect(endUserCatalog.some((card) => card.variant === 'hidden-beta')).toBe(false);
+    expect(qaCatalog.some((card) => card.variant === 'debug-sample')).toBe(true);
+    expect(qaCatalog.some((card) => card.variant === 'hidden-beta')).toBe(true);
   });
 
   it('filters available cards immediately when consent switches to OPTED_OUT while keeping opt_out and unavailable cards', () => {
     const optedOutCatalog = createLandingCatalog('en', {consentState: 'OPTED_OUT'});
 
-    expect(optedOutCatalog.some((card) => card.id === 'test-qmbti')).toBe(false);
-    expect(optedOutCatalog.some((card) => card.id === 'blog-ops-handbook')).toBe(false);
-    expect(optedOutCatalog.some((card) => card.id === 'test-energy-check')).toBe(true);
-    expect(optedOutCatalog.some((card) => card.id === 'test-coming-soon-1')).toBe(true);
+    expect(optedOutCatalog.some((card) => card.variant === 'qmbti')).toBe(false);
+    expect(optedOutCatalog.some((card) => card.variant === 'ops-handbook')).toBe(false);
+    expect(optedOutCatalog.some((card) => card.variant === 'energy-check')).toBe(true);
+    expect(optedOutCatalog.some((card) => card.variant === 'creativity-profile')).toBe(true);
   });
 
-  it('inserts defaults for missing required slots instead of throwing', () => {
+  it('fails closed when legacy or invalid identifier fields are present', () => {
     const malformed: Array<Partial<RawLandingCard>> = [
       {
-        id: 'broken-test',
+        variant: '',
         type: 'test',
         availability: 'available',
         tags: [''],
         test: {
-          variant: ''
+          instruction: {en: 'legacy'},
+          previewQuestion: {en: 'legacy'},
+          answerChoiceA: {en: 'A'},
+          answerChoiceB: {en: 'B'},
+          meta: {
+            estimatedMinutes: 1,
+            shares: 1,
+            attempts: 1
+          }
         }
       } as unknown as Partial<RawLandingCard>,
       {
-        id: 'legacy-unavailable-test',
+        variant: 'legacy-unavailable',
         type: 'test',
         unavailable: true,
+        id: 'legacy-unavailable-test',
         test: {
-          variant: 'legacy-unavailable'
+          instruction: {en: 'legacy'},
+          previewQuestion: {en: 'legacy'},
+          answerChoiceA: {en: 'A'},
+          answerChoiceB: {en: 'B'},
+          meta: {
+            estimatedMinutes: 1,
+            shares: 1,
+            attempts: 1
+          }
         }
       } as unknown as Partial<RawLandingCard>,
       {
-        id: 'broken-blog',
+        variant: 'broken-blog',
         type: 'blog',
-        availability: 'unavailable'
+        availability: 'unavailable',
+        blog: {
+          articleId: 'legacy-blog-id'
+        }
       } as unknown as Partial<RawLandingCard>
     ];
 
-    expect(() => normalizeAllLandingCards(malformed, 'en')).not.toThrow();
-
-    const normalized = normalizeAllLandingCards(malformed, 'en');
-    expect(normalized).toHaveLength(3);
-
-    const onlyCard = normalized[0];
-    expect(onlyCard.type).toBe('test');
-    expect(onlyCard.cardType).toBe('available');
-    expect(onlyCard.title).toBe('');
-    expect(onlyCard.subtitle).toBe('');
-    expect(onlyCard.thumbnailOrIcon).toBe('icon-placeholder');
-    expect(onlyCard.tags).toEqual([]);
-    expect(onlyCard.sourceParam).toBe('broken-test');
-
-    if (onlyCard.type !== 'test') {
-      throw new Error('Expected normalized card to be a test card');
-    }
-
-    expect(onlyCard.test.previewQuestion).toBe('');
-    expect(onlyCard.test.instruction).toBe('');
-    expect(onlyCard.test.answerChoiceA).toBe('');
-    expect(onlyCard.test.answerChoiceB).toBe('');
-    expect(onlyCard.test.meta).toEqual({
-      estimatedMinutes: 0,
-      shares: 0,
-      attempts: 0
-    });
-
-    const legacyUnavailableCard = normalized[1];
-    expect(legacyUnavailableCard.type).toBe('test');
-    expect(legacyUnavailableCard.cardType).toBe('unavailable');
-    expect(legacyUnavailableCard.availability).toBe('unavailable');
+    expect(() => normalizeAllLandingCards(malformed, 'en')).toThrow();
   });
 
   it('uses strict variant lookup without generating fallback test cards', () => {
     const matchingCard = findLandingTestCardByVariant('ja', 'qmbti');
     const missingCard = findLandingTestCardByVariant('en', 'missing-variant');
 
-    expect(matchingCard?.id).toBe('test-qmbti');
+    expect(matchingCard?.variant).toBe('qmbti');
     expect(missingCard).toBeNull();
   });
 
@@ -212,10 +199,10 @@ describe('landing fixture and adapter contract', () => {
   });
 
   it('renders blog CTA text from copy even if a legacy fixture CTA leaks in', () => {
-    const blogCard = createLandingCatalog('kr').find((card) => card.id === 'blog-release-gate');
+    const blogCard = createLandingCatalog('kr').find((card) => card.variant === 'release-gate');
 
     if (!blogCard || blogCard.type !== 'blog') {
-      throw new Error('Expected blog-release-gate as a blog card fixture');
+      throw new Error('Expected release-gate as a blog card fixture');
     }
 
     const legacyCard = {

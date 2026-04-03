@@ -11,7 +11,7 @@ describe('landing baseline manager', () => {
   it('assertion:B11-baseline-freeze freezes row snapshots for the active card', () => {
     const frozen = freezeBaselineRows({
       state: initialLandingBaselineState,
-      activeCardId: 'test-rhythm-a',
+      activeCardVariant: 'qmbti',
       snapshots: [
         {
           rowId: 'row-0',
@@ -23,7 +23,7 @@ describe('landing baseline manager', () => {
     });
 
     expect(frozen.phase).toBe('BASELINE_FROZEN');
-    expect(frozen.activeCardId).toBe('test-rhythm-a');
+    expect(frozen.activeCardVariant).toBe('qmbti');
     expect(frozen.frozenRows).toEqual(['row-0']);
     expect(frozen.snapshots.get('row-0')?.height).toBe(200);
   });
@@ -31,7 +31,7 @@ describe('landing baseline manager', () => {
   it('marks frozen baselines as restore-pending and releases them back to ready', () => {
     const frozen = freezeBaselineRows({
       state: initialLandingBaselineState,
-      activeCardId: 'test-rhythm-a',
+      activeCardVariant: 'qmbti',
       snapshots: [
         {
           rowId: 'row-1',

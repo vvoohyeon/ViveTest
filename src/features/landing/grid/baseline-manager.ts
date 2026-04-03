@@ -9,21 +9,21 @@ export interface BaselineSnapshot {
 
 export interface LandingBaselineState {
   phase: BaselinePhase;
-  activeCardId: string | null;
+  activeCardVariant: string | null;
   frozenRows: readonly string[];
   snapshots: ReadonlyMap<string, BaselineSnapshot>;
 }
 
 export const initialLandingBaselineState: LandingBaselineState = {
   phase: 'BASELINE_READY',
-  activeCardId: null,
+  activeCardVariant: null,
   frozenRows: [],
   snapshots: new Map()
 };
 
 export function freezeBaselineRows(input: {
   state: LandingBaselineState;
-  activeCardId: string;
+  activeCardVariant: string;
   snapshots: readonly BaselineSnapshot[];
 }): LandingBaselineState {
   const snapshotMap = new Map<string, BaselineSnapshot>();
@@ -33,7 +33,7 @@ export function freezeBaselineRows(input: {
 
   return {
     phase: 'BASELINE_FROZEN',
-    activeCardId: input.activeCardId,
+    activeCardVariant: input.activeCardVariant,
     frozenRows: input.snapshots.map((snapshot) => snapshot.rowId),
     snapshots: snapshotMap
   };

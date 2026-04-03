@@ -23,13 +23,13 @@ export type TransitionTerminalResult = (typeof transitionTerminalResults)[number
 export interface TransitionCorrelation {
   signal: 'transition_start' | 'transition_complete' | 'transition_fail' | 'transition_cancel';
   transitionId: string;
-  sourceCardId: string;
+  sourceVariant: string;
   targetRoute: string;
   resultReason?: string;
 }
 
 export interface HoverLockState {
   enabled: boolean;
-  cardId: string | null;
+  cardVariant: string | null;
   keyboardMode: boolean;
 }

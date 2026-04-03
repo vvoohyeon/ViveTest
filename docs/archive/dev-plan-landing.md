@@ -280,7 +280,7 @@
 - transition correlation(`start=1`, terminal=1) 규칙은 내부 시스템 로직으로만 유지.
 - `result_reason` enum은 내부 시스템 신호 전용. 텔레메트리 payload 불포함.
 - 필수 공통 필드: `event_id`, `session_id`, `ts_ms`, `locale`, `route`, `consent_state`.
-- `card_answered` 추가 필수 필드: `source_card_id`, `target_route`, `landing_ingress_flag(=true)`.
+- `card_answered` 추가 필수 필드: `source_variant`, `target_route`, `landing_ingress_flag(=true)`.
 - `attempt_start` 추가 필수 필드: `landing_ingress_flag`, `question_index_1based`.
 - payload 금지: 원문 질문/답변, 자유입력 텍스트, PII/지문성 식별자.
 - `final_submit` 필수: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`.

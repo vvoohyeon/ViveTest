@@ -74,6 +74,7 @@ export interface LandingCardCopy {
 
 interface LandingGridCardProps {
   card: LandingCard;
+  hasAssetMedia?: boolean;
   locale: AppLocale;
   state?: LandingCardVisualState;
   interactionMode?: LandingCardInteractionMode;
@@ -152,21 +153,25 @@ function formatMetaValue(value: number): string {
   return metaValueFormatter.format(Math.max(0, Math.trunc(value)));
 }
 
-function createThumbnailDataUri(token: string): string {
-  const safeToken = token.replace(/[^a-z0-9-]/gi, '').slice(0, 12).toUpperCase() || 'CARD';
+function createThumbnailFallbackDataUri(variant: string): string {
+  const safeToken = variant.replace(/[^a-z0-9-]/gi, '').slice(0, 12).toUpperCase() || 'CARD';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 100" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3B6EF5"/><stop offset="100%" stop-color="#17A789"/></linearGradient></defs><rect width="600" height="100" fill="url(#g)"/><text x="24" y="62" font-size="36" font-family="Avenir Next, Noto Sans KR, Segoe UI, sans-serif" fill="rgba(255,255,255,0.85)">${safeToken}</text></svg>`;
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-function resolveThumbnailDataUri(token: string): string {
-  const cacheKey = token.trim();
+function resolveVariantMediaSource(variant: string, hasAssetMedia: boolean): string {
+  if (hasAssetMedia) {
+    return `/landing-card-media/${variant}/thumbnail.svg`;
+  }
+
+  const cacheKey = variant.trim();
   const cached = thumbnailDataUriCache.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const dataUri = createThumbnailDataUri(cacheKey);
+  const dataUri = createThumbnailFallbackDataUri(cacheKey);
   thumbnailDataUriCache.set(cacheKey, dataUri);
   return dataUri;
 }
@@ -185,6 +190,7 @@ function resolveTransformOriginClassName(originX: '0%' | '50%' | '100%'): string
 
 interface NormalContentSlotsProps {
   card: LandingCard;
+  hasAssetMedia: boolean;
   includeSlotAttributes: boolean;
   subtitleRef?: RefObject<HTMLParagraphElement | null>;
 }
@@ -214,7 +220,7 @@ function LandingCardSubtitleText({
   );
 }
 
-function NormalContentSlots({card, includeSlotAttributes, subtitleRef}: NormalContentSlotsProps) {
+function NormalContentSlots({card, hasAssetMedia, includeSlotAttributes, subtitleRef}: NormalContentSlotsProps) {
   return (
     <>
       <div
@@ -224,7 +230,7 @@ function NormalContentSlots({card, includeSlotAttributes, subtitleRef}: NormalCo
       >
         <Image
           className="landing-grid-card-thumbnail"
-          src={resolveThumbnailDataUri(card.thumbnailOrIcon)}
+          src={resolveVariantMediaSource(card.variant, hasAssetMedia)}
           alt=""
           fill
           sizes="100vw"
@@ -248,7 +254,7 @@ function NormalContentSlots({card, includeSlotAttributes, subtitleRef}: NormalCo
         aria-label="Card tags"
       >
         {card.tags.map((tag) => (
-          <li key={`${card.id}-${tag}`} className="landing-grid-card-tag-item">
+          <li key={`${card.variant}-${tag}`} className="landing-grid-card-tag-item">
             <span className="landing-grid-card-tag-chip">{tag}</span>
           </li>
         ))}
@@ -454,6 +460,7 @@ function DesktopExpandedTitle({line1Text, overflowText}: DesktopExpandedTitlePro
 
 export function LandingGridCard({
   card,
+  hasAssetMedia = false,
   locale,
   state = 'normal',
   interactionMode = 'tap',
@@ -526,7 +533,7 @@ export function LandingGridCard({
     <div
       className={`landing-grid-card ${transformOriginClassName}`}
       data-testid="landing-grid-card"
-      data-card-id={card.id}
+      data-card-variant={card.variant}
       data-card-seq={typeof sequence === 'number' ? sequence : undefined}
       data-card-type={card.cardType}
       data-card-content-type={card.type}
@@ -606,12 +613,22 @@ export function LandingGridCard({
           )}
 
           {isExpanded ? null : (
-            <NormalContentSlots card={card} includeSlotAttributes subtitleRef={normalSubtitleRef} />
+            <NormalContentSlots
+              card={card}
+              hasAssetMedia={hasAssetMedia}
+              includeSlotAttributes
+              subtitleRef={normalSubtitleRef}
+            />
           )}
 
           {isDesktopExpanded ? (
             <div className="landing-grid-card-shell-ghost" aria-hidden="true">
-              <NormalContentSlots card={card} includeSlotAttributes={false} subtitleRef={normalSubtitleRef} />
+              <NormalContentSlots
+                card={card}
+                hasAssetMedia={hasAssetMedia}
+                includeSlotAttributes={false}
+                subtitleRef={normalSubtitleRef}
+              />
             </div>
           ) : null}
         </div>

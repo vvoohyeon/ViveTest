@@ -8,7 +8,7 @@ import {
   type LandingGridColumnMode
 } from '../../src/features/landing/grid/layout-plan';
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_CARD_ID, PRIMARY_OPT_OUT_TEST_CARD_ID} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_VARIANT, PRIMARY_OPT_OUT_TEST_VARIANT} from './helpers/landing-fixture';
 
 const COLUMN_MODE_ORDER: Record<LandingGridColumnMode, number> = {
   'desktop-wide': 0,
@@ -434,7 +434,7 @@ test.describe('Phase 4 grid smoke', () => {
 
       await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-column-mode', scenario.columnMode);
 
-      const card = page.locator('[data-card-id="test-rhythm-b"]');
+      const card = page.locator('[data-card-variant="rhythm-b"]');
       const normalTitle = card.locator('.landing-grid-card-content > [data-slot="cardTitle"]');
       const normalClamp = await normalTitle.evaluate((element) =>
         getComputedStyle(element).getPropertyValue('-webkit-line-clamp').trim()
@@ -502,7 +502,7 @@ test.describe('Phase 4 grid smoke', () => {
 
       await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-column-mode', scenario.columnMode);
 
-      const card = page.locator('[data-card-id="blog-ops-handbook"]');
+      const card = page.locator('[data-card-variant="ops-handbook"]');
       const normalSubtitle = card.locator('[data-slot="cardSubtitle"]');
       const normalClamp = await normalSubtitle.evaluate((element) =>
         getComputedStyle(element).getPropertyValue('-webkit-line-clamp').trim()
@@ -554,8 +554,8 @@ test.describe('Phase 4 grid smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const shortCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const longCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const shortCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const longCard = page.locator('[data-card-variant="rhythm-b"]');
     await expect(shortCard).toHaveCount(1);
     await expect(longCard).toHaveCount(1);
 
@@ -592,29 +592,29 @@ test.describe('Phase 4 grid smoke', () => {
         viewport: {width: 1440, height: 980},
         columnMode: 'desktop-wide' as const,
         cards: [
-          {id: 'test-rhythm-b', targetRatio: 1.04, anchor: 'center' as const},
-          {id: 'blog-ops-handbook', targetRatio: 1.1, anchor: 'center' as const},
-          {id: 'blog-build-metrics', targetRatio: 1.1, anchor: 'end' as const},
-          {id: 'blog-release-gate', targetRatio: 1.1, anchor: 'start' as const}
+          {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'center' as const},
+          {variant: 'ops-handbook', targetRatio: 1.1, anchor: 'center' as const},
+          {variant: 'build-metrics', targetRatio: 1.1, anchor: 'end' as const},
+          {variant: 'release-gate', targetRatio: 1.1, anchor: 'start' as const}
         ]
       },
       {
         viewport: {width: 1180, height: 980},
         columnMode: 'desktop-medium' as const,
         cards: [
-          {id: 'test-rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
-          {id: 'blog-ops-handbook', targetRatio: 1.1, anchor: 'start' as const},
-          {id: 'blog-build-metrics', targetRatio: 1.1, anchor: 'center' as const},
-          {id: 'blog-release-gate', targetRatio: 1.1, anchor: 'end' as const}
+          {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
+          {variant: 'ops-handbook', targetRatio: 1.1, anchor: 'start' as const},
+          {variant: 'build-metrics', targetRatio: 1.1, anchor: 'center' as const},
+          {variant: 'release-gate', targetRatio: 1.1, anchor: 'end' as const}
         ]
       },
       {
         viewport: {width: 1024, height: 980},
         columnMode: 'two-column' as const,
         cards: [
-          {id: 'test-rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
-          {id: 'blog-build-metrics', targetRatio: 1.04, anchor: 'start' as const},
-          {id: 'blog-release-gate', targetRatio: 1.04, anchor: 'end' as const}
+          {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
+          {variant: 'build-metrics', targetRatio: 1.04, anchor: 'start' as const},
+          {variant: 'release-gate', targetRatio: 1.04, anchor: 'end' as const}
         ]
       }
     ];
@@ -628,14 +628,14 @@ test.describe('Phase 4 grid smoke', () => {
 
       const measurements: Array<
         Awaited<ReturnType<typeof readExpandedWidthContract>> & {
-          id: string;
+          variant: string;
           targetRatio: number;
           anchor: 'start' | 'center' | 'end';
         }
       > = [];
 
       for (const cardSpec of scenario.cards) {
-        const card = page.locator(`[data-card-id="${cardSpec.id}"]`);
+        const card = page.locator(`[data-card-variant="${cardSpec.variant}"]`);
         await hoverDesktopExpandedCard(card);
         const measurement = await readExpandedWidthContract(card);
         measurements.push({...measurement, ...cardSpec});
@@ -713,7 +713,7 @@ test.describe('Phase 4 grid smoke', () => {
           const tagsRect = tags.getBoundingClientRect();
 
           return {
-            id: cardElement.getAttribute('data-card-id') ?? '',
+            id: cardElement.getAttribute('data-card-variant') ?? '',
             cardBottom: cardRect.bottom,
             contentTop: contentRect.top,
             contentBottom: contentRect.bottom,
@@ -772,9 +772,10 @@ test.describe('Phase 4 grid smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    await expect(page.locator('[data-card-id="test-debug-sample"]')).toHaveCount(0);
+    await expect(page.locator('[data-card-variant="debug-sample"]')).toHaveCount(0);
 
-    const emptyTagsCard = page.locator('[data-card-id="blog-build-metrics"]');
+    const assetBackedCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const emptyTagsCard = page.locator('[data-card-variant="build-metrics"]');
     await expect(emptyTagsCard).toHaveAttribute('data-card-state', 'normal');
 
     const orderedSlots = await emptyTagsCard.evaluate((element) => {
@@ -802,7 +803,12 @@ test.describe('Phase 4 grid smoke', () => {
     expect(thumbnailRatio).toBeGreaterThan(5.5);
     expect(thumbnailRatio).toBeLessThan(6.5);
 
-    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const assetThumbnailSrc = await assetBackedCard.locator('.landing-grid-card-thumbnail').getAttribute('src');
+    const fallbackThumbnailSrc = await emptyTagsCard.locator('.landing-grid-card-thumbnail').getAttribute('src');
+    expect(assetThumbnailSrc).toContain(`/landing-card-media/${PRIMARY_AVAILABLE_TEST_VARIANT}/thumbnail.svg`);
+    expect(fallbackThumbnailSrc).toMatch(/^data:image\/svg\+xml,/u);
+
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await expect(unavailableCard).toHaveAttribute('data-card-availability', 'unavailable');
     await expect(unavailableCard).toHaveAttribute('data-interaction-mode', 'hover');
     await expect(unavailableCard.locator('[data-slot="unavailableOverlay"]')).toHaveCount(1);
@@ -846,7 +852,7 @@ test.describe('Phase 4 grid smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await expect(unavailableCard).toHaveAttribute('data-interaction-mode', 'tap');
     const overlay = unavailableCard.locator('[data-slot="unavailableOverlay"]');
     const opacity = parseFloat(
@@ -862,8 +868,8 @@ test.describe('Phase 4 grid smoke', () => {
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
-    const sourceCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const siblingCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const sourceCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const siblingCard = page.locator('[data-card-variant="rhythm-b"]');
     const before = await siblingCard.boundingBox();
 
     expect(before).not.toBeNull();
@@ -888,8 +894,8 @@ test.describe('Phase 4 grid smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const sourceCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const siblingCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const sourceCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const siblingCard = page.locator('[data-card-variant="rhythm-b"]');
     const beforeSibling = await siblingCard.boundingBox();
 
     expect(beforeSibling).not.toBeNull();
@@ -919,10 +925,10 @@ test.describe('Phase 4 grid smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
-    const optOutCard = page.locator(`[data-card-id="${PRIMARY_OPT_OUT_TEST_CARD_ID}"]`);
-    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
+    const optOutCard = page.locator(`[data-card-variant="${PRIMARY_OPT_OUT_TEST_VARIANT}"]`);
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
 
     await expect(firstCard).toHaveCount(1);
     await expect(optOutCard).toHaveCount(1);

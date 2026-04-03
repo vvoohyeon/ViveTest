@@ -1,7 +1,7 @@
 import {expect, test, type Browser, type Page, type ViewportSize} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_CARD_ID} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
 import rawThemeMatrixManifest from './theme-matrix-manifest.json';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
@@ -138,8 +138,8 @@ async function captureRepresentativeState(input: {
   await page.close();
 }
 
-async function expandLandingCard(page: Page, cardId: string) {
-  const card = page.locator(`[data-card-id="${cardId}"]`);
+async function expandLandingCard(page: Page, cardVariant: string) {
+  const card = page.locator(`[data-card-variant="${cardVariant}"]`);
   await card.getByTestId('landing-grid-card-trigger').click();
   await expect(card).toHaveAttribute('data-card-state', 'expanded');
   await expect(card).toHaveAttribute('data-desktop-motion-role', 'steady');
@@ -199,8 +199,8 @@ async function completeTestAttempt(page: Page) {
   await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
-async function openMobileExpandedCard(page: Page, cardId: string) {
-  const card = page.locator(`[data-card-id="${cardId}"]`);
+async function openMobileExpandedCard(page: Page, cardVariant: string) {
+  const card = page.locator(`[data-card-variant="${cardVariant}"]`);
   const trigger = card.getByTestId('landing-grid-card-trigger');
 
   await trigger.scrollIntoViewIfNeeded();
@@ -230,10 +230,10 @@ async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
     case 'test-instruction':
       return;
     case 'landing-test-expanded':
-      await expandLandingCard(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
+      await expandLandingCard(page, PRIMARY_AVAILABLE_TEST_VARIANT);
       return;
     case 'landing-blog-expanded':
-      await expandLandingCard(page, 'blog-build-metrics');
+      await expandLandingCard(page, 'build-metrics');
       return;
     case 'desktop-settings-open':
       await openDesktopSettings(page);
@@ -246,10 +246,10 @@ async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
       await completeTestAttempt(page);
       return;
     case 'mobile-landing-test-expanded':
-      await openMobileExpandedCard(page, PRIMARY_AVAILABLE_TEST_CARD_ID);
+      await openMobileExpandedCard(page, PRIMARY_AVAILABLE_TEST_VARIANT);
       return;
     case 'mobile-landing-blog-expanded':
-      await openMobileExpandedCard(page, 'blog-build-metrics');
+      await openMobileExpandedCard(page, 'build-metrics');
       return;
     case 'mobile-menu-open':
       await openMobileMenu(page);

@@ -245,12 +245,12 @@ export function trackLandingView(input: {locale: AppLocale; route: string}): Tel
 export function trackCardAnswered(input: {
   locale: AppLocale;
   route: string;
-  sourceCardId: string;
+  sourceVariant: string;
   targetRoute: string;
 }): CardAnsweredTelemetryEvent {
   return enqueueOrSend({
     ...createBaseEvent({...input, eventType: 'card_answered'}),
-    source_card_id: input.sourceCardId,
+    source_variant: input.sourceVariant,
     target_route: input.targetRoute,
     landing_ingress_flag: true
   } satisfies CardAnsweredTelemetryEvent) as CardAnsweredTelemetryEvent;

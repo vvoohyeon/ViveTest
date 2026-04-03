@@ -748,8 +748,8 @@
 ### 12.2 Required Fields per Telemetry Event
 **Rule**: 텔레메트리 이벤트별 필수 필드는 아래와 같이 고정한다.
 - 공통 필수 필드(모든 전송 이벤트): `event_id`, `session_id`, `ts_ms(UTC)`, `locale`, `route`, `consent_state`.
-- `card_answered` 추가 필수 필드: `source_card_id`, `target_route`, `landing_ingress_flag`.
-  - `source_card_id`는 선택이 발생한 카드의 식별자다.
+- `card_answered` 추가 필수 필드: `source_variant`, `target_route`, `landing_ingress_flag`.
+  - `source_variant`는 선택이 발생한 카드의 식별자다.
   - `target_route`는 진입 예정 테스트 variant 경로다.
   - `landing_ingress_flag`는 `true`로 고정한다.
 - `attempt_start` 추가 필수 필드: `landing_ingress_flag`, `question_index_1based`.
@@ -1038,7 +1038,7 @@ opt_out 카드 노출 규칙 변경 시 §2(Terms), §13.9, req-test.md §2.5를
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
-15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_card_id`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `attempt_start`의 `question_index_1based`가 ingress 경로에서 `2`, 직접 진입에서 `1`로 정확히 발화, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
+15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_variant`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `attempt_start`의 `question_index_1based`가 ingress 경로에서 `2`, 직접 진입에서 `1`로 정확히 발화, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
 Test Flow Requirements §12.2 Blocker #28에 단방향으로 참조된다. 연계 검증 단언의 픽스처 공유 계약은 §12.2 Blocker #28이 소유한다.
 16. Rollback Cleanup Closure: fail/cancel 3케이스(사용자 취소, locale duplicate, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).

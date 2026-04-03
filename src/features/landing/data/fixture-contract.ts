@@ -7,6 +7,8 @@ import type {
   RawLandingCard
 } from '@/features/landing/data/types';
 
+const LANDING_VARIANT_PATTERN = /^[a-z0-9-]+$/u;
+
 function hasLongToken(value: string): boolean {
   return /[A-Za-z0-9_\-]{30,}/u.test(value);
 }
@@ -87,18 +89,17 @@ function hasLocalizedListShape(value: unknown): boolean {
 }
 
 function hasRequiredSlotOmission(card: RawLandingCard): boolean {
-  if (!card.id || !card.type) {
+  if (!card.variant || !LANDING_VARIANT_PATTERN.test(card.variant) || !card.type) {
     return true;
   }
 
-  if (!card.title || !card.subtitle || !card.thumbnailOrIcon || !hasLocalizedListShape(card.tags)) {
+  if (!card.title || !card.subtitle || !hasLocalizedListShape(card.tags)) {
     return true;
   }
 
   if (card.type === 'test') {
     return (
       !card.test ||
-      !card.test.variant ||
       !card.test.instruction ||
       !card.test.previewQuestion ||
       !card.test.answerChoiceA ||
@@ -107,7 +108,7 @@ function hasRequiredSlotOmission(card: RawLandingCard): boolean {
     );
   }
 
-  return !card.blog || !card.blog.articleId || !card.blog.meta;
+  return !card.blog || !card.blog.meta;
 }
 
 export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCard>): FixtureContractReport {

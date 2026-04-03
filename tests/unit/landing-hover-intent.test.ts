@@ -15,9 +15,9 @@ describe('landing hover intent helpers', () => {
   });
 
   it('builds monotonic hover intent tokens', () => {
-    expect(nextHoverIntentToken(4, 'test-rhythm-a', 'expand')).toEqual({
+    expect(nextHoverIntentToken(4, 'qmbti', 'expand')).toEqual({
       token: 5,
-      cardId: 'test-rhythm-a',
+      cardVariant: 'qmbti',
       action: 'expand'
     });
   });
@@ -25,24 +25,24 @@ describe('landing hover intent helpers', () => {
   it('assertion:B13-handoff-enterable-only allows handoff only between different enterable cards', () => {
     expect(
       isEnterableHandoffCandidate({
-        previousExpandedCardId: 'test-rhythm-a',
-        nextCardId: 'test-rhythm-b',
+        previousExpandedCardVariant: 'qmbti',
+        nextCardVariant: 'rhythm-b',
         enterable: true
       })
     ).toBe(true);
 
     expect(
       isEnterableHandoffCandidate({
-        previousExpandedCardId: 'test-rhythm-a',
-        nextCardId: 'test-rhythm-a',
+        previousExpandedCardVariant: 'qmbti',
+        nextCardVariant: 'qmbti',
         enterable: true
       })
     ).toBe(false);
 
     expect(
       isEnterableHandoffCandidate({
-        previousExpandedCardId: 'test-rhythm-a',
-        nextCardId: 'test-coming-soon-1',
+        previousExpandedCardVariant: 'qmbti',
+        nextCardVariant: 'creativity-profile',
         enterable: false
       })
     ).toBe(false);

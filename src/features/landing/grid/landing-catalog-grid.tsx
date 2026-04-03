@@ -43,6 +43,7 @@ export const LANDING_GRID_PLAN_CHANGED_EVENT = 'landing:grid-plan-changed';
 
 interface LandingCatalogGridProps {
   cards: LandingCard[];
+  assetBackedVariants: ReadonlyArray<string>;
 }
 
 type CardSpacingMap = Record<string, LandingCardSpacingContract>;
@@ -103,7 +104,7 @@ function measureGridInlineSize(containerElement: HTMLDivElement | null): number 
   return Math.max(0, Math.floor(containerElement?.clientWidth ?? 0));
 }
 
-export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
+export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogGridProps) {
   const previousPlanKeyRef = useRef<string | null>(null);
   const previousColumnModeRef = useRef<LandingGridColumnMode | null>(null);
   const shellRef = useRef<HTMLElement | null>(null);
@@ -127,14 +128,15 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       }),
     [cards.length, gridInlineSize, viewportTier]
   );
+  const assetBackedVariantSet = useMemo(() => new Set(assetBackedVariants), [assetBackedVariants]);
   const {beginBlogTransition, beginTestTransition} = useLandingTransition({locale});
   const {
     interactionMode,
     interactionState,
     mobileLifecycleState,
     mobileBackdropBindings,
-    activeVisualCardId,
-    mobileRestoreReadyCardId,
+    activeVisualCardVariant,
+    mobileRestoreReadyVariant,
     resolveCardInteractionBindings,
     collapseExpandedCard
   } = useLandingInteractionController({
@@ -218,7 +220,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       return;
     }
 
-    if (plan.tier !== 'mobile' && activeVisualCardId) {
+    if (plan.tier !== 'mobile' && activeVisualCardVariant) {
       return;
     }
 
@@ -242,17 +244,17 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
         }
 
         const cardElements = Array.from(rowElement.querySelectorAll<HTMLElement>('[data-testid="landing-grid-card"]'));
-        const cardElementById = new Map<string, HTMLElement>();
+        const cardElementByVariant = new Map<string, HTMLElement>();
         for (const element of cardElements) {
-          const cardId = element.dataset.cardId;
-          if (cardId) {
-            cardElementById.set(cardId, element);
+          const cardVariant = element.dataset.cardVariant;
+          if (cardVariant) {
+            cardElementByVariant.set(cardVariant, element);
           }
         }
 
         const rowMeasurements = rowCards
           .map((card) => {
-            const cardElement = cardElementById.get(card.id);
+            const cardElement = cardElementByVariant.get(card.variant);
             if (!cardElement) {
               return null;
             }
@@ -272,17 +274,17 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
             const tagsRect = tagsElement.getBoundingClientRect();
 
             return deriveNaturalHeightFromGeometry({
-              cardId: card.id,
+              cardVariant: card.variant,
               contentTop: contentRect.top,
               tagsBottom: tagsRect.bottom,
               appliedCompGap
             });
           })
-          .filter((measurement): measurement is {cardId: string; naturalHeight: number} => measurement !== null);
+          .filter((measurement): measurement is {cardVariant: string; naturalHeight: number} => measurement !== null);
 
         const rowCompensation = buildRowCompensationModel(rowMeasurements);
         for (const decision of rowCompensation) {
-          nextSpacingModel[decision.cardId] = {
+          nextSpacingModel[decision.cardVariant] = {
             baseGapPx: LANDING_CARD_BASE_GAP_PX,
             compGapPx: decision.compGap,
             needsComp: decision.needsComp,
@@ -293,11 +295,11 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       }
 
       for (const card of cards) {
-        if (nextSpacingModel[card.id]) {
+        if (nextSpacingModel[card.variant]) {
           continue;
         }
 
-        nextSpacingModel[card.id] = {
+        nextSpacingModel[card.variant] = {
           baseGapPx: LANDING_CARD_BASE_GAP_PX,
           compGapPx: 0,
           needsComp: false,
@@ -312,7 +314,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [activeVisualCardId, cards, plan, viewportWidth]);
+  }, [activeVisualCardVariant, cards, plan, viewportWidth]);
 
   useEffect(() => {
     const clearBaselineReleaseTimer = () => {
@@ -344,7 +346,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       return cleanup;
     }
 
-    if (activeVisualCardId) {
+    if (activeVisualCardVariant) {
       clearBaselineReleaseTimer();
       const shell = shellRef.current;
       if (!shell) {
@@ -359,14 +361,14 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
         previous.phase === 'BASELINE_READY'
           ? freezeBaselineRows({
               state: previous,
-              activeCardId: activeVisualCardId,
+              activeCardVariant: activeVisualCardVariant,
               snapshots
             })
-          : previous.activeCardId === activeVisualCardId
+          : previous.activeCardVariant === activeVisualCardVariant
             ? previous
             : {
                 ...previous,
-                activeCardId: activeVisualCardId
+                activeCardVariant: activeVisualCardVariant
               }
       );
       return cleanup;
@@ -389,7 +391,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
     }
 
     return cleanup;
-  }, [activeVisualCardId, baselineState.phase, plan.rows, plan.tier]);
+  }, [activeVisualCardVariant, baselineState.phase, plan.rows, plan.tier]);
 
   useEffect(
     () => () => {
@@ -410,7 +412,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       previousPlanKeyRef.current !== nextPlanKey &&
       typeof window !== 'undefined'
     ) {
-      if (plan.tier !== 'mobile' && activeVisualCardId) {
+      if (plan.tier !== 'mobile' && activeVisualCardVariant) {
         collapseExpandedCard();
       }
 
@@ -428,7 +430,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
 
     previousPlanKeyRef.current = nextPlanKey;
     previousColumnModeRef.current = plan.columnMode;
-  }, [activeVisualCardId, collapseExpandedCard, plan]);
+  }, [activeVisualCardVariant, collapseExpandedCard, plan]);
 
   return (
     <section
@@ -444,12 +446,12 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       data-page-state={interactionState.pageState}
       data-active-ramp={interactionState.activeRampUntilMs !== null ? 'true' : 'false'}
       data-hover-lock-enabled={interactionState.hoverLock.enabled ? 'true' : 'false'}
-      data-hover-lock-card-id={interactionState.hoverLock.cardId ?? ''}
+      data-hover-lock-card-variant={interactionState.hoverLock.cardVariant ?? ''}
       data-keyboard-mode={interactionState.hoverLock.keyboardMode ? 'true' : 'false'}
       data-mobile-phase={mobileLifecycleState.phase}
-      data-mobile-restore-ready-card-id={mobileRestoreReadyCardId ?? ''}
+      data-mobile-restore-ready-card-variant={mobileRestoreReadyVariant ?? ''}
       data-baseline-phase={baselineState.phase}
-      data-baseline-active-card-id={baselineState.activeCardId ?? ''}
+      data-baseline-active-card-variant={baselineState.activeCardVariant ?? ''}
       data-baseline-frozen-rows={baselineState.frozenRows.join(',')}
     >
       {mobileBackdropBindings.active ? (
@@ -488,8 +490,9 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
 
                 return (
                   <LandingGridCard
-                    key={card.id}
+                    key={card.variant}
                     card={card}
+                    hasAssetMedia={assetBackedVariantSet.has(card.variant)}
                     state={interactionBindings.state}
                     locale={locale}
                     interactionMode={interactionMode}
@@ -504,7 +507,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
                       cardOffset: offset,
                       rowCardCount: row.cardCount
                     })}
-                    spacing={spacingModel[card.id]}
+                    spacing={spacingModel[card.variant]}
                     sequence={sequence}
                     copy={cardCopy}
                     hoverLockEnabled={interactionBindings.hoverLockEnabled}

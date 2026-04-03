@@ -9,9 +9,10 @@ import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-so
 
 interface LandingCatalogGridLoaderProps {
   locale: AppLocale;
+  assetBackedVariants: ReadonlyArray<string>;
 }
 
-export function LandingCatalogGridLoader({locale}: LandingCatalogGridLoaderProps) {
+export function LandingCatalogGridLoader({locale, assetBackedVariants}: LandingCatalogGridLoaderProps) {
   const consentSnapshot = useTelemetryConsentSource();
   const cards = useMemo(
     () =>
@@ -21,5 +22,5 @@ export function LandingCatalogGridLoader({locale}: LandingCatalogGridLoaderProps
     [consentSnapshot.consentState, consentSnapshot.synced, locale]
   );
 
-  return <LandingCatalogGrid cards={cards} />;
+  return <LandingCatalogGrid cards={cards} assetBackedVariants={assetBackedVariants} />;
 }
