@@ -107,7 +107,7 @@ function hasRequiredSlotOmission(card: RawLandingCard): boolean {
     );
   }
 
-  return !card.blog || !card.blog.articleId || !card.blog.summary || !card.blog.meta;
+  return !card.blog || !card.blog.articleId || !card.blog.meta;
 }
 
 export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCard>): FixtureContractReport {
@@ -120,9 +120,9 @@ export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCar
   }, {});
 
   const hasLongTokenSubtitle = fixtures.some((card) => hasLongToken(resolveForInspection(card.subtitle)));
-  const hasLongBodyText = fixtures
+  const hasLongBlogSubtitle = fixtures
     .filter((card) => card.type === 'blog')
-    .some((card) => resolveForInspection(card.blog.summary).length >= 220);
+    .some((card) => resolveForInspection(card.subtitle).length >= 220);
   const hasEmptyTags = fixtures.some((card) => resolveTagsForInspection(card.tags).length === 0);
   const hasDebugSample = fixtures.some((card) => card.debug === true || card.sample === true);
   const hasRequiredSlotOmissionValue = fixtures.some((card) => hasRequiredSlotOmission(card));
@@ -136,7 +136,7 @@ export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCar
     hideCount: cardTypeCounts.hide ?? 0,
     debugCount: cardTypeCounts.debug ?? 0,
     hasLongTokenSubtitle,
-    hasLongBodyText,
+    hasLongBlogSubtitle,
     hasEmptyTags,
     hasDebugSample,
     hasRequiredSlotOmission: hasRequiredSlotOmissionValue

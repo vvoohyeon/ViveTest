@@ -25,7 +25,7 @@ describe('landing fixture and adapter contract', () => {
     expect(report.debugCount).toBeGreaterThanOrEqual(1);
 
     expect(report.hasLongTokenSubtitle).toBe(true);
-    expect(report.hasLongBodyText).toBe(true);
+    expect(report.hasLongBlogSubtitle).toBe(true);
     expect(report.hasEmptyTags).toBe(true);
     expect(report.hasDebugSample).toBe(true);
     expect(report.hasRequiredSlotOmission).toBe(false);
@@ -53,8 +53,9 @@ describe('landing fixture and adapter contract', () => {
     }
 
     expect(opsHandbookBlog.title).toBe('안정적인 배포를 위한 운영 핸드북');
+    expect(opsHandbookBlog.subtitle).toContain('사고 대응 태세');
     expect(opsHandbookBlog.tags).toEqual(['운영', '배포']);
-    expect(opsHandbookBlog.blog.summary).toContain('사고 대응 태세');
+    expect('summary' in opsHandbookBlog.blog).toBe(false);
     expect('primaryCTA' in opsHandbookBlog.blog).toBe(false);
     expect(catalogKr.some((card) => card.type === 'blog' && card.availability === 'unavailable')).toBe(false);
   });

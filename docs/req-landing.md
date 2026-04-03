@@ -256,9 +256,10 @@
 **Rule**: 슬롯 순서와 존재 규칙은 고정한다.
 - Normal 순서: `cardTitle -> thumbnailOrIcon -> cardSubtitle -> tags`
 - Expanded 공통 헤더: `cardTitle`만 유지
-- Expanded에서 `subtitle/thumbnail/tags`는 제거(숨김 아님, 비노출)
+- Expanded Test에서는 `subtitle/thumbnail/tags`를 제거한다(숨김 아님, 비노출).
+- Expanded Blog에서는 `thumbnail/tags`만 제거하고 같은 `subtitle`을 유지한다.
 - Test Expanded: `previewQuestion`, `answerChoiceA/B`, `meta(3)`
-- Blog Expanded: `summary(최대 4줄)`, `meta(3)`, `primaryCTA(Read more)`
+- Blog Expanded: `cardSubtitleExpanded(최대 4줄)`, `meta(3)`, `primaryCTA(Read more)`
 
 **Verification**:
 1. Manual: Normal/Expanded 전환 시 슬롯 제거/등장 순서를 확인한다.
@@ -270,13 +271,14 @@
 - Desktop/Tablet Expanded title: ellipsis 없이 전체 title을 표시해야 하며, Expanded의 첫 줄은 widened expanded 폭이 아니라 **Normal title 폭 기준으로 계산한 첫 줄 split 결과**를 그대로 유지해야 한다.
 - Desktop/Tablet Expanded title의 나머지 텍스트는 첫 줄 아래에서만 reveal/collapse 되어야 하며, 첫 줄 continuity를 깨는 재래핑을 금지한다.
 - Mobile title: Normal/OPENING/OPEN/CLOSING 전 상태에서 전체 title을 표시해야 하며 ellipsis를 적용하면 안 된다.
-- Normal subtitle: 최대 2줄까지만 표시하며, overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
+- Landing Normal subtitle: 최대 2줄까지만 표시하며, overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
 - Normal subtitle overflow 처리 결과는 동일 카드의 형제 슬롯 기하(썸네일/태그 포함)의 inline-size를 변경하면 안 된다.
 - Normal tags 영역: 1줄 슬롯 고정, chip은 1줄 truncate, wrap 금지
 - Expanded Test preview/choices: 줄바꿈 허용, truncate 금지
+- Expanded Test subtitle: 렌더링하지 않는다.
 - Expanded Test answer choices 텍스트는 버튼 내부 좌측 정렬을 강제하며 줄 수 제한 없이 줄바꿈을 허용한다.
 - Expanded Test answer choices 텍스트는 truncate/ellipsis/clamp를 금지한다.
-- Expanded Blog summary: 4줄 clamp
+- Landing Expanded Blog subtitle: 같은 `subtitle`을 continuity 있게 유지하며 총 4줄까지만 표시한다.
 - Expanded meta/CTA: overflow 시 truncate
 - 카드 타이포그래피는 동일 locale에서 Normal/Expanded 상태 간 대표 폰트 1종을 유지해야 하며 상태별 폰트 분기를 금지한다.
 - 폰트는 `ko`, `en` locale별로 각 1종의 대표 폰트를 허용하고 공통 fallback 체인을 사용한다.
@@ -285,7 +287,8 @@
 1. Manual: 긴 텍스트 fixture로 줄바꿈/클램프를 확인한다.
 2. Automated: screenshot diff로 clamp 정책 위반 여부를 검증한다.
 3. Automated: Desktop/Mobile long-token fixture에서 subtitle overflow 시 ellipsis가 노출되는지 검증한다.
-4. Automated: subtitle 길이 변화가 Normal 카드의 형제 슬롯 inline-size를 변경하지 않는지 검증한다.
+4. Automated: Desktop Expanded Blog subtitle continuity가 lead+overflow 구조로 유지되는지 검증한다.
+5. Automated: subtitle 길이 변화가 Normal 카드의 형제 슬롯 inline-size를 변경하지 않는지 검증한다.
 
 ### 6.7 Card Height & Bottom Spacing Contract
 **Rule**: 카드 높이/하단 여백/row 안정성은 아래 5개 불변식을 동시에 만족해야 한다.

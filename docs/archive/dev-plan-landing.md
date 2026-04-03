@@ -166,9 +166,9 @@
 - 슬롯:
 1. Normal: `title -> thumbnailOrIcon -> subtitle -> tags`.
 2. Expanded 공통 헤더: title만 유지.
-3. Expanded에서 subtitle/thumbnail/tags는 제거(숨김 아님).
+3. Expanded Test에서는 subtitle/thumbnail/tags를 제거한다(숨김 아님).
 4. Test Expanded: previewQuestion, answerChoiceA/B, meta(3).
-5. Blog Expanded: summary(4줄 clamp), meta(3), CTA(Read more 1개).
+5. Blog Expanded: subtitle(4줄 clamp), meta(3), CTA(Read more 1개).
 6. Test Expanded Start CTA 금지.
 - 텍스트:
 1. Normal title: wrap 허용, truncate/ellipsis 금지.
@@ -176,7 +176,7 @@
 3. subtitle overflow는 카드/row/형제 슬롯 inline-size 변경 금지.
 4. tags는 1줄 슬롯 고정, chip wrap 금지.
 5. Test choices는 좌측 정렬, 줄 제한 없음, truncate/ellipsis/clamp 금지.
-6. Blog summary는 4줄 clamp.
+6. Blog subtitle은 Expanded에서 4줄 clamp.
 7. meta/CTA overflow는 truncate.
 - 썸네일/의미론:
 1. Normal thumbnail은 ratio 6:1 + `object-fit:cover`.

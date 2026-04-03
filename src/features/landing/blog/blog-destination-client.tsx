@@ -115,7 +115,7 @@ export function BlogDestinationClient({
         <>
           <article className="blog-selected-article" data-testid="blog-selected-article">
             <h2>{selectedArticle.title}</h2>
-            <p>{selectedArticle.blog.summary}</p>
+            <p>{selectedArticle.subtitle}</p>
           </article>
 
           <section className="blog-article-list">

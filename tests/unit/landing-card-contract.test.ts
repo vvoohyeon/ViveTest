@@ -137,12 +137,12 @@ describe('landing card slot contract', () => {
     expect(cardElement?.getAttribute('data-interaction-mode')).toBe('hover');
 
     expect(doc.querySelector('[data-slot="previewQuestion"]')).toBeNull();
-    expect(doc.querySelector('[data-slot="summary"]')).toBeNull();
+    expect(doc.querySelector('[data-slot="cardSubtitleExpanded"]')).toBeNull();
     expect(doc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
     expect(doc.querySelector('[data-slot="unavailableOverlay"]')).not.toBeNull();
   });
 
-  it('renders Blog Expanded summary/meta/primaryCTA contract and formats numbers with comma separators', () => {
+  it('renders Blog Expanded subtitle/meta/primaryCTA contract and formats numbers with comma separators', () => {
     const catalog = createLandingCatalog('en');
     const card = catalog.find((candidate) => candidate.id === 'blog-ops-handbook');
 
@@ -153,7 +153,7 @@ describe('landing card slot contract', () => {
     const doc = renderDesktopExpandedCardDocument({card});
 
     expect(doc.querySelector('[data-slot="expandedSurface"]')).not.toBeNull();
-    expect(doc.querySelector('[data-slot="summary"]')).not.toBeNull();
+    expect(doc.querySelector('[data-slot="cardSubtitleExpanded"]')).not.toBeNull();
     expect(doc.querySelector('[data-slot="cardSubtitle"]')).toBeNull();
     expect(doc.querySelector('[data-slot="thumbnailOrIcon"]')).toBeNull();
     expect(doc.querySelector('[data-slot="tags"]')).toBeNull();
@@ -172,6 +172,26 @@ describe('landing card slot contract', () => {
     for (const value of metaValues) {
       expect(value).not.toMatch(/[km]$/iu);
     }
+  });
+
+  it('keeps desktop blog expanded subtitle continuity as lead + overflow === source subtitle', () => {
+    const catalog = createLandingCatalog('en');
+    const card = catalog.find((candidate) => candidate.id === 'blog-ops-handbook');
+
+    if (!card || card.type !== 'blog') {
+      throw new Error('Expected blog-ops-handbook as a blog card fixture');
+    }
+
+    const doc = renderDesktopExpandedCardDocument({card});
+    const expandedSubtitle = doc.querySelector('[data-slot="cardSubtitleExpanded"]');
+    const lead = expandedSubtitle?.querySelector('[data-subtitle-layer="lead"]');
+    const overflow = expandedSubtitle?.querySelector('[data-subtitle-layer="overflow"]');
+
+    expect(expandedSubtitle).not.toBeNull();
+    expect(expandedSubtitle?.className).toContain('landing-grid-card-subtitle-expanded');
+    expect(lead).not.toBeNull();
+    expect(overflow).not.toBeNull();
+    expect(`${lead?.textContent ?? ''}${overflow?.textContent ?? ''}`).toBe(card.subtitle);
   });
 
   it('renders desktop expanded title continuity markers while preserving the full title text', () => {

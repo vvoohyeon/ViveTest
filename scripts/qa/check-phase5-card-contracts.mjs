@@ -46,7 +46,7 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
     fail('LandingGridCard must define normal slot markers.');
   }
 
-  if (!/previewQuestion/u.test(cardFile) || !/summary/u.test(cardFile)) {
+  if (!/previewQuestion/u.test(cardFile) || !/cardSubtitleExpanded/u.test(cardFile)) {
     fail('LandingGridCard must define expanded slot markers for both card types.');
   }
 

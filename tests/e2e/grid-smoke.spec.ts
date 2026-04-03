@@ -488,6 +488,68 @@ test.describe('Phase 4 grid smoke', () => {
     }
   });
 
+  test('@smoke blog subtitle continuity keeps the normal copy stable while expanded overflow stays capped on desktop and tablet', async ({
+    page
+  }) => {
+    const scenarios = [
+      {viewport: {width: 1440, height: 980}, columnMode: 'desktop-wide' as const},
+      {viewport: {width: 1023, height: 980}, columnMode: 'two-column' as const}
+    ];
+
+    for (const scenario of scenarios) {
+      await page.setViewportSize(scenario.viewport);
+      await page.goto('/en');
+
+      await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-column-mode', scenario.columnMode);
+
+      const card = page.locator('[data-card-id="blog-ops-handbook"]');
+      const normalSubtitle = card.locator('[data-slot="cardSubtitle"]');
+      const normalClamp = await normalSubtitle.evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('-webkit-line-clamp').trim()
+      );
+      const normalSubtitleText = (await normalSubtitle.textContent()) ?? '';
+
+      expect(normalClamp).toBe('2');
+
+      await hoverDesktopExpandedCard(card);
+
+      const expandedSubtitle = await card.evaluate((element) => {
+        const expandedSubtitleElement = element.querySelector<HTMLElement>('[data-slot="cardSubtitleExpanded"]');
+        const lead = expandedSubtitleElement?.querySelector<HTMLElement>('[data-subtitle-layer="lead"]');
+        const overflow = expandedSubtitleElement?.querySelector<HTMLElement>('[data-subtitle-layer="overflow"]');
+        const line1 = lead?.querySelector<HTMLElement>('[data-subtitle-line="1"]');
+        const line2 = lead?.querySelector<HTMLElement>('[data-subtitle-line="2"]');
+
+        if (!expandedSubtitleElement || !lead || !overflow || !line1 || !line2) {
+          throw new Error('Expected expanded subtitle continuity markers to be present.');
+        }
+
+        const expandedStyle = getComputedStyle(expandedSubtitleElement);
+        const overflowStyle = getComputedStyle(overflow);
+
+        return {
+          fullText: expandedSubtitleElement.textContent ?? '',
+          leadText: lead.textContent ?? '',
+          overflowText: overflow.textContent ?? '',
+          overflowClamp: overflowStyle.getPropertyValue('-webkit-line-clamp').trim(),
+          totalHeight: expandedSubtitleElement.getBoundingClientRect().height,
+          lineHeight: Number.parseFloat(expandedStyle.lineHeight),
+          line1Height: line1.getBoundingClientRect().height,
+          line2Height: line2.getBoundingClientRect().height
+        };
+      });
+
+      expect(expandedSubtitle.fullText).toBe(normalSubtitleText);
+      expect(`${expandedSubtitle.leadText}${expandedSubtitle.overflowText}`).toBe(normalSubtitleText);
+      expect(expandedSubtitle.overflowClamp).toBe('2');
+      expect(expandedSubtitle.line1Height).toBeLessThanOrEqual(expandedSubtitle.lineHeight + 1);
+      expect(expandedSubtitle.line2Height).toBeLessThanOrEqual(expandedSubtitle.lineHeight + 1);
+      expect(expandedSubtitle.totalHeight).toBeLessThanOrEqual(expandedSubtitle.lineHeight * 4 + 4);
+
+      await collapseDesktopExpandedCard(page, card);
+    }
+  });
+
   test('@smoke assertion:B4-inline-size subtitle overflow does not contaminate card or sibling slot inline sizes', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');

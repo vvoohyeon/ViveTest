@@ -28,7 +28,6 @@ export interface RawTestPayload {
 
 export interface RawBlogPayload {
   articleId: string;
-  summary: LocalizedText;
   meta: {
     readMinutes: number;
     shares: number;
@@ -70,7 +69,6 @@ export interface LocaleResolvedText {
   previewQuestion?: string;
   answerChoiceA?: string;
   answerChoiceB?: string;
-  summary?: string;
 }
 
 export interface LandingCardCommon {
@@ -107,7 +105,6 @@ export interface LandingTestCard extends LandingCardCommon {
 export interface LandingBlogCard extends LandingCardCommon {
   type: 'blog';
   blog: {
-    summary: string;
     meta: {
       readMinutes: number;
       shares: number;
@@ -127,7 +124,7 @@ export interface FixtureContractReport {
   hideCount: number;
   debugCount: number;
   hasLongTokenSubtitle: boolean;
-  hasLongBodyText: boolean;
+  hasLongBlogSubtitle: boolean;
   hasEmptyTags: boolean;
   hasDebugSample: boolean;
   hasRequiredSlotOmission: boolean;

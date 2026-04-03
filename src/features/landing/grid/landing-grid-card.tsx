@@ -9,13 +9,18 @@ import type {
   MouseEvent,
   MouseEventHandler,
   PointerEventHandler,
+  RefObject,
   WheelEventHandler
 } from 'react';
 import {useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {isUnavailablePresentation, type LandingCard} from '@/features/landing/data';
-import {useLandingCardTitleSplit} from '@/features/landing/grid/landing-card-title-continuity';
+import {
+  type LandingCardSubtitleSplit,
+  useLandingCardSubtitleSplit,
+  useLandingCardTitleSplit
+} from '@/features/landing/grid/landing-card-title-continuity';
 import {
   type LandingCardDesktopMotionRole,
   type LandingCardDesktopShellPhase,
@@ -181,9 +186,35 @@ function resolveTransformOriginClassName(originX: '0%' | '50%' | '100%'): string
 interface NormalContentSlotsProps {
   card: LandingCard;
   includeSlotAttributes: boolean;
+  subtitleRef?: RefObject<HTMLParagraphElement | null>;
 }
 
-function NormalContentSlots({card, includeSlotAttributes}: NormalContentSlotsProps) {
+function LandingCardSubtitleText({
+  text,
+  clamp,
+  textRef,
+  slot,
+  motionSlot
+}: {
+  text: string;
+  clamp: 'normal' | 'expanded';
+  textRef?: RefObject<HTMLParagraphElement | null>;
+  slot?: string;
+  motionSlot?: string;
+}) {
+  return (
+    <p
+      ref={textRef}
+      className={`landing-grid-card-subtitle landing-grid-card-subtitle-${clamp}`}
+      data-slot={slot}
+      data-motion-slot={motionSlot}
+    >
+      {text}
+    </p>
+  );
+}
+
+function NormalContentSlots({card, includeSlotAttributes, subtitleRef}: NormalContentSlotsProps) {
   return (
     <>
       <div
@@ -201,12 +232,12 @@ function NormalContentSlots({card, includeSlotAttributes}: NormalContentSlotsPro
         />
       </div>
 
-      <p
-        className="landing-grid-card-subtitle"
-        data-slot={includeSlotAttributes ? 'cardSubtitle' : undefined}
-      >
-        {card.subtitle}
-      </p>
+      <LandingCardSubtitleText
+        text={card.subtitle}
+        clamp="normal"
+        textRef={subtitleRef}
+        slot={includeSlotAttributes ? 'cardSubtitle' : undefined}
+      />
 
       <div className="landing-grid-card-tags-gap" aria-hidden="true" />
 
@@ -226,11 +257,39 @@ function NormalContentSlots({card, includeSlotAttributes}: NormalContentSlotsPro
   );
 }
 
+function ExpandedBlogSubtitleContinuity({
+  split
+}: {
+  split: LandingCardSubtitleSplit;
+}) {
+  return (
+    <p
+      className="landing-grid-card-subtitle landing-grid-card-subtitle-expanded landing-grid-card-subtitle-expanded-continuity"
+      data-slot="cardSubtitleExpanded"
+      data-motion-slot="subtitle"
+    >
+      <span className="landing-grid-card-subtitle-expanded-lead" data-subtitle-layer="lead">
+        <span className="landing-grid-card-subtitle-expanded-line" data-subtitle-line="1">
+          {split.line1Text}
+        </span>
+        <span className="landing-grid-card-subtitle-expanded-line" data-subtitle-line="2">
+          {split.line2Text}
+        </span>
+      </span>
+      <span className="landing-grid-card-subtitle-expanded-overflow" data-subtitle-layer="overflow">
+        {split.overflowText}
+      </span>
+    </p>
+  );
+}
+
 interface ExpandedCardBodyContentProps {
   card: LandingCard;
   locale: AppLocale;
   copy: LandingCardCopy;
   interactive: boolean;
+  blogSubtitleMode?: 'plain' | 'continuity';
+  blogSubtitleSplit?: LandingCardSubtitleSplit;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
   onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
 }
@@ -240,6 +299,8 @@ function ExpandedCardBodyContent({
   locale,
   copy,
   interactive,
+  blogSubtitleMode = 'plain',
+  blogSubtitleSplit,
   onAnswerChoiceSelect,
   onPrimaryCtaClick
 }: ExpandedCardBodyContentProps) {
@@ -315,13 +376,25 @@ function ExpandedCardBodyContent({
 
   return (
     <div className="landing-grid-card-mobile-body" {...bodyProps}>
-      <p
-        className="landing-grid-card-summary"
-        data-slot={interactive ? 'summary' : undefined}
-        data-motion-slot="summary"
-      >
-        {card.blog.summary}
-      </p>
+      {blogSubtitleMode === 'continuity' ? (
+        <ExpandedBlogSubtitleContinuity
+          split={
+            blogSubtitleSplit ?? {
+              line1Text: card.subtitle,
+              line2Text: '',
+              leadText: card.subtitle,
+              overflowText: ''
+            }
+          }
+        />
+      ) : (
+        <LandingCardSubtitleText
+          text={card.subtitle}
+          clamp="expanded"
+          slot={interactive ? 'cardSubtitleExpanded' : undefined}
+          motionSlot="subtitle"
+        />
+      )}
 
       <dl
         className="landing-grid-card-meta-grid"
@@ -428,11 +501,18 @@ export function LandingGridCard({
   const showMobileTransientShell = isMobileOpening || isMobileClosing;
   const resolvedSpacing = resolveSpacingContract(spacing);
   const normalTitleRef = useRef<HTMLHeadingElement | null>(null);
+  const normalSubtitleRef = useRef<HTMLParagraphElement | null>(null);
   const desktopTitleSplit = useLandingCardTitleSplit({
     enabled: !isMobileViewport,
     freeze: !isMobileViewport && desktopStagePhase !== 'idle',
     text: card.title,
     titleRef: normalTitleRef
+  });
+  const desktopSubtitleSplit = useLandingCardSubtitleSplit({
+    enabled: !isMobileViewport && card.type === 'blog',
+    freeze: !isMobileViewport && desktopStagePhase !== 'idle',
+    text: card.type === 'blog' ? card.subtitle : '',
+    subtitleRef: normalSubtitleRef
   });
   const transformOriginClassName = resolveTransformOriginClassName(desktopTransformOriginX);
 
@@ -526,12 +606,12 @@ export function LandingGridCard({
           )}
 
           {isExpanded ? null : (
-            <NormalContentSlots card={card} includeSlotAttributes />
+            <NormalContentSlots card={card} includeSlotAttributes subtitleRef={normalSubtitleRef} />
           )}
 
           {isDesktopExpanded ? (
             <div className="landing-grid-card-shell-ghost" aria-hidden="true">
-              <NormalContentSlots card={card} includeSlotAttributes={false} />
+              <NormalContentSlots card={card} includeSlotAttributes={false} subtitleRef={normalSubtitleRef} />
             </div>
           ) : null}
         </div>
@@ -567,6 +647,8 @@ export function LandingGridCard({
                         locale={locale}
                         copy={copy}
                         interactive={desktopStagePhase !== 'cleanup-pending'}
+                        blogSubtitleMode={card.type === 'blog' ? 'continuity' : 'plain'}
+                        blogSubtitleSplit={card.type === 'blog' ? desktopSubtitleSplit : undefined}
                         onAnswerChoiceSelect={onAnswerChoiceSelect}
                         onPrimaryCtaClick={handlePrimaryCtaClick}
                       />

@@ -155,7 +155,6 @@ export function normalizeAllLandingCards(
     if (type === 'blog') {
       const blog = rawCard.blog ?? {};
       const sourceParam = normalizeString(blog.articleId, id);
-      const summary = resolveLocalizedText(blog.summary, locale);
 
       const normalizedBlogCard: LandingBlogCard = {
         id,
@@ -172,11 +171,9 @@ export function normalizeAllLandingCards(
         sample,
         localeResolvedText: {
           title,
-          subtitle,
-          summary
+          subtitle
         },
         blog: {
-          summary,
           meta: {
             readMinutes: normalizeNumber(blog.meta?.readMinutes),
             shares: normalizeNumber(blog.meta?.shares),

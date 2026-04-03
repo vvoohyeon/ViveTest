@@ -1,11 +1,30 @@
 'use client';
 
-import {type RefObject, useEffect, useState} from 'react';
-import {useLayoutEffect} from 'react';
+import {type RefObject, useEffect, useLayoutEffect, useState} from 'react';
 
-interface LandingCardTitleSplit {
+interface LandingCardMeasuredTextSplit {
+  visibleLineTexts: string[];
+  overflowText: string;
+}
+
+export interface LandingCardTitleSplit {
   line1Text: string;
   overflowText: string;
+}
+
+export interface LandingCardSubtitleSplit {
+  line1Text: string;
+  line2Text: string;
+  leadText: string;
+  overflowText: string;
+}
+
+interface UseLandingCardMeasuredTextSplitInput {
+  enabled: boolean;
+  freeze: boolean;
+  text: string;
+  visibleLineCount: number;
+  textRef: RefObject<HTMLElement | null>;
 }
 
 interface UseLandingCardTitleSplitInput {
@@ -15,22 +34,34 @@ interface UseLandingCardTitleSplitInput {
   titleRef: RefObject<HTMLElement | null>;
 }
 
-function createDefaultSplit(text: string): LandingCardTitleSplit {
+interface UseLandingCardSubtitleSplitInput {
+  enabled: boolean;
+  freeze: boolean;
+  text: string;
+  subtitleRef: RefObject<HTMLElement | null>;
+}
+
+function createDefaultSplit(text: string, visibleLineCount: number): LandingCardMeasuredTextSplit {
+  const safeVisibleLineCount = Math.max(1, Math.trunc(visibleLineCount));
   return {
-    line1Text: text,
+    visibleLineTexts: Array.from({length: safeVisibleLineCount}, (_, index) => (index === 0 ? text : '')),
     overflowText: ''
   };
 }
 
-function isSameSplit(left: LandingCardTitleSplit, right: LandingCardTitleSplit): boolean {
-  return left.line1Text === right.line1Text && left.overflowText === right.overflowText;
+function isSameSplit(left: LandingCardMeasuredTextSplit, right: LandingCardMeasuredTextSplit): boolean {
+  if (left.overflowText !== right.overflowText || left.visibleLineTexts.length !== right.visibleLineTexts.length) {
+    return false;
+  }
+
+  return left.visibleLineTexts.every((line, index) => line === right.visibleLineTexts[index]);
 }
 
-function buildTitleProbe(titleElement: HTMLElement): HTMLElement {
-  const probe = document.createElement(titleElement.tagName.toLowerCase());
-  const computedStyle = window.getComputedStyle(titleElement);
-  probe.className = 'landing-grid-card-title landing-grid-card-title-probe';
-  probe.style.width = `${titleElement.getBoundingClientRect().width}px`;
+function buildTextProbe(textElement: HTMLElement): HTMLElement {
+  const probe = document.createElement(textElement.tagName.toLowerCase());
+  const computedStyle = window.getComputedStyle(textElement);
+  probe.className = 'landing-grid-card-text-probe';
+  probe.style.width = `${textElement.getBoundingClientRect().width}px`;
   probe.style.font = computedStyle.font;
   probe.style.fontFamily = computedStyle.fontFamily;
   probe.style.fontSize = computedStyle.fontSize;
@@ -44,73 +75,109 @@ function buildTitleProbe(titleElement: HTMLElement): HTMLElement {
   return probe;
 }
 
-function fitsSingleLine(probe: HTMLElement, text: string, singleLineHeight: number): boolean {
+function fitsWithinLineCount(
+  probe: HTMLElement,
+  text: string,
+  maxVisibleLines: number,
+  singleLineHeight: number
+): boolean {
   probe.textContent = text;
-  return probe.getBoundingClientRect().height <= singleLineHeight + 0.5;
+  return probe.getBoundingClientRect().height <= singleLineHeight * maxVisibleLines + 0.5;
 }
 
-function measureLandingCardTitleSplit(titleElement: HTMLElement, text: string): LandingCardTitleSplit {
+function measurePrefixLengthForLineCount(
+  probe: HTMLElement,
+  text: string,
+  maxVisibleLines: number,
+  singleLineHeight: number
+): number {
+  if (text.length === 0) {
+    return 0;
+  }
+
+  if (fitsWithinLineCount(probe, text, maxVisibleLines, singleLineHeight)) {
+    return text.length;
+  }
+
+  let low = 1;
+  let high = text.length - 1;
+  let bestPrefixLength = 1;
+
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+
+    if (fitsWithinLineCount(probe, text.slice(0, middle), maxVisibleLines, singleLineHeight)) {
+      bestPrefixLength = middle;
+      low = middle + 1;
+    } else {
+      high = middle - 1;
+    }
+  }
+
+  return bestPrefixLength;
+}
+
+function measureLandingCardTextSplit(
+  textElement: HTMLElement,
+  text: string,
+  visibleLineCount: number
+): LandingCardMeasuredTextSplit {
   if (text.length <= 1) {
-    return createDefaultSplit(text);
+    return createDefaultSplit(text, visibleLineCount);
   }
 
-  const titleWidth = titleElement.getBoundingClientRect().width;
-  if (!Number.isFinite(titleWidth) || titleWidth <= 0) {
-    return createDefaultSplit(text);
+  const elementWidth = textElement.getBoundingClientRect().width;
+  if (!Number.isFinite(elementWidth) || elementWidth <= 0) {
+    return createDefaultSplit(text, visibleLineCount);
   }
 
-  const probe = buildTitleProbe(titleElement);
+  const probe = buildTextProbe(textElement);
   document.body.appendChild(probe);
 
   try {
     probe.textContent = 'A';
     const measuredSingleLineHeight = probe.getBoundingClientRect().height;
-    const computedLineHeight = Number.parseFloat(window.getComputedStyle(titleElement).lineHeight);
+    const computedLineHeight = Number.parseFloat(window.getComputedStyle(textElement).lineHeight);
     const singleLineHeight = Number.isFinite(computedLineHeight) ? computedLineHeight : measuredSingleLineHeight;
 
-    if (!Number.isFinite(singleLineHeight) || singleLineHeight <= 0 || fitsSingleLine(probe, text, singleLineHeight)) {
-      return createDefaultSplit(text);
+    if (!Number.isFinite(singleLineHeight) || singleLineHeight <= 0) {
+      return createDefaultSplit(text, visibleLineCount);
     }
 
-    let low = 1;
-    let high = text.length - 1;
-    let bestPrefixLength = 1;
+    const visibleLineTexts: string[] = [];
+    let previousBoundary = 0;
 
-    while (low <= high) {
-      const middle = Math.floor((low + high) / 2);
-
-      if (fitsSingleLine(probe, text.slice(0, middle), singleLineHeight)) {
-        bestPrefixLength = middle;
-        low = middle + 1;
-      } else {
-        high = middle - 1;
-      }
+    for (let lineIndex = 1; lineIndex <= visibleLineCount; lineIndex += 1) {
+      const currentBoundary = measurePrefixLengthForLineCount(probe, text, lineIndex, singleLineHeight);
+      visibleLineTexts.push(text.slice(previousBoundary, currentBoundary));
+      previousBoundary = currentBoundary;
     }
 
     return {
-      line1Text: text.slice(0, bestPrefixLength),
-      overflowText: text.slice(bestPrefixLength)
+      visibleLineTexts,
+      overflowText: text.slice(previousBoundary)
     };
   } finally {
     probe.remove();
   }
 }
 
-export function useLandingCardTitleSplit({
+function useLandingCardMeasuredTextSplit({
   enabled,
   freeze,
   text,
-  titleRef
-}: UseLandingCardTitleSplitInput): LandingCardTitleSplit {
-  const [split, setSplit] = useState<LandingCardTitleSplit>(() => createDefaultSplit(text));
+  visibleLineCount,
+  textRef
+}: UseLandingCardMeasuredTextSplitInput): LandingCardMeasuredTextSplit {
+  const [split, setSplit] = useState<LandingCardMeasuredTextSplit>(() => createDefaultSplit(text, visibleLineCount));
 
   useEffect(() => {
-    setSplit(createDefaultSplit(text));
-  }, [text]);
+    setSplit(createDefaultSplit(text, visibleLineCount));
+  }, [text, visibleLineCount]);
 
   useLayoutEffect(() => {
     if (!enabled) {
-      setSplit(createDefaultSplit(text));
+      setSplit(createDefaultSplit(text, visibleLineCount));
       return;
     }
 
@@ -118,8 +185,8 @@ export function useLandingCardTitleSplit({
       return;
     }
 
-    const titleElement = titleRef.current;
-    if (!titleElement || typeof window === 'undefined' || typeof document === 'undefined') {
+    const textElement = textRef.current;
+    if (!textElement || typeof window === 'undefined' || typeof document === 'undefined') {
       return;
     }
 
@@ -132,7 +199,7 @@ export function useLandingCardTitleSplit({
         return;
       }
 
-      const nextSplit = measureLandingCardTitleSplit(titleElement, text);
+      const nextSplit = measureLandingCardTextSplit(textElement, text, visibleLineCount);
       setSplit((previous) => (isSameSplit(previous, nextSplit) ? previous : nextSplit));
     };
 
@@ -157,7 +224,7 @@ export function useLandingCardTitleSplit({
       resizeObserver = new ResizeObserver(() => {
         scheduleMeasure();
       });
-      resizeObserver.observe(titleElement);
+      resizeObserver.observe(textElement);
     }
 
     void document.fonts?.ready?.then(() => {
@@ -171,7 +238,51 @@ export function useLandingCardTitleSplit({
       }
       resizeObserver?.disconnect();
     };
-  }, [enabled, freeze, text, titleRef]);
+  }, [enabled, freeze, text, textRef, visibleLineCount]);
 
   return split;
+}
+
+export function useLandingCardTitleSplit({
+  enabled,
+  freeze,
+  text,
+  titleRef
+}: UseLandingCardTitleSplitInput): LandingCardTitleSplit {
+  const split = useLandingCardMeasuredTextSplit({
+    enabled,
+    freeze,
+    text,
+    visibleLineCount: 1,
+    textRef: titleRef
+  });
+
+  return {
+    line1Text: split.visibleLineTexts[0] ?? '',
+    overflowText: split.overflowText
+  };
+}
+
+export function useLandingCardSubtitleSplit({
+  enabled,
+  freeze,
+  text,
+  subtitleRef
+}: UseLandingCardSubtitleSplitInput): LandingCardSubtitleSplit {
+  const split = useLandingCardMeasuredTextSplit({
+    enabled,
+    freeze,
+    text,
+    visibleLineCount: 2,
+    textRef: subtitleRef
+  });
+  const line1Text = split.visibleLineTexts[0] ?? '';
+  const line2Text = split.visibleLineTexts[1] ?? '';
+
+  return {
+    line1Text,
+    line2Text,
+    leadText: `${line1Text}${line2Text}`,
+    overflowText: split.overflowText
+  };
 }

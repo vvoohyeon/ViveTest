@@ -525,7 +525,7 @@ a {
   text-overflow: clip;
 }
 
-.landing-grid-card-title-probe {
+.landing-grid-card-text-probe {
   position: fixed;
   top: -10000px;
   left: 0;
@@ -543,19 +543,62 @@ a {
 }
 
 .landing-grid-card-subtitle {
-  flex: 0 0 auto;
-  margin: var(--landing-card-base-gap) 0 0;
   color: var(--muted-ink);
   font-size: 0.92rem;
   line-height: 1.4;
+  min-width: 0;
   overflow: hidden;
   overflow-wrap: anywhere;
   text-overflow: ellipsis;
+}
+
+.landing-grid-card-subtitle-normal {
+  flex: 0 0 auto;
+  margin: var(--landing-card-base-gap) 0 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-clamp: 2;
+}
+
+.landing-grid-card-subtitle-expanded {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  line-clamp: 4;
+}
+
+.landing-grid-card-subtitle-expanded-continuity {
+  display: grid;
+  gap: 0;
+  text-overflow: clip;
+}
+
+.landing-grid-card-subtitle-expanded-lead {
+  display: grid;
+  gap: 0;
+}
+
+.landing-grid-card-subtitle-expanded-line,
+.landing-grid-card-subtitle-expanded-overflow {
+  display: block;
   min-width: 0;
+}
+
+.landing-grid-card-subtitle-expanded-line:empty,
+.landing-grid-card-subtitle-expanded-overflow:empty {
+  display: none;
+}
+
+.landing-grid-card-subtitle-expanded-overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
 }
 
 .landing-grid-card-thumbnail-slot {
@@ -740,9 +783,9 @@ a {
 }
 
 .landing-grid-card[data-desktop-motion-role='opening'] [data-slot='previewQuestion'],
-.landing-grid-card[data-desktop-motion-role='opening'] [data-slot='summary'],
+.landing-grid-card[data-desktop-motion-role='opening'] [data-slot='cardSubtitleExpanded'],
 .landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='previewQuestion'],
-.landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='summary'] {
+.landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='cardSubtitleExpanded'] {
   animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 40ms;
 }
@@ -946,7 +989,7 @@ a {
 }
 
 .landing-grid-card-mobile-transient-shell [data-motion-slot='preview'],
-.landing-grid-card-mobile-transient-shell [data-motion-slot='summary'] {
+.landing-grid-card-mobile-transient-shell [data-motion-slot='subtitle'] {
   animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 40ms;
 }
@@ -963,7 +1006,7 @@ a {
 }
 
 .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='preview'],
-.landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='summary'],
+.landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='subtitle'],
 .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='answerChoices'],
 .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='meta'],
 .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='primaryCTA'] {
@@ -1056,17 +1099,6 @@ a {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.landing-grid-card-summary {
-  margin: 0;
-  color: var(--muted-ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
 }
 
 .landing-grid-card-primary-cta {
@@ -1345,7 +1377,7 @@ span.landing-grid-card-primary-cta {
 .landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card[data-desktop-motion-role='steady']
   .landing-grid-card-expanded,
 .landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='previewQuestion'],
-.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='summary'],
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='cardSubtitleExpanded'],
 .landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='answerChoices'],
 .landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='meta'],
 .landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='primaryCTA'] {
@@ -1380,7 +1412,7 @@ span.landing-grid-card-primary-cta {
   [data-motion-slot='preview'],
 .landing-grid-shell[data-page-state='REDUCED_MOTION']
   .landing-grid-card-mobile-transient-shell[data-state='OPENING']
-  [data-motion-slot='summary'],
+  [data-motion-slot='subtitle'],
 .landing-grid-shell[data-page-state='REDUCED_MOTION']
   .landing-grid-card-mobile-transient-shell[data-state='OPENING']
   [data-motion-slot='answerChoices'],
@@ -1395,7 +1427,7 @@ span.landing-grid-card-primary-cta {
   [data-motion-slot='preview'],
 .landing-grid-shell[data-page-state='REDUCED_MOTION']
   .landing-grid-card-mobile-transient-shell[data-state='CLOSING']
-  [data-motion-slot='summary'],
+  [data-motion-slot='subtitle'],
 .landing-grid-shell[data-page-state='REDUCED_MOTION']
   .landing-grid-card-mobile-transient-shell[data-state='CLOSING']
   [data-motion-slot='answerChoices'],
@@ -1446,7 +1478,7 @@ span.landing-grid-card-primary-cta {
 
   .landing-grid-card[data-desktop-motion-role='steady'] .landing-grid-card-expanded,
   .landing-grid-card [data-slot='previewQuestion'],
-  .landing-grid-card [data-slot='summary'],
+  .landing-grid-card [data-slot='cardSubtitleExpanded'],
   .landing-grid-card [data-slot='answerChoices'],
   .landing-grid-card [data-slot='meta'],
   .landing-grid-card [data-slot='primaryCTA'] {
@@ -1481,12 +1513,12 @@ span.landing-grid-card-primary-cta {
   }
 
   .landing-grid-card-mobile-transient-shell[data-state='OPENING'] [data-motion-slot='preview'],
-  .landing-grid-card-mobile-transient-shell[data-state='OPENING'] [data-motion-slot='summary'],
+  .landing-grid-card-mobile-transient-shell[data-state='OPENING'] [data-motion-slot='subtitle'],
   .landing-grid-card-mobile-transient-shell[data-state='OPENING'] [data-motion-slot='answerChoices'],
   .landing-grid-card-mobile-transient-shell[data-state='OPENING'] [data-motion-slot='meta'],
   .landing-grid-card-mobile-transient-shell[data-state='OPENING'] [data-motion-slot='primaryCTA'],
   .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='preview'],
-  .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='summary'],
+  .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='subtitle'],
   .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='answerChoices'],
   .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='meta'],
   .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='primaryCTA'],

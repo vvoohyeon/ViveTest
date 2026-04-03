@@ -423,6 +423,9 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expectSourceGnbOverlay(page, 'blog');
     await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
+    await expect(page.getByTestId('blog-selected-article')).toContainText(
+      'A compact field guide to selecting build-time, test-time, and runtime quality indicators that correlate with user outcomes.'
+    );
     const transitionSignals = await readTransitionSignals(page);
 
     expect(events.filter((event) => event.event_type === 'card_answered')).toHaveLength(0);
@@ -799,6 +802,46 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     const headerTopAfter = await header.evaluate((element) => element.getBoundingClientRect().top);
     expect(Math.abs(headerTopAfter - headerTopBefore)).toBeLessThanOrEqual(1);
+  });
+
+  test('@smoke blog mobile open and close keep subtitle continuity across transient shell and expanded body', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator('[data-card-id="blog-ops-handbook"]');
+    const rootSubtitleText = ((await card.locator('[data-slot="cardSubtitle"]').textContent()) ?? '').trim();
+
+    expect(rootSubtitleText.length).toBeGreaterThan(0);
+
+    await card.getByTestId('landing-grid-card-trigger').click();
+
+    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'OPENING');
+    await expect(card.locator('[data-slot="mobileTransientShell"] [data-motion-slot="subtitle"]')).toContainText(
+      rootSubtitleText
+    );
+
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect(card.locator('[data-slot="cardSubtitleExpanded"]')).toContainText(rootSubtitleText);
+
+    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
+    await backdrop.dispatchEvent('pointerdown', {
+      pointerType: 'touch',
+      clientX: 18,
+      clientY: 18
+    });
+    await backdrop.dispatchEvent('pointerup', {
+      pointerType: 'touch',
+      clientX: 18,
+      clientY: 18
+    });
+
+    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'CLOSING');
+    await expect(card.locator('[data-slot="mobileTransientShell"] [data-motion-slot="subtitle"]')).toContainText(
+      rootSubtitleText
+    );
+    await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
   });
 
   test('@smoke assertion:B16-timeout stale pending transitions fail closed on non-destination routes', async ({page}) => {
