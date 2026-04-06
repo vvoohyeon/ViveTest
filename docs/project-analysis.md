@@ -11,6 +11,8 @@ This repository is a localized Next.js App Router application. Its real technica
 - `npm run qa:rules`: fails at Phase 11 because theme-matrix and Safari ghosting PNG baselines are absent
 - Snapshot baseline status: theme-matrix and Safari ghosting PNG baselines are absent in the current workspace; only 2 `state-smoke` PNGs are present
 
+**Implementation phase status (2026-04-06):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. The live route/runtime does not yet consume the domain module; that wiring is Phase 4 scope. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
+
 ---
 
 ## 2. Implementation Scope
@@ -24,7 +26,7 @@ This repository is a localized Next.js App Router application. Its real technica
 - Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/landing/telemetry/`)
 - Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
 - Blog index/list route plus route-driven article detail (`src/features/landing/blog/blog-destination-client.tsx`, `src/app/[locale]/blog/[variant]/page.tsx`)
-- Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`)
+- Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`). Key interface contracts are frozen by Phase 0–1 ADRs (brand type shapes, `validateVariant()` result union, `BlockingDataErrorReason` enum). The live route/runtime does not import this module; wiring is Phase 4 scope.
 
 ### Partially implemented
 
@@ -48,7 +50,7 @@ The following product surfaces from `docs/requirements.md` have no implementatio
 - Local result history store, delete/clear UI
 - Admin routes and auth boundary
 - Google Sheets sync pipeline (no client dependency, no sync script, no generated registry)
-- Invalid-variant recovery page
+- Invalid-variant recovery page (Phase 4 scope — `validateVariant()` ok:false → §6.1 recovery page wiring, same-route recoverable handling)
 - Server-side telemetry validation or persistence
 
 The following capabilities exist only as pure test-domain implementation today and are not yet connected to the live route/runtime:
@@ -240,7 +242,7 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 **Pure test-domain foundation** (`src/features/test/domain/*`): the current source already contains a separate pure module for branded ids, schema/question models, variant validation, question-model validation, variant data integrity checks, score derivation, and type-segment parsing/building. This surface is exported through `src/features/test/domain/index.ts` and covered by `tests/unit/test-domain-variant-validation.test.ts`, `tests/unit/test-domain-question-model.test.ts`, `tests/unit/test-domain-derivation.test.ts`, and `tests/unit/test-domain-type-segment.test.ts`.
 
-The important boundary is that the live route/runtime path does not import this pure domain module yet. The app does have a canonical fixture-backed variant registry, but there is still no schema-driven result route, no shareable result payload reconstruction, and no same-route recoverable invalid-variant handling in the user-facing flow.
+The important boundary is that the live route/runtime path does not import this pure domain module yet. The app does have a canonical fixture-backed variant registry, but there is still no schema-driven result route, no shareable result payload reconstruction, and no same-route recoverable invalid-variant handling in the user-facing flow. Phase 0–1 ADRs froze the contracts that consumers must respect: `VariantId` as a `string` intersection brand, `QuestionIndex` as a `number` intersection brand, the `validateVariant()` three-way result union (`MISSING` / `UNKNOWN` / `UNAVAILABLE`), and the `BlockingDataErrorReason` enum surface. Changes to any of these require a new ADR.
 
 ### 5.6 Telemetry
 
@@ -399,13 +401,13 @@ As of 2026-04-04, `npm run qa:rules` stops at `check-phase11-telemetry-contracts
 
 ## 9. Risks and Open Gaps
 
-**Test domain integration is incomplete.** `src/features/test/domain/*` already provides variant validation, schema/question integrity checks, derivation, and type-segment parsing/building, but the live route/runtime still uses fixture-backed question data and a local result panel. The app already has a canonical variant registry, yet there is still no `/result` route family, no invalid-variant recovery route, and no result history.
+**Test domain integration is incomplete.** `src/features/test/domain/*` already provides variant validation, schema/question integrity checks, derivation, and type-segment parsing/building, but the live route/runtime still uses fixture-backed question data and a local result panel. The app already has a canonical variant registry, yet there is still no `/result` route family, no invalid-variant recovery route, and no result history. Recovery page wiring (`validateVariant()` ok:false → §6.1 error recovery, same-route recoverable handling) is Phase 4 scope. Schema-driven result route family is Phase 7–9 scope.
 
 **The instruction contract is much cleaner, but the copy ownership split is now real.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. That split is intentional, but future editors can easily introduce drift if they assume all test copy lives in one source.
 
 **Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1582 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. Powerful but fragile under content-density or browser changes. The most likely future refactoring cost concentration point.
 
-**Direct test-route reachability is looser than the active SSOT.** `src/app/[locale]/test/[variant]/page.tsx` currently resolves any registered test card, and `tests/e2e/consent-smoke.spec.ts` intentionally exercises direct entry for `unavailable`, `hide`, and `debug` fixtures. The active requirements in `docs/req-landing.md` and `docs/req-test.md` instead say those routes should be blocked and handed off to invalid-variant recovery.
+**Direct test-route reachability is looser than the active SSOT.** `src/app/[locale]/test/[variant]/page.tsx` currently resolves any registered test card, and `tests/e2e/consent-smoke.spec.ts` intentionally exercises direct entry for `unavailable`, `hide`, and `debug` fixtures. The active requirements in `docs/req-landing.md` and `docs/req-test.md` instead say those routes should be blocked and handed off to invalid-variant recovery. Closing this gap — wiring `validateVariant()` ok:false to the recovery page and blocking non-enterable direct routes — is Phase 4 scope.
 
 **Telemetry server authority is missing.** `src/app/api/telemetry/route.ts` returns `204` on any parseable JSON. Schema enforcement, forbidden-field rejection, and persistence exist only on the trusted client path.
 

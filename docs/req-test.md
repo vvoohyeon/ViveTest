@@ -807,6 +807,8 @@ invalid variant 입력은 runtime을 시작하지 않고 에러 복구 페이지
 - test module 누락
 - invalid structure
 - empty question set
+- `schema.axes` 배열 길이가 `axisCount`와 불일치하는 경우 (`AXIS_COUNT_SCHEMA_MISMATCH`)
+- `schema.axes` 내에서 동일한 `poleA`+`poleB` 쌍이 중복 선언된 경우 (`DUPLICATE_AXIS_SPEC`)
 - `binary_majority` scoringMode를 가진 scoring axis에서 odd-count rule 위반 (profile 문항은 적용 제외)
 - `scale` scoringMode를 가진 axis 선언 — 현재 미구현 모드이며 해당 variant 진입을 차단한다
 - scoring schema 불일치로 인해 `scoreStats` / `derivedType` 계산 불가

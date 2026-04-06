@@ -109,19 +109,20 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Confidence:** High
 
 ### REQ-F-005 — Binary question model
-- **Statement:** Each question must provide exactly two answer options mapped to scoring dimensions.
-- **Rationale:** Current scoring contract depends on binary option selection.
+- **Statement:** Each question must provide exactly two answer options. Scoring questions map both options to a scoring axis/dimension. Profile questions map both options to qualifier values and do not contribute to axis scoring. Full question model contract: Test Flow Requirements §3.8 (SSOT).
+- **Rationale:** Current scoring contract depends on binary option selection. Profile questions support qualifier-bearing result segments (e.g., EGTT `type` segment suffix).
 - **Acceptance criteria:**
   - Question data contract enforces two answer options per question.
   - Answer revision is supported during progression.
 - **Confidence:** High
 
-### REQ-F-005A — Single-axis evaluation per question
-- **Statement:** Each question must evaluate exactly one axis/metric defined by the variant’s scoring schema.
+### REQ-F-005A — Single-axis evaluation per scoring question
+- **Statement:** Each scoring question must evaluate exactly one axis/metric defined by the variant’s scoring schema. Profile questions do not evaluate any axis; they collect qualifier responses only (see Test Flow Requirements §3.8).
 - **Rationale:** Simplifies derivation logic and ensures interpretability of progress and analytics.
 - **Acceptance criteria:**
-  - For every question, both answer options map to the same axis (opposite poles/values within that axis).
-  - A question must not contribute to multiple axes.
+  - For every scoring question, both answer options map to the same axis (opposite poles/values within that axis).
+  - A scoring question must not contribute to multiple axes.
+  - Profile questions are exempt from axis-mapping requirements.
 - **Confidence:** High
 
 ### REQ-F-006 — Progress and completion gating
@@ -305,7 +306,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
   - `attempt_start` and `final_submit` MUST include `variant`, `question_index_1based`, `dwell_ms_accumulated`, and `landing_ingress_flag`.
   - `question_index_1based` is canonical-index based, not user-facing `Q1/Q2` based.
   - If `question_answered` is later activated, its `questionIndex` MUST also use canonical index rather than scoring-order UI labels.
-  - `final_submit` MUST include `final_responses` using semantic `A|B` codes only.
+  - `final_submit` MUST include `final_responses` containing canonical pole-value responses for all questions (scoring and profile); responses are the selected `poleA`/`poleB` string, not abstract `A|B` symbols. Raw question/answer text and PII are forbidden. Full encoding contract: Test Flow Requirements §3.8.
   - `transition_id`, `result_reason`, and `final_q1_response` are reserved for internal transition logic and MUST NOT appear in public telemetry payloads.
 - **Confidence:** High
 
