@@ -269,7 +269,9 @@
 - `cardThumbnail`은 UI slot 이름일 뿐이며, thumbnail asset 결정 입력은 오직 `variant`다.
 - fallback thumbnail도 `variant` 기반 규칙 안에서만 결정한다.
 - Test Expanded: `previewQuestion`, `answerChoiceA/B`, `meta(3)`
-- Test Expanded의 `previewQuestion`, `answerChoiceA`, `answerChoiceB`는 Questions source의 `scoring1`에서 파생된 landing projection이다.
+- Test Expanded의 canonical preview consumer shape는 `previewQuestion`, `answerChoiceA`, `answerChoiceB`로 고정한다.
+- 현재 단계의 Test Expanded preview source는 Questions direct read가 아니라 fixture inline 기반 **temporary bridge** 일 수 있다. 단, canonical target은 항상 Questions의 **first scoring question (`scoring1`)** 이며 UI는 이를 source detail로 인식하지 않고 resolver가 주입한 landing projection으로만 소비해야 한다.
+- preview payload 접근 로직을 랜딩 UI 컴포넌트 내부에 분산시키는 것을 금지한다. raw fixture shape 직접 참조도 금지한다.
 - Blog Expanded: `cardSubtitleExpanded(최대 4줄)`, `meta(3)`, `primaryCTA(Read more)`
 
 **Verification**:
@@ -290,8 +292,10 @@
 - Expanded Test answer choices 텍스트는 버튼 내부 좌측 정렬을 강제하며 줄 수 제한 없이 줄바꿈을 허용한다.
 - Expanded Test answer choices 텍스트는 truncate/ellipsis/clamp를 금지한다.
 - Landing Expanded Blog subtitle: 같은 `subtitle`을 continuity 있게 유지하며 총 4줄까지만 표시한다.
+- Blog subtitle은 Normal 2줄 clamp와 Expanded 4줄 clamp가 **같은 source text** 를 재사용해야 한다.
 - Blog는 별도 blog 전용 보조 텍스트 소스를 사용하지 않는다.
 - blog subtitle은 치환, 요약, 후처리, blog 전용 우회 소스 없이 동일한 `subtitle` 텍스트 하나만 재사용한다.
+- `blogSummary`, `summary`, `articleId`, `thumbnailOrIcon`, `isHero` 필드가 blog subtitle source, subtitle continuity 계산, 런타임 카드 계약에 재유입되는 것을 금지한다.
 - Expanded meta/CTA: overflow 시 truncate
 - 카드 타이포그래피는 동일 locale에서 Normal/Expanded 상태 간 대표 폰트 1종을 유지해야 하며 상태별 폰트 분기를 금지한다.
 - 폰트는 `ko`, `en` locale별로 각 1종의 대표 폰트를 허용하고 공통 fallback 체인을 사용한다.
@@ -300,8 +304,9 @@
 1. Manual: 긴 텍스트 fixture로 줄바꿈/클램프를 확인한다.
 2. Automated: screenshot diff로 clamp 정책 위반 여부를 검증한다.
 3. Automated: Desktop/Mobile long-token fixture에서 subtitle overflow 시 ellipsis가 노출되는지 검증한다.
-4. Automated: Desktop Expanded Blog subtitle continuity가 lead+overflow 구조로 유지되는지 검증한다.
+4. Automated: Desktop Expanded Blog subtitle continuity가 lead+overflow 구조를 사용하면서도 Normal subtitle과 동일한 source text를 재사용하는지 검증한다.
 5. Automated: subtitle 길이 변화가 Normal 카드의 형제 슬롯 inline-size를 변경하지 않는지 검증한다.
+6. Automated: `blogSummary`, `summary`, `articleId`, `thumbnailOrIcon`, `isHero` 재유입이 없는지 회귀 검증한다.
 
 ### 6.7 Card Height & Bottom Spacing Contract
 **Rule**: 카드 높이/하단 여백/row 안정성은 아래 5개 불변식을 동시에 만족해야 한다.
@@ -383,13 +388,13 @@
 - Normal 상태의 슬롯 기하 계약은 subtitle overflow 처리와 독립이어야 하며, 텍스트 처리로 슬롯 간 폭 전파를 허용하지 않는다.
 - Expanded에서 제거 대상(`subtitle/thumbnail/tags`)은 시각 숨김이 아니라 미렌더링 또는 접근성 트리 비노출이어야 한다.
 - front/back title 불일치를 금지한다.
-- Test Expanded `meta`는 3개 고정(예상 소요 시간, 공유 횟수, 누적 테스트 횟수)이며 non-interactive 정보 슬롯으로 렌더링한다.
+- Test Expanded `meta`는 3개 고정이며 runtime data key는 `durationM`, `sharedC`, `engagedC`만 사용한다. 표시 라벨만 `예상 시간`, `공유`, `시도`로 분기하며 non-interactive 정보 슬롯으로 렌더링한다.
 - Test Expanded는 별도 Start CTA를 허용하지 않는다.
-- Test Expanded의 preview/answer CTA는 generic first row가 아니라 Questions source의 `scoring1`에서 derive된 데이터만 사용한다.
-- Blog Expanded `meta`는 3개 고정(읽기 시간, 공유 횟수, 조회수)이며 non-interactive 정보 슬롯으로 렌더링한다.
+- Test Expanded의 preview/answer CTA는 generic first row가 아니라 canonical preview payload만 사용한다. 해당 payload의 현재 source는 fixture inline temporary bridge일 수 있으나, 다음 단계 Questions **first scoring question** migration 이후에도 consumer shape는 유지되어야 한다.
+- Blog Expanded `meta`는 3개 고정이며 runtime data key는 `durationM`, `sharedC`, `engagedC`만 사용한다. 표시 라벨만 `읽기 시간`, `공유`, `조회`로 분기하며 non-interactive 정보 슬롯으로 렌더링한다.
 - Blog Expanded `primaryCTA`는 1개 고정(`Read more`, i18n).
 - Expanded `meta` 수치값은 축약 표기(`k`/`m` 등)를 금지하고 3자리마다 `,` 구분자를 적용한다.
-- 카드에 노출되는 텍스트(제목/부제/질문/선택지/요약/메타 레이블)는 활성 locale에 맞춰 표시해야 하며, locale 값 누락 시 default locale fallback을 적용한다.
+- 카드에 노출되는 텍스트(제목/부제/질문/선택지/메타 레이블)는 활성 locale에 맞춰 표시해야 하며, locale 값 누락 시 default locale fallback을 적용한다.
 
 **Verification**:
 1. Manual: Normal thumbnail 비율/왜곡 여부를 확인한다.
@@ -813,6 +818,13 @@
 ### 12.6 Data Source Contract
 **Rule**: 랜딩 구현은 generated runtime registry + adapter/resolver 경계를 사용한다. 전체 source topology SSOT는 `docs/req-test.md` §2가 소유한다.
 - 현재 구현 단계에서는 fixture-backed registry를 사용할 수 있으나, 이것이 active source topology 자체를 정의하지는 않는다.
+- source fixture shape와 exported runtime registry shape는 명시적으로 분리해야 한다. source 전용 `seq`와 temporary inline preview bridge는 runtime landing card payload로 전파되면 안 된다.
+- landing / test / blog consumer는 raw fixture shape를 직접 읽지 않는다. preview payload는 `resolveTestPreviewPayload()` 같은 단일 resolver/adapter 경계로만 주입해야 하며, 접근 로직을 UI 컴포넌트 안에 분산시키는 것을 금지한다.
+- 배열 순서 계약은 `seq -> sort -> drop`으로 고정한다. `seq`는 source 입력에서만 허용되며, exported runtime registry에는 남아 있으면 안 된다. 누락/중복 `seq`는 fixture validation fail로 처리한다.
+- landing preview는 항상 first scoring question(`scoring1`) 기준이다. profile 문항은 landing preview에 사용하지 않는다.
+- landing 단계에서는 profile 문항을 묻지 않는다. landing이 수집하는 입력은 `scoring1` preview 기반 A/B 선택뿐이다.
+- landing 단계에서는 preview 선택값을 durable staged entry로 저장할 수 있으나, canonical question index binding은 test runtime commit 시점의 책임이다.
+- same-variant landing 재선택은 restart intent 의미를 가진다. old run replace 시점과 auto-presentation 세부 규칙은 `docs/req-test.md`가 소유한다.
 - 랜딩 fixture 최소: Test `4+`, Blog `3+`, unavailable Test `2+`, unavailable Blog `0`.
 - fixture 다양성 케이스 필수: 긴 텍스트, 빈 tags, debug fixture.
 - fixture에서 required 슬롯 누락은 금지한다.
@@ -865,16 +877,21 @@
 **Rule**: `scoring1` pre-answer와 시작 문항 결정은 ingress flag 기준으로만 판단한다.
 - 본 계약은 Test 카드에만 적용하며 Blog 카드에는 적용하지 않는다.
 - Test 카드 Expanded에서 A/B 선택 시:
-1. 선택값을 `scoring1` pre-answer로 저장
+1. 선택값을 `scoring1` provisional pre-answer로 **즉시 durable staged entry**에 저장
 2. `variant + session` 단위 landing ingress flag 기록
+3. `createdAtMs`를 함께 기록
 3. `/test/[variant]` 진입
 - landing ingress flag 존재 시 instruction seen 여부와 무관하게 landing이 미리 답한 문항은 항상 `scoring1`이다.
+- landing 단계에서는 이 provisional pre-answer를 아직 canonical question index에 bind하지 않는다.
 - landing ingress runtime은 `q.1`이 존재하면 `q.1`부터, 없으면 `scoring2`부터 시작한다.
 - landing ingress flag 부재 시 direct runtime은 `q.1`이 존재하면 `q.1`부터, 없으면 `scoring1`부터 시작한다.
-- profile question이 존재하면 runtime에서는 `scoring1` 다음에 `q.*`가 먼저 노출될 수 있다.
+- profile question이 존재하면 runtime에서는 `scoring1` 다음에 `q.*`가 먼저 노출될 수 있으며, landing ingress 이후 자동 제시는 unanswered profile → unanswered scoring 순서를 따른다.
+- landing에서 seed된 `scoring1`은 revisitable이지만 auto-present 대상이 아니어야 한다.
 - 동일 variant 재진입에서 instruction이 생략되는 경우:
 1. ingress flag 존재 시 즉시 시작 + landing ingress runtime start 규칙 적용
 2. ingress flag 부재 시 direct runtime start 규칙 적용
+- same-variant landing 재선택은 항상 restart intent다.
+- old active run replace는 commit success 시점에만 발생한다.
 - 사용자는 테스트 중 `scoring1`을 재수정할 수 있다.
 - staged entry 만료(A/B 선택 시점으로부터 7분 경과)와 commit-failure UX는 다음 Phase(Test Flow Requirements) 범위다.
 - 이번 Phase에서는 ingress save/read/consume/rollback 계약만 release-blocking으로 유지한다.
@@ -892,7 +909,7 @@
 #### 표시 구성 원칙
 
 - instruction 본문은 각 variant에 대응하는 `instruction` 데이터가 소유한다. generic fallback instruction을 금지한다.
-- consent note, divider, CTA set은 `ingress type + consent state + card type` 조합으로 결정한다.
+- consent note, divider, CTA set은 `ingress type + consent state + attribute` 조합으로 결정한다.
 - landing ingress 판정은 landing ingress flag만 사용한다. path/referrer/pending transition은 근거로 쓰지 않는다.
 - test route는 route-local consent banner, confirm dialog, blocked popup을 렌더하지 않는다.
 
@@ -904,7 +921,7 @@
 
 #### 정책 매트릭스
 
-| ingress | consent | card type | 표시 내용 | CTA | 결과 |
+| ingress | consent | attribute | 표시 내용 | CTA | 결과 |
 |---|---|---|---|---|---|
 | landing ingress | `OPTED_IN` | `available` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. landing은 `scoring1` 유지, runtime은 `q.1`이 있으면 `q.1`, 없으면 `scoring2`부터 진행 |
 | landing ingress | `OPTED_IN` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. landing은 `scoring1` 유지, runtime은 `q.1`이 있으면 `q.1`, 없으면 `scoring2`부터 진행 |
@@ -940,7 +957,7 @@
   다음 진입은 최초 진입으로 취급 (Test Flow Requirements §3.6 참조).
 
 **Verification**:
-1. Automated: landing ingress 경로에서 `OPTED_IN + available|opt_out`, `OPTED_OUT + opt_out`는 variant별 plain instruction + [Start]만 표시하고, landing pre-answered `scoring1` 이후 runtime이 `q.1` 또는 `scoring2`부터 진행함을 검증한다. 딥링크 유입의 동일 consent × card type 조합은 plain instruction + [Start] + `q.1` 또는 `scoring1` 시작임을 검증한다.
+1. Automated: landing ingress 경로에서 `OPTED_IN + available|opt_out`, `OPTED_OUT + opt_out`는 variant별 plain instruction + [Start]만 표시하고, landing pre-answered `scoring1` 이후 runtime이 `q.1` 또는 `scoring2`부터 진행함을 검증한다. 딥링크 유입의 동일 consent × attribute 조합은 plain instruction + [Start] + `q.1` 또는 `scoring1` 시작임을 검증한다.
 2. Automated: landing ingress + `OPTED_OUT` + `available`가 랜딩 카탈로그 단계에서 비도달 상태임을 검증한다. test route에 fallback branch가 없음을 함께 검증한다.
 3. Automated: `UNKNOWN` + `available` 조합 — landing ingress 경로에서는 variant별 instruction + divider + available note + [Accept All and Start] / [Deny and Abandon]이 표시되고, [Accept All and Start] → `OPTED_IN` 저장 + landing ingress runtime start 규칙 적용, [Deny and Abandon] → `OPTED_OUT` 저장 + 랜딩 복귀를 검증한다. 딥링크 유입 경로에서는 동일 UI 구성 + [Accept All and Start] → direct runtime start 규칙 적용, [Deny and Abandon] → 랜딩 복귀를 검증한다.
 4. Automated: `UNKNOWN` + `opt_out` 조합 — landing ingress 경로에서는 variant별 instruction + divider + opt_out note + [Accept All and Start] / [Deny and Start]가 표시되고 두 CTA 모두 landing ingress runtime start 규칙을 따름을 검증한다. 딥링크 유입 경로에서는 동일 UI 구성 + 두 CTA 모두 direct runtime start 규칙을 따름을 검증한다.
@@ -956,6 +973,7 @@
 **ingress-first 유효성 원칙 (SSOT: Test Flow Requirements §3.1, §4.1)**:
 - pre-answer를 `scoring1` 응답으로 적용하기 위한 유일한 기준은 **landing ingress flag 존재 여부**다.
 - landing ingress flag가 존재하면 pre-answer를 `scoring1` 응답으로 적용한다.
+- 단, canonical question index binding은 landing 단계가 아니라 runtime entry commit 시점에 수행한다.
 - landing ingress flag가 없는 유입에 pre-answer 적용을 금지한다. storage에 pre-answer가 잔류하더라도 무시하고 direct runtime start 규칙(`q.1` 우선, 없으면 `scoring1`)으로 정상 진행한다.
 - transition correlation은 pre-answer 유효성 판단의 근거로 사용하지 않는다.
 

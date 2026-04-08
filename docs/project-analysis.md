@@ -11,7 +11,7 @@ This repository is a localized Next.js App Router application. Its real technica
 - `npm run qa:rules`: fails at Phase 11 because theme-matrix and Safari ghosting PNG baselines are absent
 - Snapshot baseline status: theme-matrix and Safari ghosting PNG baselines are absent in the current workspace; only 2 `state-smoke` PNGs are present
 
-**Implementation phase status (2026-04-06):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. The live route/runtime does not yet consume the domain module; that wiring is Phase 4 scope. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
+**Implementation phase status (2026-04-06):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
 
 ---
 
@@ -26,37 +26,16 @@ This repository is a localized Next.js App Router application. Its real technica
 - Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/landing/telemetry/`)
 - Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
 - Blog index/list route plus route-driven article detail (`src/features/landing/blog/blog-destination-client.tsx`, `src/app/[locale]/blog/[variant]/page.tsx`)
-- Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`). Key interface contracts are frozen by Phase 0–1 ADRs (brand type shapes, `validateVariant()` result union, `BlockingDataErrorReason` enum). The live route/runtime does not import this module; wiring is Phase 4 scope.
+- Fixture-backed variant registry with generated runtime export, source/runtime type separation, `seq` validation + sort/drop, resolver-only preview access, unified landing meta keys, and resolver-backed card lookup (`src/features/variant-registry/`)
+- Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`). Key interface contracts are frozen by Phase 0–1 ADRs (brand type shapes, `validateVariant()` result union, `BlockingDataErrorReason` enum).
 
 ### Partially implemented
 
-| Area | What exists | What's missing |
-|---|---|---|
-| Test destination | Policy-driven instruction overlay keyed by ingress type + consent state + `attribute`, variant-scoped instruction copy from the canonical registry, 4-question flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry | Result route family, shareable payload reconstruction, durable session/history, and schema-driven result rendering are not implemented. Current runtime is still a compatibility shell around entry semantics and registry-backed question data |
-| Test domain integration | Pure domain validators, integrity checks, derivation helpers, and type-segment parsing/building exist under `src/features/test/domain/` and are covered by dedicated unit tests | The current route/runtime does not import these domain modules yet, so schema-driven scoring and qualifier-aware result flow are not wired into `/[locale]/test/[variant]` |
-| Blog destination | List-only index route, variant-keyed article detail route, article list | Content source beyond fixtures |
-
-### Placeholder only
-
-- `src/app/[locale]/history/page.tsx` — renders localized shell text and current locale; no functionality
-- Preferences button in `src/features/landing/shell/telemetry-consent-banner.tsx` — click handler is a no-op
-- `src/app/layout.tsx` root metadata — title is `ViveTest`, description is still `Reset baseline placeholder`
-
-### Entirely absent
-
-The following product surfaces from `docs/requirements.md` have no implementation in `src`:
-
-- `/result` route family and share payload reconstruction
-- Local result history store, delete/clear UI
-- Admin routes and auth boundary
-- Google Sheets sync pipeline (no client dependency, no sync script, no generated registry)
-- Invalid-variant recovery page (Phase 4 scope — `validateVariant()` ok:false → §6.1 recovery page wiring, same-route recoverable handling)
-- Server-side telemetry validation or persistence
-
-The following capabilities exist only as pure test-domain implementation today and are not yet connected to the live route/runtime:
-
-- EGTT-like qualifier-bearing schemas in unit-tested domain helpers, but no runtime fixture, route, or result UI that surfaces them to end users
-- `questionType`, scoring/profile split, `axisCount`, `qualifierFields`, `derivedType`, and related schema validation/derivation logic in `src/features/test/domain/`, but no user-facing result flow that consumes them
+| Area | Current implementation |
+|---|---|
+| Test destination | Policy-driven instruction overlay keyed by ingress type + consent state + `attribute`, registry-backed instruction copy, 4-question compatibility flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry |
+| Test domain foundation | Pure domain validators, integrity checks, derivation helpers, canonical index / `questionType` / qualifier-aware types, and type-segment parsing/building under `src/features/test/domain/`, covered by dedicated unit tests |
+| Blog destination | List-only index route, variant-keyed article detail route, article list |
 
 ---
 
@@ -76,7 +55,7 @@ The following capabilities exist only as pure test-domain implementation today a
 | `src/config/site.ts` | Locale set definition |
 | `src/lib/routes/route-builder.ts` + `src/i18n/localized-path.ts` | Locale-free route authoring + locale prefix application |
 
-`src/features/landing` remains the de facto platform namespace for shared runtime concerns. The canonical test surface now lives in `src/features/test`, but its user-facing runtime still depends on landing-owned transition, telemetry, shell, and catalog seams. Separately, `src/features/test/domain/*` already models the future schema-driven test flow, but the current route/runtime does not consume it yet.
+`src/features/landing` remains the de facto platform namespace for shared runtime concerns. The canonical test surface now lives in `src/features/test`, and its user-facing runtime currently composes landing-owned transition, telemetry, shell, and catalog seams alongside the pure test-domain foundation.
 
 ### 3.2 Module Flow
 
@@ -106,7 +85,7 @@ Route tree
             │         ├─ src/features/test/entry-policy.ts
             │         ├─ src/features/test/instruction-overlay.tsx
             │         └─ src/features/test/question-bank.ts
-            └─ src/app/[locale]/history/page.tsx (placeholder)
+            └─ src/app/[locale]/history/page.tsx
 
 Shared page wrapper (all localized routes)
   └─ src/features/landing/shell/page-shell.tsx
@@ -130,7 +109,7 @@ Separately, `src/features/test/domain/*` exposes pure helpers for future schema-
 - `derivation.ts` — `computeScoreStats()` and `deriveDerivedType()`
 - `type-segment.ts` — `parseTypeSegment()` and `buildTypeSegment()`
 
-These files are exercised by `tests/unit/test-domain-*.test.ts`, but the current route/runtime path does not import them yet.
+These files are exercised by `tests/unit/test-domain-*.test.ts`.
 
 ---
 
@@ -214,15 +193,17 @@ Current fixture inventory:
 
 `src/features/variant-registry/attribute.ts` now owns `attribute` normalization and the helper surface that matters to the rest of the app: `deriveAvailability()`, `isEnterableCard()`, `isCatalogVisibleCard()`, and `isUnavailablePresentation()`.
 
-`src/features/variant-registry/resolvers.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
+`src/features/variant-registry/types.ts` already separates source-facing and runtime-facing shapes: source rows can carry `seq` and inline preview bridge fields, while runtime landing cards exclude those source-only fields. `src/features/variant-registry/resolvers.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
 
-The current builder still relies on fixture-backed localized copy and the temporary bridge where inline Q1 preview is temporary until Questions Q1 migration. That bridge is now isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly.
+The current builder still relies on fixture-backed localized copy and a temporary bridge where the **first scoring preview source of truth** remains inline. That bridge is isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly. Runtime meta keys are unified as `durationM` / `sharedC` / `engagedC`, while UI labels branch by content type.
+
+Blog subtitle continuity is also fixed in tests: the runtime uses `subtitle` as the only blog body-copy source for landing cards, and unit/e2e checks assert that Normal and Expanded states reuse the same text rather than a separate summary field.
 
 Active e2e representative anchors now use canonical landing variants directly: `PRIMARY_AVAILABLE_TEST_VARIANT` (`qmbti`) and `PRIMARY_OPT_OUT_TEST_VARIANT` (`energy-check`). Theme-matrix screenshots still key off the available representative route.
 
 ### 5.4 Transition Runtime
 
-Landing-to-destination handshake: `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` writes `PendingLandingTransition` to `sessionStorage`, records return scroll state, and optionally records landing ingress for test cards.
+Landing-to-destination handshake: `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` writes `PendingLandingTransition` to `sessionStorage`, records return scroll state, and, for test cards, writes a landing ingress record that includes `variant`, `preAnswerChoice`, `createdAtMs`, and `landingIngressFlag`.
 
 On the destination side, `src/features/landing/transition/transition-runtime-monitor.tsx` enforces a **1600ms timeout**. `TransitionGnbOverlay` keeps a landing-context GNB visible during pending transition for visual continuity. `LandingRuntime` restores scroll on return and cancels stale transitions with `USER_CANCEL`.
 
@@ -234,15 +215,13 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 **Blog** (`src/features/landing/blog/server-model.ts`, `src/features/landing/blog/blog-destination-client.tsx`): `variant` is the only article identifier. `/{locale}/blog` is list-only, while `/{locale}/blog/{variant}` resolves article detail strictly from the route variant. Invalid or non-enterable variants redirect to the localized blog index. Pending transition is only a completion/overlay signal and is not the article selection source of truth.
 
-**Test** (`src/features/test/test-question-client.tsx`): policy-driven instruction gating, landing-ingress starts user at Q2 while deep-link entry starts at Q1, dwell time tracking, and `attempt_start` / `final_submit` telemetry. `src/features/test/entry-policy.ts` separates content, CTA configuration, and action effects; `src/features/test/instruction-overlay.tsx` renders the composed instruction surface. The page is still designed around entry semantics and telemetry correctness, not scoring logic, so it remains a compatibility shell rather than the future domain-complete runtime.
+**Test** (`src/features/test/test-question-client.tsx`): policy-driven instruction gating, landing-ingress starts the current compatibility flow at Q2 while deep-link entry starts at Q1, dwell time tracking, and `attempt_start` / `final_submit` telemetry. `src/features/test/entry-policy.ts` separates content, CTA configuration, and action effects; `src/features/test/instruction-overlay.tsx` renders the composed instruction surface. The live page today is a compatibility shell around entry semantics and registry-backed question data.
 
-`src/app/[locale]/test/[variant]/page.tsx` now regex-validates the URL segment and then resolves the card via `resolveLandingTestCardByVariant(locale, variant)`, failing closed with `notFound()` when the registry lookup misses. This is stricter than the earlier format-only route handling, but it still does not provide the full invalid-variant recovery surface described in the long-term requirements or enforce the SSOT rule that direct non-enterable test routes should be blocked.
+`src/app/[locale]/test/[variant]/page.tsx` now regex-validates the URL segment and then resolves the card via `resolveLandingTestCardByVariant(locale, variant)`, failing closed with `notFound()` when the registry lookup misses.
 
-`src/features/test/question-bank.ts` now always builds Q1 from the resolved card and Q2–4 from localized fallback questions. Unknown variants no longer receive a generic fallback because route bootstrap is now strict.
+`src/features/test/question-bank.ts` now always builds the landing preview question/choices through `resolveTestPreviewPayload()` and Q2–4 from localized fallback questions. Unknown variants no longer receive a generic fallback because route bootstrap is now strict.
 
-**Pure test-domain foundation** (`src/features/test/domain/*`): the current source already contains a separate pure module for branded ids, schema/question models, variant validation, question-model validation, variant data integrity checks, score derivation, and type-segment parsing/building. This surface is exported through `src/features/test/domain/index.ts` and covered by `tests/unit/test-domain-variant-validation.test.ts`, `tests/unit/test-domain-question-model.test.ts`, `tests/unit/test-domain-derivation.test.ts`, and `tests/unit/test-domain-type-segment.test.ts`.
-
-The important boundary is that the live route/runtime path does not import this pure domain module yet. The app does have a canonical fixture-backed variant registry, but there is still no schema-driven result route, no shareable result payload reconstruction, and no same-route recoverable invalid-variant handling in the user-facing flow. Phase 0–1 ADRs froze the contracts that consumers must respect: `VariantId` as a `string` intersection brand, `QuestionIndex` as a `number` intersection brand, the `validateVariant()` three-way result union (`MISSING` / `UNKNOWN` / `UNAVAILABLE`), and the `BlockingDataErrorReason` enum surface. Changes to any of these require a new ADR.
+**Pure test-domain foundation** (`src/features/test/domain/*`): the current source already contains a separate pure module for branded ids, schema/question models, variant validation, question-model validation, variant data integrity checks, score derivation, and type-segment parsing/building. This surface is exported through `src/features/test/domain/index.ts` and covered by `tests/unit/test-domain-variant-validation.test.ts`, `tests/unit/test-domain-question-model.test.ts`, `tests/unit/test-domain-derivation.test.ts`, and `tests/unit/test-domain-type-segment.test.ts`. Phase 0–1 ADRs froze the contracts that consumers must respect: `VariantId` as a `string` intersection brand, `QuestionIndex` as a `number` intersection brand, the `validateVariant()` three-way result union (`MISSING` / `UNKNOWN` / `UNAVAILABLE`), and the `BlockingDataErrorReason` enum surface.
 
 ### 5.6 Telemetry
 
@@ -300,9 +279,8 @@ The key lists below describe the live prototype. Phase 0 fixed the future test-f
 - `[Deny and Abandon]` and `[Keep Current Preference]` do not record `instructionSeen`; they redirect home instead.
 - Auto-commit after `instructionSeen` now applies only to the plain `[Start]` path because note-based consent policies keep `canAutoCommitAfterInstructionSeen=false`.
 - Blog destination rejects invalid or non-enterable variants by redirecting to the localized blog index.
-- Direct `/test/[variant]` entry currently resolves any registered test card, including `unavailable`, `hide`, and `debug` fixtures. Active SSOT docs instead say those direct entries should be blocked and handed off to invalid-variant recovery.
-- Test variant URL validation is stricter than before (`resolveLandingTestCardByVariant()` + `notFound()`), but still fixture-backed rather than sheet-backed.
-- `history` page shares the full landing shell and GNB but is a non-functional placeholder.
+- Test variant URL validation is stricter than before (`resolveLandingTestCardByVariant()` + `notFound()`), and route bootstrap remains fixture-backed through the registry/resolver layer.
+- `history` page shares the full landing shell and GNB.
 - Preferences button in the consent banner is a visible no-op.
 
 ---
@@ -399,21 +377,15 @@ As of 2026-04-04, `npm run qa:rules` stops at `check-phase11-telemetry-contracts
 
 ---
 
-## 9. Risks and Open Gaps
+## 9. Risks and Notes
 
-**Test domain integration is incomplete.** `src/features/test/domain/*` already provides variant validation, schema/question integrity checks, derivation, and type-segment parsing/building, but the live route/runtime still uses fixture-backed question data and a local result panel. The app already has a canonical variant registry, yet there is still no `/result` route family, no invalid-variant recovery route, and no result history. Recovery page wiring (`validateVariant()` ok:false → §6.1 error recovery, same-route recoverable handling) is Phase 4 scope. Schema-driven result route family is Phase 7–9 scope.
-
-**The instruction contract is much cleaner, but the copy ownership split is now real.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. That split is intentional, but future editors can easily introduce drift if they assume all test copy lives in one source.
+**Instruction copy ownership is intentionally split.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. Future editors need to keep both sources in sync.
 
 **Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1582 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. Powerful but fragile under content-density or browser changes. The most likely future refactoring cost concentration point.
 
-**Direct test-route reachability is looser than the active SSOT.** `src/app/[locale]/test/[variant]/page.tsx` currently resolves any registered test card, and `tests/e2e/consent-smoke.spec.ts` intentionally exercises direct entry for `unavailable`, `hide`, and `debug` fixtures. The active requirements in `docs/req-landing.md` and `docs/req-test.md` instead say those routes should be blocked and handed off to invalid-variant recovery. Closing this gap — wiring `validateVariant()` ok:false to the recovery page and blocking non-enterable direct routes — is Phase 4 scope.
+**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Two files stand out as the primary pressure points: `use-landing-interaction-controller.ts` (1582 lines) and `site-gnb.tsx` (~791 lines).
 
-**Telemetry server authority is missing.** `src/app/api/telemetry/route.ts` returns `204` on any parseable JSON. Schema enforcement, forbidden-field rejection, and persistence exist only on the trusted client path.
-
-**`src/features/landing` namespace is overburdened.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Workable for V1, but the boundary will need restructuring as result/history/admin surfaces arrive. Two files stand out as the primary pressure points: `use-landing-interaction-controller.ts` (1582 lines) and `site-gnb.tsx` (~791 lines).
-
-**Screenshot-driven QA remains concentrated in the instruction surface.** The `test-instruction` representative route is still shared by the theme-matrix manifest and consent smoke coverage, so future CTA/copy/layout tweaks will churn a tightly coupled set of representative snapshots and route-level assertions.
+**Screenshot-driven QA remains concentrated in the instruction surface.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of representative snapshots and route-level assertions.
 
 **Tech stack notes:**
 - `next@16.1.6`, `react@19.2.4`, `next-intl@4.8.3`

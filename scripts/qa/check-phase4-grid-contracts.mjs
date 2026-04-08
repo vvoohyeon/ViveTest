@@ -67,8 +67,8 @@ if (fileExists('tests/e2e/grid-smoke.spec.ts')) {
   if (!/threshold sweeps/u.test(e2eSpec)) {
     fail('Grid smoke spec must include threshold sweep regression coverage.');
   }
-  if (!/card type label is removed/u.test(e2eSpec) || !/subtitle clamp/u.test(e2eSpec)) {
-    fail('Grid smoke spec must assert type-label removal and subtitle clamp consistency.');
+  if (!/content type label is removed/u.test(e2eSpec) || !/subtitle clamp/u.test(e2eSpec)) {
+    fail('Grid smoke spec must assert content-type label removal and subtitle clamp consistency.');
   }
   if (!/title clamp and expanded title continuity/u.test(e2eSpec)) {
     fail('Grid smoke spec must assert desktop/tablet title clamp and expanded title continuity.');

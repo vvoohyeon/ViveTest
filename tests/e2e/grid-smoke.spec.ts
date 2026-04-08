@@ -414,7 +414,7 @@ test.describe('Phase 4 grid smoke', () => {
     expectMonotonicGridSweep(mobileSamples);
   });
 
-  test('@smoke card type label is removed and subtitle clamp is consistent across rows', async ({page}) => {
+  test('@smoke content type label is removed and subtitle clamp is consistent across rows', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 

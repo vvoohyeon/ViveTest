@@ -24,7 +24,7 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         kr: "QMBTI는 본 문항에 들어가기 전에 작업 리듬 성향을 짧게 점검하는 테스트입니다.",
       },
       previewQuestion: {
-        en: "🎉 When do you feel most focused?",
+        en: "🎉 At parties or birthday celebrations,",
         kr: "🎉 파티나 생일잔치에 가면 나는",
       },
       answerA: {
@@ -193,8 +193,8 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
       variant: "burnout-risk",
       attribute: "hide",
       title: {
-        en: "Burnout Risk Signal (Soon)",
-        kr: "번아웃 위험 신호 (곧 공개)",
+        en: "Burnout Risk Signal",
+        kr: "번아웃 위험 신호",
       },
       subtitle: {
         en: "Upcoming resilience check for recurring fatigue patterns.",

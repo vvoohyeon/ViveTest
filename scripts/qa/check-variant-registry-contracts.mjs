@@ -54,8 +54,14 @@ const activeDocs = new Set([
   'docs/req-test-plan.md'
 ]);
 
+const legacyAttributeAliasToken = `card${'Type'}`;
+const legacyAttributeAliasPathToken = `card-${'type'}`;
+const legacyAttributeAliasPattern = new RegExp(String.raw`\b${legacyAttributeAliasToken}\b`, 'u');
+const legacyAttributeAliasPathPattern = new RegExp(legacyAttributeAliasPathToken, 'u');
+const ambiguousAttributeLabelPattern = new RegExp(String.raw`\bcard ${'type'}\b`, 'u');
+
 const bannedIdentifiers = [
-  {label: 'legacy cardType identifier', pattern: /\bcardType\b/u},
+  {label: 'legacy attribute alias identifier', pattern: legacyAttributeAliasPattern},
   {label: 'legacy blogSummary identifier', pattern: /\bblogSummary\b/u},
   {label: 'legacy articleId identifier', pattern: /\barticleId\b/u},
   {label: 'legacy thumbnailOrIcon identifier', pattern: /\bthumbnailOrIcon\b/u},
@@ -63,6 +69,10 @@ const bannedIdentifiers = [
 ];
 
 for (const relativePath of scanFiles) {
+  if (legacyAttributeAliasPattern.test(relativePath) || legacyAttributeAliasPathPattern.test(relativePath)) {
+    fail(`Forbidden legacy attribute alias path must not appear in ${relativePath}.`);
+  }
+
   const file = read(relativePath);
 
   for (const {label, pattern} of bannedIdentifiers) {
@@ -73,6 +83,10 @@ for (const relativePath of scanFiles) {
 
   if (!relativePath.startsWith('docs/') && /\bsummary\b/u.test(file)) {
     fail(`Legacy summary field/selector token must not appear in ${relativePath}.`);
+  }
+
+  if (relativePath.startsWith('docs/') && activeDocs.has(relativePath) && ambiguousAttributeLabelPattern.test(file)) {
+    fail(`${relativePath} must use attribute/card attribute or content type instead of the ambiguous legacy label.`);
   }
 }
 

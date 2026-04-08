@@ -47,7 +47,7 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   }
 
   if (!/previewQuestion/u.test(cardFile) || !/cardSubtitleExpanded/u.test(cardFile)) {
-    fail('LandingGridCard must define expanded slot markers for both card types.');
+    fail('LandingGridCard must define expanded slot markers for both content types.');
   }
 
   if (!/data-card-state/u.test(cardFile) || !/data-interaction-mode/u.test(cardFile)) {

@@ -11,11 +11,30 @@ This product lets users take multiple kinds of short assessments (test variants/
 - Provide basic admin/ops capabilities for insight monitoring and spreadsheet sync.
 
 ### Content and localization principles
-- Test content (questions, answers, landing preview inputs, and result interpretation content) is sourced from Google Sheets–managed sources and synchronized into the product.
+- Test content (questions, answers, landing preview inputs, and result interpretation content) is canonically sourced from Google Sheets–managed sources and synchronized into the product.
+- Landing preview input의 최종 canonical target은 Questions 데이터의 **first scoring question (`scoring1`)** 이다. 다만 현재 단계에서는 preview source of truth를 temporary inline bridge로 유지할 수 있으며, 이 예외가 runtime consumer contract를 바꾸면 안 된다.
+- Runtime consumers must use canonical resolver outputs rather than reading raw source rows or fixture authoring shapes directly.
 - UI chrome (CTA labels, navigation, system messages, and error/loading text) uses standard i18n resources.
 - Test content localization is provided by adding per-language columns in the synchronized Sheets sources; there is no country-specific variation in questions or scoring logic.
 - The active language is selected by the user and applied consistently across UI and test content.
 - The initial localized document response must expose the active language in `<html lang>` at SSR time; client-side reconciliation may only act as a fallback after navigation.
+
+### Confirmed policy alignment
+- Google Sheets topology is fixed as **three separate spreadsheets**: `Landing`, `Questions`, `Results`.
+- Sync/runtime inputs are fixed as `GOOGLE_SHEETS_SA_KEY`, `GOOGLE_SHEETS_ID_LANDING`, `GOOGLE_SHEETS_ID_QUESTIONS`, and `GOOGLE_SHEETS_ID_RESULTS`.
+- `Questions` uses **sheet name = variant ID**. `kind` is not authored; `seq` alone determines question type.
+- `q.*` rows normalize to profile questions, numeric rows normalize to scoring questions.
+- Canonical index, scoring order, and user-facing `Q1/Q2/...` are separate concepts.
+- Landing preview always derives from the first scoring question. Landing never asks profile questions.
+- Landing A/B selection creates a durable staged entry immediately. Canonical binding happens only at runtime entry commit.
+- Same-variant landing reselect always means restart intent. Old active runs are preserved until commit success and replaced only on commit success.
+- Landing commit success creates a fresh response set and seeds only the first scoring answer.
+- After landing ingress, automatic presentation order is unanswered profile first, then unanswered scoring. Seeded `scoring1` remains revisitable but is not auto-presented.
+- Profile questions are overlay-only in runtime, including edit flow. The instruction shell may be reused, but instruction content must not reappear during profile edit.
+- Runtime presentation states are logically partitioned into instruction overlay, profile overlay, scoring page, and profile edit overlay.
+- Main progress is **scoring-only**. Profile completion is a prerequisite overlay step, not part of the main progress numerator/denominator.
+- Telemetry question indexes use canonical index only. UI `Q1/Q2` labels are not sent in telemetry payloads.
+- `attempt_start` fires when the first runtime question is actually rendered after instruction.
 
 ## 2) Roles and Permissions
 
@@ -94,7 +113,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Rationale:** Establishes context and supports consistent session tracking.
 - **Acceptance criteria:**
   - Test start action is initiated from instruction context.
-  - The instruction step may combine variant-specific instruction content with consent-note and CTA branches determined by ingress type, consent state, and card type.
+  - The instruction step may combine variant-specific instruction content with consent-note and CTA branches determined by ingress type, consent state, and attribute.
   - Consent-related branching must be resolved inside the instruction step; the test route must not expose a separate route-local consent banner or dialog outside that context.
   - Leaving instruction before start is treated as pre-test abandonment context.
 - **Confidence:** High
@@ -106,6 +125,9 @@ This product lets users take multiple kinds of short assessments (test variants/
   - Reused active sessions are detectable.
   - Switching to a different test type closes/replaces prior context.
   - Inactive session timeout is 30 minutes from the last answered question, evaluated at re-entry point (not by background timer). Confirmed locked decision per Test Flow Requirements AR-002.
+  - Landing ingress creates a durable staged entry immediately, but canonical binding of the provisional answer is deferred until runtime entry commit.
+  - Same-variant landing reselect is treated as restart intent. Old active runs remain intact until commit success and are replaced only if commit succeeds.
+  - Commit success for landing ingress creates a fresh response set and seeds only the first scoring answer.
 - **Confidence:** High
 
 ### REQ-F-005 — Binary question model
@@ -129,9 +151,10 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Statement:** Test completion must occur only after all questions in the selected variant are answered.
 - **Rationale:** Prevents invalid or partial result computation.
 - **Acceptance criteria:**
-  - Progress is computed from answered count versus total canonical question count.
-  - Completion transition is blocked until all required answers exist across the full canonical question set.
-  - Result derivation may use only the scoring-question subset even when progress/completion use the full canonical question set.
+  - Main progress is computed from answered scoring-question count versus total scoring-question count.
+  - Profile questions are prerequisite overlay steps and are excluded from the main progress numerator/denominator.
+  - Completion transition is blocked until all required answers exist across the full canonical question set, including profile questions.
+  - Result derivation uses only the scoring-question subset.
 - **Confidence:** High
 
 ### REQ-F-007 — Variant-specific derivation logic (by test family)
@@ -170,6 +193,37 @@ This product lets users take multiple kinds of short assessments (test variants/
   - Schema authoring may be code-owned canonical registry / variant-to-schema mapping rather than Sheets-authored content, so long as the runtime remains schema-driven.
   - The product validates that any computed `scoreStats` matches the declared schema before rendering or sharing.
   - Non-released or experimental schemas must not appear in the production end-user catalog (see REQ-F-001).
+- **Confidence:** High
+
+### REQ-F-008A — Landing registry source/runtime boundary and preview bridge
+- **Statement:** The landing-facing registry contract must keep source authoring shape and runtime/export shape distinct, while preserving a stable preview consumer boundary across source migrations.
+- **Rationale:** Prevents temporary source-only fields from leaking into runtime contracts and keeps future source replacement scoped to builder/resolver internals.
+- **Acceptance criteria:**
+  - The current stage MAY keep landing preview source of truth inline in a source fixture, but this MUST be documented and treated as a **temporary bridge** rather than a permanent contract.
+  - The canonical preview consumer shape remains fixed as `previewQuestion`, `answerChoiceA`, and `answerChoiceB`, regardless of source authoring details.
+  - Landing, test, and blog consumers MUST use canonical registry resolver outputs and MUST NOT read raw fixture/source shapes directly.
+  - Source-only fields such as `seq` and temporary inline preview inputs MUST NOT leak into runtime/export landing-card payloads.
+  - Source arrays MUST follow `seq -> sort -> drop`; missing or duplicate `seq` values MUST fail validation, and consumers MUST trust array order rather than runtime `seq` access.
+- **Confidence:** High
+
+### REQ-F-008B — Unified landing meta contract and blog subtitle continuity
+- **Statement:** Landing runtime metadata and blog subtitle rendering must use a single canonical data contract across content types, with presentation differences handled only at the UI-label layer.
+- **Rationale:** Prevents runtime schema drift, keeps registry contracts simple, and locks subtitle behavior against legacy-field regression.
+- **Acceptance criteria:**
+  - Landing runtime meta keys MUST always be `durationM`, `sharedC`, and `engagedC`.
+  - UI labels MAY vary by content type, but runtime MUST NOT reverse-map into test-specific or blog-specific field names.
+  - Test cards use labels equivalent to estimated time / shares / attempts; blog cards use labels equivalent to read time / shares / views.
+  - Blog cards MUST use `subtitle` as the single source text for both Normal and Expanded states; the Normal 2-line clamp and Expanded 4-line clamp MUST reuse the same source text.
+  - Legacy blog-only fields or shapes such as `blogSummary`, `summary`, `articleId`, `thumbnailOrIcon`, and `isHero` MUST NOT re-enter the runtime card contract.
+- **Confidence:** High
+
+### REQ-F-008C — Preview-source migration contract
+- **Statement:** The next-stage swap from temporary inline preview source to the Questions **first scoring question (`scoring1`)** must be preserved as an explicit migration contract, not an implicit TODO.
+- **Rationale:** Makes the migration decision-complete and prevents consumer churn when Questions data becomes the live preview source.
+- **Acceptance criteria:**
+  - Documentation, code, and tests MUST explicitly record that the preview source will migrate from inline temporary bridge to the Questions first scoring question.
+  - The migration MUST add validation that Landing metadata and Questions data agree on variant presence and first-scoring-question availability.
+  - The migration MUST preserve the existing preview consumer shape and keep the change scope inside builder/resolver boundaries.
 - **Confidence:** High
 
 ### REQ-F-009 — Result content rendering
@@ -276,6 +330,7 @@ The product-wide minimum required events are:
 - `landing_view` — Landing phase
 - `card_answered` — Landing phase, ingress path only. Fires when the user selects an A/B answer on a landing test card. MUST NOT fire on direct-entry paths.
 - `attempt_start` — Test Flow phase
+- `question_answered` — Test Flow phase, canonical question index 기준, profile 포함
 - `final_submit` — Test Flow phase
 
 #### Internal system signals (not telemetry)
@@ -289,7 +344,6 @@ The following signals drive internal state-machine transitions (transition integ
 #### Reserved future subsets
 The following events are RESERVED for future phase-specific adoption and MUST NOT be treated as part of the current global minimum baseline:
 
-- `question_answered`
 - `result_viewed`
 - `instruction_view`
 - `instruction_start_click`
@@ -304,8 +358,9 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
   - `session_id` is transport-patched when consent/session are available; queued pre-sync events may originate with `session_id=null` before transport patching.
   - `card_answered` MUST include `source_variant`, `target_route`, and `landing_ingress_flag=true`.
   - `attempt_start` and `final_submit` MUST include `variant`, `question_index_1based`, `dwell_ms_accumulated`, and `landing_ingress_flag`.
+  - `question_answered` MUST include canonical question index and MUST apply to profile and scoring questions alike, excluding the landing-preanswered first scoring answer.
   - `question_index_1based` is canonical-index based, not user-facing `Q1/Q2` based.
-  - If `question_answered` is later activated, its `questionIndex` MUST also use canonical index rather than scoring-order UI labels.
+  - `question_answered.questionIndex` MUST use canonical index rather than scoring-order UI labels.
   - `final_submit` MUST include `final_responses` containing canonical pole-value responses for all questions (scoring and profile); responses are the selected `poleA`/`poleB` string, not abstract `A|B` symbols. Raw question/answer text and PII are forbidden. Full encoding contract: Test Flow Requirements §3.8.
   - `transition_id`, `result_reason`, and `final_q1_response` are reserved for internal transition logic and MUST NOT appear in public telemetry payloads.
 - **Confidence:** High
@@ -500,10 +555,14 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 
 ## 5) Conceptual Data Model
 - **Test Variant:** identifier, availability status, display metadata.
-- **Question:** ordered prompt with two answer options.
+- **Source Row:** a source-authoring record used only during sync/build. It may include ordering fields such as `seq` and a temporary inline preview bridge, but those are source-only concerns.
+- **Runtime Registry Card:** the exported landing/blog/test card shape consumed at runtime after source normalization. It must exclude source-only fields such as `seq` and other temporary authoring details.
+- **Resolved Preview Payload:** a resolver-provided landing preview object with canonical fields `previewQuestion`, `answerChoiceA`, and `answerChoiceB`. It is distinct from raw source authoring shape and remains stable across source migrations.
+- **Question:** ordered prompt with two answer options. Canonical index includes both profile and scoring questions; user-facing `Q1/Q2` applies only to scoring order.
 - **Answer Option:** display label + dimension contribution.
-- **Session:** id, variant, status, start/last activity timestamps.
-- **Response Set:** ordered answers, progress, completion state. Progress/completion use the full canonical question set; derivation uses the scoring subset.
+- **Session:** id, variant, status, start/last activity timestamps, staged-entry context where applicable.
+- **Response Set:** ordered answers, progress, completion state. Landing ingress commit creates a fresh response set seeded with only the first scoring answer. Main progress uses the scoring subset; completion still requires the full canonical question set.
+- **Runtime Presentation State:** logical state partition for instruction overlay, profile overlay, scoring page, and profile edit overlay. Overlay shell reuse does not permit instruction content to reappear during profile edit.
 - **Result:** finalized `derivedType` (variant-defined label token) and `scoreStats` (schema-defined axes/metrics), with profile/content rendered from the latest mapping at view time.
 - **Share Payload:** encoded minimal result data for portable reconstruction of the full result view. URL structure: `/result/{variant}/{type}?{base64Payload}`. `variant` and `type` (derivedType token) are URL path segments. The base64 payload contains `scoreStats` and `shared` (boolean). `scoringSchemaId` is not included; `variant` serves as the sole schema identifier. Optional `nickname` may be included only when the user explicitly opts in at share time.
 - **History Entry:** a per-run record containing runId, createdAt, testVariantId, derivedType, and the stored share URL string; presentation data (variant/type) is reconstructed from the URL payload. The UI may optionally provide a grouped view keyed by (testVariantId, derivedType).
