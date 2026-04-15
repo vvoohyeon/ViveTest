@@ -1,0 +1,322 @@
+# AGENTS.md
+
+## 1. 작업 시작 전 필수 확인 항목
+- 먼저 실제 스크립트와 플래그를 확인한다.
+  - `package.json`
+  - `next.config.ts`
+  - `playwright.config.ts`
+  - `src/config/site.ts`
+- 현재 구현 기준 계약 문서는 아래 순서로 읽는다.
+  - `[docs/project-analysis.md](./docs/project-analysis.md)`
+  - `[docs/req-landing.md](./docs/req-landing.md)`
+  - `[docs/req-test.md](./docs/req-test.md)`
+  - `[docs/req-test-plan.md](./docs/req-test-plan.md)`
+  - 필요 시 `[docs/blocker-traceability.json](./docs/blocker-traceability.json)`
+- `[docs/requirements.md](./docs/requirements.md)`는 배경 문서다. 현재 구현의 직접 SSOT로 취급하지 않는다.
+- `docs/archive/**`는 역사 문서다. 현재 계약 근거로 사용하지 않는다.
+- 아래 경로를 건드리면 변경 전에 관련 계약 문서와 테스트 앵커를 먼저 적는다.
+  - `src/proxy.ts`
+  - `src/i18n/**`
+  - `src/app/[locale]/**`
+  - `src/lib/routes/route-builder.ts`
+  - `src/i18n/localized-path.ts`
+  - `src/features/test/**`
+  - `src/features/variant-registry/**`
+  - `public/theme-bootstrap.js`
+  - `tests/e2e/theme-matrix-manifest.json`
+  - `docs/blocker-traceability.json`
+
+### 작업 유형별 진입 맵
+- routing / locale / not-found: `docs/req-landing.md` §5, `docs/project-analysis.md` §4, `src/proxy.ts`, `src/i18n/**`, `tests/e2e/routing-smoke.spec.ts`
+  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+- landing grid / GNB / theme: `docs/req-landing.md` §6~11, `src/features/landing/grid/**`, `src/features/landing/gnb/**`, `public/theme-bootstrap.js`
+  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+- transition / telemetry / consent: `docs/req-landing.md` §8, §12, §13, `src/features/landing/transition/**`, `src/features/landing/telemetry/**`, `tests/e2e/transition-telemetry-smoke.spec.ts`, `tests/e2e/consent-smoke.spec.ts`
+  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+- test flow / domain: `docs/req-test.md`, `docs/req-test-plan.md`, `src/features/test/**`, `src/features/test/domain/**`, `tests/unit/test-domain-*.test.ts`
+  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+- variant registry / fixture boundary: `docs/req-landing.md` §12, `docs/req-test.md` §2, `docs/project-analysis.md` §5.3, `src/features/variant-registry/**`, `tests/unit/landing-data-contract.test.ts`, `scripts/qa/check-variant-registry-contracts.mjs`
+  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+
+## 2. 현재 런타임 표면과 ownership
+- 활성 route surface: `/{locale}`, `/{locale}/blog`, `/{locale}/blog/{variant}`, `/{locale}/history`, `/{locale}/test/{variant}`, `/api/telemetry`
+- 404 surface: `src/app/not-found.tsx`, `src/app/global-not-found.tsx`
+- 지원 locale: `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru`
+- 플랫폼 플래그:
+  - `src/app/[locale]/layout.tsx`: `dynamicParams = false`
+  - `next.config.ts`: `typedRoutes = true`, `experimental.globalNotFound = true`
+  - locale normalization: `ko* -> kr`, Simplified Chinese -> `zs`, Traditional Chinese -> `zt`
+- ownership:
+  - `src/app/[locale]/**`: thin route / server entry
+  - `src/features/landing/**`: grid, GNB, transition, telemetry, shell, blog destination
+  - `src/features/test/**`: canonical test surface
+  - `src/features/test/domain/**`: pure domain module, public surface는 `index.ts`만
+  - `src/features/variant-registry/**`: fixture source, builder, resolver, generated runtime registry
+  - `src/i18n/**`: locale resolution, request policy, SSR `html lang` sync
+  - `src/lib/routes/**`: locale-free typed route authoring
+  - `src/i18n/localized-path.ts`: locale prefix 적용
+  - `src/messages/*.json`: shared UI copy, namespace는 `gnb`, `landing`, `test`, `blog`, `history`, `consent`
+  - `public/theme-bootstrap.js`: pre-hydration theme bootstrap
+  - `scripts/qa/*.mjs`: machine-enforced contract checks
+  - `docs/blocker-traceability.json`: blocker evidence registry, 현재 blocker `1..30`
+  - `tests/e2e/helpers/landing-fixture.ts`: representative route anchor SSOT
+
+## 3. 수정 가능 / 수정 주의 / 수정 금지
+### 수정 가능
+- `src/features/**`
+- `src/i18n/**`
+- `src/lib/routes/**`
+- `src/messages/**`
+- `tests/**`
+- `docs/**`
+- `public/**` 단, bootstrap 계약을 깨지 않는 범위
+
+### 수정 주의
+- `src/proxy.ts`
+- `src/app/layout.tsx`
+- `src/app/[locale]/layout.tsx`
+- `public/theme-bootstrap.js`
+- `src/lib/routes/route-builder.ts`
+- `src/i18n/localized-path.ts`
+- `src/features/variant-registry/source-fixture.ts`
+- `src/features/variant-registry/builder.ts`
+- `src/features/variant-registry/resolvers.ts`
+- `src/features/variant-registry/types.ts`
+- `src/features/variant-registry/variant-registry.generated.ts`
+- `scripts/qa/*.mjs`
+- `tests/e2e/theme-matrix-manifest.json`
+- `docs/blocker-traceability.json`
+
+주의 이유:
+- 위 파일들은 locale entry, SSR `html lang`, route authoring, runtime registry export, screenshot closure, blocker evidence 계약과 직접 연결된다.
+- `variant-registry.generated.ts`는 hand-written source of truth가 아니다. 직접 수정이 필요해 보여도 먼저 `source-fixture.ts`, `builder.ts`, `resolvers.ts`를 확인한다.
+- `scripts/qa/*.mjs`는 machine-enforced contract check를 담당하므로 변경 시 QA gate 해석 자체가 바뀔 수 있다.
+
+### 수정 금지 / 수동 생성물
+- `src/middleware.ts` 재도입 금지. request entry point는 `src/proxy.ts` 하나로 유지한다.
+- `.next/`, `node_modules/`, `coverage/`, `test-results/`, `playwright-report/`, `dist/`, `out/`, `output/`, `tsconfig.tsbuildinfo`
+- 생성물은 직접 편집하지 않는다. 필요한 변경은 소스 또는 빌더를 통해 반영한다.
+
+## 4. 로컬 실행 명령어
+### 기본 게이트
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+
+### 참고 명령
+- `npm run qa:rules`
+- `npm run qa:static`
+- `npm run qa:gate:once`
+- `npm run qa:gate`
+- `npm run test:e2e`
+- `npm run test:e2e:smoke`
+
+### 변경 유형별 추가 체크
+- routing / locale / not-found: `node scripts/qa/check-phase1-contracts.mjs`, `npm test -- tests/unit/route-builder.test.ts tests/unit/localized-path.test.ts tests/unit/locale-resolution.test.ts tests/unit/proxy-policy.test.ts tests/unit/request-locale-header.test.ts tests/unit/locale-config.test.ts`, `npx playwright test tests/e2e/routing-smoke.spec.ts`
+- variant registry / fixture boundary: `node scripts/qa/check-variant-registry-contracts.mjs`, `node scripts/qa/check-variant-only-contracts.mjs`, `npm test -- tests/unit/landing-data-contract.test.ts tests/unit/landing-card-contract.test.ts`
+- telemetry / consent / transition: `node scripts/qa/check-phase11-telemetry-contracts.mjs`, `npm test -- tests/unit/landing-telemetry-validation.test.ts tests/unit/landing-telemetry-runtime.test.ts tests/unit/landing-transition-store.test.ts`, `npx playwright test tests/e2e/consent-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts`
+- landing grid / state / GNB / theme: `node scripts/qa/check-phase4-grid-contracts.mjs`, `node scripts/qa/check-phase5-card-contracts.mjs`, `node scripts/qa/check-phase6-spacing-contracts.mjs`, `node scripts/qa/check-phase7-state-contracts.mjs`, `node scripts/qa/check-phase8-accessibility-contracts.mjs`, `node scripts/qa/check-phase9-performance-contracts.mjs`, `node scripts/qa/check-phase10-transition-contracts.mjs`, `npx playwright test tests/e2e/grid-smoke.spec.ts tests/e2e/state-smoke.spec.ts tests/e2e/gnb-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts`
+- test flow / domain: `npm test -- tests/unit/test-domain-variant-validation.test.ts tests/unit/test-domain-question-model.test.ts tests/unit/test-domain-derivation.test.ts tests/unit/test-domain-type-segment.test.ts tests/unit/test-entry-policy.test.ts tests/unit/test-question-bootstrap.test.ts`, `npx playwright test tests/e2e/consent-smoke.spec.ts`
+
+### `qa:rules` 제외 메모
+- 2026-04-15 기준 현재 workspace에서는 Phase 11 PNG baseline이 비어 있어 `npm run qa:rules`가 기본 Done 항목이 아니다.
+- 확인된 결손: theme-matrix PNG baseline 168개, Safari ghosting PNG baseline 5개
+- `npm run qa:gate`는 release / flake 확인용의 무거운 파이프라인이다.
+
+## 5. 골드 스탠다드 참조
+- thin route 기준: `src/app/[locale]/page.tsx`
+- locale-free route authoring 기준: `src/lib/routes/route-builder.ts`
+- locale prefix 적용 기준: `src/i18n/localized-path.ts`
+- resolver boundary 기준: `src/features/variant-registry/resolvers.ts`
+- builder 기준: `src/features/variant-registry/builder.ts`
+- source/runtime type 분리 기준: `src/features/variant-registry/types.ts`
+- pure domain public surface 기준: `src/features/test/domain/index.ts`
+- pure validator 기준: `src/features/test/domain/validate-variant.ts`
+- instruction entry policy 기준: `src/features/test/entry-policy.ts`
+- telemetry payload hygiene 기준: `src/features/landing/telemetry/validation.ts`
+- transition storage/runtime 기준: `src/features/landing/transition/runtime.ts`
+- representative e2e anchor 기준: `tests/e2e/helpers/landing-fixture.ts`
+
+## 6. 프로젝트 특화 규칙
+### 아키텍처 / 라우팅 / locale
+- 실제 페이지 파일은 `src/app/[locale]/**` 아래에만 둔다.
+- 경로 문자열 수동 결합을 금지한다. app code의 route authoring은 `RouteBuilder`, locale 적용은 `buildLocalizedPath()`를 사용한다.
+- `src/proxy.ts`는 단일 request entry point다. locale prefix 규칙을 우회하는 별도 진입점이나 `src/middleware.ts`를 만들지 않는다.
+- `src/app/layout.tsx`는 top-level document shell만 담당한다. locale-specific branching은 `src/app/[locale]/layout.tsx`와 route layer에서 처리한다.
+- duplicate locale prefix는 `/_not-found` rewrite로 처리한다. locale-less app path는 localized path로 redirect한다.
+
+### variant registry / fixture boundary
+- landing / test / blog consumer는 raw fixture shape를 직접 읽지 않는다.
+- registry layer 바깥에서 `raw-fixtures`, `source-fixture`, `variant-registry.generated` direct import를 금지한다.
+- preview payload 접근은 `resolveTestPreviewPayload()` 단일 경계만 허용한다.
+- `variant-registry.generated.ts`는 runtime export다. source fixture authoring shape와 runtime shape를 혼용하지 않는다.
+- source row 처리 규칙은 `seq -> sort -> drop`을 유지한다.
+- partial activation 금지. cross-source 불일치 상태에서 일부 variant만 반영하는 부분 갱신을 허용하지 않는다.
+- unified runtime meta key는 `durationM`, `sharedC`, `engagedC`다.
+- resolver의 `{audience: 'qa'}` 경계는 QA catalog에서만 `hide` / `debug` fixture를 드러낸다.
+- preview source는 temporary bridge를 허용하지만 consumer shape는 유지한다.
+  - 현재 bridge source는 inline preview일 수 있다.
+  - 최종 canonical target은 Questions의 first scoring question `scoring1`이다.
+  - migration 범위는 builder / resolver 내부에 가둔다.
+
+### test flow / domain / storage
+- canonical test surface는 `src/features/test/**`다.
+- `src/features/landing/test/*` 재도입 금지.
+- `src/features/test/domain/index.ts`만 public surface로 취급한다.
+- Phase 0-1 ADR(`docs/req-test-plan.md`)에서 동결된 계약은 새 ADR 없이 임의 변경하지 않는다.
+  - `VariantId = string & { readonly __brand: 'VariantId' }`
+  - `QuestionIndex = number & { readonly __brand: 'QuestionIndex' }`
+  - `validateVariant()`의 `MISSING | UNKNOWN | UNAVAILABLE` union shape
+  - `BlockingDataErrorReason` surface
+- instruction 본문은 fixture가 소유하고, CTA label / consent note는 locale messages가 소유한다.
+- test route는 route-local consent banner, confirm dialog, blocked popup을 렌더하지 않는다.
+- current runtime key와 Phase 3 문서상의 future key를 혼동하지 않는다.
+  - Key SSOT: [확인 필요: key 선언 SSOT 파일 없음]
+  - 현재 localStorage: `vivetest-theme`, `vivetest-current-path`, `vivetest-previous-path`, `vivetest-telemetry-consent`, `vivetest-telemetry-session-id`
+  - 현재 sessionStorage: `vivetest-landing-pending-transition`, `vivetest-landing-return-scroll-y`, `vivetest-landing-return-card-id`, `vivetest-test-instruction-seen:{variant}`, `vivetest-landing-ingress:{variant}`
+  - 문서상의 future key: `test:{variant}:...`, `test:{variant}:flag:{flagName}`
+- `instructionSeen`은 현재 variant-scoped `sessionStorage` key로 유지된다.
+
+### blog / telemetry / theme / QA surface
+- `/{locale}/blog`는 list-only route다.
+- blog detail은 invalid variant 또는 non-enterable variant에서 다른 글 fallback 없이 localized blog index로 redirect한다.
+- telemetry API는 parseable JSON만 받고 `204`를 반환한다. 현재 서버 측 schema validation, field rejection, persistence는 없다.
+- telemetry / Vercel analytics consent source는 하나로 유지한다.
+- consent banner의 Preferences 버튼은 현재 visible no-op이다. 요구사항 변경 전 동작을 부여하지 않는다.
+- representative anchor SSOT: available test `qmbti`, opt-out test `energy-check`, primary blog `ops-handbook`
+- theme-matrix QA는 전체 locale이 아니라 현재 `en`, `kr` 대표 행렬만 사용한다.
+- combined theme label wording family는 `Language ⋅ Theme` 계열을 유지한다.
+- `public/theme-bootstrap.js`는 hydration 이전에 `vivetest-theme`를 읽는다.
+- `motion` 패키지는 설치되어 있지만 현재 `src` / `tests`에서 사용하지 않는다. [임시: 2026-04-15 기준]
+- Tailwind v4 패키지는 설치되어 있지만 현재 런타임 styling 중심은 `src/app/globals.css`다. [임시: 2026-04-15 기준]
+
+### 주석 규칙
+- 한국어 주석은 선택적으로 사용한다.
+- 허용 / 권장 대상: 비직관적 계약, 타이밍 제약, 예외 처리 이유, 브라우저 / 상태 경합
+- 자명한 코드 설명용 주석, 문장형 중복 설명, 주석 남발은 금지한다.
+
+## 7. Template A: Clarification Request
+```md
+## Clarification Needed
+
+작업을 멈춘 이유:
+- [무엇이 불명확한지 1문장]
+
+충돌하거나 확인한 근거:
+- 계약 문서: [path]
+- 경로 / 구현: [path]
+- QA anchor: [path 또는 command]
+
+확인이 필요한 항목:
+1. [의사결정 항목]
+2. [의사결정 항목]
+
+추천안:
+- [권장 옵션]
+- 이유: [현재 계약과 가장 잘 맞는 이유]
+
+영향 받는 범위:
+- [파일 또는 subsystem]
+```
+
+## 8. Template B: Implementation Plan
+```md
+## Implementation Plan
+
+목표:
+- [이번 변경의 목표]
+
+참조한 계약 문서:
+- [path]
+- [path]
+
+참조한 골드 스탠다드:
+- [path]
+- [path]
+
+수정 대상 파일:
+- [path]
+- [path]
+
+영향 범위:
+- [사용자 영향 또는 계약 영향]
+
+예상 사이드 이펙트:
+- [회귀 포인트]
+
+검증 계획:
+- 기본 게이트: [command]
+- 영역별 QA script: [command]
+- 수동 또는 e2e 시나리오: [command 또는 scenario]
+
+승인 요청:
+- 위 범위대로 진행한다.
+```
+
+## 9. Template C: Code Delivery & PR
+```md
+## Delivery Summary
+
+핵심 변경 사항:
+- [변경 1]
+- [변경 2]
+
+동기화한 문서:
+- [path]
+
+검증 결과:
+- [실행한 명령과 결과]
+
+baseline 부재로 생략된 검증:
+- [생략한 항목과 이유]
+
+남은 수동 확인:
+1. [step]
+2. [step]
+
+PR 메모:
+- [리뷰어가 먼저 보면 좋은 포인트]
+```
+
+## 10. Done의 로컬 정의
+- 기본 Done 게이트 순서: 섹션 4 기본 게이트를 따른다.
+- `qa:rules`는 기본 Done에서 제외한다. baseline이 복구되기 전에는 release-surface 참고 명령으로만 취급한다.
+- `qa:gate:once` / `qa:gate`는 기본 Done보다 무겁다. release 직전 또는 flake 확인이 필요할 때만 올린다.
+- 영향 범위 추가 체크:
+  - `proxy` / `i18n` / `route-builder` / `localized-path`: routing / locale unit test + `tests/e2e/routing-smoke.spec.ts`
+  - `variant-registry`: `check-variant-registry-contracts.mjs`, `check-variant-only-contracts.mjs`, `tests/unit/landing-data-contract.test.ts`
+  - `landing grid` / `GNB` / `theme bootstrap` / `shared shell`: 관련 phase QA script + `grid-smoke`, `state-smoke`, `gnb-smoke`, 필요 시 `a11y-smoke`
+  - `transition` / `telemetry` / `consent`: `check-phase10-transition-contracts.mjs`, `check-phase11-telemetry-contracts.mjs`, `tests/e2e/consent-smoke.spec.ts`, `tests/e2e/transition-telemetry-smoke.spec.ts`
+  - `test flow` / `entry-policy` / `question-bank` / `domain`: `tests/unit/test-domain-*.test.ts`, `tests/unit/test-entry-policy.test.ts`, `tests/unit/test-question-bootstrap.test.ts`, 필요 시 `tests/e2e/consent-smoke.spec.ts`
+  - `blog detail` / `subtitle continuity`: `tests/unit/blog-server-model.test.ts`, `tests/unit/landing-card-contract.test.ts`
+  - `AGENTS.md`: 파일 경로, 명령어, locale set, representative anchor, baseline 상태를 현재 저장소와 다시 대조한다.
+  - `AGENTS.md` 섹션 11의 갱신 트리거 항목에 해당하면 관련 계약 문서와 `AGENTS.md`를 코드와 동시에 갱신한다.
+
+## 11. 문서 유지보수 원칙
+- 아래 변경이 생기면 `AGENTS.md`를 함께 갱신한다.
+  - 스크립트 이름 또는 실행 순서 변경
+  - active contract docs 목록 변경
+  - route surface 변경
+  - locale set 변경
+  - storage key 변경
+  - representative anchor 변경
+  - `tests/e2e/theme-matrix-manifest.json` closure 변경
+  - QA script 목록 또는 책임 변경
+  - generated / source-of-truth boundary 변경
+  - baseline availability 상태 변경
+  - 골드 스탠다드 파일 교체
+  - 디렉토리 책임 변경
+  - 같은 실수가 코드 리뷰나 에이전트 실행에서 2회 이상 반복
+- 전역 행동 규칙은 넣지 않는다.
+- 이 저장소에서만 필요한 사실과 명령어만 유지한다.
+- 임시 운영 상태는 날짜와 함께 적는다.
+
+## 12. 하위 디렉토리 규칙 위임 구조
+- 신설 기준:
+  - 해당 디렉토리에서만 필요한 규칙이 3개 이상 생길 때
+  - 해당 디렉토리 전용 fixture / QA loop / gold standard가 생길 때
+- 위임 규칙:
+  - 하위 문서는 상위 문서를 반복하지 않는다.
+  - 하위 문서는 delta만 적는다.
+  - repo-wide 사실과 충돌이 생기면 하위 문서를 덮어쓰지 말고 루트 `AGENTS.md`를 먼저 갱신한다.
