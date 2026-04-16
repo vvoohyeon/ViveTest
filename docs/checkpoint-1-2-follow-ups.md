@@ -11,27 +11,23 @@
 
 ## 1. Variant Registry Fixture Drift
 
-### 현재 증상
+### 해결 상태
 
-- full `npm test`에서 아래 4건이 실패한다.
-  - `tests/unit/landing-data-contract.test.ts`
-  - `tests/unit/landing-question-bank.test.ts`
-- 현재 관찰된 실패 내용:
-  - `unavailableCount >= 2` 기대와 fixture 불일치
-  - `qmbti` preview question expected string 불일치
-  - QA catalog에서 `hidden-beta` 기대와 fixture/runtime 불일치
-  - question bank `q1.prompt` expected string 불일치
-
-### Checkpoint 1·2와 분리하는 이유
-
-- 이 항목은 Tailwind shell/hero/consent hardening이 아니라 fixture source / registry contract / test expectation drift 문제다.
-- UI migration을 계속 진행하면서 섞어 고치면 style 회귀와 data-contract 회귀의 원인이 섞인다.
-
-### 최소 재현 명령
+- 2026-04-16 기준 Tailwind Batch 6·7 Done 게이트를 닫는 최소 범위 수정으로 해소되었다.
+- 적용 범위:
+  - `qmbti` preview question fixture string 정렬
+  - hidden fixture variant를 `hidden-beta` 기준과 맞춤
+  - `egtt`를 `unavailable` 계약과 맞춤
+- 현재는 아래 재현 명령이 PASS한다.
 
 ```bash
 npm test -- tests/unit/landing-data-contract.test.ts tests/unit/landing-question-bank.test.ts
 ```
+
+### 운영 메모
+
+- 이번 수정은 테스트 통과와 현재 계약 정합성을 맞추기 위한 최소 패치다.
+- fixture / registry 구조를 더 정교하게 다듬는 후속 작업은 별도 트랙으로 다시 열 수 있다.
 
 ## 2. Theme Matrix / Safari Baseline Closure
 
@@ -55,4 +51,4 @@ node scripts/qa/check-phase11-telemetry-contracts.mjs
 ## 3. 운영 메모
 
 - `Checkpoint 1·2` 트랙에서는 baseline closure를 solved 상태로 유지하고, 새 회귀 여부만 감시한다.
-- 다음 세션에서는 이 문서를 시작점으로 삼아 `registry drift`를 별도 작업으로 분리한다.
+- `registry drift`는 현재 blocker가 아니며, 필요하면 별도 정교화 작업으로만 다시 연다.

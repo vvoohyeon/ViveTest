@@ -5,6 +5,8 @@ import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
 import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
 import rawThemeMatrixManifest from './theme-matrix-manifest.json';
 
+// Theme matrix baselines are captured through helper wrappers that delegate to Playwright `toHaveScreenshot`.
+
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const PREVIEW_HOST = 'http://127.0.0.1:4173';
 const REPRESENTATIVE_SETTLE_WAIT_MS = 300;

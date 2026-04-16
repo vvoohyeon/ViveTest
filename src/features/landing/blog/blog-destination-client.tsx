@@ -22,6 +22,16 @@ interface BlogDestinationClientProps {
   article?: LandingBlogCard | null;
 }
 
+const blogShellCardClassName =
+  'landing-shell-card blog-shell-card grid gap-[18px] rounded-[16px] p-[18px] [background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)]';
+const blogSelectedArticleClassName = 'blog-selected-article grid gap-[10px]';
+const blogArticleListClassName = 'blog-article-list grid gap-[10px]';
+const blogArticleItemsClassName = 'm-0 grid list-none gap-[10px] p-0';
+const blogArticleListItemClassName =
+  'blog-article-list-item rounded-[14px] border border-[var(--interactive-neutral-border)] [background:var(--interactive-neutral-bg-soft)] data-[selected=true]:border-[var(--interactive-accent-border)] data-[selected=true]:[background:var(--interactive-accent-bg)] data-[selected=true]:[box-shadow:inset_0_0_0_1px_var(--interactive-accent-outline)]';
+const blogArticleLinkClassName =
+  'blog-article-link grid gap-1 p-[14px] [color:inherit] no-underline hover:no-underline focus-visible:no-underline';
+
 export function BlogDestinationClient({
   locale,
   headingLabel,
@@ -80,39 +90,39 @@ export function BlogDestinationClient({
   }, [destinationReadyPath, pathname]);
 
   return (
-    <section className="landing-shell-card blog-shell-card" data-testid="blog-shell-card">
-      <h1>{headingLabel}</h1>
+    <section className={blogShellCardClassName} data-testid="blog-shell-card">
+      <h1 className="m-0">{headingLabel}</h1>
       {article ? (
         <>
-          <article className="blog-selected-article" data-testid="blog-selected-article">
-            <h2>{article.title}</h2>
-            <p>{article.subtitle}</p>
+          <article className={blogSelectedArticleClassName} data-testid="blog-selected-article">
+            <h2 className="m-0">{article.title}</h2>
+            <p className="m-0 text-[var(--muted-ink)]">{article.subtitle}</p>
           </article>
         </>
       ) : null}
       {articles.length > 0 ? (
-        <section className="blog-article-list">
-          {listLabel ? <h2>{listLabel}</h2> : null}
-          <ul>
+        <section className={blogArticleListClassName}>
+          {listLabel ? <h2 className="m-0">{listLabel}</h2> : null}
+          <ul className={blogArticleItemsClassName}>
             {articles.map((listedArticle) => (
               <li
                 key={listedArticle.variant}
-                className="blog-article-list-item"
+                className={blogArticleListItemClassName}
                 data-selected={article?.variant === listedArticle.variant ? 'true' : 'false'}
               >
                 <Link
-                  className="blog-article-link"
+                  className={blogArticleLinkClassName}
                   href={buildLocalizedPath(RouteBuilder.blogArticle(listedArticle.variant), locale)}
                 >
                   <strong>{listedArticle.title}</strong>
-                  <span>{listedArticle.subtitle}</span>
+                  <span className="text-[var(--muted-ink)]">{listedArticle.subtitle}</span>
                 </Link>
               </li>
             ))}
           </ul>
         </section>
       ) : (
-        <p data-testid="blog-empty-state">No article available.</p>
+        <p className="m-0 text-[var(--muted-ink)]" data-testid="blog-empty-state">No article available.</p>
       )}
     </section>
   );

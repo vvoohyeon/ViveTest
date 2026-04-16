@@ -197,7 +197,7 @@ function joinClassNames(...classNames: Array<string | false | null | undefined>)
 }
 
 const LANDING_GRID_CARD_ROOT_CLASSNAME =
-  'landing-grid-card relative isolate min-h-44 min-w-0 overflow-visible rounded-[var(--landing-card-radius)]';
+  'landing-grid-card relative isolate min-h-44 min-w-0 overflow-visible rounded-[var(--landing-card-radius)] [background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)]';
 const LANDING_GRID_CARD_CONTENT_CLASSNAME =
   'landing-grid-card-content relative z-[1] flex h-full min-h-full min-w-0 flex-col justify-start';
 const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
@@ -208,21 +208,38 @@ const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
   'landing-grid-card-thumbnail-slot relative mt-[var(--landing-card-base-gap)] aspect-[6/1] w-full min-w-0 shrink-0 overflow-hidden rounded-[10px] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
 const LANDING_GRID_CARD_TAGS_CLASSNAME =
   'landing-grid-card-tags m-0 flex min-h-7 min-w-0 shrink-0 list-none items-center gap-1.5 overflow-hidden p-0';
+const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
+  'landing-grid-card-tags-gap h-[calc(var(--landing-card-base-gap)_+_var(--landing-card-comp-gap))]';
 const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
 const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
   'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-transparent bg-[var(--chip-bg)] px-2.5 py-1 text-[0.74rem] leading-[1.2]';
 const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME = 'landing-grid-card-preview-question m-0 text-[var(--muted-ink)]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
 const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
-  'landing-grid-card-answer-choice overflow-visible rounded-[12px] border border-[var(--interactive-neutral-border)] bg-[var(--landing-answer-bg-rest)] bg-none px-3 py-2.5 text-left leading-[1.4] whitespace-normal text-[var(--interactive-neutral-ink)] text-clip transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
+  'landing-grid-card-answer-choice cursor-pointer overflow-visible rounded-[12px] border border-[var(--interactive-neutral-border)] bg-[var(--landing-answer-bg-rest)] bg-none px-3 py-2.5 text-left leading-[1.4] whitespace-normal text-[var(--interactive-neutral-ink)] text-clip transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
 const LANDING_GRID_CARD_META_GRID_CLASSNAME = 'landing-grid-card-meta-grid m-0 grid grid-cols-3 gap-2';
 const LANDING_GRID_CARD_META_ITEM_CLASSNAME = 'landing-grid-card-meta-item m-0 grid min-w-0 gap-0.5';
 const LANDING_GRID_CARD_META_LABEL_CLASSNAME =
   'landing-grid-card-meta-label m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.74rem] text-[var(--muted-ink)]';
 const LANDING_GRID_CARD_META_VALUE_CLASSNAME =
   'landing-grid-card-meta-value m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.86rem] font-semibold';
-const LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME =
+const LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME =
   'landing-grid-card-primary-cta inline-flex min-h-10 max-w-full min-w-0 self-start items-center justify-center overflow-hidden rounded-full border border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] px-4 py-2 text-[0.84rem] font-bold tracking-[0.01em] whitespace-nowrap text-[var(--text-strong)] text-ellipsis shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
+const LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME = `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-pointer`;
+const LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME = `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-default`;
+const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 grid min-w-0 gap-[10px] p-4';
+const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
+  'landing-grid-card-mobile-close relative inline-flex min-h-10 min-w-10 items-center justify-center rounded-full border border-[var(--chip-border)] bg-[var(--interactive-neutral-bg-strong)] p-0 font-semibold [color:var(--link-ink)]';
+const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
+  `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} cursor-pointer disabled:cursor-default disabled:opacity-70`;
+const LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME =
+  `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} landing-grid-card-mobile-close-ghost pointer-events-none`;
+const LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME =
+  'landing-grid-card-mobile-expanded grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-auto overscroll-contain px-4 pb-4';
+const LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME =
+  'landing-grid-card-mobile-header sticky top-0 z-[4] flex items-start justify-between gap-3 bg-[color-mix(in_srgb,var(--panel-solid)_96%,transparent)] pt-4 pb-[14px]';
+const LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME = 'landing-grid-card-title landing-grid-card-mobile-title flex-1 min-w-0';
+const LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME = 'landing-grid-card-mobile-body grid min-w-0 gap-[10px]';
 
 interface NormalContentSlotsProps {
   card: LandingCard;
@@ -285,7 +302,7 @@ function NormalContentSlots({card, hasAssetMedia, includeSlotAttributes, subtitl
         slot={includeSlotAttributes ? 'cardSubtitle' : undefined}
       />
 
-      <div className="landing-grid-card-tags-gap" aria-hidden="true" />
+      <div className={LANDING_GRID_CARD_TAGS_GAP_CLASSNAME} aria-hidden="true" />
 
       <ul
         className={LANDING_GRID_CARD_TAGS_CLASSNAME}
@@ -362,7 +379,7 @@ function ExpandedCardBodyContent({
     const previewPayload = resolveTestPreviewPayload(card.variant, locale);
 
     return (
-      <div className="landing-grid-card-mobile-body" {...bodyProps}>
+      <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} {...bodyProps}>
         <p
           className={LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME}
           data-slot={interactive ? 'previewQuestion' : undefined}
@@ -429,7 +446,7 @@ function ExpandedCardBodyContent({
   }
 
   return (
-    <div className="landing-grid-card-mobile-body" {...bodyProps}>
+    <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} {...bodyProps}>
       {blogSubtitleMode === 'continuity' ? (
         <ExpandedBlogSubtitleContinuity
           split={
@@ -481,7 +498,7 @@ function ExpandedCardBodyContent({
         </Link>
       ) : (
         <span
-          className={LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME}
+          className={LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME}
           aria-hidden="true"
           data-motion-slot="primaryCTA"
         >
@@ -712,7 +729,7 @@ export function LandingGridCard({
                     aria-hidden="true"
                   />
                   <div className="landing-grid-card-expanded-surface" data-slot="expandedSurface">
-                    <div className="landing-grid-card-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
+                    <div className={LANDING_GRID_CARD_EXPANDED_CLASSNAME} data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
                       <h2
                         className={joinClassNames(
                           LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
@@ -745,14 +762,14 @@ export function LandingGridCard({
       ) : null}
 
       {showMobileExpandedBody ? (
-        <div className="landing-grid-card-mobile-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
-          <div className="landing-grid-card-mobile-header" data-slot="mobileHeader">
-            <h2 className="landing-grid-card-title landing-grid-card-mobile-title" data-slot="cardTitle">
+        <div className={LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME} data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
+          <div className={LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} data-slot="mobileHeader">
+            <h2 className={LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME} data-slot="cardTitle">
               {card.title}
             </h2>
             <button
               type="button"
-              className="landing-grid-card-mobile-close"
+              className={LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME}
               aria-label={copy.closeExpandedAria}
               data-slot="mobileClose"
               onClick={onMobileClose}
@@ -781,12 +798,12 @@ export function LandingGridCard({
         >
           <div className="landing-grid-card-mobile-transient-panel" data-slot="mobileTransientPanel" />
           <div className="landing-grid-card-mobile-transient-surface">
-            <div className="landing-grid-card-mobile-header landing-grid-card-mobile-transient-header">
-              <h2 className="landing-grid-card-title landing-grid-card-mobile-title" data-slot="cardTitleTransient">
+            <div className={`${LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} landing-grid-card-mobile-transient-header`}>
+              <h2 className={LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME} data-slot="cardTitleTransient">
                 {card.title}
               </h2>
               <span
-                className="landing-grid-card-mobile-close landing-grid-card-mobile-close-ghost"
+                className={LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME}
                 data-slot="mobileCloseGhost"
               >
                 <span aria-hidden="true">×</span>

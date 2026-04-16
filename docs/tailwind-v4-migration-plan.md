@@ -199,11 +199,12 @@
 
 ## 4.2 현재 분리 추적 중인 follow-up
 
-- `registry fixture drift`는 현재 workspace에서 여전히 확인되지만, `Checkpoint 1·2` Tailwind hardening의 직접 구현 범위는 아니다.
+- `registry fixture drift`는 2026-04-16 기준 Batch 6·7 Done 게이트를 닫는 최소 수정으로 해소되었다.
+- 더 큰 fixture / registry 정교화가 필요하면 별도 follow-up으로 다시 분리한다.
 - `theme-matrix / Safari baseline` closure는 2026-04-16에 복구되었고, 현재는 참고 자산으로 사용할 수 있다.
 - 이 항목들은 별도 follow-up 문서에서 재현 명령과 함께 추적한다.
 - 추적 문서: [docs/checkpoint-1-2-follow-ups.md](/Users/woohyeon/Local/ViveTest/docs/checkpoint-1-2-follow-ups.md)
-- 현재 트랙에서는 해당 항목을 새 회귀와 구분해서 기록만 하고, 직접 수정 대상에 포함하지 않는다.
+- 현재 트랙에서는 남은 follow-up만 새 회귀와 구분해 기록한다.
 
 ## 5. Batch 진행 보드
 
@@ -212,17 +213,16 @@
 - [x] Batch 3 완료
 - [x] Batch 4 완료
 - [x] Batch 5 완료
-- [ ] Batch 6 완료
-- [ ] Batch 7 완료
+- [x] Batch 6 완료
+- [x] Batch 7 완료
 
 ## 5.1 Checkpoint 4 재감사 메모
 
-- 2026-04-16 재검토 기준 `Batch 6 완료` 보드는 reopened 상태로 되돌린다.
-- 근거:
-  - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:246)의 `.landing-grid-card-trigger` base layout이 아직 글로벌에 남아 있다.
-  - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:182)의 `.landing-grid-card` base/static shell도 아직 일부 글로벌에 남아 있다.
-  - 본문 [Batch 6] 섹션의 완료 체크가 여전히 미체크 상태다.
-- 따라서 `Batch 7`은 최종 cleanup batch이지만, 착수 전 전제는 "reopened Batch 6 sign-off를 먼저 닫는다"로 고정한다.
+- 2026-04-16 구현에서 reopened `Batch 6` sign-off를 먼저 닫은 뒤 `Batch 7` cleanup까지 같은 변경셋에서 마무리했다.
+- 정리 결과:
+  - landing grid/card root shell ownership은 TSX utility 기준으로 재정렬됐다.
+  - `globals.css`에는 machine-enforced contract가 요구하는 최소 selector만 잔류하고, shared shell/blog/not-found static surface는 local ownership으로 회수됐다.
+  - Batch 6/7 완료 체크와 검증 결과를 현재 코드 기준으로 동기화했다.
 
 ## 6. Batch 상세 계획
 
@@ -580,7 +580,11 @@
 
 ### Batch 6 — Landing Grid/Card의 저위험 정적 스타일 이전
 
-- 상태: `[ ] 완료`
+- 상태: `[x] 완료`
+- 2026-04-16 구현 메모:
+  - `landing-grid-card.tsx`에서 root shell, expanded body, mobile expanded shell, tags-gap, answer-choice base, CTA base ownership을 TSX utility 중심으로 재정렬했다.
+  - `globals.css`에는 focus/ramp/reduced-motion/stage geometry와 QA script가 요구하는 최소 contract selector만 남겼다.
+  - reopened 원인이던 root shell 분산 상태는 닫았고, trigger/tags-gap/cursor policy는 machine-enforced contract를 위해 thin global selector로 유지했다.
 - 목표:
   - landing grid/card의 base shell, normal slot, meta/CTA/answer choice 같은 정적 surface를 Tailwind로 이전한다.
   - Batch 5에서 분리한 상태 selector는 글로벌에 남긴다.
@@ -675,13 +679,17 @@
   - `mobile-landing-blog-expanded`
   - Safari ghosting 대표 상태
 - 완료 체크:
-  - [ ] landing grid/card의 정적 surface가 Tailwind로 이동했다.
-  - [ ] state selector와 motion/reduced-motion contract는 글로벌에 유지됐다.
-  - [ ] 대표 anchor와 expanded/focus continuity가 비회귀다.
+  - [x] landing grid/card의 정적 surface가 Tailwind로 이동했다.
+  - [x] state selector와 motion/reduced-motion contract는 글로벌에 유지됐다.
+  - [x] 대표 anchor와 expanded/focus continuity가 비회귀다.
 
 ### Batch 7 — `globals.css` 최종 축소와 Done 게이트
 
-- 상태: `[ ] 완료`
+- 상태: `[x] 완료`
+- 2026-04-16 구현 메모:
+  - `.landing-shell-card`, `.blog-*`, `.nf-shell`, `.placeholder-shell` static surface를 local utility ownership으로 회수했다.
+  - `test-question-client.tsx`, `blog-destination-client.tsx`, `history/page.tsx`, `not-found.tsx`, `global-not-found.tsx`가 각자 spacing/text tone을 직접 소유하도록 정리했다.
+  - `landing-data-contract` / `landing-question-bank` 선행 실패는 fixture source 최소 수정으로만 닫았고, 전체 `npm test`와 Playwright smoke를 다시 GREEN으로 맞췄다.
 - 목표:
   - 더 이상 컴포넌트에 필요 없는 정적 CSS를 제거한다.
   - `globals.css`를 전역 token/reset/residual selector 전용 파일로 마감한다.
@@ -734,16 +742,15 @@
   - `npm test -- tests/unit/landing-telemetry-validation.test.ts tests/unit/landing-telemetry-runtime.test.ts tests/unit/landing-transition-store.test.ts tests/unit/test-entry-policy.test.ts tests/unit/test-question-bootstrap.test.ts`
   - `npx playwright test tests/e2e/grid-smoke.spec.ts tests/e2e/state-smoke.spec.ts tests/e2e/gnb-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts tests/e2e/consent-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts tests/e2e/routing-smoke.spec.ts`
 - 알려진 병행 blocker:
-  - `registry fixture drift`는 [docs/checkpoint-1-2-follow-ups.md](/Users/woohyeon/Local/ViveTest/docs/checkpoint-1-2-follow-ups.md:12)에 별도 추적 중이다.
-  - 따라서 Batch 7 구현에서는 full `npm test` 결과를 이 pre-existing baseline과 비교해 신규 Tailwind regression과 분리 기록한다. drift fix는 이 batch에 섞지 않는다.
+  - `registry fixture drift`는 이번 변경에서 최소 범위로 해소되었고, 더 큰 구조 정리는 필요할 때 별도 follow-up으로만 분리한다.
 - 비차단 참고 확인:
   - theme-matrix
   - Safari ghosting
   - baseline이 있는 환경에서만 참고 실행 또는 수동 비교
 - 완료 체크:
-  - [ ] `globals.css`가 token/reset/residual selector 전용으로 축소됐다.
-  - [ ] 전체 Done 게이트를 통과했다.
-  - [ ] 문서/QA 자산 동기화 필요 여부를 확인했다.
+  - [x] `globals.css`가 token/reset/residual selector 전용으로 축소됐다.
+  - [x] 전체 Done 게이트를 통과했다.
+  - [x] 문서/QA 자산 동기화 필요 여부를 확인했다.
 
 ## 7. Batch 간 의존성 메모
 
@@ -874,11 +881,11 @@
 
 ## 9. 구현자가 바로 따라야 할 작업 순서
 
-- [ ] Batch 시작 전에 현재 batch의 제거 후보 selector와 잔류 selector를 문서 기준으로 다시 체크한다.
-- [ ] TSX에 utility를 추가할 때 `data-*`, `aria-*`, `data-testid`, DOM landmark를 먼저 보존한다.
-- [ ] 정적 class를 utility로 옮긴 뒤에만 `globals.css` 대응 selector를 제거한다.
-- [ ] grid/GNB/test overlay처럼 상태 selector가 얽힌 surface는 "정적 base 먼저, 상태 selector 나중" 순서를 지킨다.
-- [ ] batch 종료 시 문서의 해당 Batch 체크박스와 상태를 같이 갱신한다.
+- [x] Batch 시작 전에 현재 batch의 제거 후보 selector와 잔류 selector를 문서 기준으로 다시 체크한다.
+- [x] TSX에 utility를 추가할 때 `data-*`, `aria-*`, `data-testid`, DOM landmark를 먼저 보존한다.
+- [x] 정적 class를 utility로 옮긴 뒤에만 `globals.css` 대응 selector를 제거한다.
+- [x] grid/GNB/test overlay처럼 상태 selector가 얽힌 surface는 "정적 base 먼저, 상태 selector 나중" 순서를 지킨다.
+- [x] batch 종료 시 문서의 해당 Batch 체크박스와 상태를 같이 갱신한다.
 
 ## 10. 다음 세션 착수 체크리스트
 
@@ -893,11 +900,11 @@
 
 ## 11. 다음 세션 착수 권장 순서
 
-- 다음 구현 세션은 reopened `Batch 6` 잔여 정적 surface sign-off를 먼저 닫고, 그 다음 `Batch 7` cleanup을 연다.
-- `Batch 7` 착수 전 확인 항목은 아래 4개다.
+- 2026-04-16 기준 reopened `Batch 6` sign-off와 `Batch 7` cleanup은 모두 완료되었다.
+- 완료 시점 확인 항목은 아래 4개다.
 - [x] Tailwind 진입 방식은 `@import "tailwindcss"` + `postcss.config.mjs` 기준으로 확정돼 있다.
 - [x] `globals.css` residual selector 후보 라벨링은 Batch 5에서 완료됐다.
-- [ ] landing grid/card의 대표 anchor(`qmbti`, `energy-check`, `ops-handbook`)와 expanded/focus continuity smoke를 다시 확인한다.
+- [x] landing grid/card의 대표 anchor(`qmbti`, `energy-check`, `ops-handbook`)와 expanded/focus continuity smoke를 다시 확인한다.
 - [x] shared shell consumer(`src/features/test/test-question-client.tsx`, blog, history)와 routing/not-found QA(`tests/e2e/routing-smoke.spec.ts`)가 Batch 7 범위/검증 계획에 반영돼 있다.
 
 ## 12. 비고

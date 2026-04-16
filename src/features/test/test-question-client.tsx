@@ -49,6 +49,8 @@ interface QuestionBootstrapState {
 
 const testPanelSurfaceClassName =
   'rounded-[18px] p-5 [background:color-mix(in_srgb,var(--panel-solid)_94%,transparent)] [box-shadow:var(--dialog-shadow)]';
+const testShellCardClassName =
+  'landing-shell-card grid gap-[18px] rounded-[16px] p-[18px] [background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)]';
 const testShellHeaderClassName = 'test-shell-header grid gap-1';
 const testShellStageClassName = 'test-shell-stage relative';
 const testQuestionPanelClassName = `test-question-panel ${testPanelSurfaceClassName} grid gap-[14px]`;
@@ -359,7 +361,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
 
   return (
     <section
-      className="landing-shell-card gap-[18px]"
+      className={testShellCardClassName}
       data-testid="test-shell-card"
       data-entry-status={redirecting ? 'redirecting' : isBooting ? 'booting' : started ? 'started' : 'ready'}
     >

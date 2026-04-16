@@ -4,6 +4,8 @@ import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
 import {expectBufferToMatchLocalSnapshot} from './helpers/local-snapshot';
 
+// Safari ghosting baselines are captured through helper wrappers that delegate to Playwright `toMatchSnapshot`.
+
 const DESKTOP_VIEWPORT = {width: 1440, height: 980} as const;
 const STAGE_SHADOW_BLEED_X_PX = 72;
 const STAGE_SHADOW_BLEED_TOP_PX = 56;
