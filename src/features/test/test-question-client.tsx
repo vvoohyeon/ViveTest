@@ -47,6 +47,20 @@ interface QuestionBootstrapState {
   instructionSeen: boolean;
 }
 
+const testPanelSurfaceClassName =
+  'rounded-[18px] p-5 [background:color-mix(in_srgb,var(--panel-solid)_94%,transparent)] [box-shadow:var(--dialog-shadow)]';
+const testQuestionPanelClassName = `test-question-panel ${testPanelSurfaceClassName} grid gap-[14px]`;
+const testResultPanelClassName = `test-result-panel ${testPanelSurfaceClassName}`;
+const testButtonBaseClassName =
+  'inline-flex min-h-[46px] cursor-pointer items-center justify-center rounded-[14px] border border-[var(--interactive-neutral-border)] px-[14px] py-3 text-center font-semibold leading-[1.35] text-[var(--text-strong)] [font:inherit] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color,transform] [transition-timing-function:ease]';
+const testPrimaryButtonClassName = `${testButtonBaseClassName} test-primary-button`;
+const testSecondaryButtonClassName = `${testButtonBaseClassName} test-secondary-button [background:var(--interactive-neutral-bg-strong)]`;
+const testAnswerButtonClassName =
+  `${testButtonBaseClassName} test-answer-button justify-start text-left [background:var(--interactive-neutral-bg-soft)]`;
+const testActionRowClassName = 'flex flex-wrap gap-[10px]';
+const testResultActionButtonClassName = `${testPrimaryButtonClassName} min-w-[132px]`;
+const testResultSecondaryActionButtonClassName = `${testSecondaryButtonClassName} min-w-[132px]`;
+
 function buildInitialRuntimeState(): QuestionRuntimeState {
   return {
     ready: false,
@@ -339,35 +353,37 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
 
   return (
     <section
-      className="landing-shell-card test-shell-card"
+      className="landing-shell-card gap-[18px]"
       data-testid="test-shell-card"
       data-entry-status={redirecting ? 'redirecting' : isBooting ? 'booting' : started ? 'started' : 'ready'}
     >
       <header className="test-shell-header">
         <div>
-          <h1>{card.title}</h1>
-          <p data-testid="test-progress">{t('progress', {current: runtimeState.currentQuestionIndex, total: totalQuestions})}</p>
+          <h1 className="m-0">{card.title}</h1>
+          <p className="m-0" data-testid="test-progress">
+            {t('progress', {current: runtimeState.currentQuestionIndex, total: totalQuestions})}
+          </p>
         </div>
       </header>
 
-      <div className="test-shell-stage" data-testid="test-stage">
+      <div className="test-shell-stage relative" data-testid="test-stage">
         {submitted ? (
-          <div className="test-result-panel" data-testid="test-result-panel">
-            <h2>{t('resultLabel')}</h2>
-            <p>{t('resultBody')}</p>
-            <dl className="test-result-grid">
+          <div className={testResultPanelClassName} data-testid="test-result-panel">
+            <h2 className="m-0">{t('resultLabel')}</h2>
+            <p className="m-0">{t('resultBody')}</p>
+            <dl className="test-result-grid m-0 grid gap-2">
               {questions.map((question) => (
-                <div key={question.id} className="test-result-row">
-                  <dt>{question.id.toUpperCase()}</dt>
-                  <dd>{runtimeState.answers[question.id]}</dd>
+                <div key={question.id} className="test-result-row flex justify-between gap-3">
+                  <dt className="m-0">{question.id.toUpperCase()}</dt>
+                  <dd className="m-0">{runtimeState.answers[question.id]}</dd>
                 </div>
               ))}
             </dl>
-            <div className="test-result-actions">
-              <Link className="test-primary-button" href={landingPath}>
+            <div className={testActionRowClassName}>
+              <Link className={testResultActionButtonClassName} href={landingPath}>
                 {t('goHome')}
               </Link>
-              <Link className="test-secondary-button" href={buildLocalizedPath(RouteBuilder.history(), locale)}>
+              <Link className={testResultSecondaryActionButtonClassName} href={buildLocalizedPath(RouteBuilder.history(), locale)}>
                 {t('goHistory')}
               </Link>
             </div>
@@ -398,15 +414,15 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
             ) : null}
 
             <article
-              className="test-question-panel"
+              className={testQuestionPanelClassName}
               aria-hidden={instructionVisible ? 'true' : undefined}
               data-testid="test-question-panel"
             >
-              <h2>{currentQuestion.prompt}</h2>
-              <div className="test-answer-grid">
+              <h2 className="m-0">{currentQuestion.prompt}</h2>
+              <div className="test-answer-grid grid gap-[10px]">
                 <button
                   type="button"
-                  className="test-answer-button"
+                  className={testAnswerButtonClassName}
                   data-selected={currentAnswer === 'A' ? 'true' : 'false'}
                   onClick={() => {
                     updateAnswer('A');
@@ -417,7 +433,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 </button>
                 <button
                   type="button"
-                  className="test-answer-button"
+                  className={testAnswerButtonClassName}
                   data-selected={currentAnswer === 'B' ? 'true' : 'false'}
                   onClick={() => {
                     updateAnswer('B');
@@ -428,10 +444,10 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 </button>
               </div>
 
-              <div className="test-nav-row">
+              <div className={testActionRowClassName}>
                 <button
                   type="button"
-                  className="test-secondary-button"
+                  className={testSecondaryButtonClassName}
                   onClick={() => {
                     moveQuestion(-1);
                   }}
@@ -444,7 +460,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 {runtimeState.currentQuestionIndex < totalQuestions ? (
                   <button
                     type="button"
-                    className="test-primary-button"
+                    className={testPrimaryButtonClassName}
                     onClick={() => {
                       moveQuestion(1);
                     }}
@@ -456,7 +472,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 ) : (
                   <button
                     type="button"
-                    className="test-primary-button"
+                    className={testPrimaryButtonClassName}
                     onClick={handleSubmit}
                     disabled={!started || !allAnswered}
                     data-testid="test-submit-button"
