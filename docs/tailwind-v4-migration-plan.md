@@ -37,7 +37,7 @@
 |---|---|---|---|
 | 1~107 | token/theme | `:root`, `html[data-theme='dark']`, color/system token | Batch 1, Batch 7 |
 | 109~111 | base/reset | anchor color | Batch 1, Batch 7 |
-| 1~380 (`landing-grid-card.module.css`) | landing grid/card motion-local | `:has(:focus-visible)`, desktop stage geometry, slot choreography, reduced-motion fallback | Follow-up 2026-04-17 |
+| 1~380 (`landing-grid-card.module.css`) | landing grid/card motion-local | `:has(:focus-visible)`, desktop stage geometry, slot choreography, reduced-motion fallback, semantic motion/focus classes | Follow-up 2026-04-17 완료 |
 
 - `body`, consent spacer/layer, transition overlay, test/blog/history/not-found static surface는 현재 `globals.css` 밖으로 이동했다.
 - `landing-grid-card`의 trigger, tags-gap, CTA cursor policy, root/content 비-애니메이션 상태, unavailable overlay opacity는 현재 `landing-grid-card.tsx`가 직접 소유한다.
@@ -875,6 +875,7 @@
 - shared shell의 consent spacer/layer와 transition GNB overlay
 - landing grid mobile backdrop의 정적 base
 - landing grid card의 root custom property 기본값, shell ghost, expanded shell base, mobile transient shell base, unavailable overlay base
+- `landing-grid-card.module.css`가 직접 소비하던 raw root 상태 축을 `landing-grid-card.tsx`의 semantic class surface로 1차 압축
 - test/instruction runtime의 primary/secondary/answer button 상태 스타일
 - GNB의 elevated shell state, settings root custom properties, theme/locale chip 상태 스타일, mobile closing state
 - `landing-grid-card`의 tags-gap, trigger base/mobile-open/desktop-overlay hand-off, root/content 비-애니메이션 상태, unavailable overlay opacity
@@ -896,7 +897,7 @@
 - landing grid의 animation selector를 utility로 완전히 치환하는 작업은 상태 조합이 많아 별도 후속 리팩터 범위로 보류했다.
 - hover 관련 moved utility는 Tailwind variant 경로를 사용한다. touch 환경에서 hover semantic 차이가 관찰되면 arbitrary variant 또는 residual selector 복구를 검토한다.
 - local theme/state Playwright baseline은 이번 배치 결과에 맞춰 재동기화했다. 현재 baseline 자산은 로컬 QA 참고 자산으로 취급한다.
-- 이후 추가 축소가 다시 필요해지더라도, 다음 follow-up의 주 대상은 `landing-grid-card.module.css` 내부의 raw state surface 정리와 semantic API 압축이어야 한다.
+- raw `data-*` anchor를 QA/debug surface로 유지한 채 CSS compatibility fallback selector까지 제거하려면, 관련 QA script와 snapshot contract를 먼저 semantic class 기준으로 갱신해야 한다.
 
 #### 재진입 조건
 

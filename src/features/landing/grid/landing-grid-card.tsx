@@ -629,6 +629,13 @@ export function LandingGridCard({
   const resolvedShellScale = reducedMotion ? 1 : 1.04;
   const resolvedShellInlineScale = reducedMotion ? 1 : desktopShellInlineScale;
   const resolvedMotionDurationMs = reducedMotion ? 180 : 280;
+  const isDesktopOverlayLayer = showDesktopExpandedShell;
+  const isDesktopMotionEnter = desktopMotionRole === 'opening' || desktopMotionRole === 'handoff-target';
+  const isDesktopMotionExit = desktopMotionRole === 'closing';
+  const isDesktopMotionSteady = desktopMotionRole === 'steady';
+  const hasDesktopStageGeometry = showDesktopExpandedShell;
+  const isDesktopCleanupPending = desktopStagePhase === 'cleanup-pending';
+  const isMobileClosingPhase = isMobileViewport && mobilePhase === 'CLOSING';
   const resolvedRootVisualClassName = showDesktopExpandedShell
     ? '[background:transparent] [box-shadow:none]'
     : isMobileExpanded
@@ -639,11 +646,30 @@ export function LandingGridCard({
   const resolvedRootClassName = joinClassNames(
     LANDING_GRID_CARD_ROOT_CLASSNAME,
     styles.root,
+    isDesktopOverlayLayer && styles.desktopOverlayLayer,
+    isDesktopMotionEnter && styles.desktopMotionEnter,
+    isDesktopMotionExit && styles.desktopMotionExit,
+    isDesktopMotionSteady && styles.desktopMotionSteady,
+    isMobileOpening && styles.mobileTransientOpening,
+    isMobileClosing && styles.mobileTransientClosing,
+    isMobileClosingPhase && styles.mobilePhaseClosing,
     transformOriginClassName,
     reducedMotion && styles.reducedMotion,
     resolvedRootVisualClassName,
     (resolvedState === 'expanded' || isMobileOpening || isMobileClosing) && 'z-20',
     isMobileExpanded && 'rounded-none w-screen min-h-0 mx-[calc(50%-50vw)]'
+  );
+  const resolvedDesktopStageClassName = joinClassNames(
+    LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME,
+    styles.desktopStage,
+    hasDesktopStageGeometry && styles.desktopStageActive,
+    isDesktopCleanupPending && styles.desktopStageCleanupPending
+  );
+  const resolvedTransientShellClassName = joinClassNames(
+    LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME,
+    styles.transientShell,
+    isMobileOpening && styles.transientOpening,
+    isMobileClosing && styles.transientClosing
   );
   const resolvedTriggerClassName = joinClassNames(
     LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME,
@@ -787,7 +813,7 @@ export function LandingGridCard({
 
       {!isMobileViewport && !isUnavailable ? (
         <div
-          className={joinClassNames(LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME, styles.desktopStage)}
+          className={resolvedDesktopStageClassName}
           data-testid="landing-grid-card-desktop-stage"
           data-slot="desktopStage"
           data-phase={desktopStagePhase}
@@ -873,7 +899,7 @@ export function LandingGridCard({
 
       {showMobileTransientShell ? (
         <div
-          className={joinClassNames(LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME, styles.transientShell)}
+          className={resolvedTransientShellClassName}
           data-slot="mobileTransientShell"
           data-state={mobileTransientMode}
           aria-hidden="true"
