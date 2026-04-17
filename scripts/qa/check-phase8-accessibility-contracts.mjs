@@ -38,7 +38,11 @@ for (const relativePath of requiredFiles) {
 if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
 
-  if (!/className="landing-grid-card-trigger"/u.test(cardFile) || !/type="button"/u.test(cardFile)) {
+  if (
+    !/type="button"/u.test(cardFile) ||
+    !/className=\{resolvedTriggerClassName\}/u.test(cardFile) ||
+    !/LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME[\s\S]*landing-grid-card-trigger/u.test(cardFile)
+  ) {
     fail('LandingGridCard must render a semantic primary trigger button.');
   }
 

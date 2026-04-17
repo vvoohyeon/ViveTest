@@ -97,7 +97,14 @@ export function SettingsControls({
     <div className={controlsClassName}>
       <div className={themeRowClassName} data-testid={`${scope}-gnb-theme-controls`}>
         <div className={settingsThemeHeadingClassName}>
-          <span className={`${settingsLabelClassName} leading-none`}>{labels.theme}</span>
+          <span
+            className={joinClassNames(
+              settingsLabelClassName,
+              'leading-none supports-[font:-apple-system-body]:translate-y-[2px]'
+            )}
+          >
+            {labels.theme}
+          </span>
         </div>
         <div className={settingsThemeActionsClassName}>
           {orderedThemeOptions.map((theme) => {

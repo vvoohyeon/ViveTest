@@ -107,17 +107,6 @@ html[data-theme='dark'] {
 }
 
 /* Base / Reset */
-body {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at 20% -10%, rgb(31 181 143 / 12%), transparent 34%),
-    radial-gradient(circle at 78% 0%, rgb(52 119 255 / 14%), transparent 38%),
-    var(--bg);
-  color: var(--ink);
-  font-family: 'Avenir Next', 'Noto Sans KR', 'Segoe UI', sans-serif;
-  line-height: 1.5;
-}
-
 a {
   color: var(--link-ink);
 }
@@ -129,17 +118,6 @@ a {
   --landing-card-shell-inline-scale: 1.0576923077;
 }
 
-.landing-grid-card[data-expanded-layer='desktop-overlay'],
-.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase='OPEN'],
-.landing-grid-card[data-expanded-layer='mobile-opening-shell'],
-.landing-grid-card[data-expanded-layer='mobile-closing-shell'] {
-  box-shadow: none;
-}
-
-.landing-grid-card[data-expanded-layer='desktop-overlay'] {
-  background: transparent;
-}
-
 .landing-grid-card:has(:focus-visible) {
   box-shadow:
     0 0 0 3px var(--focus-ring-outer),
@@ -149,39 +127,6 @@ a {
 
 .landing-grid-card[data-expanded-layer='desktop-overlay']:has(:focus-visible) {
   box-shadow: var(--card-shadow);
-}
-
-.landing-grid-card[data-card-state='expanded'],
-.landing-grid-card[data-expanded-layer='mobile-opening-shell'],
-.landing-grid-card[data-expanded-layer='mobile-closing-shell'] {
-  z-index: 20;
-}
-
-.landing-grid-card-trigger {
-  position: relative;
-  display: block;
-  width: 100%;
-  min-height: 100%;
-  border: 0;
-  border-radius: inherit;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  padding: 16px;
-  text-align: left;
-}
-
-.landing-grid-card-trigger[aria-disabled='true'] {
-  cursor: default;
-}
-
-.landing-grid-card-trigger:focus {
-  outline: none;
-}
-
-/* Landing Grid Residual Selectors — expanded trigger hand-off stays global */
-.landing-grid-card[data-expanded-layer='desktop-overlay'] > .landing-grid-card-trigger {
-  pointer-events: none;
 }
 
 /* Landing Grid Residual Selectors — keep desktop stage geometry and Safari/hover ghosting runtime global */
@@ -256,10 +201,6 @@ a {
   pointer-events: none;
 }
 
-.landing-grid-card-tags-gap {
-  height: calc(var(--landing-card-base-gap) + var(--landing-card-comp-gap));
-}
-
 .landing-grid-card[data-desktop-motion-role='steady'] .landing-grid-card-expanded-shell-frame {
   left: calc(var(--landing-card-shell-extra-start) * -1);
   width: calc(100% + var(--landing-card-shell-extra-start) + var(--landing-card-shell-extra-end));
@@ -289,32 +230,6 @@ a {
 .landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='primaryCTA'] {
   animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 160ms;
-}
-
-.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase='OPEN'] {
-  border-radius: 0;
-  width: 100vw;
-  margin-inline: calc(50% - 50vw);
-  min-height: 0;
-  z-index: 20;
-  background: var(--panel-solid);
-}
-
-.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase='OPEN'] .landing-grid-card-trigger {
-  min-height: 0;
-  padding: 0;
-  background: transparent;
-  cursor: default;
-}
-
-.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase='OPEN'] .landing-grid-card-content {
-  height: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase='OPEN'] .landing-grid-card-mobile-close {
-  flex: 0 0 auto;
 }
 
 .landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-transient-mode='OPENING'] .landing-grid-card-content > [data-slot='cardTitle'],
@@ -380,32 +295,6 @@ a {
 .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='meta'],
 .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] [data-motion-slot='primaryCTA'] {
   animation: landing-card-detail-quiet-exit var(--landing-card-motion-ms) linear both;
-}
-
-a.landing-grid-card-primary-cta {
-  cursor: pointer;
-}
-
-span.landing-grid-card-primary-cta {
-  cursor: default;
-}
-
-.landing-grid-card-answer-choice {
-  cursor: pointer;
-}
-
-.landing-grid-card[data-card-availability='unavailable'][data-interaction-mode='hover'] .landing-grid-card-unavailable-overlay {
-  opacity: 0;
-}
-
-.landing-grid-card[data-card-availability='unavailable'][data-interaction-mode='hover']:hover .landing-grid-card-unavailable-overlay,
-.landing-grid-card[data-card-availability='unavailable'][data-interaction-mode='hover']:focus-within
-  .landing-grid-card-unavailable-overlay {
-  opacity: 1;
-}
-
-.landing-grid-card[data-card-availability='unavailable'][data-interaction-mode='tap'] .landing-grid-card-unavailable-overlay {
-  opacity: 1;
 }
 
 /* Landing Grid Residual Selectors — motion/reduced-motion contracts stay global */
@@ -740,54 +629,5 @@ span.landing-grid-card-primary-cta {
 
   .landing-grid-mobile-backdrop {
     transition-duration: 180ms;
-  }
-}
-
-.gnb-settings-panel {
-  position: absolute;
-  top: calc(-1 * var(--gnb-settings-panel-extra-top));
-  right: calc(-1 * var(--gnb-settings-panel-extra-right));
-  z-index: 1;
-  width: min(
-    calc(var(--gnb-settings-panel-base-width) + var(--gnb-settings-panel-extra-right)),
-    calc(100vw - 24px + var(--gnb-settings-panel-extra-right))
-  );
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--gnb-settings-panel-extra-right);
-  grid-template-rows: var(--gnb-settings-panel-extra-top) auto;
-  border-radius: 0 0 12px 12px;
-  isolation: isolate;
-}
-
-.gnb-settings-panel::before,
-.gnb-settings-panel::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.gnb-settings-panel::before {
-  inset: -1px 0 0 0;
-  border-radius: inherit;
-  background: var(--panel-solid);
-}
-
-.gnb-settings-panel::after {
-  inset: 0;
-  border-right: 1px solid var(--surface-divider);
-  border-bottom: 1px solid var(--surface-divider);
-  border-left: 1px solid var(--surface-divider);
-  border-radius: inherit;
-  box-shadow: var(--panel-shadow);
-}
-
-.gnb-settings-theme-heading > .gnb-settings-label {
-  line-height: 1;
-}
-
-@supports (font: -apple-system-body) {
-  .gnb-settings-theme-heading > .gnb-settings-label {
-    transform: translateY(2px);
   }
 }

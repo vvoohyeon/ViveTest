@@ -71,6 +71,8 @@ const gnbSettingsTriggerClassName =
   `${gnbInteractiveButtonBaseClassName} gnb-settings-trigger h-[var(--gnb-settings-trigger-size)] w-[var(--gnb-settings-trigger-size)] shrink-0 !p-0`;
 const gnbSettingsTriggerIconClassName =
   'gnb-settings-trigger-icon h-[var(--gnb-settings-trigger-icon-size)] w-[var(--gnb-settings-trigger-icon-size)] shrink-0';
+const gnbSettingsPanelClassName =
+  "gnb-settings-panel absolute z-[1] grid isolate rounded-b-[12px] top-[calc(var(--gnb-settings-panel-extra-top)*-1)] right-[calc(var(--gnb-settings-panel-extra-right)*-1)] [width:min(calc(var(--gnb-settings-panel-base-width)_+_var(--gnb-settings-panel-extra-right)),calc(100vw_-_24px_+_var(--gnb-settings-panel-extra-right)))] [grid-template-columns:minmax(0,1fr)_var(--gnb-settings-panel-extra-right)] [grid-template-rows:var(--gnb-settings-panel-extra-top)_auto] before:pointer-events-none before:absolute before:z-0 before:content-[''] before:[inset:-1px_0_0_0] before:rounded-[inherit] before:bg-[var(--panel-solid)] after:pointer-events-none after:absolute after:z-0 after:content-[''] after:inset-0 after:rounded-[inherit] after:[border-right:1px_solid_var(--surface-divider)] after:[border-bottom:1px_solid_var(--surface-divider)] after:[border-left:1px_solid_var(--surface-divider)] after:shadow-[var(--panel-shadow)]";
 const gnbBackButtonClassName = `${gnbInteractiveButtonBaseClassName} gnb-back-button`;
 const gnbMenuTriggerClassName = `${gnbInteractiveButtonBaseClassName} gnb-menu-trigger`;
 const gnbDesktopTimerClassName = 'gnb-desktop-timer m-0 font-semibold tabular-nums text-[var(--muted-ink)]';
@@ -691,7 +693,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           id={settingsPanelId}
           role="dialog"
           aria-label={t('settings')}
-          className="gnb-settings-panel"
+          className={gnbSettingsPanelClassName}
           data-open={settingsOpen ? 'true' : 'false'}
           hidden={!settingsOpen}
           data-testid="gnb-settings-panel"

@@ -63,6 +63,18 @@ if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
   }
 }
 
+if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
+  const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
+
+  if (
+    !/LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME[\s\S]*cursor-pointer/u.test(cardFile) ||
+    !/LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME[\s\S]*cursor-pointer/u.test(cardFile) ||
+    !/LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME[\s\S]*cursor-default/u.test(cardFile)
+  ) {
+    fail('LandingGridCard must keep CTA cursor policy explicit in component-owned class sources.');
+  }
+}
+
 if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts')) {
   const controllerFile = read('src/features/landing/grid/use-landing-interaction-controller.ts');
 
@@ -125,13 +137,6 @@ if (fileExists('src/app/globals.css')) {
     fail('Global styles must simplify mobile transient-shell motion under reduced-motion.');
   }
 
-  if (
-    !/\.landing-grid-card-answer-choice\s*\{[\s\S]*cursor:\s*pointer;/u.test(css) ||
-    !/a\.landing-grid-card-primary-cta\s*\{[\s\S]*cursor:\s*pointer;/u.test(css) ||
-    !/span\.landing-grid-card-primary-cta\s*\{[\s\S]*cursor:\s*default;/u.test(css)
-  ) {
-    fail('Global styles must keep landing card CTA cursor policy explicit for available vs non-interactive surfaces.');
-  }
 }
 
 if (fileExists('tests/e2e/routing-smoke.spec.ts')) {

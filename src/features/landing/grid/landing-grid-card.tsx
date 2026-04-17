@@ -197,9 +197,11 @@ function joinClassNames(...classNames: Array<string | false | null | undefined>)
 }
 
 const LANDING_GRID_CARD_ROOT_CLASSNAME =
-  'landing-grid-card relative isolate min-h-44 min-w-0 overflow-visible rounded-[var(--landing-card-radius)] [background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)] [--landing-card-radius:16px] [--landing-card-stage-shadow-bleed-x:72px] [--landing-card-stage-shadow-bleed-top:56px] [--landing-card-stage-shadow-bleed-bottom:192px] [--landing-card-origin-y:0%] [--landing-card-shell-scale:1.04] [--landing-card-shell-inline-scale:1] [--landing-card-shell-extra-start:0%] [--landing-card-shell-extra-end:0%] [--landing-card-motion-ms:280ms]';
+  'landing-grid-card group relative isolate min-h-44 min-w-0 overflow-visible rounded-[var(--landing-card-radius)] [--landing-card-radius:16px] [--landing-card-stage-shadow-bleed-x:72px] [--landing-card-stage-shadow-bleed-top:56px] [--landing-card-stage-shadow-bleed-bottom:192px] [--landing-card-origin-y:0%] [--landing-card-shell-scale:1.04] [--landing-card-shell-inline-scale:1] [--landing-card-shell-extra-start:0%] [--landing-card-shell-extra-end:0%] [--landing-card-motion-ms:280ms]';
+const LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME =
+  'landing-grid-card-trigger relative block w-full rounded-[inherit] [border:0] bg-transparent text-left [color:inherit] cursor-pointer focus:outline-none aria-[disabled=true]:cursor-default';
 const LANDING_GRID_CARD_CONTENT_CLASSNAME =
-  'landing-grid-card-content relative z-[1] flex h-full min-h-full min-w-0 flex-col justify-start';
+  'landing-grid-card-content relative z-[1] flex min-w-0 flex-col justify-start';
 const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
   'landing-grid-card-title relative z-[3] m-0 text-[1.04rem] leading-[1.35] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
@@ -242,7 +244,7 @@ const LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME =
 const LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME =
   'landing-grid-card-expanded-surface relative z-[1] min-h-full w-full rounded-[var(--landing-card-radius)] [background:color-mix(in_srgb,var(--panel-solid)_96%,transparent)] [box-shadow:0_0_0_1px_color-mix(in_srgb,var(--surface-divider)_92%,transparent)] pointer-events-auto';
 const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
-  'landing-grid-card-mobile-close relative inline-flex min-h-10 min-w-10 items-center justify-center rounded-full border border-[var(--chip-border)] bg-[var(--interactive-neutral-bg-strong)] p-0 font-semibold [color:var(--link-ink)]';
+  'landing-grid-card-mobile-close relative inline-flex min-h-10 min-w-10 shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--chip-border)] bg-[var(--interactive-neutral-bg-strong)] p-0 font-semibold [color:var(--link-ink)]';
 const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
   `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} cursor-pointer disabled:cursor-default disabled:opacity-70`;
 const LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME =
@@ -261,8 +263,8 @@ const LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME =
   'landing-grid-card-mobile-transient-surface relative z-[1] grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-hidden px-4 pb-4';
 const LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME =
   `${LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} landing-grid-card-mobile-transient-header relative z-[1] bg-transparent`;
-const LANDING_GRID_CARD_UNAVAILABLE_OVERLAY_CLASSNAME =
-  'landing-grid-card-unavailable-overlay pointer-events-none absolute inset-0 z-[2] flex items-start justify-end rounded-[inherit] p-3 opacity-100 [background:var(--unavailable-overlay-gradient)] [transition:opacity_140ms_ease]';
+const LANDING_GRID_CARD_UNAVAILABLE_OVERLAY_BASE_CLASSNAME =
+  'landing-grid-card-unavailable-overlay pointer-events-none absolute inset-0 z-[2] flex items-start justify-end rounded-[inherit] p-3 [background:var(--unavailable-overlay-gradient)] [transition:opacity_140ms_ease]';
 const LANDING_GRID_CARD_UNAVAILABLE_BADGE_CLASSNAME =
   'landing-grid-card-unavailable-badge rounded-full border border-[var(--unavailable-badge-border)] bg-[var(--unavailable-badge-bg)] px-[10px] py-1 text-[0.72rem] leading-[1.2] tracking-[0.01em] text-[var(--unavailable-badge-ink)]';
 
@@ -616,6 +618,36 @@ export function LandingGridCard({
     subtitleRef: normalSubtitleRef
   });
   const transformOriginClassName = resolveTransformOriginClassName(desktopTransformOriginX);
+  const resolvedRootVisualClassName = showDesktopExpandedShell
+    ? '[background:transparent] [box-shadow:none]'
+    : isMobileExpanded
+      ? '[background:var(--panel-solid)] [box-shadow:none]'
+      : isMobileOpening || isMobileClosing
+        ? '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:none]'
+        : '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)]';
+  const resolvedRootClassName = joinClassNames(
+    LANDING_GRID_CARD_ROOT_CLASSNAME,
+    transformOriginClassName,
+    resolvedRootVisualClassName,
+    (resolvedState === 'expanded' || isMobileOpening || isMobileClosing) && 'z-20',
+    isMobileExpanded && 'rounded-none w-screen min-h-0 mx-[calc(50%-50vw)]'
+  );
+  const resolvedTriggerClassName = joinClassNames(
+    LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME,
+    isMobileExpanded ? '[min-height:0] [padding:0]' : '[min-height:100%] [padding:16px]',
+    showDesktopExpandedShell && 'pointer-events-none',
+    isMobileExpanded && 'bg-transparent cursor-default'
+  );
+  const resolvedContentClassName = joinClassNames(
+    LANDING_GRID_CARD_CONTENT_CLASSNAME,
+    isMobileExpanded ? '[height:0] [min-height:0] overflow-hidden' : 'h-full min-h-full'
+  );
+  const resolvedUnavailableOverlayClassName = joinClassNames(
+    LANDING_GRID_CARD_UNAVAILABLE_OVERLAY_BASE_CLASSNAME,
+    interactionMode === 'hover'
+      ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+      : 'opacity-100'
+  );
 
   const handlePrimaryCtaClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
     if (onPrimaryCtaClick) {
@@ -625,7 +657,7 @@ export function LandingGridCard({
 
   return (
     <div
-      className={joinClassNames(LANDING_GRID_CARD_ROOT_CLASSNAME, transformOriginClassName)}
+      className={resolvedRootClassName}
       data-testid="landing-grid-card"
       data-card-variant={card.variant}
       data-card-seq={typeof sequence === 'number' ? sequence : undefined}
@@ -688,7 +720,7 @@ export function LandingGridCard({
     >
       <button
         type="button"
-        className="landing-grid-card-trigger"
+        className={resolvedTriggerClassName}
         data-testid="landing-grid-card-trigger"
         data-slot="primaryTrigger"
         data-trigger-state={isExpanded ? 'expanded' : 'collapsed'}
@@ -699,7 +731,7 @@ export function LandingGridCard({
         onKeyDown={onKeyDown}
         onClick={onClick}
       >
-        <div className={LANDING_GRID_CARD_CONTENT_CLASSNAME}>
+        <div className={resolvedContentClassName}>
           {isMobileExpanded ? null : (
             <h2
               ref={normalTitleRef}
@@ -847,7 +879,7 @@ export function LandingGridCard({
       ) : null}
 
       {isUnavailable ? (
-        <div className={LANDING_GRID_CARD_UNAVAILABLE_OVERLAY_CLASSNAME} data-slot="unavailableOverlay" aria-hidden="true">
+        <div className={resolvedUnavailableOverlayClassName} data-slot="unavailableOverlay" aria-hidden="true">
           <span className={LANDING_GRID_CARD_UNAVAILABLE_BADGE_CLASSNAME}>{copy.comingSoon}</span>
         </div>
       ) : null}

@@ -1,12 +1,12 @@
 # Tailwind v4 중심 점진 리팩토링 계획
 
-> 마지막 갱신: 2026-04-16
-> 목적: 다음 세션에서 바로 구현 착수할 수 있도록, 현재 `src/app/globals.css` 중심 스타일 구조를 `Tailwind CSS v4` 중심 구조로 점진 이전하는 상세 계획을 문서화한다.
+> 마지막 갱신: 2026-04-17
+> 목적: 완료된 Tailwind v4 migration batch와 현재 `globals.css` residual surface를 현재 코드베이스 기준으로 동기화하고, 다음 follow-up이 어디를 다뤄야 하는지 기록한다.
 
 ## 1. 문서 범위
 
-- 이 문서는 구현이 아니라 구현 계획 문서다.
-- 구현은 작은 batch로 분할하고, `1~3개 batch` 단위가 아니라 현재 합의된 승인 체크포인트 기준으로 진행한다.
+- 이 문서는 초기 구현 계획 문서였고, 현재는 완료된 batch 기록 + 남은 residual follow-up 기준 문서로 유지한다.
+- 구현 기록은 작은 batch 단위로 남겨 두되, 현재 상태 판단은 반드시 실제 코드 기준으로 덮어쓴다.
 - 이번 계획의 직접 대상은 style 적용 위치와 최소 마크업 조정이며, 라우팅/locale/resolver/registry/telemetry/storage 로직 변경은 범위 밖이다.
 
 ## 2. 현재 기준 검증 사실
@@ -14,31 +14,34 @@
 - `tailwindcss@4.1.0`, `@tailwindcss/postcss@4.1.0`는 설치되어 있다.
 - [postcss.config.mjs](/Users/woohyeon/Local/ViveTest/postcss.config.mjs:1)가 존재하며 `@tailwindcss/postcss`를 연결한다.
 - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) 첫 줄에는 `@import "tailwindcss";`가 있다. 현재도 `tailwind.config.*`는 없다.
-- 현재 스타일 중심은 [src/app/globals.css](/Users/b-m-2022001/Local/ViveTest/src/app/globals.css:1)이며, 2026-04-17 globals follow-up 이후에도 단일 파일을 유지한 채 총 `793`줄이다.
+- 현재 전역 스타일 파일은 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) 단일 파일을 유지한 채 총 `633`줄이며, 역할은 `token/theme + anchor base + landing grid/card residual selector + keyframe/reduced-motion`으로 축소되었다.
 - [src/app/layout.tsx](/Users/woohyeon/Local/ViveTest/src/app/layout.tsx:1)는 전역 CSS를 `import './globals.css'`로 로드하고, `beforeInteractive`로 [public/theme-bootstrap.js](/Users/woohyeon/Local/ViveTest/public/theme-bootstrap.js:1)를 주입한다.
+- [src/app/app-body-class.ts](/Users/woohyeon/Local/ViveTest/src/app/app-body-class.ts:1)는 `APP_BODY_CLASSNAME`를 export하며, `layout.tsx`와 `global-not-found.tsx`가 같은 body canvas/typography source를 재사용한다.
 - [public/theme-bootstrap.js](/Users/woohyeon/Local/ViveTest/public/theme-bootstrap.js:1)는 hydration 이전에 `vivetest-theme`를 읽어 `documentElement.dataset.theme`를 설정한다.
 - [src/features/landing/shell/page-shell.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/shell/page-shell.tsx:1)는 모든 localized route에 공통으로 `TransitionGnbOverlay`, `SiteGnb`, `main.page-shell-main`, `TelemetryConsentBanner`를 마운트한다.
-- [src/features/landing/gnb/site-gnb.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/gnb/site-gnb.tsx:1)는 약 `791`줄이며, hover/focus fallback, mobile menu choreography, focus return, locale/theme switch, back behavior를 함께 소유한다.
+- [src/features/landing/gnb/site-gnb.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/gnb/site-gnb.tsx:1)는 약 `831`줄이며, hover/focus fallback, mobile menu choreography, focus return, locale/theme switch, back behavior를 함께 소유한다.
 - [src/features/landing/grid/landing-catalog-grid.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/grid/landing-catalog-grid.tsx:438)와 [src/features/landing/grid/landing-grid-card.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/grid/landing-grid-card.tsx:540)는 `data-*`, inline CSS variable, class hook를 함께 사용한다.
 - [src/features/test/test-question-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/test-question-client.tsx:342)는 `.landing-shell-card`를 test shell에 재사용한다.
 - [src/features/landing/blog/blog-destination-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/blog/blog-destination-client.tsx:60)와 [src/app/[locale]/history/page.tsx](/Users/woohyeon/Local/ViveTest/src/app/[locale]/history/page.tsx:23)도 `.landing-shell-card`를 공유한다.
+- [src/app/not-found.tsx](/Users/woohyeon/Local/ViveTest/src/app/not-found.tsx:1)와 [src/app/global-not-found.tsx](/Users/woohyeon/Local/ViveTest/src/app/global-not-found.tsx:1)는 이미 local utility-only surface로 정리되어 있으며, `.nf-shell`, `.placeholder-shell` 같은 전역 selector는 현재 코드에 없다.
 - representative anchor SSOT는 [tests/e2e/helpers/landing-fixture.ts](/Users/woohyeon/Local/ViveTest/tests/e2e/helpers/landing-fixture.ts:1)의 `qmbti`, `energy-check`, `ops-handbook`이다.
 - theme-matrix closure SSOT는 [tests/e2e/theme-matrix-manifest.json](/Users/woohyeon/Local/ViveTest/tests/e2e/theme-matrix-manifest.json:1)이다.
 - `Language ⋅ Theme` wording family는 `src/messages/*.json`과 GNB smoke에서 이미 고정돼 있다.
 - [tests/e2e/routing-smoke.spec.ts](/Users/woohyeon/Local/ViveTest/tests/e2e/routing-smoke.spec.ts:1)는 blog index/detail 분리, invalid/non-enterable blog redirect, segment/global not-found 분리를 이미 검증한다.
-- `npm run build`는 2026-04-16 기준 현재 workspace에서 GREEN이다.
+- `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`는 2026-04-17 문서 동기화 기준 현재 workspace에서 GREEN이다.
 
 ## 2.1 현재 `globals.css` 소유 구간 맵
 
 | 대략 구간 | 현재 소유 surface | 핵심 내용 | 주 담당 batch |
 |---|---|---|---|
 | 1~107 | token/theme | `:root`, `html[data-theme='dark']`, color/system token | Batch 1, Batch 7 |
-| 109~142 | base/reset | `body`, font, anchor, form font inherit | Batch 1, Batch 7 |
-| 144~166 | consent/transition global residual | consent banner layer/spacer, transition source | Batch 2 |
-| 168~1105 | landing grid/card | grid, card shell, state selector, reduced-motion, keyframes, unavailable overlay, mobile transient shell | Batch 5~6, Batch 7 |
-| 1107~1231 | shared shell/test/blog | `.landing-shell-card`, `.test-*`, `.blog-*` | Batch 3, Batch 7 |
-| 1233~1377 | GNB/theme | sticky shell, settings geometry, chips, mobile panel | Batch 4, Batch 7 |
-| 1379~끝 | not-found/placeholder | `.nf-shell`, `.placeholder-shell` | Batch 7 |
+| 109~111 | base/reset | anchor color | Batch 1, Batch 7 |
+| 113~633 | landing grid/card residual | ancestor `data-*` selector, `:has(:focus-visible)`, motion keyframe, reduced-motion | Batch 5~7 |
+
+- `body`, consent spacer/layer, transition overlay, test/blog/history/not-found static surface는 현재 `globals.css` 밖으로 이동했다.
+- `landing-grid-card`의 trigger, tags-gap, CTA cursor policy, root/content 비-애니메이션 상태, unavailable overlay opacity는 현재 `landing-grid-card.tsx`가 직접 소유한다.
+- `.gnb-settings-panel` geometry/pseudo-element seam과 theme heading typography shim은 현재 `site-gnb.tsx` / `settings-controls.tsx`가 직접 소유한다.
+- `.landing-shell-card`는 DOM hook/classname으로는 남아 있지만, 시각 스타일 source of truth는 각 consumer TSX 내부 utility/class 상수다.
 
 ## 2.2 코드베이스 재검토 없이 착수하기 위한 핵심 앵커
 
@@ -154,16 +157,15 @@
   - `--landing-mobile-card-left`
   - `--landing-mobile-card-width`
   - `--landing-mobile-card-height`
-- [src/features/landing/grid/landing-card-title-continuity.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/grid/landing-card-title-continuity.tsx:1)는 동적으로 `landing-grid-card-text-probe` 클래스를 만든다.
-- 따라서 `.landing-grid-card-text-probe`는 Batch 7 전까지 무심코 제거하면 안 된다.
+- [src/features/landing/grid/landing-card-title-continuity.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/grid/landing-card-title-continuity.tsx:1)는 현재 DOM에 measurement probe를 직접 만들고 inline style을 주입한다.
+- 따라서 text continuity path는 더 이상 글로벌 `.landing-grid-card-text-probe` selector에 의존하지 않으며, 이 probe의 style ownership은 component-local runtime으로 본다.
 
 ### Shared shell/blog/not-found 경계
 
-- `.landing-shell-card`는 현재 test/blog/history가 공유한다.
-- Batch 7에서 `.landing-shell-card`를 제거하거나 축소할 때는 [src/features/test/test-question-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/test-question-client.tsx:361), [src/features/landing/blog/blog-destination-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/blog/blog-destination-client.tsx:83), [src/app/[locale]/history/page.tsx](/Users/woohyeon/Local/ViveTest/src/app/[locale]/history/page.tsx:23)의 local shell ownership을 같은 batch 안에서 닫아야 한다.
-- 특히 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1107)의 `.landing-shell-card h1/h2/p` reset과 muted paragraph rule을 globals에서 제거하려면, 위 consumer들이 spacing/text tone을 직접 소유해야 한다.
-- `.blog-*`, `.nf-shell`, `.placeholder-shell`은 1차 migration 핵심 경로는 아니지만 최종 Tailwind 정리에 포함돼야 한다.
-- 따라서 이들은 Batch 7의 explicit cleanup 대상으로 관리한다.
+- `.landing-shell-card`는 현재도 test/blog/history가 공유하는 DOM hook/classname이다.
+- 다만 그 static layout/spacing/text tone source of truth는 이미 [src/features/test/test-question-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/test-question-client.tsx:1), [src/features/landing/blog/blog-destination-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/blog/blog-destination-client.tsx:1), [src/app/[locale]/history/page.tsx](/Users/woohyeon/Local/ViveTest/src/app/[locale]/history/page.tsx:1)의 local utility/class 상수로 이동했다.
+- not-found surface도 [src/app/not-found.tsx](/Users/woohyeon/Local/ViveTest/src/app/not-found.tsx:1), [src/app/global-not-found.tsx](/Users/woohyeon/Local/ViveTest/src/app/global-not-found.tsx:1) 기준으로 local utility-only 상태다.
+- 따라서 shared shell/blog/not-found는 현재 residual global cleanup의 대상이 아니라, 유지할 DOM hook와 smoke contract를 확인하는 경계로 본다.
 
 ## 3. 불변 조건
 
@@ -459,13 +461,12 @@
   - chip base style
 - 전역에 남길 1차 대상:
   - `.gnb-settings-root`의 custom properties
-  - `.gnb-settings-panel`
-  - `.gnb-settings-panel::before`
-  - `.gnb-settings-panel::after`
   - `.gnb-mobile-layer[data-state='closing'] .gnb-mobile-panel`
   - theme preview chip hover/selected selector
+- 현재 기준 메모:
+  - `.gnb-settings-panel` geometry, `::before`, `::after`, theme heading shim은 2026-04-17 기준 `site-gnb.tsx` / `settings-controls.tsx` 로컬 ownership으로 회수됐다.
+  - globals에는 GNB closing selector와 theme preview chip state 같은 genuinely cross-node selector만 남는다.
 - 우선 잔류시킬 규칙:
-  - settings panel absolute geometry
   - `data-state='closing'`
   - theme preview surface selector
   - hover/focus/closing timing에 직접 연결된 state selector
@@ -541,7 +542,7 @@
   - unavailable overlay interaction selector
   - Safari/hover ghosting workaround
 - 절대 잔류 확정 후보:
-  - `.landing-grid-card-text-probe`
+  - text continuity probe (당시에는 글로벌 `.landing-grid-card-text-probe`를 잔류 후보로 봤고, 현재는 component-local probe로 대체되었다.)
   - desktop/mobile `@keyframes`
   - `.landing-grid-shell[data-page-state='REDUCED_MOTION'] ...`
   - `@media (prefers-reduced-motion: reduce) ...`
@@ -584,7 +585,7 @@
 - 2026-04-16 구현 메모:
   - `landing-grid-card.tsx`에서 root shell, expanded body, mobile expanded shell, tags-gap, answer-choice base, CTA base ownership을 TSX utility 중심으로 재정렬했다.
   - `globals.css`에는 focus/ramp/reduced-motion/stage geometry와 QA script가 요구하는 최소 contract selector만 남겼다.
-  - reopened 원인이던 root shell 분산 상태는 닫았고, trigger/tags-gap/cursor policy는 machine-enforced contract를 위해 thin global selector로 유지했다.
+  - reopened 원인이던 root shell 분산 상태는 닫았고, 2026-04-17 follow-up에서 trigger/tags-gap/cursor policy와 root/content 비-애니메이션 상태까지 component-local ownership으로 추가 회수했다.
 - 목표:
   - landing grid/card의 base shell, normal slot, meta/CTA/answer choice 같은 정적 surface를 Tailwind로 이전한다.
   - Batch 5에서 분리한 상태 selector는 글로벌에 남긴다.
@@ -651,9 +652,9 @@
   - meta truncation
   - expanded width contract
   - hover/focus visual continuity
-- Checkpoint 4 재감사 기준 잔여 확인:
-  - `.landing-grid-card-trigger` base layout이 아직 globals에 남아 있다.
-  - `.landing-grid-card` normal static shell의 일부 ownership이 아직 TSX / globals 사이에 분산돼 있다.
+- Checkpoint 4 재감사 기준 후속 조치:
+  - 2026-04-17 기준 `.landing-grid-card-trigger` base layout은 더 이상 globals에 남아 있지 않다.
+  - `.landing-grid-card` normal/static shell과 mobile `OPEN` content collapse ownership은 `landing-grid-card.tsx` 쪽으로 정리됐다.
 - 실행 순서:
   - 1. container/row/card base layout utility 이동
   - 2. normal content slot utility 이동
@@ -705,7 +706,7 @@
 - 최종 잔류 영역:
   - token / CSS variable
   - theme bootstrap 지원
-  - base reset / body background / font
+  - base reset / anchor color
   - `data-*` / `:has()` 상태 selector
   - reduced-motion
   - keyframes
@@ -769,20 +770,20 @@
 - 최종 잔류 후보 확정 목록:
   - `:root`
   - `html[data-theme='dark']`
-  - `*`, `html`, `body`, `a`, `button`, `input`, `select`, `textarea`
-  - `.landing-transition-source-gnb`
-  - `.telemetry-consent-banner-spacer`
-  - `.telemetry-consent-banner-layer`
-  - `.landing-grid-card-text-probe`
-  - landing grid/card의 `data-*`, `:has()`, reduced-motion, keyframes, Safari workaround selector
-  - GNB settings panel geometry / pseudo-element selector
-  - GNB mobile closing state selector
+  - `a`
+  - landing grid/card의 ancestor `data-*`, `:has()`, reduced-motion, keyframes, Safari workaround selector
 - 최종 제거 대상 후보:
+  - `body`
   - shell static spacing
   - hero typography/layout
-  - test/blog/not-found panel base layout
+  - consent spacer/layer와 transition overlay의 정적 layout
+  - test/blog/history/not-found panel base layout
   - GNB base button/link/chip shell
+  - GNB settings panel geometry / pseudo-element seam
+  - theme heading typography shim
   - landing grid/card normal static layout
+  - `landing-grid-card-trigger`, `.landing-grid-card-tags-gap`, CTA cursor policy
+  - global text probe selector
 
 ### 8.2 `src/features/landing/shell/*`
 
@@ -821,9 +822,8 @@
   - menu trigger
   - back button
 - 전역 잔류 우선순위가 높은 부분:
-  - settings panel absolute geometry
-  - pseudo-element seam removal
   - mobile panel close transition
+  - theme preview chip hover/selected selector
 - `SettingsControls`는 `aria-pressed`, `disabled`, `data-chip-surface`, `data-theme-option`이 styling과 smoke assertion에 모두 쓰인다.
 
 ### 8.5 `src/features/landing/grid/*`
@@ -856,13 +856,13 @@
 
 ### 8.7 2026-04-17 `globals.css` follow-up 결정 로그
 
-- 이번 follow-up의 시작 기준은 [src/app/globals.css](/Users/b-m-2022001/Local/ViveTest/src/app/globals.css:1) `1240`줄이었다.
-- 이번 follow-up의 종료 기준은 같은 파일 `793`줄이며, **파일 분할 없이 단일 파일 유지**를 고정했다.
+- 이번 follow-up의 시작 기준은 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) `1240`줄이었다.
+- 이번 follow-up의 종료 기준은 같은 파일 `633`줄이며, **파일 분할 없이 단일 파일 유지**를 고정했다.
 
 #### 이번 세션에서 확정한 의사결정
 
 - `globals.css`는 계속 단일 파일로 유지한다.
-- 전역 CSS의 역할은 `token / 최소 base / ancestor data-state selector / keyframe / reduced-motion / pseudo-element geometry`로 제한한다.
+- 전역 CSS의 역할은 `token / 최소 base / ancestor data-state selector / :has(:focus-visible) / keyframe / reduced-motion`으로 제한한다.
 - 단일 소비처가 있는 정적 레이아웃/기본 인터랙션 스타일은 가능하면 각 TSX의 Tailwind utility/class 상수로 회수한다.
 - Tailwind Preflight와 중복되는 reset은 globals에서 제거한다.
 - `data-*`, `aria-*`, `data-testid`, DOM landmark는 유지하고 style ownership만 이동한다.
@@ -874,23 +874,29 @@
 - landing grid card의 root custom property 기본값, shell ghost, expanded shell base, mobile transient shell base, unavailable overlay base
 - test/instruction runtime의 primary/secondary/answer button 상태 스타일
 - GNB의 elevated shell state, settings root custom properties, theme/locale chip 상태 스타일, mobile closing state
+- `landing-grid-card`의 tags-gap, trigger base/mobile-open/desktop-overlay hand-off, root/content 비-애니메이션 상태, unavailable overlay opacity
+- `site-gnb.tsx`의 settings panel geometry / pseudo-element seam
+- `settings-controls.tsx`의 theme heading typography shim
+- `APP_BODY_CLASSNAME`를 통한 `layout.tsx` / `global-not-found.tsx` 공통 body canvas/typography
 - title/subtitle continuity probe의 base style
+- test/blog/history/not-found의 static shell spacing과 text tone
+- stale ownership을 보던 `check-phase6-spacing-contracts.mjs`, `check-phase8-accessibility-contracts.mjs`, `check-phase9-performance-contracts.mjs`
 
 #### 이번 세션에서 전역에 남기기로 결정한 영역
 
 - landing grid/card의 ancestor `data-*` 조합 selector
 - desktop stage / mobile transient motion keyframe과 slot animation selector
 - reduced-motion 대응 branch
-- `.gnb-settings-panel`의 absolute geometry와 pseudo-element seam 처리
 - hover/focus continuity와 unavailable overlay의 ancestor-driven state selector
-- `landing-grid-card-trigger`, `landing-grid-card-tags-gap`, CTA cursor policy처럼 현재 QA contract가 전역 명시를 요구하는 최소 selector
+- `a { color: var(--link-ink) }`
+- `:has(:focus-visible)` 계열 selector
 
 #### 이번 세션에서 일부러 보류한 이슈
 
-- `landing-shell-card`, blog/history/not-found 계열의 residual static surface 정리는 이번 범위에서 제외했다.
-- `gnb-settings-panel`은 pseudo-element와 absolute geometry 비중이 커서 globals에 잔류시켰다.
 - landing grid의 animation selector를 utility로 완전히 치환하는 작업은 상태 조합이 많아 별도 후속 리팩터 범위로 보류했다.
 - hover 관련 moved utility는 Tailwind variant 경로를 사용한다. touch 환경에서 hover semantic 차이가 관찰되면 arbitrary variant 또는 residual selector 복구를 검토한다.
+- local theme/state Playwright baseline은 이번 배치 결과에 맞춰 재동기화했다. 현재 baseline 자산은 로컬 QA 참고 자산으로 취급한다.
+- `globals.css` 추가 축소가 다시 필요해지더라도, 다음 follow-up의 주 대상은 shared shell이나 GNB panel geometry가 아니라 landing grid residual selector, `:has(:focus-visible)`, keyframes/reduced-motion 정리여야 한다.
 
 #### 재진입 조건
 
