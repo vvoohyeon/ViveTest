@@ -1,0 +1,380 @@
+.root:has(:focus-visible) {
+  box-shadow:
+    0 0 0 3px var(--focus-ring-outer),
+    0 0 0 6px var(--focus-ring-inner),
+    var(--card-shadow);
+}
+
+.root[data-expanded-layer='desktop-overlay']:has(:focus-visible) {
+  box-shadow: var(--card-shadow);
+}
+
+.root[data-expanded-layer='desktop-overlay']:has(:focus-visible) .expandedSurface {
+  box-shadow:
+    0 0 0 3px var(--focus-ring-outer),
+    0 0 0 6px var(--focus-ring-inner),
+    0 0 0 1px color-mix(in srgb, var(--surface-divider) 92%, transparent);
+}
+
+.desktopStage[data-phase='opening'],
+.desktopStage[data-phase='steady'],
+.desktopStage[data-phase='closing'],
+.desktopStage[data-phase='cleanup-pending'],
+.desktopStage[data-phase='handoff-target'] {
+  inset:
+    calc(var(--landing-card-stage-shadow-bleed-top) * -1)
+    calc(var(--landing-card-stage-shadow-bleed-x) * -1)
+    calc(var(--landing-card-stage-shadow-bleed-bottom) * -1)
+    calc(var(--landing-card-stage-shadow-bleed-x) * -1);
+  overflow: hidden;
+  overflow: clip;
+  border-radius: 0;
+  contain: paint;
+  isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.root[data-expanded-layer='desktop-overlay'] .expandedShellFrame,
+.root[data-expanded-layer='desktop-overlay'] .expandedShell,
+.root[data-expanded-layer='desktop-overlay'] .expandedSurface {
+  min-height: 0;
+  height: auto;
+}
+
+.root[data-desktop-motion-role='opening'] .expandedShellFrame,
+.root[data-desktop-motion-role='handoff-target'] .expandedShellFrame {
+  animation: landing-card-shell-frame-expand var(--landing-card-motion-ms) linear both;
+}
+
+.root[data-desktop-motion-role='opening'] .expandedShell,
+.root[data-desktop-motion-role='handoff-target'] .expandedShell {
+  animation: landing-card-shell-expand var(--landing-card-motion-ms) linear both;
+}
+
+.root[data-desktop-motion-role='closing'] .expandedShellFrame {
+  animation: landing-card-shell-frame-collapse var(--landing-card-motion-ms) linear both;
+}
+
+.root[data-desktop-motion-role='closing'] .expandedShell {
+  animation: landing-card-shell-collapse var(--landing-card-motion-ms) linear both;
+}
+
+.root[data-desktop-motion-role='closing'] .expandedSurface {
+  pointer-events: none;
+}
+
+.desktopStage[data-phase='cleanup-pending'] .expandedShell {
+  animation: none;
+  transform: scale(1);
+}
+
+.desktopStage[data-phase='cleanup-pending'] .expandedShellFrame {
+  animation: none;
+  left: 0;
+  width: 100%;
+}
+
+.desktopStage[data-phase='cleanup-pending'] .expandedSurface {
+  pointer-events: none;
+}
+
+.root[data-desktop-motion-role='steady'] .expandedShellFrame {
+  left: calc(var(--landing-card-shell-extra-start) * -1);
+  width: calc(100% + var(--landing-card-shell-extra-start) + var(--landing-card-shell-extra-end));
+}
+
+.root[data-desktop-motion-role='steady'] .expandedShell {
+  transform: scale(var(--landing-card-shell-scale));
+}
+
+.root[data-desktop-motion-role='opening'] .motionStageEarly,
+.root[data-desktop-motion-role='handoff-target'] .motionStageEarly {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 40ms;
+}
+
+.root[data-desktop-motion-role='opening'] .motionStageMiddle,
+.root[data-desktop-motion-role='handoff-target'] .motionStageMiddle {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 100ms;
+}
+
+.root[data-desktop-motion-role='opening'] .motionStageLate,
+.root[data-desktop-motion-role='handoff-target'] .motionStageLate {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 160ms;
+}
+
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='OPENING'] .normalTitle,
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalTitle {
+  opacity: 0;
+}
+
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='OPENING'] .normalThumbnail,
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='OPENING'] .normalSubtitle,
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='OPENING'] .normalTags,
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='OPENING'] .normalTagsGap {
+  animation: landing-card-normal-slot-exit 120ms linear both;
+}
+
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalThumbnail {
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation-delay: 20ms;
+}
+
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalSubtitle {
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation-delay: 80ms;
+}
+
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalTagsGap,
+.root[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalTags {
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation-delay: 140ms;
+}
+
+.transientShell[data-state='OPENING'] {
+  animation: landing-card-mobile-open-shell var(--landing-card-motion-ms) linear both;
+}
+
+.transientShell[data-state='CLOSING'] {
+  animation: landing-card-mobile-close-shell var(--landing-card-motion-ms) linear both;
+}
+
+.transientShell[data-state='CLOSING'] .transientPanel {
+  animation: landing-card-mobile-close-surface var(--landing-card-motion-ms) linear both;
+}
+
+.transientShell .motionStageEarly {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 40ms;
+}
+
+.transientShell .motionStageMiddle {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 100ms;
+}
+
+.transientShell .motionStageLate {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 160ms;
+}
+
+.transientShell[data-state='CLOSING'] .motionStageEarly,
+.transientShell[data-state='CLOSING'] .motionStageMiddle,
+.transientShell[data-state='CLOSING'] .motionStageLate {
+  animation: landing-card-detail-quiet-exit var(--landing-card-motion-ms) linear both;
+}
+
+.root.reducedMotion[data-desktop-motion-role='opening'] .expandedBody,
+.root.reducedMotion[data-desktop-motion-role='handoff-target'] .expandedBody {
+  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
+  transform: none;
+}
+
+.root.reducedMotion[data-desktop-motion-role='closing'] .expandedBody {
+  animation: landing-card-shell-reduced-close var(--landing-card-motion-ms) linear both;
+  transform: none;
+}
+
+.root.reducedMotion[data-desktop-motion-role='steady'] .expandedBody,
+.root.reducedMotion .motionStageEarly,
+.root.reducedMotion .motionStageMiddle,
+.root.reducedMotion .motionStageLate {
+  animation: none;
+  transform: none;
+}
+
+.root.reducedMotion .expandedShellFrame {
+  animation: none;
+  left: 0;
+  width: 100%;
+}
+
+.root.reducedMotion[data-card-viewport-tier='mobile'][data-mobile-phase='CLOSING'] .mobileExpanded {
+  animation: none;
+}
+
+.root.reducedMotion .transientShell[data-state='OPENING'],
+.root.reducedMotion .transientShell[data-state='CLOSING'] {
+  left: 0;
+  width: 100vw;
+  border-radius: 0;
+  animation-duration: var(--landing-card-motion-ms);
+}
+
+.root.reducedMotion .transientShell[data-state='OPENING'] {
+  animation-name: landing-card-shell-reduced-open;
+}
+
+.root.reducedMotion .transientShell[data-state='CLOSING'] {
+  animation-name: landing-card-shell-reduced-close;
+}
+
+.root.reducedMotion .transientShell[data-state='OPENING'] .motionStageEarly,
+.root.reducedMotion .transientShell[data-state='OPENING'] .motionStageMiddle,
+.root.reducedMotion .transientShell[data-state='OPENING'] .motionStageLate,
+.root.reducedMotion .transientShell[data-state='CLOSING'] .motionStageEarly,
+.root.reducedMotion .transientShell[data-state='CLOSING'] .motionStageMiddle,
+.root.reducedMotion .transientShell[data-state='CLOSING'] .motionStageLate,
+.root.reducedMotion[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalThumbnail,
+.root.reducedMotion[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalSubtitle,
+.root.reducedMotion[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalTags,
+.root.reducedMotion[data-card-viewport-tier='mobile'][data-mobile-transient-mode='CLOSING'] .normalTagsGap {
+  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
+  transform: none;
+}
+
+@keyframes landing-card-shell-expand {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(var(--landing-card-shell-scale));
+  }
+}
+
+@keyframes landing-card-shell-frame-expand {
+  from {
+    left: 0;
+    width: 100%;
+  }
+
+  to {
+    left: calc(var(--landing-card-shell-extra-start) * -1);
+    width: calc(100% + var(--landing-card-shell-extra-start) + var(--landing-card-shell-extra-end));
+  }
+}
+
+@keyframes landing-card-shell-collapse {
+  from {
+    transform: scale(var(--landing-card-shell-scale));
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes landing-card-shell-frame-collapse {
+  from {
+    left: calc(var(--landing-card-shell-extra-start) * -1);
+    width: calc(100% + var(--landing-card-shell-extra-start) + var(--landing-card-shell-extra-end));
+  }
+
+  to {
+    left: 0;
+    width: 100%;
+  }
+}
+
+@keyframes landing-card-detail-rise {
+  from {
+    transform: translateY(4px);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-card-shell-reduced-open {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-card-shell-reduced-close {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-card-normal-slot-exit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-card-normal-slot-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-card-detail-quiet-exit {
+  from {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0);
+  }
+
+  to {
+    opacity: 0;
+    clip-path: inset(0 0 8% 0 round 0);
+  }
+}
+
+@keyframes landing-card-mobile-open-shell {
+  from {
+    left: var(--landing-mobile-card-left, 0px);
+    width: var(--landing-mobile-card-width, 100vw);
+    border-radius: var(--landing-card-radius);
+  }
+
+  to {
+    left: 0;
+    width: 100vw;
+    border-radius: 0;
+  }
+}
+
+@keyframes landing-card-mobile-close-shell {
+  from {
+    left: 0;
+    width: 100vw;
+    border-radius: 0;
+  }
+
+  to {
+    left: var(--landing-mobile-card-left, 0px);
+    width: var(--landing-mobile-card-width, 100vw);
+    border-radius: var(--landing-card-radius);
+  }
+}
+
+@keyframes landing-card-mobile-close-surface {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    --landing-card-shell-scale: 1;
+    --landing-card-shell-inline-scale: 1;
+    --landing-card-motion-ms: 180ms;
+  }
+}

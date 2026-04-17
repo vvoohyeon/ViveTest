@@ -2,10 +2,12 @@ import {describe, expect, it} from 'vitest';
 
 import {
   buildLandingGridPlan,
+  DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE,
   DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE,
   DESKTOP_WIDE_MIN_GRID_INLINE_SIZE,
   MOBILE_MAX_VIEWPORT_WIDTH,
   resolveLandingGridColumns,
+  resolveLandingRowExpandedShellInlineScale,
   resolveLandingViewportTier
 } from '@/features/landing/grid/layout-plan';
 
@@ -24,6 +26,8 @@ describe('landing grid layout plan', () => {
     expect(plan.rows.map((row) => row.cardCount)).toEqual([3, 4, 2]);
     expect(plan.rows.at(-1)?.columns).toBe(4);
     expect(plan.rows.at(-1)?.isUnderfilled).toBe(true);
+    expect(plan.rows[0]?.expandedShellInlineScale).toBe(1);
+    expect(plan.rows[1]?.expandedShellInlineScale).toBe(DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE);
   });
 
   it('applies desktop medium row rules', () => {
@@ -37,6 +41,8 @@ describe('landing grid layout plan', () => {
     expect(plan.row1Columns).toBe(2);
     expect(plan.rowNColumns).toBe(3);
     expect(plan.rows.map((row) => row.cardCount)).toEqual([2, 3, 3, 1]);
+    expect(plan.rows[0]?.expandedShellInlineScale).toBe(1);
+    expect(plan.rows[1]?.expandedShellInlineScale).toBe(DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE);
   });
 
   it('applies two-column row rules below the medium threshold on desktop', () => {
@@ -50,6 +56,7 @@ describe('landing grid layout plan', () => {
     expect(plan.row1Columns).toBe(2);
     expect(plan.rowNColumns).toBe(2);
     expect(plan.rows.map((row) => row.cardCount)).toEqual([2, 2, 1]);
+    expect(plan.rows.every((row) => row.expandedShellInlineScale === 1)).toBe(true);
   });
 
   it('resolves viewport tiers at mobile, tablet, and desktop boundaries', () => {
@@ -147,5 +154,18 @@ describe('landing grid layout plan', () => {
     expect(plan.row1Columns).toBe(1);
     expect(plan.rowNColumns).toBe(1);
     expect(plan.rows.map((row) => row.cardCount)).toEqual([1, 1, 1, 1]);
+    expect(plan.rows.every((row) => row.expandedShellInlineScale === 1)).toBe(true);
+  });
+
+  it('resolves lower-row shell inline scale from column mode and row index', () => {
+    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'desktop-wide', rowIndex: 0})).toBe(1);
+    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'desktop-wide', rowIndex: 1})).toBe(
+      DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE
+    );
+    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'desktop-medium', rowIndex: 2})).toBe(
+      DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE
+    );
+    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'two-column', rowIndex: 1})).toBe(1);
+    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'mobile', rowIndex: 3})).toBe(1);
   });
 });

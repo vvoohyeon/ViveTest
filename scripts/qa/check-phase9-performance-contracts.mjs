@@ -20,11 +20,16 @@ function read(relativePath) {
   return readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function readExisting(relativePaths) {
+  return relativePaths.filter(fileExists).map(read).join('\n');
+}
+
 const requiredFiles = [
   'src/app/layout.tsx',
   'public/theme-bootstrap.js',
   'src/features/landing/grid/landing-catalog-grid-loader.tsx',
   'src/features/landing/grid/landing-catalog-grid.tsx',
+  'src/features/landing/grid/landing-grid-card.module.css',
   'src/features/landing/grid/use-landing-interaction-controller.ts',
   'src/features/landing/gnb/hooks/use-gnb-capability.ts',
   'src/app/globals.css',
@@ -73,6 +78,10 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   ) {
     fail('LandingGridCard must keep CTA cursor policy explicit in component-owned class sources.');
   }
+
+  if (!/styles\.reducedMotion/u.test(cardFile) || !/desktopShellInlineScale/u.test(cardFile)) {
+    fail('LandingGridCard must consume runtime reduced-motion and plan-derived shell geometry in component-owned style state.');
+  }
 }
 
 if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts')) {
@@ -119,24 +128,26 @@ if (fileExists('public/theme-bootstrap.js')) {
   }
 }
 
-if (fileExists('src/app/globals.css')) {
-  const css = read('src/app/globals.css');
+if (fileExists('src/features/landing/grid/landing-grid-card.module.css')) {
+  const css = readExisting([
+    'src/features/landing/grid/landing-grid-card.module.css',
+    'src/app/globals.css'
+  ]);
 
-  if (!/data-page-state='REDUCED_MOTION'/u.test(css) || !/prefers-reduced-motion:\s*reduce/u.test(css)) {
-    fail('Global styles must expose explicit reduced-motion CSS paths.');
+  if (!/reducedMotion/u.test(css) || !/prefers-reduced-motion:\s*reduce/u.test(css)) {
+    fail('Landing grid styles must expose a runtime reduced-motion path plus fallback media query.');
   }
 
   if (!/landing-card-shell-reduced-open/u.test(css) || !/landing-card-shell-reduced-close/u.test(css)) {
-    fail('Global styles must define reduced-motion open/close motion tokens.');
+    fail('Landing grid styles must define reduced-motion open/close motion tokens.');
   }
 
-   if (
-    !/data-state='OPENING'\]\s*\{\s*animation-name:\s*landing-card-shell-reduced-open/ums.test(css) ||
-    !/data-state='CLOSING'\]\s*\{\s*animation-name:\s*landing-card-shell-reduced-close/ums.test(css)
+  if (
+    !/reducedMotion[\s\S]*data-state='OPENING'[\s\S]*animation-name:\s*landing-card-shell-reduced-open/ums.test(css) ||
+    !/reducedMotion[\s\S]*data-state='CLOSING'[\s\S]*animation-name:\s*landing-card-shell-reduced-close/ums.test(css)
   ) {
-    fail('Global styles must simplify mobile transient-shell motion under reduced-motion.');
+    fail('Landing grid styles must simplify mobile transient-shell motion under reduced-motion.');
   }
-
 }
 
 if (fileExists('tests/e2e/routing-smoke.spec.ts')) {

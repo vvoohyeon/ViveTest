@@ -33,6 +33,7 @@ import {
   resolveTestPreviewPayload,
   type LandingCard
 } from '@/features/variant-registry';
+import styles from '@/features/landing/grid/landing-grid-card.module.css';
 
 const metaValueFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0
@@ -88,6 +89,8 @@ interface LandingGridCardProps {
   mobileRestoreReady?: boolean;
   desktopMotionRole?: LandingCardDesktopMotionRole;
   desktopShellPhase?: LandingCardDesktopShellPhase;
+  desktopShellInlineScale?: number;
+  reducedMotion?: boolean;
   mobileSnapshot?: LandingMobileSnapshotView | null;
   desktopTransformOriginX?: '0%' | '50%' | '100%';
   spacing?: LandingCardSpacingContract;
@@ -294,7 +297,9 @@ function LandingCardSubtitleText({
       className={joinClassNames(
         LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME,
         `landing-grid-card-subtitle-${clamp}`,
-        clamp === 'normal' ? 'mt-[var(--landing-card-base-gap)] shrink-0 line-clamp-2' : 'm-0 line-clamp-4'
+        clamp === 'normal'
+          ? joinClassNames('mt-[var(--landing-card-base-gap)] shrink-0 line-clamp-2', styles.normalSubtitle)
+          : joinClassNames('m-0 line-clamp-4', styles.motionStageEarly)
       )}
       data-slot={slot}
       data-motion-slot={motionSlot}
@@ -308,7 +313,7 @@ function NormalContentSlots({card, hasAssetMedia, includeSlotAttributes, subtitl
   return (
     <>
       <div
-        className={LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME}
+        className={joinClassNames(LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME, styles.normalThumbnail)}
         data-slot={includeSlotAttributes ? 'cardThumbnail' : undefined}
         aria-hidden="true"
       >
@@ -329,10 +334,10 @@ function NormalContentSlots({card, hasAssetMedia, includeSlotAttributes, subtitl
         slot={includeSlotAttributes ? 'cardSubtitle' : undefined}
       />
 
-      <div className={LANDING_GRID_CARD_TAGS_GAP_CLASSNAME} aria-hidden="true" />
+      <div className={joinClassNames(LANDING_GRID_CARD_TAGS_GAP_CLASSNAME, styles.normalTagsGap)} aria-hidden="true" />
 
       <ul
-        className={LANDING_GRID_CARD_TAGS_CLASSNAME}
+        className={joinClassNames(LANDING_GRID_CARD_TAGS_CLASSNAME, styles.normalTags)}
         data-slot={includeSlotAttributes ? 'tags' : undefined}
         data-tag-count={card.tags.length}
         aria-label="Card tags"
@@ -356,7 +361,8 @@ function ExpandedBlogSubtitleContinuity({
     <p
       className={joinClassNames(
         LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME,
-        'landing-grid-card-subtitle-expanded landing-grid-card-subtitle-expanded-continuity m-0 grid gap-0 text-clip'
+        'landing-grid-card-subtitle-expanded landing-grid-card-subtitle-expanded-continuity m-0 grid gap-0 text-clip',
+        styles.motionStageEarly
       )}
       data-slot="cardSubtitleExpanded"
       data-motion-slot="subtitle"
@@ -408,7 +414,7 @@ function ExpandedCardBodyContent({
     return (
       <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} {...bodyProps}>
         <p
-          className={LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME}
+          className={joinClassNames(LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME, styles.motionStageEarly)}
           data-slot={interactive ? 'previewQuestion' : undefined}
           data-motion-slot="preview"
         >
@@ -416,7 +422,7 @@ function ExpandedCardBodyContent({
         </p>
 
         <div
-          className={LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME}
+          className={joinClassNames(LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME, styles.motionStageMiddle)}
           data-slot={interactive ? 'answerChoices' : undefined}
           data-motion-slot="answerChoices"
         >
@@ -451,7 +457,7 @@ function ExpandedCardBodyContent({
         </div>
 
         <dl
-          className={LANDING_GRID_CARD_META_GRID_CLASSNAME}
+          className={joinClassNames(LANDING_GRID_CARD_META_GRID_CLASSNAME, styles.motionStageMiddle)}
           data-slot={interactive ? 'meta' : undefined}
           data-motion-slot="meta"
         >
@@ -495,7 +501,7 @@ function ExpandedCardBodyContent({
       )}
 
       <dl
-        className={LANDING_GRID_CARD_META_GRID_CLASSNAME}
+        className={joinClassNames(LANDING_GRID_CARD_META_GRID_CLASSNAME, styles.motionStageMiddle)}
         data-slot={interactive ? 'meta' : undefined}
         data-motion-slot="meta"
       >
@@ -515,7 +521,7 @@ function ExpandedCardBodyContent({
 
       {interactive ? (
         <Link
-          className={LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME}
+          className={joinClassNames(LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME, styles.motionStageLate)}
           href={buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale)}
           data-slot="primaryCTA"
           data-motion-slot="primaryCTA"
@@ -525,7 +531,7 @@ function ExpandedCardBodyContent({
         </Link>
       ) : (
         <span
-          className={LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME}
+          className={joinClassNames(LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME, styles.motionStageLate)}
           aria-hidden="true"
           data-motion-slot="primaryCTA"
         >
@@ -566,6 +572,8 @@ export function LandingGridCard({
   mobileRestoreReady = false,
   desktopMotionRole = 'idle',
   desktopShellPhase = 'idle',
+  desktopShellInlineScale = 1,
+  reducedMotion = false,
   mobileSnapshot = null,
   desktopTransformOriginX = '50%',
   spacing,
@@ -618,6 +626,9 @@ export function LandingGridCard({
     subtitleRef: normalSubtitleRef
   });
   const transformOriginClassName = resolveTransformOriginClassName(desktopTransformOriginX);
+  const resolvedShellScale = reducedMotion ? 1 : 1.04;
+  const resolvedShellInlineScale = reducedMotion ? 1 : desktopShellInlineScale;
+  const resolvedMotionDurationMs = reducedMotion ? 180 : 280;
   const resolvedRootVisualClassName = showDesktopExpandedShell
     ? '[background:transparent] [box-shadow:none]'
     : isMobileExpanded
@@ -627,7 +638,9 @@ export function LandingGridCard({
         : '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)]';
   const resolvedRootClassName = joinClassNames(
     LANDING_GRID_CARD_ROOT_CLASSNAME,
+    styles.root,
     transformOriginClassName,
+    reducedMotion && styles.reducedMotion,
     resolvedRootVisualClassName,
     (resolvedState === 'expanded' || isMobileOpening || isMobileClosing) && 'z-20',
     isMobileExpanded && 'rounded-none w-screen min-h-0 mx-[calc(50%-50vw)]'
@@ -709,6 +722,9 @@ export function LandingGridCard({
         {
           '--landing-card-base-gap': `${resolvedSpacing.baseGapPx}px`,
           '--landing-card-comp-gap': `${resolvedSpacing.compGapPx}px`,
+          '--landing-card-shell-scale': resolvedShellScale,
+          '--landing-card-shell-inline-scale': resolvedShellInlineScale,
+          '--landing-card-motion-ms': `${resolvedMotionDurationMs}ms`,
           '--landing-card-origin-x': desktopTransformOriginX,
           '--landing-mobile-anchor-top': mobileSnapshot ? `${mobileSnapshot.anchorTopPx}px` : undefined,
           '--landing-mobile-card-left': mobileSnapshot ? `${mobileSnapshot.cardLeftPx}px` : undefined,
@@ -738,7 +754,8 @@ export function LandingGridCard({
               className={joinClassNames(
                 LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
                 'landing-grid-card-title-normal min-w-0 overflow-hidden text-ellipsis',
-                isMobileViewport ? 'block overflow-visible text-clip' : 'line-clamp-1'
+                isMobileViewport ? 'block overflow-visible text-clip' : 'line-clamp-1',
+                styles.normalTitle
               )}
               data-slot="cardTitle"
             >
@@ -770,7 +787,7 @@ export function LandingGridCard({
 
       {!isMobileViewport && !isUnavailable ? (
         <div
-          className={LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME}
+          className={joinClassNames(LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME, styles.desktopStage)}
           data-testid="landing-grid-card-desktop-stage"
           data-slot="desktopStage"
           data-phase={desktopStagePhase}
@@ -778,15 +795,19 @@ export function LandingGridCard({
         >
           {showDesktopExpandedShell ? (
             <div className={LANDING_GRID_CARD_EXPANDED_LAYER_CLASSNAME} data-slot="expandedLayer">
-              <div className={LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME}>
-                <div className={LANDING_GRID_CARD_EXPANDED_SHELL_CLASSNAME} data-slot="expandedShell">
+              <div className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME, styles.expandedShellFrame)}>
+                <div className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SHELL_CLASSNAME, styles.expandedShell)} data-slot="expandedShell">
                   <div
                     className={LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME}
                     data-slot="expandedShadowPlate"
                     aria-hidden="true"
                   />
-                  <div className={LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME} data-slot="expandedSurface">
-                    <div className={LANDING_GRID_CARD_EXPANDED_CLASSNAME} data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
+                  <div className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME, styles.expandedSurface)} data-slot="expandedSurface">
+                    <div
+                      className={joinClassNames(LANDING_GRID_CARD_EXPANDED_CLASSNAME, styles.expandedBody)}
+                      data-slot="expandedBody"
+                      onKeyDown={onExpandedBodyKeyDown}
+                    >
                       <h2
                         className={joinClassNames(
                           LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
@@ -819,7 +840,11 @@ export function LandingGridCard({
       ) : null}
 
       {showMobileExpandedBody ? (
-        <div className={LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME} data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
+        <div
+          className={joinClassNames(LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME, styles.mobileExpanded, styles.expandedBody)}
+          data-slot="expandedBody"
+          onKeyDown={onExpandedBodyKeyDown}
+        >
           <div className={LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} data-slot="mobileHeader">
             <h2 className={LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME} data-slot="cardTitle">
               {card.title}
@@ -848,12 +873,15 @@ export function LandingGridCard({
 
       {showMobileTransientShell ? (
         <div
-          className={LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME}
+          className={joinClassNames(LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME, styles.transientShell)}
           data-slot="mobileTransientShell"
           data-state={mobileTransientMode}
           aria-hidden="true"
         >
-          <div className={LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME} data-slot="mobileTransientPanel" />
+          <div
+            className={joinClassNames(LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME, styles.transientPanel)}
+            data-slot="mobileTransientPanel"
+          />
           <div className={LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME}>
             <div className={LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME}>
               <h2 className={LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME} data-slot="cardTitleTransient">

@@ -25,7 +25,7 @@ This repository is a localized Next.js App Router application. Its real technica
 - Localized landing page with hero + catalog (`src/app/[locale]/page.tsx`)
 - Landing catalog grid with desktop/mobile expansion behavior (`src/features/landing/grid/`)
 - Global navigation shell (GNB) with theme switching, locale switching, keyboard/focus contract (`src/features/landing/gnb/site-gnb.tsx`)
-- Tailwind v4 entry plus component-local utility migration across shared shell, GNB, landing grid/card static surface, test shell, blog/history shells, and not-found pages, with `src/app/globals.css` reduced to tokens/base/residual state selectors
+- Tailwind v4 entry plus component-local utility migration across shared shell, GNB, landing grid/card static surface, test shell, blog/history shells, and not-found pages, with `src/app/globals.css` reduced to tokens/base while landing-grid motion/focus continuity moved into feature-local CSS
 - Landing-to-destination transition handshake with sessionStorage persistence and timeout/cancel semantics (`src/features/landing/transition/`)
 - Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/landing/telemetry/`)
 - Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
@@ -172,7 +172,7 @@ Coordinated by:
 - `src/features/landing/grid/use-landing-interaction-controller.ts` — **1582 lines**, runtime state machine for focus, hover intent, keyboard handoff, reduced motion, page visibility, mobile transient shells, backdrop gestures, transition start/cancel
 - `src/features/landing/grid/landing-catalog-grid.tsx` — DOM geometry measurement, row baseline freezing, `requestAnimationFrame` timing
 
-State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. Styling ownership is now hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, including tags-gap, trigger base/mobile-open/desktop-overlay hand-off, root non-animation state variants, and unavailable overlay opacity rules. `src/app/globals.css` now keeps only the cross-node pieces that still need ancestor coordination: landing/grid `data-*` selectors, `:has(:focus-visible)` continuity, keyframes, and reduced-motion branches. `motion@12.34.0` is installed but not imported anywhere in `src` or `tests`; the live motion system is still entirely CSS- and data-attribute-driven, and any package adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract.
+State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. Styling ownership is now hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while landing-grid motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography live in `landing-grid-card.module.css`. `src/app/globals.css` now keeps only tokens and the shared anchor base. `motion@12.34.0` is installed but not imported anywhere in `src` or `tests`; the live motion system is still entirely CSS- and data-attribute-driven, and any package adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract.
 
 ### 5.2 GNB
 
@@ -250,7 +250,8 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 Tailwind v4 is now active in the live runtime through `src/app/globals.css` `@import "tailwindcss"` plus `postcss.config.mjs`, and the app no longer behaves like a globals-first styling system.
 
-- `src/app/globals.css` is down to 633 lines and is intentionally limited to theme tokens, the shared anchor base, landing grid/card ancestor selectors, `:has(:focus-visible)` continuity, motion keyframes, and reduced-motion branches.
+- `src/app/globals.css` is down to 112 lines and is intentionally limited to theme tokens and the shared anchor base.
+- `src/features/landing/grid/landing-grid-card.module.css` now owns landing-grid motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography.
 - `src/app/app-body-class.ts` now exports `APP_BODY_CLASSNAME`, which owns the body canvas/background, text color, line-height, and font stack for both `src/app/layout.tsx` and `src/app/global-not-found.tsx`.
 - Component-local utility/class constants now own `PageShell` spacing, consent banner layout/buttons, transition GNB overlay positioning, GNB shell rows/triggers/chips/settings-panel geometry, landing grid/card static shells and boolean-resolvable state shells, instruction/test shells, blog/history shells, and both not-found surfaces.
 - `landing-shell-card` still exists as a shared DOM hook/classname across test/blog/history consumers, but its visual styling is now local to each component rather than defined in `globals.css`.
@@ -404,4 +405,4 @@ As of 2026-04-16, `npm run qa:rules` passes `check-phase11-telemetry-contracts.m
 **Tech stack notes:**
 - `next@16.1.6`, `react@19.2.4`, `next-intl@4.8.3`
 - `motion@12.34.0` installed but not imported anywhere in `src` or `tests`; any adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract
-- Tailwind v4 entry is active via `src/app/globals.css` `@import "tailwindcss"` plus `postcss.config.mjs`; static surface ownership is now mostly component-local, while `src/app/globals.css` intentionally remains as the residual layer for tokens, shared anchor/focus continuity, landing-grid state selectors, and motion contracts. Remaining follow-up is tracked in `docs/tailwind-v4-migration-plan.md`
+- Tailwind v4 entry is active via `src/app/globals.css` `@import "tailwindcss"` plus `postcss.config.mjs`; static surface ownership is now mostly component-local, `src/app/globals.css` is limited to tokens/shared anchor base, and landing-grid state/motion contracts now live in feature-local CSS. Remaining follow-up is tracked in `docs/tailwind-v4-migration-plan.md`

@@ -20,9 +20,14 @@ function read(relativePath) {
   return readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function readExisting(relativePaths) {
+  return relativePaths.filter(fileExists).map(read).join('\n');
+}
+
 const requiredFiles = [
   'package.json',
   'src/features/landing/grid/landing-grid-card.tsx',
+  'src/features/landing/grid/landing-grid-card.module.css',
   'src/features/landing/gnb/site-gnb.tsx',
   'tests/e2e/a11y-smoke.spec.ts',
   'tests/e2e/state-smoke.spec.ts',
@@ -67,10 +72,13 @@ if (fileExists('src/features/landing/gnb/site-gnb.tsx')) {
   }
 }
 
-if (fileExists('src/app/globals.css')) {
-  const css = read('src/app/globals.css');
+{
+  const css = readExisting([
+    'src/app/globals.css',
+    'src/features/landing/grid/landing-grid-card.module.css'
+  ]);
   if (!/:has\(:focus-visible\)/u.test(css)) {
-    fail('Card shell focus-visible contract must remain in global styles.');
+    fail('Card shell focus-visible contract must remain in landing-grid style sources.');
   }
 }
 

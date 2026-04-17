@@ -27,7 +27,7 @@ const requiredFiles = [
   'src/features/landing/landing-runtime.tsx',
   'src/features/test/test-question-client.tsx',
   'src/features/landing/blog/blog-destination-client.tsx',
-  'src/app/globals.css',
+  'src/features/landing/grid/landing-grid-card.module.css',
   'tests/e2e/transition-telemetry-smoke.spec.ts'
 ];
 
@@ -130,15 +130,15 @@ if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
   }
 }
 
-if (fileExists('src/app/globals.css')) {
-  const css = read('src/app/globals.css');
+if (fileExists('src/features/landing/grid/landing-grid-card.module.css')) {
+  const css = read('src/features/landing/grid/landing-grid-card.module.css');
 
   if (!/landing-card-mobile-open-shell/u.test(css) || !/landing-card-detail-quiet-exit/u.test(css)) {
-    fail('Global styles must keep explicit mobile open/close choreography keyframes.');
+    fail('Landing grid styles must keep explicit mobile open/close choreography keyframes.');
   }
 
   if (!/data-mobile-transient-mode='OPENING'/u.test(css) || !/data-mobile-transient-mode='CLOSING'/u.test(css)) {
-    fail('Global styles must keep explicit mobile transient-mode selectors.');
+    fail('Landing grid styles must keep explicit mobile transient-mode selectors.');
   }
 }
 

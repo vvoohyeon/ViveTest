@@ -20,6 +20,10 @@ function read(relativePath) {
   return readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function readExisting(relativePaths) {
+  return relativePaths.filter(fileExists).map(read).join('\n');
+}
+
 function readCssBlock(css, selector) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = css.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`, 'u'));
@@ -70,8 +74,11 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   }
 }
 
-if (fileExists('src/app/globals.css')) {
-  const css = read('src/app/globals.css');
+{
+  const css = readExisting([
+    'src/app/globals.css',
+    'src/features/landing/grid/landing-grid-card.module.css'
+  ]);
   const cardBlock = readCssBlock(css, '.landing-grid-card');
   const contentBlock = readCssBlock(css, '.landing-grid-card-content');
   const tagsGapBlock = readCssBlock(css, '.landing-grid-card-tags-gap');

@@ -135,6 +135,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
   const {
     interactionMode,
     interactionState,
+    prefersReducedMotion,
     mobileLifecycleState,
     mobileBackdropBindings,
     activeVisualCardVariant,
@@ -508,6 +509,8 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     mobileRestoreReady={interactionBindings.mobileRestoreReady}
                     desktopMotionRole={interactionBindings.desktopMotionRole}
                     desktopShellPhase={interactionBindings.desktopShellPhase}
+                    desktopShellInlineScale={row.expandedShellInlineScale}
+                    reducedMotion={prefersReducedMotion}
                     mobileSnapshot={interactionBindings.mobileSnapshot}
                     desktopTransformOriginX={resolveDesktopTransformOriginX({
                       cardOffset: offset,

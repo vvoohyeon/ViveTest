@@ -7,6 +7,7 @@ export const TABLET_DESKTOP_SIDE_PADDING = 24;
 export const NARROW_PADDING_MAX_VIEWPORT_WIDTH = 899;
 export const DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE = 1040;
 export const DESKTOP_WIDE_MIN_GRID_INLINE_SIZE = 1160;
+export const DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE = 1.0576923077;
 
 export type LandingGridTier = 'mobile' | 'tablet' | 'desktop';
 export type LandingGridColumnMode = 'desktop-wide' | 'desktop-medium' | 'two-column' | 'mobile';
@@ -25,6 +26,7 @@ export interface LandingGridRowPlan {
   endIndex: number;
   cardCount: number;
   isUnderfilled: boolean;
+  expandedShellInlineScale: number;
 }
 
 export interface LandingGridPlan {
@@ -99,6 +101,25 @@ export function resolveLandingGridColumns(input: {
   };
 }
 
+export function resolveLandingRowExpandedShellInlineScale(input: {
+  columnMode: LandingGridColumnMode;
+  rowIndex: number;
+}): number {
+  if (input.rowIndex === 0) {
+    return 1;
+  }
+
+  switch (input.columnMode) {
+    case 'desktop-wide':
+    case 'desktop-medium':
+      return DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE;
+    case 'two-column':
+    case 'mobile':
+    default:
+      return 1;
+  }
+}
+
 export function buildLandingGridPlan(input: LandingGridInput): LandingGridPlan {
   const cardCount = toNonNegativeInteger(input.cardCount);
   const gridInlineSize = toNonNegativeInteger(input.gridInlineSize);
@@ -124,7 +145,11 @@ export function buildLandingGridPlan(input: LandingGridInput): LandingGridPlan {
       startIndex: cursor,
       endIndex: cursor + rowCardCount,
       cardCount: rowCardCount,
-      isUnderfilled: rowCardCount < targetColumns
+      isUnderfilled: rowCardCount < targetColumns,
+      expandedShellInlineScale: resolveLandingRowExpandedShellInlineScale({
+        columnMode,
+        rowIndex
+      })
     });
 
     cursor += rowCardCount;

@@ -126,6 +126,7 @@ interface UseLandingInteractionControllerInput {
 interface UseLandingInteractionControllerResult {
   interactionMode: 'hover' | 'tap';
   interactionState: LandingInteractionState;
+  prefersReducedMotion: boolean;
   mobileLifecycleState: LandingMobileLifecycleState;
   mobileBackdropBindings: MobileBackdropBindings;
   activeVisualCardVariant: string | null;
@@ -295,6 +296,7 @@ export function useLandingInteractionController({
   onPrimaryCtaSelect
 }: UseLandingInteractionControllerInput): UseLandingInteractionControllerResult {
   const [hoverCapability, setHoverCapability] = useState<boolean>(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
   const [interactionState, dispatchInteraction] = useReducer(
     reduceLandingInteractionState,
     initialLandingInteractionState
@@ -496,6 +498,7 @@ export function useLandingInteractionController({
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     const syncReducedMotion = (nowMs: number) => {
+      setPrefersReducedMotion(query.matches);
       dispatchInteraction({
         type: query.matches ? 'REDUCED_MOTION_ENABLE' : 'REDUCED_MOTION_DISABLE',
         nowMs
@@ -505,6 +508,7 @@ export function useLandingInteractionController({
     syncReducedMotion(window.performance.now());
 
     const handleReducedMotionChange = (event: MediaQueryListEvent) => {
+      setPrefersReducedMotion(event.matches);
       dispatchInteraction({
         type: event.matches ? 'REDUCED_MOTION_ENABLE' : 'REDUCED_MOTION_DISABLE',
         nowMs: event.timeStamp
@@ -1572,6 +1576,7 @@ export function useLandingInteractionController({
   return {
     interactionMode,
     interactionState,
+    prefersReducedMotion,
     mobileLifecycleState,
     mobileBackdropBindings,
     activeVisualCardVariant,

@@ -14,7 +14,8 @@
 - `tailwindcss@4.1.0`, `@tailwindcss/postcss@4.1.0`는 설치되어 있다.
 - [postcss.config.mjs](/Users/woohyeon/Local/ViveTest/postcss.config.mjs:1)가 존재하며 `@tailwindcss/postcss`를 연결한다.
 - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) 첫 줄에는 `@import "tailwindcss";`가 있다. 현재도 `tailwind.config.*`는 없다.
-- 현재 전역 스타일 파일은 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) 단일 파일을 유지한 채 총 `633`줄이며, 역할은 `token/theme + anchor base + landing grid/card residual selector + keyframe/reduced-motion`으로 축소되었다.
+- 현재 전역 스타일 파일 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1)는 총 `112`줄이며 역할은 `token/theme + anchor base`다.
+- landing grid/card 전용 motion/focus/reduced-motion ownership은 [src/features/landing/grid/landing-grid-card.module.css](/Users/woohyeon/Local/ViveTest/src/features/landing/grid/landing-grid-card.module.css:1) `380`줄로 분리됐다.
 - [src/app/layout.tsx](/Users/woohyeon/Local/ViveTest/src/app/layout.tsx:1)는 전역 CSS를 `import './globals.css'`로 로드하고, `beforeInteractive`로 [public/theme-bootstrap.js](/Users/woohyeon/Local/ViveTest/public/theme-bootstrap.js:1)를 주입한다.
 - [src/app/app-body-class.ts](/Users/woohyeon/Local/ViveTest/src/app/app-body-class.ts:1)는 `APP_BODY_CLASSNAME`를 export하며, `layout.tsx`와 `global-not-found.tsx`가 같은 body canvas/typography source를 재사용한다.
 - [public/theme-bootstrap.js](/Users/woohyeon/Local/ViveTest/public/theme-bootstrap.js:1)는 hydration 이전에 `vivetest-theme`를 읽어 `documentElement.dataset.theme`를 설정한다.
@@ -30,16 +31,17 @@
 - [tests/e2e/routing-smoke.spec.ts](/Users/woohyeon/Local/ViveTest/tests/e2e/routing-smoke.spec.ts:1)는 blog index/detail 분리, invalid/non-enterable blog redirect, segment/global not-found 분리를 이미 검증한다.
 - `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`는 2026-04-17 문서 동기화 기준 현재 workspace에서 GREEN이다.
 
-## 2.1 현재 `globals.css` 소유 구간 맵
+## 2.1 현재 style ownership 맵
 
 | 대략 구간 | 현재 소유 surface | 핵심 내용 | 주 담당 batch |
 |---|---|---|---|
 | 1~107 | token/theme | `:root`, `html[data-theme='dark']`, color/system token | Batch 1, Batch 7 |
 | 109~111 | base/reset | anchor color | Batch 1, Batch 7 |
-| 113~633 | landing grid/card residual | ancestor `data-*` selector, `:has(:focus-visible)`, motion keyframe, reduced-motion | Batch 5~7 |
+| 1~380 (`landing-grid-card.module.css`) | landing grid/card motion-local | `:has(:focus-visible)`, desktop stage geometry, slot choreography, reduced-motion fallback | Follow-up 2026-04-17 |
 
 - `body`, consent spacer/layer, transition overlay, test/blog/history/not-found static surface는 현재 `globals.css` 밖으로 이동했다.
 - `landing-grid-card`의 trigger, tags-gap, CTA cursor policy, root/content 비-애니메이션 상태, unavailable overlay opacity는 현재 `landing-grid-card.tsx`가 직접 소유한다.
+- `landing-grid-card.module.css`는 landing grid/card의 focus continuity, desktop stage geometry, slot animation, reduced-motion fallback을 직접 소유한다.
 - `.gnb-settings-panel` geometry/pseudo-element seam과 theme heading typography shim은 현재 `site-gnb.tsx` / `settings-controls.tsx`가 직접 소유한다.
 - `.landing-shell-card`는 DOM hook/classname으로는 남아 있지만, 시각 스타일 source of truth는 각 consumer TSX 내부 utility/class 상수다.
 
@@ -857,12 +859,13 @@
 ### 8.7 2026-04-17 `globals.css` follow-up 결정 로그
 
 - 이번 follow-up의 시작 기준은 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) `1240`줄이었다.
-- 이번 follow-up의 종료 기준은 같은 파일 `633`줄이며, **파일 분할 없이 단일 파일 유지**를 고정했다.
+- 2026-04-17 후속 리팩터 승인 후 종료 기준은 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) `112`줄 + [src/features/landing/grid/landing-grid-card.module.css](/Users/woohyeon/Local/ViveTest/src/features/landing/grid/landing-grid-card.module.css:1) `380`줄이다.
 
 #### 이번 세션에서 확정한 의사결정
 
-- `globals.css`는 계속 단일 파일로 유지한다.
-- 전역 CSS의 역할은 `token / 최소 base / ancestor data-state selector / :has(:focus-visible) / keyframe / reduced-motion`으로 제한한다.
+- 사용자 승인 예외에 따라 landing grid 전용 feature-local CSS 파일 추가를 허용한다.
+- 전역 CSS의 역할은 `token / 최소 base`로 제한한다.
+- landing grid/card의 motion, focus continuity, reduced-motion, transient choreography는 `landing-grid-card.module.css`가 소유한다.
 - 단일 소비처가 있는 정적 레이아웃/기본 인터랙션 스타일은 가능하면 각 TSX의 Tailwind utility/class 상수로 회수한다.
 - Tailwind Preflight와 중복되는 reset은 globals에서 제거한다.
 - `data-*`, `aria-*`, `data-testid`, DOM landmark는 유지하고 style ownership만 이동한다.
@@ -884,25 +887,22 @@
 
 #### 이번 세션에서 전역에 남기기로 결정한 영역
 
-- landing grid/card의 ancestor `data-*` 조합 selector
-- desktop stage / mobile transient motion keyframe과 slot animation selector
-- reduced-motion 대응 branch
-- hover/focus continuity와 unavailable overlay의 ancestor-driven state selector
+- `:root`
+- `html[data-theme='dark']`
 - `a { color: var(--link-ink) }`
-- `:has(:focus-visible)` 계열 selector
 
 #### 이번 세션에서 일부러 보류한 이슈
 
 - landing grid의 animation selector를 utility로 완전히 치환하는 작업은 상태 조합이 많아 별도 후속 리팩터 범위로 보류했다.
 - hover 관련 moved utility는 Tailwind variant 경로를 사용한다. touch 환경에서 hover semantic 차이가 관찰되면 arbitrary variant 또는 residual selector 복구를 검토한다.
 - local theme/state Playwright baseline은 이번 배치 결과에 맞춰 재동기화했다. 현재 baseline 자산은 로컬 QA 참고 자산으로 취급한다.
-- `globals.css` 추가 축소가 다시 필요해지더라도, 다음 follow-up의 주 대상은 shared shell이나 GNB panel geometry가 아니라 landing grid residual selector, `:has(:focus-visible)`, keyframes/reduced-motion 정리여야 한다.
+- 이후 추가 축소가 다시 필요해지더라도, 다음 follow-up의 주 대상은 `landing-grid-card.module.css` 내부의 raw state surface 정리와 semantic API 압축이어야 한다.
 
 #### 재진입 조건
 
 - `grid-smoke`, `state-smoke`, `gnb-smoke`, `a11y-smoke`, `consent-smoke`가 현재 변경 기준으로 GREEN일 것
 - Safari/ghosting 회귀가 없을 것
-- 다음 단계에서 globals를 더 줄일 때도 `single file` 원칙을 유지할 것
+- 다음 단계에서는 feature-local CSS를 유지하되, landing grid debug/QA surface를 섣불리 삭제하지 않을 것
 
 ### 8.6 theme-matrix / Safari ghosting 참고 기준
 

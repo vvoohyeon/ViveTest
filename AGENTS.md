@@ -191,7 +191,7 @@
 - combined theme label wording family는 `Language ⋅ Theme` 계열을 유지한다.
 - `public/theme-bootstrap.js`는 hydration 이전에 `vivetest-theme`를 읽는다.
 - `motion` 패키지는 설치되어 있지만 현재 `src` / `tests`에서 사용하지 않는다. [임시: 2026-04-15 기준]
-- Tailwind v4 패키지는 설치되어 있지만 현재 런타임 styling 중심은 `src/app/globals.css`다. [임시: 2026-04-15 기준]
+- Tailwind v4 패키지는 설치되어 있으며, 현재 런타임 styling ownership은 `src/app/globals.css`의 token/base와 feature-local style source로 분리되어 있다. [업데이트: 2026-04-17]
 
 ### UX 위험 집중 구역
 아래 파일·서브시스템은 사용성·접근성·반응성·성능·디자인 일관성에 직접 영향을 준다.
