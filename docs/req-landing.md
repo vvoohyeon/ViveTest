@@ -295,7 +295,7 @@
 - Blog subtitle은 Normal 2줄 clamp와 Expanded 4줄 clamp가 **같은 source text** 를 재사용해야 한다.
 - Blog는 별도 blog 전용 보조 텍스트 소스를 사용하지 않는다.
 - blog subtitle은 치환, 요약, 후처리, blog 전용 우회 소스 없이 동일한 `subtitle` 텍스트 하나만 재사용한다.
-- `blogSummary`, `summary`, `articleId`, `thumbnailOrIcon`, `isHero` 필드가 blog subtitle source, subtitle continuity 계산, 런타임 카드 계약에 재유입되는 것을 금지한다.
+- 제거된 blog 전용 보조 필드 및 런타임 카드 우회 shape가 blog subtitle source, subtitle continuity 계산, 런타임 카드 계약에 재유입되는 것을 금지한다.
 - Expanded meta/CTA: overflow 시 truncate
 - 카드 타이포그래피는 동일 locale에서 Normal/Expanded 상태 간 대표 폰트 1종을 유지해야 하며 상태별 폰트 분기를 금지한다.
 - 폰트는 `ko`, `en` locale별로 각 1종의 대표 폰트를 허용하고 공통 fallback 체인을 사용한다.
@@ -306,7 +306,7 @@
 3. Automated: Desktop/Mobile long-token fixture에서 subtitle overflow 시 ellipsis가 노출되는지 검증한다.
 4. Automated: Desktop Expanded Blog subtitle continuity가 lead+overflow 구조를 사용하면서도 Normal subtitle과 동일한 source text를 재사용하는지 검증한다.
 5. Automated: subtitle 길이 변화가 Normal 카드의 형제 슬롯 inline-size를 변경하지 않는지 검증한다.
-6. Automated: `blogSummary`, `summary`, `articleId`, `thumbnailOrIcon`, `isHero` 재유입이 없는지 회귀 검증한다.
+6. Automated: 제거된 blog 전용 보조 필드 및 런타임 카드 우회 shape 재유입이 없는지 회귀 검증한다.
 
 ### 6.7 Card Height & Bottom Spacing Contract
 **Rule**: 카드 높이/하단 여백/row 안정성은 아래 5개 불변식을 동시에 만족해야 한다.

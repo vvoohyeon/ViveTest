@@ -295,7 +295,7 @@
 - instruction CTA 이후 profile이 존재하면 instruction overlay shell을 재사용해 profile 단계로 전환한다.
 - instruction overlay가 닫힌 뒤 별도 새 popup을 다시 띄우는 구현은 금지한다.
 - profile 완료 후에만 scoring page 본문으로 진입한다.
-- profile 수정은 test page 상단 summary에서 다시 overlay flow로 진입한다.
+- profile 수정은 test page 상단 recap에서 다시 overlay flow로 진입한다.
 - profile edit overlay에서는 instruction 본문을 다시 노출하면 안 된다.
 
 #### 2.9.10 Entry flow
@@ -371,13 +371,13 @@
 #### 2.9.16 Open but non-blocking items
 
 - 아래 항목은 아직 열려 있으나 구현 착수를 막는 차단 항목은 아니다.
-  - profile summary의 최종 위치
-  - summary 텍스트의 정확한 포맷
+  - profile recap의 최종 위치
+  - recap 텍스트의 정확한 포맷
   - profile 수정 진입 시 overlay header/CTA copy
   - profile 수정 완료 후 원래 scoring 문항으로 복귀하는 세부 UX
   - profile overlay 안의 local step indicator 표현 방식
 
-#### 2.9.17 Final confirmed summary
+#### 2.9.17 Final confirmed recap
 
 - `seq=q.*`는 profile, 숫자 `n`은 scoring이다.
 - `Q1/Q2`는 scoring order 기준이다.

@@ -214,7 +214,7 @@ This product lets users take multiple kinds of short assessments (test variants/
   - UI labels MAY vary by content type, but runtime MUST NOT reverse-map into test-specific or blog-specific field names.
   - Test cards use labels equivalent to estimated time / shares / attempts; blog cards use labels equivalent to read time / shares / views.
   - Blog cards MUST use `subtitle` as the single source text for both Normal and Expanded states; the Normal 2-line clamp and Expanded 4-line clamp MUST reuse the same source text.
-  - Legacy blog-only fields or shapes such as `blogSummary`, `summary`, `articleId`, `thumbnailOrIcon`, and `isHero` MUST NOT re-enter the runtime card contract.
+  - Removed blog-only fields or alternate runtime-only shapes MUST NOT re-enter the runtime card contract.
 - **Confidence:** High
 
 ### REQ-F-008C — Preview-source migration contract

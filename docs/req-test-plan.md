@@ -339,7 +339,7 @@ Phase 2의 목적은 variant registry 계약, 3-source integrity 검증, lazy va
 - preview payload는 fixture inline bridge를 유지하더라도 source fixture에만 남겨야 한다. landing / test / blog consumer의 raw fixture access는 금지한다.
 - 배열 순서 계약 `seq -> sort -> drop`을 구현해야 한다. missing / duplicate / invalid `seq`는 fixture validation fail로 처리해야 하며, consumer는 배열 순서만 신뢰하게 만든다.
 - runtime meta key는 `durationM`, `sharedC`, `engagedC`로 고정해야 한다. test/blog 전용 field name으로 다시 역변환하면 안 된다.
-- blog subtitle 회귀 검증을 추가해야 한다. Normal 2줄 clamp와 Expanded 4줄 clamp가 같은 `subtitle` source text를 재사용함을 검증하고, `blogSummary`, `summary`, `articleId`, `thumbnailOrIcon`, `isHero` 재유입도 함께 막아야 한다.
+- blog subtitle 회귀 검증을 추가해야 한다. Normal 2줄 clamp와 Expanded 4줄 clamp가 같은 `subtitle` source text를 재사용함을 검증하고, 제거된 blog 전용 보조 필드 및 런타임 카드 우회 shape 재유입도 함께 막아야 한다.
 - preview source를 Questions **first scoring question** 으로 교체하는 다음 단계 migration contract를 문서와 테스트 계획에 명시해야 한다. 이때 consumer shape는 바꾸지 않는다.
 
 ### Phase 1과의 인터페이스 제약
