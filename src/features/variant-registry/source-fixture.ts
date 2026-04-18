@@ -24,7 +24,7 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         kr: "QMBTI는 본 문항에 들어가기 전에 작업 리듬 성향을 짧게 점검하는 테스트입니다.",
       },
       previewQuestion: {
-        en: "🎉 When do you feel most focused?",
+        en: "🎉 At parties or birthday celebrations,",
         kr: "🎉 파티나 생일잔치에 가면 나는",
       },
       answerA: {
@@ -190,7 +190,7 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
     {
       seq: 60,
       type: "test",
-      variant: "hidden-beta",
+      variant: "burnout-risk",
       attribute: "hide",
       title: {
         en: "Burnout Risk Signal",
@@ -228,7 +228,7 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
       seq: 70,
       type: "test",
       variant: "egtt",
-      attribute: "unavailable",
+      attribute: "available",
       title: {
         en: "Estrogen vs Testosterone Test",
         kr: "에겐-테토 성향 테스트",

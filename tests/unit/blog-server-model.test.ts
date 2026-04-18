@@ -26,6 +26,6 @@ describe('blog server page model', () => {
       'release-gate'
     ]);
     expect(getBlogDetailPageModel('en', 'missing-variant')).toBeNull();
-    expect(getBlogDetailPageModel('en', 'hidden-beta')).toBeNull();
+    expect(getBlogDetailPageModel('en', 'burnout-risk')).toBeNull();
   });
 });

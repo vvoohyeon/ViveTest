@@ -14,7 +14,7 @@ describe('landing question bank locale fallbacks', () => {
 
     expect(questions[0]).toEqual({
       id: 'q1',
-      prompt: '🎉 When do you feel most focused?',
+      prompt: '🎉 At parties or birthday celebrations,',
       choiceA: 'Early morning blocks',
       choiceB: 'Late-night sprints'
     });

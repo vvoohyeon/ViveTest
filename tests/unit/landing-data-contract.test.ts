@@ -28,11 +28,11 @@ describe('landing registry and resolver contract', () => {
 
     expect(report.testCount).toBeGreaterThanOrEqual(5);
     expect(report.blogCount).toBeGreaterThanOrEqual(3);
-    expect(report.availableCount).toBeGreaterThanOrEqual(4);
-    expect(report.unavailableCount).toBeGreaterThanOrEqual(2);
-    expect(report.optOutCount).toBeGreaterThanOrEqual(1);
-    expect(report.hideCount).toBeGreaterThanOrEqual(1);
-    expect(report.debugCount).toBeGreaterThanOrEqual(1);
+    expect(report.availableCount).toBe(6);
+    expect(report.unavailableCount).toBe(1);
+    expect(report.optOutCount).toBe(1);
+    expect(report.hideCount).toBe(1);
+    expect(report.debugCount).toBe(1);
 
     expect(report.hasLongTokenSubtitle).toBe(true);
     expect(report.hasLongBlogSubtitle).toBe(true);
@@ -166,7 +166,7 @@ describe('landing registry and resolver contract', () => {
     );
     expect(qmbtiPreview).toEqual({
       variant: 'qmbti',
-      previewQuestion: '🎉 When do you feel most focused?',
+      previewQuestion: '🎉 At parties or birthday celebrations,',
       answerChoiceA: 'Early morning blocks',
       answerChoiceB: 'Late-night sprints'
     });
@@ -192,9 +192,9 @@ describe('landing registry and resolver contract', () => {
     const qaCatalog = resolveLandingCatalog('en', {audience: 'qa'});
 
     expect(endUserCatalog.some((card) => card.variant === 'debug-sample')).toBe(false);
-    expect(endUserCatalog.some((card) => card.variant === 'hidden-beta')).toBe(false);
+    expect(endUserCatalog.some((card) => card.variant === 'burnout-risk')).toBe(false);
     expect(qaCatalog.some((card) => card.variant === 'debug-sample')).toBe(true);
-    expect(qaCatalog.some((card) => card.variant === 'hidden-beta')).toBe(true);
+    expect(qaCatalog.some((card) => card.variant === 'burnout-risk')).toBe(true);
 
     for (const card of [...endUserCatalog, ...qaCatalog]) {
       expect(card).not.toHaveProperty('debug');

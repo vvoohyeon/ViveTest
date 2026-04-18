@@ -16,7 +16,7 @@
 - 2026-04-16 기준 Tailwind Batch 6·7 Done 게이트를 닫는 최소 범위 수정으로 해소되었다.
 - 적용 범위:
   - `qmbti` preview question fixture string 정렬
-  - hidden fixture variant를 `hidden-beta` 기준과 맞춤
+  - hidden fixture variant를 `burnout-risk` 기준과 맞춤
   - `egtt`를 `unavailable` 계약과 맞춤
 - 현재는 아래 재현 명령이 PASS한다.
 
