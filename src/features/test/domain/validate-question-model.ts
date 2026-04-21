@@ -5,6 +5,7 @@ import type {
   QuestionType,
   ScoringSchema
 } from '@/features/test/domain/types';
+import {axisMatchesQuestion} from '@/features/test/domain/derivation';
 
 const allowedQuestionTypes: ReadonlySet<QuestionType> = new Set(['scoring', 'profile']);
 
@@ -24,7 +25,7 @@ function hasRequiredQuestionFields(question: Question): boolean {
 }
 
 function countAxisMatches(question: Question, axes: AxisSpec[]): number {
-  return axes.filter((axis) => axis.poleA === question.poleA && axis.poleB === question.poleB).length;
+  return axes.filter((axis) => axisMatchesQuestion(question, axis)).length;
 }
 
 export function validateQuestionModel(
@@ -71,4 +72,3 @@ export function validateQuestionModel(
 
   return {ok: true, value: questions};
 }
-

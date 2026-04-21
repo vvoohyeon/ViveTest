@@ -142,7 +142,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Statement:** Each scoring question must evaluate exactly one axis/metric defined by the variant’s scoring schema. Profile questions do not evaluate any axis; they collect qualifier responses only (see Test Flow Requirements §3.8).
 - **Rationale:** Simplifies derivation logic and ensures interpretability of progress and analytics.
 - **Acceptance criteria:**
-  - For every scoring question, both answer options map to the same axis (opposite poles/values within that axis).
+  - For every scoring question, both answer options map to the same axis (opposite poles/values within that axis), including reversed pole order such as schema `E/I` with question `I/E`.
   - A scoring question must not contribute to multiple axes.
   - Profile questions are exempt from axis-mapping requirements.
 - **Confidence:** High
@@ -190,7 +190,7 @@ This product lets users take multiple kinds of short assessments (test variants/
     - `scoreStats` shape (axes/metrics, ranges, units/levels if applicable),
     - derived label format (`derivedType` token length and allowed values),
     - and derivation rules linking answers → scoreStats → derivedType.
-  - Schema authoring may be code-owned canonical registry / variant-to-schema mapping rather than Sheets-authored content, so long as the runtime remains schema-driven.
+  - Schema authoring may be code-owned canonical registry / variant-to-schema mapping rather than Sheets-authored content, so long as the runtime remains schema-driven. Current implementation starts with `ScoringLogicType = 'mbti' | 'egtt'` in `src/features/test/schema-registry.ts`.
   - The product validates that any computed `scoreStats` matches the declared schema before rendering or sharing.
   - Non-released or experimental schemas must not appear in the production end-user catalog (see REQ-F-001).
 - **Confidence:** High
@@ -361,7 +361,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
   - `question_answered` MUST include canonical question index and MUST apply to profile and scoring questions alike, excluding the landing-preanswered first scoring answer.
   - `question_index_1based` is canonical-index based, not user-facing `Q1/Q2` based.
   - `question_answered.questionIndex` MUST use canonical index rather than scoring-order UI labels.
-  - `final_submit` MUST include `final_responses` containing canonical pole-value responses for all questions (scoring and profile); responses are the selected `poleA`/`poleB` string, not abstract `A|B` symbols. Raw question/answer text and PII are forbidden. Full encoding contract: Test Flow Requirements §3.8.
+  - `final_submit` MUST include `final_responses` containing canonical question-indexed semantic response codes for all questions (scoring and profile). Current runtime payload uses `'A' | 'B'` codes, not raw question/answer text. Domain derivation must first project these codes into pole/qualifier tokens through the Test Flow Requirements §3.8 projection boundary.
   - `transition_id`, `result_reason`, and `final_q1_response` are reserved for internal transition logic and MUST NOT appear in public telemetry payloads.
 - **Confidence:** High
 
@@ -407,7 +407,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
   - Readiness status is queryable without exposing raw secrets.
   - Trigger endpoint returns structured success/failure payload.
   - API contracts distinguish method support and error states.
-  - Sync must validate the synchronized source schema (required columns, allowed values, per-variant constraints such as odd question counts per axis) before activating new content.
+  - Sync must validate the synchronized source schema (required columns, allowed values, per-variant constraints such as odd question counts per axis using bidirectional axis matching) before activating new content.
   - If validation fails, the system MUST not partially activate invalid content; it must surface a clear operator error and keep the last known-good synchronized sources active.
   - The synchronized sources may evolve by adding new language columns. If a selected language column is missing or empty for a specific content field, the system MUST fall back to the default language content rather than failing the end-user flow.
 - **Confidence:** High

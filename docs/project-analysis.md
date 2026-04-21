@@ -9,9 +9,9 @@ This repository is a localized Next.js App Router application. Its real technica
 - `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/theme-matrix-smoke.spec.ts tests/e2e/safari-hover-ghosting.spec.ts`: 174 tests — passes
 - `node scripts/qa/check-phase11-telemetry-contracts.mjs`: passes
 - `npm run qa:rules` (2026-04-18 docs sync gate): passes
-- `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` (2026-04-18 docs sync gate): pass
+- `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` (2026-04-21 domain/schema-registry docs sync gate): pass
 - Ownership migration final gate (`check-phase4`~`check-phase10`, `grid/state/gnb/a11y/theme-matrix/transition` Playwright smoke): pass
-- `npm test`: 34 unit test files / 146 tests — passes
+- `npm test`: 38 unit test files / 171 tests — passes
 - Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required.
 
 **Implementation phase status (2026-04-06):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
@@ -31,7 +31,8 @@ This repository is a localized Next.js App Router application. Its real technica
 - Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
 - Blog index/list route plus route-driven article detail (`src/features/landing/blog/blog-destination-client.tsx`, `src/app/[locale]/blog/[variant]/page.tsx`)
 - Fixture-backed variant registry with generated runtime export, source/runtime type separation, `seq` validation + sort/drop, resolver-only preview access, unified landing meta keys, and resolver-backed card lookup (`src/features/variant-registry/`)
-- Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`). Key interface contracts are frozen by Phase 0–1 ADRs (brand type shapes, `validateVariant()` result union, `BlockingDataErrorReason` enum).
+- Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `axisMatchesQuestion`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`). Key interface contracts are frozen by Phase 0–1 ADRs (brand type shapes, `validateVariant()` result union, `BlockingDataErrorReason` enum).
+- Code-owned test schema registry and projection boundary reservation: `src/features/test/schema-registry.ts` owns the variant → `ScoringLogicType` → `ScoringSchema` template mapping, while `src/features/test/response-projection.ts` reserves the future A/B runtime response → domain token projection layer.
 
 ### Partially implemented
 
@@ -107,15 +108,20 @@ Telemetry
        └─ src/app/vercel-speed-insights-gate.tsx
 ```
 
-Separately, `src/features/test/domain/*` exposes pure helpers for future schema-driven test flow:
+Separately, the pure test-domain foundation and adjacent schema/projection boundaries expose helpers for future schema-driven test flow:
 
 - `types.ts` / `index.ts` — branded ids, schema, question, and payload interfaces
 - `validate-variant.ts` — registered/available variant validation
 - `validate-question-model.ts` / `validate-variant-data-integrity.ts` — question-model and schema integrity checks
-- `derivation.ts` — `computeScoreStats()` and `deriveDerivedType()`
+- `derivation.ts` — `axisMatchesQuestion()`, `computeScoreStats()`, and `deriveDerivedType()`
 - `type-segment.ts` — `parseTypeSegment()` and `buildTypeSegment()`
+- `src/features/test/schema-registry.ts` — variant → ScoringLogicType → ScoringSchema template
+  매핑의 단일 소유자. `getLogicTypeForVariant()` / `getSchemaForVariant()`를 통해
+  domain derivation, data integrity validation, result URL 생성이 schema를 조회한다.
+  현재 ScoringLogicType은 'mbti' | 'egtt' 2종이며 향후 확장 가능하다.
+- `response-projection.ts` — reserved Phase 4/7 projection boundary from runtime A/B codes to domain tokens
 
-These files are exercised by `tests/unit/test-domain-*.test.ts`.
+The domain files are exercised by `tests/unit/test-domain-*.test.ts`; the schema registry is covered by `tests/unit/schema-registry.test.ts`. `response-projection.ts` is currently a contract-only stub.
 
 ---
 
@@ -200,7 +206,9 @@ Current fixture inventory:
 
 `src/features/variant-registry/attribute.ts` now owns `attribute` normalization and the helper surface that matters to the rest of the app: `deriveAvailability()`, `isEnterableCard()`, `isCatalogVisibleCard()`, and `isUnavailablePresentation()`.
 
-`src/features/variant-registry/types.ts` already separates source-facing and runtime-facing shapes: source rows can carry `seq` and inline preview bridge fields, while runtime landing cards exclude those source-only fields. `src/features/variant-registry/resolvers.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
+`src/features/variant-registry/types.ts` already separates source-facing and runtime-facing shapes: source rows can carry `seq` and inline preview bridge fields, while runtime landing cards exclude those source-only fields. `src/features/variant-registry/resolvers.ts` centralizes `loadVariantRegistry()`, locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `loadVariantRegistry()` now exposes the environment-branching interface for future generated production loading, but until ADR-D is resolved it always returns the cached fixture-built registry. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
+
+`src/features/variant-registry/cross-sheet-integrity.ts` provides the first pure cross-sheet validation slice: `validateCrossSheetIntegrity(landingTestVariants, questionVariants)` compares Landing test variant IDs with Questions sheet-name variant IDs and returns `missingInQuestions` / `extraInQuestions`. This helper is intentionally limited to the Landing ↔ Questions 2-source boundary; Results-source validation, Sync script wiring, and runtime lazy-validation integration remain Phase 2 follow-up work.
 
 The current builder still relies on fixture-backed localized copy and a temporary bridge where the **first scoring preview source of truth** remains inline. That bridge is isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly. Runtime meta keys are unified as `durationM` / `sharedC` / `engagedC`, while UI labels branch by content type.
 
@@ -234,7 +242,9 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 `src/features/test/question-bank.ts` still builds the live compatibility landing question bank through `resolveTestPreviewPayload()` and Q2–4 from localized fallback questions. Unknown variants no longer receive a generic fallback because route bootstrap is now strict. In parallel, it exposes the variant-keyed Questions fixture interface (`buildVariantQuestionBank()` / `resolveVariantPreviewQ1()`) for the later `scoring1` preview migration.
 
-**Pure test-domain foundation** (`src/features/test/domain/*`): the current source already contains a separate pure module for branded ids, schema/question models, variant validation, question-model validation, variant data integrity checks, score derivation, and type-segment parsing/building. This surface is exported through `src/features/test/domain/index.ts` and covered by `tests/unit/test-domain-variant-validation.test.ts`, `tests/unit/test-domain-question-model.test.ts`, `tests/unit/test-domain-derivation.test.ts`, and `tests/unit/test-domain-type-segment.test.ts`. Phase 0–1 ADRs froze the contracts that consumers must respect: `VariantId` as a `string` intersection brand, `QuestionIndex` as a `number` intersection brand, the `validateVariant()` three-way result union (`MISSING` / `UNKNOWN` / `UNAVAILABLE`), and the `BlockingDataErrorReason` enum surface.
+**Pure test-domain foundation** (`src/features/test/domain/*`): the current source already contains a separate pure module for branded ids, schema/question models, variant validation, question-model validation, variant data integrity checks, score derivation, and type-segment parsing/building. `derivation.ts` now exports the shared `axisMatchesQuestion()` helper so `computeScoreStats()`, `validateQuestionModel()`, and `validateVariantDataIntegrity()` all use the same bidirectional axis matching rule. This means schema axis `E/I` and question `I/E` are treated as one axis, while response values remain normalized domain tokens rather than raw A/B codes. The public domain surface is still `src/features/test/domain/index.ts`; `axisMatchesQuestion()` is a direct helper export and is not re-exported there. The domain surface is covered by `tests/unit/test-domain-variant-validation.test.ts`, `tests/unit/test-domain-question-model.test.ts`, `tests/unit/test-domain-derivation.test.ts`, and `tests/unit/test-domain-type-segment.test.ts`. Phase 0–1 ADRs froze the contracts that consumers must respect: `VariantId` as a `string` intersection brand, `QuestionIndex` as a `number` intersection brand, the `validateVariant()` three-way result union (`MISSING` / `UNKNOWN` / `UNAVAILABLE`), and the `BlockingDataErrorReason` enum surface.
+
+`src/features/test/schema-registry.ts` currently provides the code-owned schema registry slice for `mbti` and `egtt`, and is the single owner of the variant → `ScoringLogicType` → `ScoringSchema` template mapping. MBTI variants share the 4-axis `E/I`, `S/N`, `T/F`, `J/P` schema. EGTT resolves to one `E/T` axis plus the `gender` qualifier with `['M', 'F']` token values. Landing/Questions fixtures and Sheets metadata do not duplicate `scoringLogicType`; consumers use `getLogicTypeForVariant()` / `getSchemaForVariant()` when they need schema lookup. `src/features/test/response-projection.ts` is intentionally only a reserved stub for Phase 4/7: it records the future pure helper boundary that will map runtime `'A' | 'B'` responses to domain pole/qualifier tokens before calling `computeScoreStats()` or `buildTypeSegment()`.
 
 ### 5.6 Telemetry
 
@@ -315,7 +325,7 @@ The repository includes unit tests, Playwright smoke suites, and custom QA scrip
 
 ### 7.1 Unit Tests (Vitest)
 
-Scoped to `tests/unit/`. The latest rerun passed with 34 files / 145 tests. Coverage spans route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB behavior, and the pure test-domain modules.
+Scoped to `tests/unit/`. The latest rerun passed with 38 files / 171 tests. Coverage spans route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB behavior, pure test-domain modules, cross-sheet integrity, and the schema registry.
 
 ### 7.2 E2E Tests (Playwright)
 
@@ -394,7 +404,7 @@ As of 2026-04-16, `npm run qa:rules` passes `check-phase11-telemetry-contracts.m
 `src/features/test/test-question-client.tsx` · `src/features/test/entry-policy.ts` · `src/features/test/instruction-overlay.tsx` · `src/features/test/question-bank.ts` · `src/features/test/question-source-parser.ts` · `tests/unit/question-source-parser.test.ts` · `tests/unit/variant-question-bank.test.ts` · `docs/req-test.md` · `docs/req-test-plan.md`
 
 ### Test domain foundation
-`src/features/test/domain/index.ts` · `src/features/test/domain/types.ts` · `src/features/test/domain/validate-variant.ts` · `src/features/test/domain/validate-question-model.ts` · `src/features/test/domain/validate-variant-data-integrity.ts` · `src/features/test/domain/derivation.ts` · `src/features/test/domain/type-segment.ts` · `tests/unit/test-domain-variant-validation.test.ts` · `tests/unit/test-domain-question-model.test.ts` · `tests/unit/test-domain-derivation.test.ts` · `tests/unit/test-domain-type-segment.test.ts`
+`src/features/test/domain/index.ts` · `src/features/test/domain/types.ts` · `src/features/test/domain/validate-variant.ts` · `src/features/test/domain/validate-question-model.ts` · `src/features/test/domain/validate-variant-data-integrity.ts` · `src/features/test/domain/derivation.ts` · `src/features/test/domain/type-segment.ts` · `src/features/test/schema-registry.ts` · `src/features/test/response-projection.ts` · `tests/unit/test-domain-variant-validation.test.ts` · `tests/unit/test-domain-question-model.test.ts` · `tests/unit/test-domain-derivation.test.ts` · `tests/unit/test-domain-type-segment.test.ts` · `tests/unit/schema-registry.test.ts`
 
 ### Data model / fixture contract
 `src/features/variant-registry/source-fixture.ts` · `src/features/variant-registry/builder.ts` · `src/features/variant-registry/attribute.ts` · `src/features/variant-registry/resolvers.ts` · `src/features/variant-registry/types.ts` · `src/features/test/fixtures/questions/index.ts` · `src/features/test/fixtures/questions/types.ts`

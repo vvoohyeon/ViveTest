@@ -1,4 +1,5 @@
 import type {
+  AxisSpec,
   AxisScoreStat,
   ComputeScoreStatsResult,
   DeriveDerivedTypeResult,
@@ -9,6 +10,13 @@ import type {
 
 function getAxisId(poleA: string, poleB: string): string {
   return `${poleA}${poleB}`;
+}
+
+export function axisMatchesQuestion(question: Question, axis: AxisSpec): boolean {
+  return (
+    (question.poleA === axis.poleA && question.poleB === axis.poleB) ||
+    (question.poleA === axis.poleB && question.poleB === axis.poleA)
+  );
 }
 
 function buildAxisScoreStat(poleA: string, poleB: string): AxisScoreStat {
@@ -39,9 +47,7 @@ export function computeScoreStats(
   const scoreStats: ScoreStats = {};
 
   for (const axis of schema.axes) {
-    const axisQuestions = scoringQuestions.filter(
-      (question) => question.poleA === axis.poleA && question.poleB === axis.poleB
-    );
+    const axisQuestions = scoringQuestions.filter((question) => axisMatchesQuestion(question, axis));
     const axisScoreStat = buildAxisScoreStat(axis.poleA, axis.poleB);
 
     for (const question of axisQuestions) {
@@ -85,4 +91,3 @@ export function deriveDerivedType(scoreStats: ScoreStats, schema: ScoringSchema)
 
   return derivedType;
 }
-

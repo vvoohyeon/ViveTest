@@ -71,6 +71,8 @@
 
 - Google Sheets는 **랜딩 카드 메타데이터와 테스트 콘텐츠(Questions / Results)의 단일 소스**다.
 - 단, scoring schema definition 자체는 Google Sheets가 아니라 **code-owned canonical schema registry / variant → schema mapping**이 소유한다.
+- 현재 code-owned schema registry 구현은 `src/features/test/schema-registry.ts`다. `ScoringLogicType = 'mbti' | 'egtt'`로 시작하며, variant별 schema를 중복 정의하지 않고 `logicType -> schema template`, `variant -> logicType` 매핑으로 최종 `ScoringSchema`를 생성한다.
+- 현재 registry 기준 EGTT는 `axisCount=1`, axis `E/T`, qualifier field `gender`, qualifier token values `['M', 'F']`, `tokenLength=1`을 사용한다. 이는 runtime/result token 계약이며 `Male/Female` 같은 표시 텍스트는 콘텐츠 레이어 소유다.
 - 따라서 **`Schema.xlsx`와 같은 4번째 spreadsheet source는 도입하지 않는다**. schema authoring을 위한 별도 spreadsheet SSOT는 허용하지 않는다.
 - 현재 단계의 fixture-backed source는 역할별로 분리한다.
   - Landing/card metadata 및 temporary inline preview bridge: `src/features/variant-registry/source-fixture.ts`
@@ -128,7 +130,8 @@
 6. 검증 실패 시: 파일 커밋 없음. last-known-good 파일 유지. Action 로그에 불일치 사유 기록.
 
 **Local Dev**:
-- Landing/card fixture-backed 구현은 `src/features/variant-registry/source-fixture.ts` -> builder -> `variant-registry.generated.ts` 경로로 canonical runtime registry를 구성한다.
+- Landing/card fixture-backed 구현은 `src/features/variant-registry/source-fixture.ts` -> builder -> `loadVariantRegistry()` 경로로 canonical runtime registry를 구성한다. `loadVariantRegistry()`는 generated production registry와 fixture dev registry가 같은 `VariantRegistry` 시그니처를 공유하도록 만든 인터페이스이며, ADR-D 확정 전에는 cached fixture-built registry만 반환한다.
+- `variant-registry.generated.ts`는 Sync 스크립트가 생성할 production artifact entrypoint로 유지하며, 파일 상단에 generated/direct-edit 금지 주석을 둔다. 현재 파일의 runtime 내용은 fixture build bridge를 유지한다.
 - Questions fixture는 `src/features/test/fixtures/questions/**` 아래 variant별 파일로 유지하며, `index.ts`의 `questionSourceFixture` / `getVariantQuestionRows()` 경계를 통해 sheet-name 기반 Questions source를 모사한다.
 - fixture layer는 Landing / Questions / Results 3-source topology와 code-owned schema registry 결합을 모사해야 한다.
 - source 교체 범위는 registry layer 내부에 한정되며, consumer 호출 시그니처는 유지한다.
@@ -139,6 +142,7 @@
 
 **1차 방어선 — Action-level Blocking**:
 - 3개 source 전체 cross-source 검증을 실행한다.
+- 현재 구현된 `validateCrossSheetIntegrity(landingTestVariants, questionVariants)`는 Landing test variant set과 Questions workbook sheet-name set만 비교하는 pure 2-source slice다. 반환값은 `{ ok, missingInQuestions, extraInQuestions }`이며, blog variant는 caller가 `landingTestVariants`에서 제외해야 한다.
 - 불일치 1건이라도 존재하면 파일을 커밋하지 않는다. last-known-good `variant-registry.generated.ts`를 유지한다.
 - **partial activation 금지**: 일부 variant만 반영하는 부분 커밋을 허용하지 않는다.
 - cross-source 정합성의 기준축은 아래 3자 일치다.
@@ -184,8 +188,9 @@
 - 신규 source 구성에서는 `attribute` 컬럼을 단일 소스로 사용한다.
 
 **검증 범위**:
-- `validateCrossSheetIntegrity()` 및 런타임 lazy validation의 검증 대상은
+- `validateCrossSheetIntegrity()`의 현재 구현 범위는 Landing test variant set과 Questions sheet-name set의 2-source 정합성이다. 런타임 lazy validation의 검증 대상은
   `variant-registry.generated.ts`가 노출하는 runtime registry 데이터에 한정한다.
+- Results source까지 포함한 3-source 정합성 검증과 runtime 호출부 연결은 후속 구현 범위다.
 - i18n 메시지 파일(`src/messages/`)은 검증 대상 외다.
 
 ### 2.6 In-progress Session Protection
@@ -596,8 +601,9 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - canonical `questions[]` 배열은 source row 순서를 보존한 뒤 1-based canonical index로 재번호한 결과다.
 
 **Scoring question 규칙**:
-- 정확히 1개의 scoring axis를 평가해야 한다. 축 소속은 `poleA`+`poleB` 쌍이 해당 variant의 `schema.axes` 중 동일 쌍과 일치하는 항목으로 결정된다.
-- 하나의 scoring question이 다중 axis에 동시에 기여하면 안 된다. `poleA`+`poleB` 쌍이 schema에서 둘 이상의 axis에 매칭되어서는 안 된다.
+- 정확히 1개의 scoring axis를 평가해야 한다. 축 소속은 question의 `poleA/poleB` 쌍이 schema axis의 `poleA/poleB`와 정방향 또는 역방향으로 일치하는 항목으로 결정된다.
+- 예: schema axis가 `E/I`이면 question `E/I`와 `I/E`는 같은 axis에 속한다. 이는 질문 방향 차이일 뿐 별도 axis가 아니다.
+- 하나의 scoring question이 다중 axis에 동시에 기여하면 안 된다. bidirectional 기준으로 둘 이상의 schema axis에 매칭되어서는 안 된다.
 
 **Profile question 규칙**:
 - scoring axis에 귀속되지 않는다. `poleA`+`poleB` 쌍이 `schema.axes`와 일치하지 않아도 된다.
@@ -606,7 +612,9 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - `qualifierFields` 중 해당 question의 `index`를 참조하는 항목이 없는 경우에도 응답은 수집되고 저장된다. 단, result URL 구성에 사용되지 않는다.
 
 **공통 규칙**:
-- 사용자의 응답은 선택된 pole 문자열(`poleA` 또는 `poleB` 값)로 직접 저장한다. 'A'/'B' 추상 기호를 중간 변환 단계에서 해석하지 않는다.
+- domain derivation 함수가 소비하는 응답 맵은 선택된 pole 문자열(`poleA` 또는 `poleB` 값)을 저장한다.
+- runtime `final_responses`가 보유한 `'A' | 'B'` 코드는 domain 함수의 직접 입력이 아니다. 향후 `src/features/test/response-projection.ts`의 pure helper가 scoring 응답은 `A -> question.poleA`, `B -> question.poleB`로, qualifier 응답은 `A -> qualifierField.values[0]`, `B -> qualifierField.values[1]`로 투영한다.
+- 이 projection layer 없이 `computeScoreStats()` 또는 `buildTypeSegment()`에 raw `'A' | 'B'`를 전달하는 것을 금지한다.
 - 표시용 텍스트(선택지 본문)는 별도 i18n/콘텐츠 레이어에서 question index 기준으로 조회한다. Question 도메인 타입에 포함하지 않는다.
 - `questions[]` 배열은 실행 순서의 유일한 소스다. scoring question과 profile question을 별도 배열로 분리하지 않는다.
 - canonical index는 runtime 순서, storage, qualifier mapping, telemetry의 단일 기준축이다. user-facing `Q1/Q2`는 scoring question에만 적용되는 별도 label 체계다.
@@ -673,7 +681,7 @@ result-entry eligible은 위치 기반이 아닌 자격 기반 상태다.
 - `derivedType`의 각 문자 위치는 `schema.axes` 선언 순서와 결정적으로 매핑되어야 한다.
 - UI는 고정된 MBTI 4축 구조를 가정하면 안 된다.
 - completed run에 대해서만 최종 `derivedType`을 생성해야 한다.
-- 각 scoring axis는 `binary_majority` 모드에서 홀수 question count를 가져야 한다. 위반 시 blocking validation error로 처리한다. `profile` 문항은 odd-count rule 적용 대상이 아니다. `scale` 모드 axis는 이번 단계에서 구현하지 않으며 해당 variant는 blocking error로 차단한다.
+- 각 scoring axis는 `binary_majority` 모드에서 홀수 question count를 가져야 한다. 이 count는 bidirectional axis matching 기준으로 계산한다. 위반 시 blocking validation error로 처리한다. `profile` 문항은 odd-count rule 적용 대상이 아니다. `scale` 모드 axis는 이번 단계에서 구현하지 않으며 해당 variant는 blocking error로 차단한다.
 
 **ScoreStats 구조**:
 
@@ -691,13 +699,14 @@ ScoreStats = Record<string, AxisScoreStat>
 // key: axisId (poleA+poleB)
 // key 순서는 schema.axes 선언 순서와 일치해야 한다
 // profile 문항 응답은 ScoreStats에 포함하지 않는다
+// 역방향 question도 schema axisId 아래에 집계한다
 ```
 
 **도출 절차**:
 1. `questions[]`에서 `questionType === 'scoring'`인 문항만 필터링한다.
 2. `schema.axes`를 선언 순서대로 순회한다.
 3. 각 `AxisSpec { poleA, poleB }`에 대해 `axisId = poleA + poleB`를 파생한다.
-4. 필터링된 scoring 문항 중 해당 axisId에 속하는 문항(poleA+poleB 쌍 일치 기준)의 응답을 집계해 `counts`를 구성한다.
+4. 필터링된 scoring 문항 중 해당 axis에 속하는 문항을 bidirectional matching 기준으로 집계해 `counts`를 구성한다. schema `E/I` axis에는 question `E/I`와 `I/E`가 모두 포함된다.
 5. `counts` 기준 더 높은 pole을 `dominant`로 결정한다. `binary_majority` + 홀수 문항 보장 하에 동점은 발생하지 않는다.
 6. `scoreStats[axisId] = { poleA, poleB, counts, dominant }`를 기록한다.
 7. `derivedType` 토큰은 `schema.axes` 순서대로 각 axis의 `dominant`를 연결해 생성한다.
@@ -710,17 +719,17 @@ ScoreStats = Record<string, AxisScoreStat>
 
 **EGTT 예시 (axisCount=1, qualifierFields 1개)**:
 ```
-schema.axes = [{ poleA: 'e', poleB: 't', scoringMode: 'binary_majority' }]
-schema.qualifierFields = [{ key: 'sex', questionIndex: 1, values: ['m', 'f'], tokenLength: 1 }]
-// questions[0] = { index:1, poleA:'m', poleB:'f', questionType:'profile' }   // source seq q.1
+schema.axes = [{ poleA: 'E', poleB: 'T', scoringMode: 'binary_majority' }]
+schema.qualifierFields = [{ key: 'gender', questionIndex: 1, values: ['M', 'F'], tokenLength: 1 }]
+// questions[0] = { index:1, poleA:'M', poleB:'F', questionType:'profile' }   // source seq q.1
 // questions[1] = first scoring question                                         // source seq 1 = scoring1
 // questions[2..N] = remaining scoring questions
 
-// 응답: canonical index 1(q.1)='m', scoring1 포함 scoring 결과 dominant='e'
-// derivedType = 'e'
-// qualifier sex = 'm'
-// type segment = 'em'
-// 결과 라벨 복원: content mapping['em'] → '에겐남'
+// 응답: canonical index 1(q.1)='M', scoring1 포함 scoring 결과 dominant='E'
+// derivedType = 'E'
+// qualifier gender = 'M'
+// type segment = 'EM'
+// 결과 라벨 복원: content mapping['EM'] → '에겐남'
 ```
 
 **나이대 qualifier 예시 (tokenLength=3, multi-value):**
@@ -928,9 +937,9 @@ result 페이지 URL은 서버 없이 result view를 재구성할 수 있는 sel
 
 예시 (EGTT, qualifier 포함):
 ```
-/result/egtt/em?eifjafehjfioaesjif1843f
+/result/egtt/EM?eifjafehjfioaesjif1843f
 ```
-(`em` = derivedType `e` + qualifier sex `m`)
+(`EM` = derivedType `E` + qualifier gender `M`)
 
 **필드 분리 원칙**:
 - `variant`: test variant 식별자. URL path segment 1. 이 값 하나로 고정 scoring logic과 rendering schema를 유일하게 식별한다. `scoringSchemaId`는 URL 어느 위치에도 포함하지 않는다.
@@ -955,12 +964,12 @@ result 페이지 URL은 서버 없이 result view를 재구성할 수 있는 sel
 ```json
 {
   "scoreStats": {
-    "et": { "poleA": "e", "poleB": "t", "counts": { "e": 15, "t": 10 }, "dominant": "e" }
+    "ET": { "poleA": "E", "poleB": "T", "counts": { "E": 15, "T": 10 }, "dominant": "E" }
   },
   "shared": false
 }
 ```
-(gender qualifier는 `type` segment `"em"`에서 운반. payload에 포함하지 않는다.)
+(gender qualifier는 `type` segment `"EM"`에서 운반. payload에 포함하지 않는다.)
 
 - `scoreStats` key는 scoring axis의 `poleA+poleB` 파생 문자열 (`axisId`). profile 문항 응답은 포함하지 않는다. schema 선언 순서로 직렬화한다.
 - axisCount=1 variant는 `scoreStats` entry가 1개, axisCount=2는 2개다. 구조는 동일하다.
@@ -1213,7 +1222,7 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 이번 단계에서 아래 섹션을 dummy data로 구성한다. 섹션 구조는 schema-driven으로 설계한다.
 
 **Mandatory 섹션** (variant 선언 여부와 무관하게 항상 표시):
-1. `derived_type` — `type` segment 전체를 키로 content mapping에서 조회한 표시 라벨 강조 표시. qualifier가 없는 variant(MBTI 등)에서는 derivedType 토큰과 동일. qualifier가 있는 variant(EGTT 등)에서는 `type` segment 전체(e.g. `"em"`)를 content mapping 키로 사용해 조회한 라벨(e.g. `"에겐남"`)을 표시한다.
+1. `derived_type` — `type` segment 전체를 키로 content mapping에서 조회한 표시 라벨 강조 표시. qualifier가 없는 variant(MBTI 등)에서는 derivedType 토큰과 동일. qualifier가 있는 variant(EGTT 등)에서는 `type` segment 전체(e.g. `"EM"`)를 content mapping 키로 사용해 조회한 라벨(e.g. `"에겐남"`)을 표시한다.
 2. `axis_chart` — scoring axis별 score 시각화 (scoreStats 기반, schema 선언 순서. axisCount 1/2/4 모두 지원). profile 문항 응답은 axis_chart 시각화 대상이 아니다. qualifier 값 시각화는 `derived_type` 섹션의 라벨 표시로 대체된다.
 3. `type_desc` — 타입 설명 텍스트 (dummy text, 섹션 구조 확정)
 
@@ -1470,12 +1479,12 @@ skeleton으로 확보해야 할 hook 위치:
 4. **Instruction / Ingress Continuity**: `scoring1` pre-answer가 있는 진입에서 instruction이 기존 응답을 무효화하지 않는다. consume 시점이 Start 클릭 직후(또는 test_start)임을 검증한다.
 5. **Active Run 판정**: 30분 경계값 전후 판정 정확성. timeout 시 휘발.
 6. **응답 데이터 휘발**: result screen entry commit 후, timeout 후, 처음부터 다시 하기 commit success 후 — 잔류 데이터 `0건`. derivation-failure 상태에서 응답 데이터 미삭제.
-7. **Question Model Integrity**: canonical 모든 question이 `questionType` 필드를 가진다. scoring question은 정확히 2개 선택지 + 정확히 1개 scoring axis 매핑. profile question은 정확히 2개 선택지 + axis 귀속 없음 (`poleA ≠ poleB` 충족). 전체 canonical question index 중복 없음.
+7. **Question Model Integrity**: canonical 모든 question이 `questionType` 필드를 가진다. scoring question은 정확히 2개 선택지 + bidirectional 기준 정확히 1개 scoring axis 매핑. profile question은 정확히 2개 선택지 + axis 귀속 없음 (`poleA ≠ poleB` 충족). 전체 canonical question index 중복 없음.
 8. **Progress / Completion Gating**: main progress가 scoring answered/total 기준이며 profile 문항을 포함하지 않는다. profile overlay prerequisite 미완료 또는 미응답 canonical 문항 존재 시 completion 차단.
 9. **Answer Revision / Tail Reset**: 이전 문항 재방문 시 기존 답변 표시. 이전 문항(non-final) 응답 변경 즉시 tail reset + eligibility false. 마지막 문항 응답 변경 시 derivation residue 무효화만 발생, eligibility 조건 충족 시 유지.
 10. **Session Lifecycle Determinism**: variant switch 시 prior context 정리. timeout 이후 stale context 미유지.
-11. **Derivation Correctness**: scoring 문항만 필터링해 `computeScoreStats` 수행. axisCount 1/2/4 각각 derivedType 토큰 길이 검증. schema 순서 준수. qualifier 없는 variant(MBTI)에서 `type` segment = derivedType. qualifier 있는 variant(EGTT)에서 `type` segment = derivedType + qualifier 토큰 연결. completed run만 결과 생성.
-12. **Odd-count Validation**: `binary_majority` scoringMode scoring 문항에만 odd-count rule 적용. profile 문항은 적용 제외. 짝수 문항 수 scoring axis fixture에서 blocking error 발생. `scale` mode axis 선언 fixture에서 blocking error 발생.
+11. **Derivation Correctness**: scoring 문항만 필터링해 `computeScoreStats` 수행. axisCount 1/2/4 각각 derivedType 토큰 길이 검증. schema 순서 준수. schema axis와 역방향인 scoring question도 같은 axis로 집계. qualifier 없는 variant(MBTI)에서 `type` segment = derivedType. qualifier 있는 variant(EGTT)에서 `type` segment = derivedType + qualifier 토큰 연결. completed run만 결과 생성.
+12. **Odd-count Validation**: `binary_majority` scoringMode scoring 문항에만 odd-count rule 적용. profile 문항은 적용 제외. 짝수 문항 수 scoring axis fixture에서 blocking error 발생. 역방향 question은 bidirectional 기준 같은 axis count에 포함. `scale` mode axis 선언 fixture에서 blocking error 발생.
 13. **Result Payload Validation**: 필수 필드 누락 시 에러 렌더링. 부분 렌더링 `0건`.
 14. **Result 케이스 분기**: 케이스 1/2/4 UX 및 CTA 분기 정확성. 케이스 1 "다시하기"와 케이스 2 "나도 테스트하기" 모두 `/test/{variant}`로 이동하며, instruction overlay는 `instructionSeen` 상태에 따라 테스트 페이지에서 자동 판정된다.
 15. **Axis Score 시각화**: axisCount 1/2/4 렌더링. schema 선언 순서 준수.

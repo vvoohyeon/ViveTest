@@ -7,6 +7,7 @@ import type {
   VariantDataIntegrityResult,
   VariantSchema
 } from '@/features/test/domain/types';
+import {axisMatchesQuestion} from '@/features/test/domain/derivation';
 import {validateQuestionModel} from '@/features/test/domain/validate-question-model';
 
 function getAxisId(axis: Pick<AxisSpec, 'poleA' | 'poleB'>): string {
@@ -124,9 +125,7 @@ function checkOddCountRule(questions: Question[], axes: AxisSpec[]): VariantData
       continue;
     }
 
-    const axisQuestions = scoringQuestions.filter(
-      (question) => question.poleA === axis.poleA && question.poleB === axis.poleB
-    );
+    const axisQuestions = scoringQuestions.filter((question) => axisMatchesQuestion(question, axis));
 
     if (axisQuestions.length % 2 === 0) {
       return {

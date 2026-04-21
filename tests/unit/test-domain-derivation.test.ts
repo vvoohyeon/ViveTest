@@ -141,6 +141,35 @@ describe('test domain derivation', () => {
     expect(deriveDerivedType(scoreStats4, schema4)).toBe('INFJ');
   });
 
+  it('assertion:B11-derivation-correctness includes reverse-direction questions in the same schema axis', () => {
+    const schema = makeSchema('reverse-axis', 1, [makeAxis('E', 'I')]);
+    const questions = [
+      makeQuestion(1, 'E', 'I', 'scoring'),
+      makeQuestion(2, 'I', 'E', 'scoring'),
+      makeQuestion(3, 'E', 'I', 'scoring')
+    ];
+    const responses = makeResponses([
+      [1, 'E'],
+      [2, 'I'],
+      [3, 'I']
+    ]);
+
+    const scoreStats = computeScoreStats(questions, responses, schema);
+    if ('error' in scoreStats) {
+      throw new Error(`Unexpected reverse-axis error: ${scoreStats.error}`);
+    }
+
+    expect(scoreStats).toEqual({
+      EI: {
+        poleA: 'E',
+        poleB: 'I',
+        counts: {E: 1, I: 2},
+        dominant: 'I'
+      }
+    });
+    expect(deriveDerivedType(scoreStats, schema)).toBe('I');
+  });
+
   it('assertion:B11-derivation-correctness returns explicit errors for incomplete responses, unmatched answers, and missing axis stats', () => {
     const schema = makeSchema('dual', 2, [makeAxis('E', 'I'), makeAxis('S', 'N')]);
     const questions = [
@@ -219,4 +248,3 @@ describe('test domain derivation', () => {
     });
   });
 });
-

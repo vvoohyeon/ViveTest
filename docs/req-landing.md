@@ -778,7 +778,7 @@
   - ingress 경로: `landing_ingress_flag=true`, `question_index_1based`는 첫 runtime question의 canonical index (`q.1`이 있으면 `1`, 없으면 `scoring2`의 canonical index).
   - 직접 진입 경로: `landing_ingress_flag=false`, `question_index_1based`는 첫 runtime question의 canonical index (`q.1`이 있으면 `1`, 없으면 `scoring1`의 canonical index).
 - `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`.
-- `final_responses`는 canonical 전체 문항(profile 포함)의 응답 맵이다. 진입 경로(ingress/직접 진입)와 무관하게 동일한 구조를 유지한다. `scoring1` 재수정이 발생한 경우 최종 제출 시점의 값을 반영한다.
+- `final_responses`는 canonical 전체 문항(profile 포함)의 응답 맵이며, 현재 runtime telemetry payload에서는 의미 코드 `'A' | 'B'`를 기록한다. 진입 경로(ingress/직접 진입)와 무관하게 동일한 구조를 유지한다. `scoring1` 재수정이 발생한 경우 최종 제출 시점의 값을 반영한다.
 - `landing_ingress_flag`는 진입 경로를 나타내며, 테스트 중 `scoring1`을 재수정하더라도 ingress 경로로 진입한 세션은 항상 `true`를 유지한다. `scoring1` 재수정 여부는 이 플래그의 값에 영향을 주지 않는다.
 - 상관키 생성 실패 시 세션 카운터 기반 대체키를 허용한다.
 - `transition_id`, `result_reason` 필드는 내부 시스템 로직 전용이며 텔레메트리 payload에 포함하지 않는다.
@@ -791,12 +791,13 @@
 ### 12.3 Payload Boundaries
 **Rule**: 텔레메트리 payload는 의미 코드 중심으로 제한한다.
 - 금지: 원문 질문/답변 텍스트, 자유입력 텍스트, PII/지문성 식별자(IP, fingerprint).
-- 응답은 의미 코드만 기록한다.
+- 응답은 의미 코드만 기록한다. 현재 runtime 의미 코드는 raw 표시 텍스트가 아니라 `'A' | 'B'` 선택 코드다.
 - question index는 canonical `questions[]` 기준 1-based다.
 - `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`.
 - `final_submit`에는 최종 응답 + 문항별 누적 체류시간을 기록한다.
 - `landing_ingress_flag`는 진입 경로 기준이며 `scoring1` 재수정으로 변경되지 않는다. ingress 경로 세션은 제출 시점까지 `true`를 유지한다.
 - `final_responses`는 canonical 전체 문항의 의미 코드 맵이어야 하며, 원문 질문/답변 텍스트를 포함하면 안 된다. 진입 경로와 무관하게 동일한 구조를 유지한다. `scoring1` 재수정이 발생한 경우 최종 제출 시점의 값을 반영한다.
+- Test domain derivation이 필요한 시점에는 `src/features/test/response-projection.ts`의 Phase 4/7 projection layer가 `'A' | 'B'`를 question pole 또는 qualifier token으로 변환한다. landing/test telemetry payload를 `computeScoreStats()` 또는 `buildTypeSegment()`에 직접 전달하면 안 된다.
 - `final_submit`의 `question_index_1based`는 최종 answered canonical index여야 한다.
 
 ### 12.4 Consent State Machine
@@ -818,7 +819,7 @@
 
 ### 12.6 Data Source Contract
 **Rule**: 랜딩 구현은 generated runtime registry + adapter/resolver 경계를 사용한다. 전체 source topology SSOT는 `docs/req-test.md` §2가 소유한다.
-- 현재 구현 단계에서는 fixture-backed registry를 사용할 수 있으나, 이것이 active source topology 자체를 정의하지는 않는다.
+- 현재 구현 단계에서는 `loadVariantRegistry()`가 cached fixture-built registry를 반환한다. 이는 ADR-D 확정 전 dev fixture 경로이며, generated production registry와 동일한 `VariantRegistry` 시그니처를 유지하기 위한 인터페이스다. 이것이 active source topology 자체를 정의하지는 않는다.
 - source fixture shape와 exported runtime registry shape는 명시적으로 분리해야 한다. source 전용 `seq`와 temporary inline preview bridge는 runtime landing card payload로 전파되면 안 된다.
 - landing / test / blog consumer는 raw fixture shape를 직접 읽지 않는다. preview payload는 `resolveTestPreviewPayload()` 같은 단일 resolver/adapter 경계로만 주입해야 하며, 접근 로직을 UI 컴포넌트 안에 분산시키는 것을 금지한다.
 - `resolveVariantPreviewQ1()`는 Questions `scoring1` 기반 preview migration을 위한 selector 경계다. 현 live landing preview는 아직 `resolveTestPreviewPayload()`를 사용하므로, 두 경로를 같은 release에서 혼용해 UI 동작을 바꾸면 안 된다.
@@ -826,6 +827,7 @@
 - landing preview는 항상 first scoring question(`scoring1`) 기준이다. profile 문항은 landing preview에 사용하지 않는다.
 - landing 단계에서는 profile 문항을 묻지 않는다. landing이 수집하는 입력은 `scoring1` preview 기반 A/B 선택뿐이다.
 - landing 단계에서는 preview 선택값을 durable staged entry로 저장할 수 있으나, canonical question index binding은 test runtime commit 시점의 책임이다.
+- landing A/B 선택값은 domain derivation token이 아니다. test runtime의 projection layer가 이를 `question.poleA/poleB` 또는 qualifier value로 변환한 뒤에만 domain 함수가 소비할 수 있다.
 - same-variant landing 재선택은 restart intent 의미를 가진다. old run replace 시점과 auto-presentation 세부 규칙은 `docs/req-test.md`가 소유한다.
 - 랜딩 fixture 최소: Test `4+`, Blog `3+`, unavailable Test `2+`, unavailable Blog `0`.
 - fixture 다양성 케이스 필수: 긴 텍스트, 빈 tags, debug fixture.
@@ -857,7 +859,7 @@
 
 **Adapter 레이어 책임 (Landing-side 계약)**:
 - `unavailable` 판정의 단일 소스는 generated runtime registry(`variant-registry.generated.ts`)의 `attribute` 필드다. `unavailable: boolean` 레거시 필드는 `attribute: 'unavailable'`으로 해석한다 (req-test.md §2.5 레거시 호환 기준).
-- `loadVariantRegistry()`가 canonical registry를 로드하고, `resolveLandingCatalog()`가 각 카드의 `attribute`를 반영해 카탈로그를 구성한다. 렌더링/상호작용 레이어는 이 값을 런타임 재검증 없이 그대로 사용해 Coming Soon 표시와 진입 차단을 수행한다.
+- `loadVariantRegistry()`가 canonical registry를 로드하고, `resolveLandingCatalog()`가 각 카드의 `attribute`를 반영해 카탈로그를 구성한다. 현재 `loadVariantRegistry()`는 ADR-D 미결 상태에 맞춰 fixture-built registry를 반환하지만, production generated registry 연결 시에도 `resolveLandingCatalog()` 호출 시그니처는 유지한다. 렌더링/상호작용 레이어는 이 값을 런타임 재검증 없이 그대로 사용해 Coming Soon 표시와 진입 차단을 수행한다.
 - 직접 URL 접근(딥링크)을 통한 unavailable variant 진입 차단은 Test Flow Requirements §2.5 / §6.1 계약이 담당한다. 이 섹션의 계약과 중복되지 않는다.
 
 ### 13.3 Landing→Destination Handshake

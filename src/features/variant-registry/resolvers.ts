@@ -4,11 +4,12 @@ import {
   deriveAvailability,
   isCatalogVisibleCard
 } from '@/features/variant-registry/attribute';
+import {buildVariantRegistry} from '@/features/variant-registry/builder';
 import {
   resolveLocalizedTagList,
   resolveLocalizedText
 } from '@/features/variant-registry/localization';
-import {variantRegistryGenerated} from '@/features/variant-registry/variant-registry.generated';
+import {getVariantRegistrySourceFixture} from '@/features/variant-registry/source-fixture';
 import type {
   LandingBlogCard,
   LandingCard,
@@ -22,14 +23,32 @@ import type {
 } from '@/features/variant-registry/types';
 
 const DEFAULT_CATALOG_AUDIENCE: LandingCatalogAudience = 'end-user';
+let fixtureRegistryCache: VariantRegistry | null = null;
 
 export interface LandingCatalogOptions {
   audience?: LandingCatalogAudience;
   consentState?: TelemetryConsentState;
 }
 
+/**
+ * 환경에 따라 적절한 VariantRegistry를 로드한다.
+ *
+ * - fixture: dev 환경. source-fixture.ts 기반의 현재 구현을 사용한다.
+ * - generated: production 환경. Google Sheets Sync가 생성한
+ *   variant-registry.generated.ts를 사용한다.
+ *
+ * ADR-D 결정에 따라 실제 production 분기 로직이 확정된다.
+ * 현재는 항상 fixture 기반 registry를 반환한다.
+ *
+ * @see docs/req-test-plan.md ADR-D
+ */
 export function loadVariantRegistry(): VariantRegistry {
-  return variantRegistryGenerated;
+  return getFixtureRegistry();
+}
+
+function getFixtureRegistry(): VariantRegistry {
+  fixtureRegistryCache ??= buildVariantRegistry(getVariantRegistrySourceFixture());
+  return fixtureRegistryCache;
 }
 
 function resolveLandingCard(card: VariantRegistryRuntimeLandingCard, locale: AppLocale): LandingCard {

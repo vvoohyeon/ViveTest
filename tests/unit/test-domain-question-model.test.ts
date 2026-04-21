@@ -70,6 +70,18 @@ describe('test domain question model and integrity validation', () => {
     });
   });
 
+  it('assertion:B7-question-model-integrity accepts reverse-direction scoring questions for the same schema axis', () => {
+    const schema = makeVariantSchema({
+      axes: [makeAxis('E', 'I')],
+      questions: [makeQuestion(1, 'I', 'E', 'scoring')]
+    });
+
+    expect(validateQuestionModel(schema.questions, schema.schema)).toEqual({
+      ok: true,
+      value: schema.questions
+    });
+  });
+
   it('assertion:B7-question-model-integrity rejects identical poles, duplicate indexes, and scoring questions with no axis match', () => {
     const duplicateIndexQuestions = [
       makeQuestion(1, 'E', 'I', 'scoring'),
@@ -118,6 +130,19 @@ describe('test domain question model and integrity validation', () => {
         reason: 'EVEN_AXIS_QUESTION_COUNT'
       })
     );
+  });
+
+  it('assertion:B12-odd-count-validation counts reverse-direction EGTT questions on the same axis', () => {
+    const schema = makeVariantSchema({
+      axes: [makeAxis('E', 'T')],
+      questions: [makeQuestion(1, 'E', 'T', 'scoring'), makeQuestion(2, 'T', 'E', 'scoring')]
+    });
+
+    expect(validateVariantDataIntegrity(schema)).toEqual({
+      ok: false,
+      reason: 'EVEN_AXIS_QUESTION_COUNT',
+      detail: 'ET:2'
+    });
   });
 
   it('assertion:B12-odd-count-validation rejects duplicate axis specs, axis-count mismatch, and unsupported scoring modes', () => {
@@ -187,4 +212,3 @@ describe('test domain question model and integrity validation', () => {
     });
   });
 });
-

@@ -8,6 +8,10 @@ export {
   resolveAttribute
 } from '@/features/variant-registry/attribute';
 export {buildVariantRegistry} from '@/features/variant-registry/builder';
+export {
+  validateCrossSheetIntegrity,
+  type CrossSheetValidationResult
+} from '@/features/variant-registry/cross-sheet-integrity';
 export {buildFixtureContractReport} from '@/features/variant-registry/fixture-contract';
 export {
   loadVariantRegistry,
