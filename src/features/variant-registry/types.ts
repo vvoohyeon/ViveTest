@@ -19,7 +19,19 @@ export interface LandingMeta {
   engagedC: number;
 }
 
-// inline Q1 preview is temporary until Questions Q1 migration.
+/**
+ * Runtime-facing Q1 preview projection used by landing/test consumers.
+ *
+ * @migration Q1 Preview:
+ * This shape is intentionally stable while its source is temporary. Today the
+ * values are projected from `source-fixture.ts` inline bridge fields
+ * (`previewQuestion` / `answerA` / `answerB`). The canonical target is the
+ * first scoring question (`scoring1`) in the corresponding Questions sheet.
+ *
+ * Consumers must keep using `resolveTestPreviewPayload()` and must not read
+ * raw fixture fields directly. Sync may replace the source projection without
+ * changing this runtime shape.
+ */
 export interface InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge {
   previewQuestion: LocalizedText;
   answerChoiceA: LocalizedText;

@@ -274,6 +274,9 @@ export function buildVariantRegistry(sourceCards: ReadonlyArray<unknown>): Varia
 
   const sortedSourceCards = [...normalizedSourceCards].sort((left, right) => left.seq - right.seq);
   const landingCards = sortedSourceCards.map((sourceCard) => buildRuntimeLandingCard(sourceCard));
+  // @sync-target: previewQuestion / answerA / answerB 값은 현재 source-fixture.ts inline bridge에서 온다.
+  // Google Sheets Sync 구현 이후에는 Questions Sheets의 scoring1 row가 이 값을 대체한다.
+  // consumer(resolveTestPreviewPayload)의 shape는 동일하게 유지되므로 consumer 수정 불필요.
   const testPreviewPayloadByVariant = sortedSourceCards.reduce<
     Record<string, InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge>
   >((accumulator, sourceCard) => {

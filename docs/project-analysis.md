@@ -79,6 +79,7 @@ Route tree
             │         ├─ src/features/variant-registry/variant-registry.generated.ts (fixture-backed runtime registry)
             │         ├─ src/features/variant-registry/resolvers.ts (registry loader + resolver boundary)
             │         ├─ src/features/variant-registry/attribute.ts (attribute helpers)
+            │         ├─ src/features/test/fixtures/questions/** (variant-split Questions row fixtures)
             │         ├─ src/features/landing/grid/use-landing-interaction-controller.ts
             │         └─ src/features/landing/grid/landing-catalog-grid.tsx
             ├─ src/app/[locale]/blog/page.tsx (list-only blog index)
@@ -88,6 +89,7 @@ Route tree
             │    └─ src/features/test/test-question-client.tsx
             │         ├─ src/features/test/entry-policy.ts
             │         ├─ src/features/test/instruction-overlay.tsx
+            │         ├─ src/features/test/question-source-parser.ts
             │         └─ src/features/test/question-bank.ts
             └─ src/app/[locale]/history/page.tsx
 
@@ -138,7 +140,7 @@ Segment/global 404 handling is implemented through `src/app/not-found.tsx` and `
 
 Defined in `src/config/site.ts`: `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru`
 
-All 12 locale files in `src/messages/` are complete with the same 6 namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent`. Shared UI chrome, CTA labels, and generic consent-note copy are handled by these files. Variant-specific test instruction copy is now fixture-backed through `src/features/variant-registry/source-fixture.ts` and consumed through the registry resolver boundary.
+All 12 locale files in `src/messages/` are complete with the same 6 namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent`. Shared UI chrome, CTA labels, and generic consent-note copy are handled by these files. Variant-specific test instruction copy is fixture-backed through `src/features/variant-registry/source-fixture.ts` and consumed through the registry resolver boundary. Question/answer fixture copy is split by variant under `src/features/test/fixtures/questions/**` and uses the same locale-keyed `LocalizedText` pattern for question and answer text.
 
 ### 4.3 Proxy Contract
 
@@ -186,7 +188,8 @@ Theme subsystem: `public/theme-bootstrap.js` (sets before hydration from `localS
 
 ### 5.3 Catalog Data Model
 
-Source: `src/features/variant-registry/source-fixture.ts`
+Landing/card source: `src/features/variant-registry/source-fixture.ts`
+Questions source rows: `src/features/test/fixtures/questions/**`
 
 Current fixture inventory:
 - 10 total cards (7 test, 3 blog)
@@ -200,6 +203,12 @@ Current fixture inventory:
 `src/features/variant-registry/types.ts` already separates source-facing and runtime-facing shapes: source rows can carry `seq` and inline preview bridge fields, while runtime landing cards exclude those source-only fields. `src/features/variant-registry/resolvers.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
 
 The current builder still relies on fixture-backed localized copy and a temporary bridge where the **first scoring preview source of truth** remains inline. That bridge is isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly. Runtime meta keys are unified as `durationM` / `sharedC` / `engagedC`, while UI labels branch by content type.
+
+Questions fixtures are no longer held in a single combined file. `src/features/test/fixtures/questions/index.ts` exports the aggregate `questionSourceFixture` map and `getVariantQuestionRows()` lookup, while each variant file preserves source row order and stores Sheets locale columns as `LocalizedText` objects (`question`, `answerA`, `answerB`). EGTT keeps its profile row (`seq='q.1'`) in the same canonical source order as the scoring rows.
+
+`src/features/test/question-source-parser.ts` is now the pure Questions parser boundary. It classifies `seq` with `parseSeqToQuestionType()` (`q.*` → profile, numeric strings → scoring), builds Phase 1 domain `Question[]` with source-order 1-based canonical indexes via `buildCanonicalQuestions()`, and exposes `findFirstScoringRow()` for `scoring1` lookup. `tests/unit/question-source-parser.test.ts` covers these contracts, including EGTT where `q.1` remains canonical index 1 and the first scoring row is `seq='1'`.
+
+`src/features/test/question-bank.ts` now has two surfaces. The legacy `buildLandingTestQuestionBank()` remains wired to `resolveTestPreviewPayload()` and localized Q2–Q4 fallback questions for current runtime compatibility. The new `buildVariantQuestionBank()` returns locale-resolved `ResolvedQuestion[]` from variant Questions fixtures, and `resolveVariantPreviewQ1()` resolves a Questions-backed `scoring1` preview candidate while skipping profile rows. This new selector is tested in `tests/unit/variant-question-bank.test.ts` but is not yet wired into the live landing/test route.
 
 Blog subtitle continuity is also fixed in tests: the runtime uses `subtitle` as the only blog body-copy source for landing cards, and unit/e2e checks assert that Normal and Expanded states reuse the same text rather than a separate fallback text field.
 
@@ -223,7 +232,7 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 `src/app/[locale]/test/[variant]/page.tsx` now regex-validates the URL segment and then resolves the card via `resolveLandingTestCardByVariant(locale, variant)`, failing closed with `notFound()` when the registry lookup misses.
 
-`src/features/test/question-bank.ts` now always builds the landing preview question/choices through `resolveTestPreviewPayload()` and Q2–4 from localized fallback questions. Unknown variants no longer receive a generic fallback because route bootstrap is now strict.
+`src/features/test/question-bank.ts` still builds the live compatibility landing question bank through `resolveTestPreviewPayload()` and Q2–4 from localized fallback questions. Unknown variants no longer receive a generic fallback because route bootstrap is now strict. In parallel, it exposes the variant-keyed Questions fixture interface (`buildVariantQuestionBank()` / `resolveVariantPreviewQ1()`) for the later `scoring1` preview migration.
 
 **Pure test-domain foundation** (`src/features/test/domain/*`): the current source already contains a separate pure module for branded ids, schema/question models, variant validation, question-model validation, variant data integrity checks, score derivation, and type-segment parsing/building. This surface is exported through `src/features/test/domain/index.ts` and covered by `tests/unit/test-domain-variant-validation.test.ts`, `tests/unit/test-domain-question-model.test.ts`, `tests/unit/test-domain-derivation.test.ts`, and `tests/unit/test-domain-type-segment.test.ts`. Phase 0–1 ADRs froze the contracts that consumers must respect: `VariantId` as a `string` intersection brand, `QuestionIndex` as a `number` intersection brand, the `validateVariant()` three-way result union (`MISSING` / `UNKNOWN` / `UNAVAILABLE`), and the `BlockingDataErrorReason` enum surface.
 
@@ -382,13 +391,13 @@ As of 2026-04-16, `npm run qa:rules` passes `check-phase11-telemetry-contracts.m
 `tests/e2e/theme-matrix-manifest.json` · `tests/e2e/theme-matrix-smoke.spec.ts` · `tests/e2e/helpers/landing-fixture.ts` · `tests/e2e/safari-hover-ghosting.spec.ts`
 
 ### Test route runtime / instruction shell
-`src/features/test/test-question-client.tsx` · `src/features/test/entry-policy.ts` · `src/features/test/instruction-overlay.tsx` · `src/features/test/question-bank.ts` · `docs/req-test.md` · `docs/req-test-plan.md`
+`src/features/test/test-question-client.tsx` · `src/features/test/entry-policy.ts` · `src/features/test/instruction-overlay.tsx` · `src/features/test/question-bank.ts` · `src/features/test/question-source-parser.ts` · `tests/unit/question-source-parser.test.ts` · `tests/unit/variant-question-bank.test.ts` · `docs/req-test.md` · `docs/req-test-plan.md`
 
 ### Test domain foundation
 `src/features/test/domain/index.ts` · `src/features/test/domain/types.ts` · `src/features/test/domain/validate-variant.ts` · `src/features/test/domain/validate-question-model.ts` · `src/features/test/domain/validate-variant-data-integrity.ts` · `src/features/test/domain/derivation.ts` · `src/features/test/domain/type-segment.ts` · `tests/unit/test-domain-variant-validation.test.ts` · `tests/unit/test-domain-question-model.test.ts` · `tests/unit/test-domain-derivation.test.ts` · `tests/unit/test-domain-type-segment.test.ts`
 
 ### Data model / fixture contract
-`src/features/variant-registry/source-fixture.ts` · `src/features/variant-registry/builder.ts` · `src/features/variant-registry/attribute.ts` · `src/features/variant-registry/resolvers.ts` · `src/features/variant-registry/types.ts`
+`src/features/variant-registry/source-fixture.ts` · `src/features/variant-registry/builder.ts` · `src/features/variant-registry/attribute.ts` · `src/features/variant-registry/resolvers.ts` · `src/features/variant-registry/types.ts` · `src/features/test/fixtures/questions/index.ts` · `src/features/test/fixtures/questions/types.ts`
 
 ---
 

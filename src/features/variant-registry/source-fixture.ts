@@ -1,3 +1,25 @@
+/**
+ * @fileoverview Landing fixture — 랜딩 카드 및 Q1 preview inline bridge 소스.
+ *
+ * @migration Q1 Preview (previewQuestion / answerA / answerB) 교체 계획:
+ *
+ *   현재 각 test 카드의 previewQuestion / answerA / answerB 는 임시 inline bridge 다.
+ *   canonical target 은 Questions Sheets 해당 variant 시트의 첫 번째 scoring question(scoring1) 이다.
+ *
+ *   교체 경로:
+ *     1. Google Sheets Sync 스크립트가 Questions Sheets에서 scoring1을 읽는다.
+ *     2. sync 결과로 이 파일(또는 generated fixture)의 previewQuestion/answerA/answerB를 덮어쓴다.
+ *     3. consumer는 계속 resolveTestPreviewPayload()만 사용하므로 교체 후 consumer 수정 불필요.
+ *
+ *   consumer 계약:
+ *     - raw fixture를 직접 읽지 않는다.
+ *     - 반드시 resolveTestPreviewPayload(variantId, locale) 경계를 사용한다.
+ *
+ *   Landing Sheets와의 관계:
+ *     - previewQuestion/answerA/answerB는 Landing Sheets 컬럼에 존재하지 않는다.
+ *     - Landing Sheets는 카드 메타데이터(title, subtitle, tags, instruction 등)만 관리한다.
+ *     - Q1 preview는 Questions Sheets → Landing runtime artifact 투영(projection) 방식으로 제공된다.
+ */
 import type { VariantRegistrySourceCard } from "@/features/variant-registry/types";
 
 export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCard> =

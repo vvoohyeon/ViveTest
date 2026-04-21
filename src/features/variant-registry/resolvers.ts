@@ -123,6 +123,14 @@ export function resolveLandingBlogCardByVariant(locale: AppLocale, variant: stri
   return resolveLandingCard(card, locale) as LandingBlogCard;
 }
 
+/**
+ * Resolves the stable landing preview payload consumed by UI/runtime code.
+ *
+ * This is the only consumer boundary for the temporary inline Q1 preview
+ * bridge. Callers must not read `source-fixture.ts` preview fields directly.
+ * The source projection can migrate to Questions `scoring1` without changing
+ * this function's return shape.
+ */
 export function resolveTestPreviewPayload(variant: string, locale: AppLocale): TestPreviewPayload {
   const previewPayload = loadVariantRegistry().testPreviewPayloadByVariant[variant];
 

@@ -271,6 +271,7 @@
 - Test Expanded: `previewQuestion`, `answerChoiceA/B`, `meta(3)`
 - Test Expanded의 canonical preview consumer shape는 `previewQuestion`, `answerChoiceA`, `answerChoiceB`로 고정한다.
 - 현재 단계의 Test Expanded preview source는 Questions direct read가 아니라 fixture inline 기반 **temporary bridge** 일 수 있다. 단, canonical target은 항상 Questions의 **first scoring question (`scoring1`)** 이며 UI는 이를 source detail로 인식하지 않고 resolver가 주입한 landing projection으로만 소비해야 한다.
+- Questions fixture 기반 preview selector `resolveVariantPreviewQ1()`는 구현되어 있으나, 현재 live Test Expanded preview는 여전히 `resolveTestPreviewPayload()` inline bridge 경로를 사용한다. 이 selector는 향후 preview source migration 경계이며 UI 컴포넌트가 raw fixture를 직접 읽는 경로가 아니다.
 - preview payload 접근 로직을 랜딩 UI 컴포넌트 내부에 분산시키는 것을 금지한다. raw fixture shape 직접 참조도 금지한다.
 - Blog Expanded: `cardSubtitleExpanded(최대 4줄)`, `meta(3)`, `primaryCTA(Read more)`
 
@@ -820,6 +821,7 @@
 - 현재 구현 단계에서는 fixture-backed registry를 사용할 수 있으나, 이것이 active source topology 자체를 정의하지는 않는다.
 - source fixture shape와 exported runtime registry shape는 명시적으로 분리해야 한다. source 전용 `seq`와 temporary inline preview bridge는 runtime landing card payload로 전파되면 안 된다.
 - landing / test / blog consumer는 raw fixture shape를 직접 읽지 않는다. preview payload는 `resolveTestPreviewPayload()` 같은 단일 resolver/adapter 경계로만 주입해야 하며, 접근 로직을 UI 컴포넌트 안에 분산시키는 것을 금지한다.
+- `resolveVariantPreviewQ1()`는 Questions `scoring1` 기반 preview migration을 위한 selector 경계다. 현 live landing preview는 아직 `resolveTestPreviewPayload()`를 사용하므로, 두 경로를 같은 release에서 혼용해 UI 동작을 바꾸면 안 된다.
 - 배열 순서 계약은 `seq -> sort -> drop`으로 고정한다. `seq`는 source 입력에서만 허용되며, exported runtime registry에는 남아 있으면 안 된다. 누락/중복 `seq`는 fixture validation fail로 처리한다.
 - landing preview는 항상 first scoring question(`scoring1`) 기준이다. profile 문항은 landing preview에 사용하지 않는다.
 - landing 단계에서는 profile 문항을 묻지 않는다. landing이 수집하는 입력은 `scoring1` preview 기반 A/B 선택뿐이다.

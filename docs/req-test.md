@@ -72,12 +72,18 @@
 - Google Sheets는 **랜딩 카드 메타데이터와 테스트 콘텐츠(Questions / Results)의 단일 소스**다.
 - 단, scoring schema definition 자체는 Google Sheets가 아니라 **code-owned canonical schema registry / variant → schema mapping**이 소유한다.
 - 따라서 **`Schema.xlsx`와 같은 4번째 spreadsheet source는 도입하지 않는다**. schema authoring을 위한 별도 spreadsheet SSOT는 허용하지 않는다.
-- 현재 단계에서는 fixture-backed `source-fixture.ts`(및 동등한 fixture 파일)가 canonical source fixture 역할을 수행한다. source 교체가 일어나더라도 consumer 경계는 resolver로 유지한다.
+- 현재 단계의 fixture-backed source는 역할별로 분리한다.
+  - Landing/card metadata 및 temporary inline preview bridge: `src/features/variant-registry/source-fixture.ts`
+  - Questions row fixture: `src/features/test/fixtures/questions/**` (`sheet name = variantId` 구조를 variant별 파일로 모사)
+- Questions fixture row는 Sheets의 snake_case locale 컬럼(`question_EN`, `answerA_EN` 등)을 `LocalizedText` 기반 `question`, `answerA`, `answerB` object로 정규화한다. `pole_A` / `pole_B`는 runtime question contract의 축 필드인 `poleA` / `poleB`로 유지하며, profile row에서는 `undefined`일 수 있다.
+- source 교체가 일어나더라도 consumer 경계는 resolver/selector로 유지한다.
+- 현재 Questions source parser 경계는 `src/features/test/question-source-parser.ts`다. `parseSeqToQuestionType()`는 `q.*`를 profile, 순수 숫자를 scoring으로 판정하고, `buildCanonicalQuestions()`는 source row 출현 순서 기준 1-based `QuestionIndex`를 부여한다.
+- 현재 variant-keyed question bank 경계는 `src/features/test/question-bank.ts`의 `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()`다. 이는 Questions fixture에서 locale-resolved runtime question bank와 `scoring1` preview 후보를 제공하는 신규 selector이며, live route wiring은 아직 이 경계를 소비하지 않는다.
 - 현재 단계의 landing preview payload source of truth는 fixture inline bridge다. 이는 영구 구조가 아니라 **temporary bridge** 이며, canonical runtime consumer shape만 유지한 채 source만 임시 inline 상태로 둔다.
 - 현재 runtime/export 산출물은 **`variant-registry.generated.ts`** 단일 entrypoint다. builder는 fixture 또는 향후 sync loader가 읽은 source + code-owned schema registry를 canonical runtime registry shape로 변환하고, consumer는 resolver 경계를 통해 이 인터페이스만 사용한다.
 - generated registry에는 variant별 **최종 resolved schema**가 포함될 수 있으나, schema의 authoring source는 Sheets가 아니라 code-owned canonical registry다.
 - 현재 runtime registry는 `landingCards`와 `testPreviewPayloadByVariant`를 분리 보관한다. Landing Card 메타데이터는 `attribute`, `durationM`, `sharedC`, `engagedC` 기준으로 관리한다.
-- source fixture용 타입과 runtime/export용 타입은 명시적으로 분리해야 한다. source fixture 타입에는 `seq`와 이번 단계 한정 inline preview bridge가 존재할 수 있으나, runtime/export 타입에는 `seq`가 전파되면 안 된다.
+- source fixture용 타입과 runtime/export용 타입은 명시적으로 분리해야 한다. Landing registry source 타입에는 `seq`와 이번 단계 한정 inline preview bridge가 존재할 수 있고, Questions source row 타입에는 원본 `seq`와 localized text object가 존재한다. runtime/export 타입에는 source 전용 `seq`가 전파되면 안 된다.
 - landing / test / blog consumer는 raw fixture shape를 직접 읽지 않는다. preview payload는 `resolveTestPreviewPayload(variant)` 같은 단일 resolver/selector 경계로만 주입하며, `card.test.previewQuestion` 같은 fixture 내부 shape 직접 참조를 금지한다.
 - 통합 메타 3종의 data key는 항상 `durationM`, `sharedC`, `engagedC`만 사용한다. UI 라벨만 콘텐츠 타입별로 분기하며, runtime에서 test/blog 전용 메타 필드명으로 역변환하는 것을 금지한다.
 
@@ -99,8 +105,11 @@
   - `q.{n}` → `questionType = 'profile'`
   - `{n}` 숫자만 → `questionType = 'scoring'`
   - 모든 `q.*` row는 profile question으로 해석한다.
+- 현재 dev parser 구현은 `parseSeqToQuestionType(seq)`이며, 알 수 없는 `seq` 패턴은 파싱 오류로 처리한다.
+- 실제 Sheets locale 컬럼은 `question_EN`, `question_KR`, `answerA_EN`, `answerB_EN` 같은 snake_case suffix 형식이다. 코드 fixture는 이를 `LocalizedText` key(`en`, `kr`, ...)로 보존하며, 신규 locale 도입 시 row shape를 늘리지 않고 localized key만 추가한다.
 - Questions source row는 source row 순서를 보존해 정규화해야 한다. sync 후 canonical `questions[]`는 **source row 순서 기준 1-based canonical index**로 재번호한다.
   - 예: `q.1, q.2, 1, 2, 3` → canonical `questions[]` index `1, 2, 3, 4, 5`
+- 현재 dev canonical 변환 구현은 `buildCanonicalQuestions(rows, locale)`이며, Phase 1 domain `Question` 타입 shape를 변경하지 않는다. 표시용 question/answer 텍스트는 runtime question-bank selector가 별도 `ResolvedQuestion`으로 제공한다.
 - canonical index는 storage, qualifier mapping, schema validation, telemetry의 단일 기준축이다.
 - profile question도 canonical `questions[]`에 포함한다. 별도 profile 배열 분리를 허용하지 않는다.
 - landing preview payload의 최종 canonical target은 Questions source의 **first scoring question (`scoring1`)** 이다. 다만 현재 단계에서는 source of truth를 fixture inline bridge로 유지할 수 있으며, 이 예외는 다음 단계 migration 전용 temporary bridge로만 해석한다.
@@ -119,8 +128,9 @@
 6. 검증 실패 시: 파일 커밋 없음. last-known-good 파일 유지. Action 로그에 불일치 사유 기록.
 
 **Local Dev**:
-- fixture-backed 구현은 `source-fixture.ts` -> builder -> `variant-registry.generated.ts` 경로로 canonical runtime registry를 구성한다.
-- fixture layer는 3-source topology와 code-owned schema registry 결합을 모사해야 한다.
+- Landing/card fixture-backed 구현은 `src/features/variant-registry/source-fixture.ts` -> builder -> `variant-registry.generated.ts` 경로로 canonical runtime registry를 구성한다.
+- Questions fixture는 `src/features/test/fixtures/questions/**` 아래 variant별 파일로 유지하며, `index.ts`의 `questionSourceFixture` / `getVariantQuestionRows()` 경계를 통해 sheet-name 기반 Questions source를 모사한다.
+- fixture layer는 Landing / Questions / Results 3-source topology와 code-owned schema registry 결합을 모사해야 한다.
 - source 교체 범위는 registry layer 내부에 한정되며, consumer 호출 시그니처는 유지한다.
 
 **알림 메커니즘**: Action 로그 확인은 오퍼레이터 책임. 별도 알림 계약을 문서에서 정의하지 않는다 (Decision 6).
@@ -187,19 +197,29 @@
 
 ### 2.7 Fixture Fallback Policy
 
-- 현재 단계의 canonical source fixture는 `source-fixture.ts`다. builder가 이를 읽어 `variant-registry.generated.ts` runtime registry를 구성한다.
+- 현재 단계의 canonical fixture layer는 단일 파일이 아니라 source별 경계로 분리한다.
+  - Landing/card metadata 및 inline preview bridge: `src/features/variant-registry/source-fixture.ts`
+  - Questions rows: `src/features/test/fixtures/questions/**`
 - source fixture는 Landing / Questions / Results 3-source topology와 code-owned schema registry 조합을 모사해야 한다.
-- inline preview bridge는 source fixture에만 유지할 수 있으며, 이는 이번 단계 한정 temporary bridge다. preview consumer 노출은 `resolveTestPreviewPayload()` 경계로 제한하고, landing UI / test runtime / blog runtime 어디에서도 raw fixture preview field를 직접 읽어서는 안 된다.
+- inline preview bridge는 Landing registry source fixture에만 유지할 수 있으며, 이는 이번 단계 한정 temporary bridge다. preview consumer 노출은 `resolveTestPreviewPayload()` 경계로 제한하고, landing UI / test runtime / blog runtime 어디에서도 raw fixture preview field를 직접 읽어서는 안 된다.
 - preview bridge의 canonical target은 source row의 first row가 아니라 **first scoring question (`scoring1`)** 이다. 다음 단계에서는 Questions `scoring1` row source로 교체하되 consumer shape는 유지해야 한다.
-- `seq`는 source fixture 입력 전용이다. builder는 **`seq -> sort -> drop`** 순서를 강제해야 하며, source row order 보존과 canonical index 재번호를 수행한 뒤 exported runtime registry에서는 `seq`를 제거해야 한다.
+- `seq`는 source fixture 입력 전용이다. registry builder는 **`seq -> sort -> drop`** 순서를 강제해야 하며, Questions parser는 source row order 보존과 canonical index 재번호를 수행한 뒤 runtime question model에서는 source `seq`와 canonical index를 분리해야 한다.
+- 현재 Questions parser/selector 구현은 아래 경계를 사용한다.
+  - `parseSeqToQuestionType(seq)`: `seq` 패턴 기반 `QuestionType` 판정
+  - `buildCanonicalQuestions(rows, locale)`: source row 출현 순서 기준 canonical `Question[]` 생성
+  - `findFirstScoringRow(rows)`: profile row를 제외한 `scoring1` 원본 행 조회
+  - `buildVariantQuestionBank(variantId, locale)`: locale-resolved `ResolvedQuestion[]` 생성
+  - `resolveVariantPreviewQ1(variantId, locale)`: Questions fixture 기반 `scoring1` preview 후보 생성
 - `seq`가 누락되었거나, 중복되었거나, 정책상 유효하지 않으면 fixture validation을 실패로 처리해야 한다. 최종 consumer는 배열 순서만 신뢰하며 `seq` 존재를 가정하면 안 된다.
 - **테스트**: fixture 파일은 unit/e2e 테스트의 유일한 variant 소스다. Google Sheets 실연동 없이 전체 테스트 스위트가 실행 가능해야 한다.
+- **테스트 앵커**: `tests/unit/question-source-parser.test.ts`, `tests/unit/variant-question-bank.test.ts`
 - fixture source와 exported runtime registry의 구조가 builder 계약과 어긋나면 구현 오류로 처리한다.
 
 ### 2.8 Preview Migration Contract
 
 - 이 계약은 TODO가 아니라 **명시적 migration contract** 로 유지해야 한다.
 - 다음 단계에서 preview payload source는 fixture inline bridge에서 Questions의 **first scoring question (`scoring1`)** 으로 교체해야 한다.
+- 교체 후보 경계는 `resolveVariantPreviewQ1(variantId, locale)`다. 이 함수는 profile row를 건너뛰고 Questions fixture의 첫 scoring row를 반환하지만, 현재 live landing preview는 아직 `resolveTestPreviewPayload()` inline bridge 경로를 사용한다.
 - 교체 단계에서는 Landing metadata와 Questions 사이의 variant 존재 및 first scoring question 존재 검증을 추가해야 한다.
 - migration 이후에도 exported/runtime consumer shape(`previewQuestion`, `answerChoiceA`, `answerChoiceB`)는 변경하지 않는다.
 - 교체에 따른 변경 범위는 resolver/builder 내부로만 닫혀야 하며, landing/test/blog consumer 호출 시그니처 변경을 금지한다.
@@ -261,6 +281,7 @@
 - landing preview의 `previewQuestion`, `answerA`, `answerB`는 **해당 variant의 first scoring question (`scoring1`)** 에서 파생한다.
 - landing preview에서는 profile 문항을 사용하지 않는다.
 - 현재 fixture inline bridge는 temporary bridge일 수 있으나 canonical target은 항상 `scoring1`이다.
+- 현재 구현에는 Questions fixture 기반 preview selector `resolveVariantPreviewQ1()`가 존재한다. 단, landing UI와 `buildLandingTestQuestionBank()`의 live Q1 경로는 하위 호환을 위해 아직 `resolveTestPreviewPayload()`를 사용한다.
 
 #### 2.9.7 Durable staged entry and fresh-run commit
 
