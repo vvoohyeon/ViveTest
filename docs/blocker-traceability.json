@@ -332,8 +332,20 @@
   {
     "blocker": 30,
     "kind": "automated_assertion",
+    "file": "tests/unit/test-lazy-validation.test.ts",
+    "assertionId": "assertion:B30-runtime-lazy-validation-cache-unit"
+  },
+  {
+    "blocker": 30,
+    "kind": "automated_assertion",
     "file": "tests/unit/variant-registry-runtime-integrity.test.ts",
     "assertionId": "assertion:B30-runtime-lazy-validation-unavailable-guard-runtime-wiring"
+  },
+  {
+    "blocker": 30,
+    "kind": "automated_assertion",
+    "file": "tests/unit/variant-registry-runtime-integrity.test.ts",
+    "assertionId": "assertion:B30-runtime-lazy-validation-route-entry-resolver-wiring"
   },
   {
     "blocker": 30,

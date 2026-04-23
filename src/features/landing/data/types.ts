@@ -11,6 +11,5 @@ export type {
   LocalizedStringList,
   LocalizedText,
   TestPreviewPayload,
-  VariantRegistry,
-  VariantRegistrySourceCard
+  VariantRegistry
 } from '@/features/variant-registry';

@@ -32,13 +32,13 @@
 - share URL 생성 UI/로직 (URL 구조 설계는 포함)
 - 닉네임 입력
 - 프레임워크/라우팅/i18n 기반 구조 재설계 (랜딩 단계 계승)
-- telemetry 이벤트 계약 및 payload schema 정의
+- telemetry 이벤트 계약 및 payload schema 재정의 — 랜딩 phase 이벤트(`landing_view`, `card_answered`)와 전역 payload schema는 Landing Requirements §12 / `requirements.md` REQ-F-016이 소유한다. 본 문서의 §9(Telemetry Contract)는 test-flow 전용 hook 위치, canonical index 의미, cross-phase 정합성 계약을 추가 정의하는 것으로 한정된다.
 - consent instruction 분기 UX (`ingress type + consent state + attribute` 조합 기반 instruction 메시지·divider·CTA set 결정, `OPTED_OUT + available` 딥링크 진입 시  warning note + [Keep Current Preference] 표시, `OPTED_OUT + available` 랜딩 진입 카탈로그 단계 비도달 처리 포함)
   — Landing Requirements §13.5 소유. 본 문서 구현 범위 외. `§6.1`은 route-level invalid-variant recovery를 소유하며,consent 관련 진입 분기는 §13.5 정책 매트릭스 계약을 따른다. shared implementation은 허용하되 ownership boundary는 유지한다.
 
 ### 1.3 Locked Decisions
 
-본 문서는 이번 Phase 구현 및 QA 기준 SSOT다. `requirements.md`와 충돌 시 본 문서 우선.  
+본 문서는 이번 Phase 구현 및 QA 기준 SSOT다. `docs/requirements.md`와 충돌 시 본 문서 우선. 
 특정 구현 경로를 불필요하게 고정하는 과도한 코드 수준 지시는 포함하지 않는다.  
 **UI 상태 / 복원 / 예외 처리 / fallback UX**는 도메인 로직과 동등한 1급 요구사항이다.
 
@@ -71,21 +71,18 @@
 
 - Google Sheets는 **랜딩 카드 메타데이터와 테스트 콘텐츠(Questions / Results)의 단일 소스**다.
 - 단, scoring schema definition 자체는 Google Sheets가 아니라 **code-owned canonical schema registry / variant → schema mapping**이 소유한다.
-- 현재 code-owned schema registry 구현은 `src/features/test/schema-registry.ts`다. `ScoringLogicType = 'mbti' | 'egtt'`로 시작하며, variant별 schema를 중복 정의하지 않고 `logicType -> schema template`, `variant -> logicType` 매핑으로 최종 `ScoringSchema`를 생성한다.
-- 현재 registry 기준 EGTT는 `axisCount=1`, axis `E/T`, qualifier field `gender`, qualifier token values `['M', 'F']`, `tokenLength=1`을 사용한다. 이는 runtime/result token 계약이며 `Male/Female` 같은 표시 텍스트는 콘텐츠 레이어 소유다.
+- 현재 code-owned schema registry: `src/features/test/schema-registry.ts`. `ScoringLogicType = 'mbti' | 'egtt'`. EGTT: `axisCount=1`, axis `E/T`, qualifier `gender`, values `['M','F']`, `tokenLength=1`.
 - 따라서 **`Schema.xlsx`와 같은 4번째 spreadsheet source는 도입하지 않는다**. schema authoring을 위한 별도 spreadsheet SSOT는 허용하지 않는다.
 - 현재 단계의 fixture-backed source는 역할별로 분리한다.
-  - Landing/card metadata 및 temporary inline preview bridge: `src/features/variant-registry/source-fixture.ts`
-  - Questions row fixture: `src/features/test/fixtures/questions/**` (`sheet name = variantId` 구조를 variant별 파일로 모사)
-- Questions fixture row는 Sheets의 snake_case locale 컬럼(`question_EN`, `answerA_EN` 등)을 `LocalizedText` 기반 `question`, `answerA`, `answerB` object로 정규화한다. `pole_A` / `pole_B`는 runtime question contract의 축 필드인 `poleA` / `poleB`로 유지하며, profile row에서는 `undefined`일 수 있다.
+  - Landing/card metadata: `src/features/variant-registry/source-fixture.ts`
+  - Questions row fixture 및 preview Q1 source: `src/features/test/fixtures/questions/**` (`sheet name = variantId` 구조를 variant별 파일로 모사)
+  - Results row fixture: `src/features/test/fixtures/results/**` (row-level `variantId` 식별 경계만 모사. Result content schema는 Phase 9 소유)
+- Questions raw row는 `src/features/variant-registry/sheets-row-normalizer.ts`가 Sheets의 snake_case locale 컬럼(`question_EN`, `answerA_EN` 등)을 `LocalizedText` 기반 `question`, `answerA`, `answerB` object로 정규화한다. `pole_A` / `pole_B`는 runtime question contract의 축 필드인 `poleA` / `poleB`로 변환하며, profile row에서는 `undefined`일 수 있다. 현재 dev fixture는 이 정규화 후 shape를 variant별 파일로 모사한다.
 - source 교체가 일어나더라도 consumer 경계는 resolver/selector로 유지한다.
-- 현재 Questions source parser 경계는 `src/features/test/question-source-parser.ts`다. `parseSeqToQuestionType()`는 `q.*`를 profile, 순수 숫자를 scoring으로 판정하고, `buildCanonicalQuestions()`는 source row 출현 순서 기준 1-based `QuestionIndex`를 부여한다.
-- 현재 variant-keyed question bank 경계는 `src/features/test/question-bank.ts`의 `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()`다. 이는 Questions fixture에서 locale-resolved runtime question bank와 `scoring1` preview 후보를 제공하는 신규 selector이며, live route wiring은 아직 이 경계를 소비하지 않는다.
-- 현재 단계의 landing preview payload source of truth는 fixture inline bridge다. 이는 영구 구조가 아니라 **temporary bridge** 이며, canonical runtime consumer shape만 유지한 채 source만 임시 inline 상태로 둔다.
-- 현재 runtime/export 산출물은 **`variant-registry.generated.ts`** 단일 entrypoint다. builder는 fixture 또는 향후 sync loader가 읽은 source + code-owned schema registry를 canonical runtime registry shape로 변환하고, consumer는 resolver 경계를 통해 이 인터페이스만 사용한다.
-- generated registry에는 variant별 **최종 resolved schema**가 포함될 수 있으나, schema의 authoring source는 Sheets가 아니라 code-owned canonical registry다.
-- 현재 runtime registry는 `landingCards`와 `testPreviewPayloadByVariant`를 분리 보관한다. Landing Card 메타데이터는 `attribute`, `durationM`, `sharedC`, `engagedC` 기준으로 관리한다.
-- source fixture용 타입과 runtime/export용 타입은 명시적으로 분리해야 한다. Landing registry source 타입에는 `seq`와 이번 단계 한정 inline preview bridge가 존재할 수 있고, Questions source row 타입에는 원본 `seq`와 localized text object가 존재한다. runtime/export 타입에는 source 전용 `seq`가 전파되면 안 된다.
+- Questions parser 경계: `question-source-parser.ts`. question bank: `question-bank.ts` (`buildVariantQuestionBank()`, `resolveVariantPreviewQ1()`). 상세는 `docs/project-analysis.md §5.3`.
+- 현재 단계의 landing preview payload source of truth는 Questions fixture의 first scoring question(`scoring1`)이다. canonical runtime consumer shape만 유지한 채 source row inline preview field는 사용하지 않는다. `source-fixture.ts`는 Landing metadata-only 경계이며, builder가 외부에서 주입받은 Questions source rows로 `testPreviewPayloadByVariant`를 만들고 resolver가 그 registry store를 노출한다.
+- runtime/export 산출물은 `variant-registry.generated.ts` 단일 entrypoint. runtime registry는 `landingCards` / `testPreviewPayloadByVariant` 분리 보관. Landing Card 메타: `attribute`, `durationM`, `sharedC`, `engagedC` 기준.
+- source fixture용 타입과 runtime/export용 타입은 명시적으로 분리해야 한다. Landing registry source 타입에는 `seq`가 존재할 수 있고, Questions source row 타입에는 원본 `seq`와 localized text object가 존재한다. runtime/export 타입에는 source 전용 `seq`가 전파되면 안 된다.
 - landing / test / blog consumer는 raw fixture shape를 직접 읽지 않는다. preview payload는 `resolveTestPreviewPayload(variant)` 같은 단일 resolver/selector 경계로만 주입하며, `card.test.previewQuestion` 같은 fixture 내부 shape 직접 참조를 금지한다.
 - 통합 메타 3종의 data key는 항상 `durationM`, `sharedC`, `engagedC`만 사용한다. UI 라벨만 콘텐츠 타입별로 분기하며, runtime에서 test/blog 전용 메타 필드명으로 역변환하는 것을 금지한다.
 
@@ -108,32 +105,34 @@
   - `{n}` 숫자만 → `questionType = 'scoring'`
   - 모든 `q.*` row는 profile question으로 해석한다.
 - 현재 dev parser 구현은 `parseSeqToQuestionType(seq)`이며, 알 수 없는 `seq` 패턴은 파싱 오류로 처리한다.
-- 실제 Sheets locale 컬럼은 `question_EN`, `question_KR`, `answerA_EN`, `answerB_EN` 같은 snake_case suffix 형식이다. 코드 fixture는 이를 `LocalizedText` key(`en`, `kr`, ...)로 보존하며, 신규 locale 도입 시 row shape를 늘리지 않고 localized key만 추가한다.
+- 실제 Sheets locale 컬럼은 `question_EN`, `question_KR`, `answerA_EN`, `answerB_EN` 같은 snake_case suffix 형식이다. `parseLocaleColumnKey()`가 suffix 대소문자 매핑을 소유하며 `EN/KR/ZS/...`를 runtime locale key(`en`, `kr`, `zs`, ...)로 변환한다. `normalizeQuestionSheetRow(rawRow, supportedLocales)`는 지원 locale 값만 `LocalizedText` key로 보존하며, 신규 locale 도입 시 row shape를 늘리지 않고 localized key만 추가한다.
+- normalizer 결과인 `NormalizedQuestionSourceRow`는 `QuestionSourceRow` parser input shape를 타입으로 참조한다. `tests/unit/sheets-row-normalizer.test.ts`는 `satisfies ReadonlyArray<QuestionSourceRow>`와 `buildCanonicalQuestions()` 호출로 parser 호환성을 타입/런타임 양쪽에서 고정한다.
 - Questions source row는 source row 순서를 보존해 정규화해야 한다. sync 후 canonical `questions[]`는 **source row 순서 기준 1-based canonical index**로 재번호한다.
   - 예: `q.1, q.2, 1, 2, 3` → canonical `questions[]` index `1, 2, 3, 4, 5`
 - 현재 dev canonical 변환 구현은 `buildCanonicalQuestions(rows, locale)`이며, source row 순서를 canonical index로 재번호하고 profile row의 `poleA` / `poleB` `undefined` 상태를 보존한다. 표시용 question/answer 텍스트는 runtime question-bank selector가 별도 `ResolvedQuestion`으로 제공한다.
 - canonical index는 storage, qualifier mapping, schema validation, telemetry의 단일 기준축이다.
 - profile question도 canonical `questions[]`에 포함한다. 별도 profile 배열 분리를 허용하지 않는다.
-- landing preview payload의 최종 canonical target은 Questions source의 **first scoring question (`scoring1`)** 이다. 다만 현재 단계에서는 source of truth를 fixture inline bridge로 유지할 수 있으며, 이 예외는 다음 단계 migration 전용 temporary bridge로만 해석한다.
+- landing preview payload source는 Questions source의 **first scoring question (`scoring1`)** 이다.
 - 현재 단계의 exported/runtime preview consumer shape는 `previewQuestion`, `answerChoiceA`, `answerChoiceB`로 고정한다. source fixture authoring detail이 무엇이든 consumer는 이 canonical shape만 사용해야 한다.
-- 다음 단계에서 preview source를 Questions `scoring1` row로 교체하더라도 consumer 변경이 없도록 preview payload는 resolver/selector 경계에서만 주입해야 한다. profile row는 preview source가 아니다.
-- 언어 컬럼 누락 시: default locale fallback 의무 (FRS REQ-F-026 기준).
+- preview payload는 resolver/selector 경계에서만 주입해야 한다. profile row는 preview source가 아니다.
+- 언어 컬럼 누락 시: default locale fallback 의무 (FRS REQ-F-026 기준). normalizer는 누락 locale과 빈 문자열 값을 결과 key로 만들지 않으며, locale fallback은 기존 resolver/parser display path가 담당한다.
 
 ### 2.3 Deployment Pipeline
 
 **Production**:
 1. `main` branch push → GitHub Action 자동 트리거
 2. Action은 `GOOGLE_SHEETS_ID_LANDING`, `GOOGLE_SHEETS_ID_QUESTIONS`, `GOOGLE_SHEETS_ID_RESULTS`를 읽어 3개 source를 각각 로드한다.
-3. Questions workbook은 sheet 단위로 읽으며, sheet name을 `variantId`로 해석한다.
+3. Questions workbook은 sheet 단위로 읽으며, sheet name을 `variantId`로 해석한다. 각 raw row는 `normalizeQuestionSheetRow(rawRow, locales)`로 parser-compatible Questions row shape로 변환한 뒤 builder/parser 경계에 전달한다.
 4. builder는 3개 source와 code-owned canonical schema registry를 결합해 cross-source 검증을 실행한다 (§2.4 기준).
-5. 검증 통과 시: `variant-registry.generated.ts` 갱신 → Vercel 배포 트리거
+5. 검증 통과 시: `serializeRegistryToFile(registry)`로 deterministic object-literal `variant-registry.generated.ts` 파일 문자열을 생성해 갱신 → Vercel 배포 트리거
 6. 검증 실패 시: 파일 커밋 없음. last-known-good 파일 유지. Action 로그에 불일치 사유 기록.
 
-**Local Dev**:
-- Landing/card fixture-backed 구현은 `src/features/variant-registry/source-fixture.ts` -> builder -> `loadVariantRegistry()` 경로로 canonical runtime registry를 구성한다. `loadVariantRegistry()`는 generated production registry와 fixture dev registry가 같은 `VariantRegistry` 시그니처를 공유하도록 만든 인터페이스이며, ADR-D 확정 전에는 cached fixture-built registry만 반환한다.
-- `variant-registry.generated.ts`는 Sync 스크립트가 생성할 production artifact entrypoint로 유지하며, 파일 상단에 generated/direct-edit 금지 주석을 둔다. 현재 파일의 runtime 내용은 fixture build bridge를 유지한다.
-- Questions fixture는 `src/features/test/fixtures/questions/**` 아래 variant별 파일로 유지하며, `index.ts`의 `questionSourceFixture` / `getVariantQuestionRows()` 경계를 통해 sheet-name 기반 Questions source를 모사한다.
-- fixture layer는 Landing / Questions / Results 3-source topology와 code-owned schema registry 결합을 모사해야 한다.
+**Runtime source split / Local Dev**:
+- `loadVariantRegistry()`는 generated production registry와 fixture dev/test registry가 같은 `VariantRegistry` 시그니처를 공유하도록 만든 인터페이스다. production은 `variant-registry.generated.ts`의 static generated registry를 읽고, dev/test는 metadata-only `src/features/variant-registry/source-fixture.ts`와 `questionSourceFixture`를 builder에 주입해 canonical runtime registry를 구성한다.
+- `variant-registry.generated.ts`는 Sync 스크립트가 생성할 production artifact entrypoint로 유지하며, 파일 상단에 generated/direct-edit 금지 주석을 둔다. 현재 파일은 fixture + builder 출력으로 재생성된 static object literal이며, runtime에 fixture를 다시 import해 조립하지 않는다.
+- `src/features/variant-registry/registry-serializer.ts`는 `VariantRegistry` 객체를 generated file 문자열로 바꾸는 pure boundary다. 기존 generated header와 `variantRegistryGenerated: VariantRegistry` export 구조를 유지하고 plain object key를 알파벳 순으로 정렬한다. 파일 쓰기, Google Sheets API 호출, GitHub Action wiring은 이 serializer의 책임이 아니다.
+- Questions fixture는 `src/features/test/fixtures/questions/**` 아래 variant별 파일로 유지하며, `index.ts`의 `questionSourceFixture` / `getVariantQuestionRows()` 경계를 통해 sheet-name 기반 Questions source를 모사한다. registry builder는 이 fixture를 직접 import하지 않고 `questionSourcesByVariant` 파라미터로만 받는다.
+- fixture layer는 Landing / Questions / Results 3-source topology와 code-owned schema registry 결합을 모사한다. 현재 Results fixture는 `qmbti`, `rhythm-b`, `energy-check`, `egtt`의 row-level `variantId`만 제공한다.
 - source 교체 범위는 registry layer 내부에 한정되며, consumer 호출 시그니처는 유지한다.
 
 **알림 메커니즘**: Action 로그 확인은 오퍼레이터 책임. 별도 알림 계약을 문서에서 정의하지 않는다 (Decision 6).
@@ -142,7 +141,8 @@
 
 **1차 방어선 — Action-level Blocking**:
 - 3개 source 전체 cross-source 검증을 실행한다.
-- 현재 구현된 `validateCrossSheetIntegrity(landingTestVariants, questionVariants)`는 Landing test variant set과 Questions workbook sheet-name set만 비교하는 pure 2-source slice다. 반환값은 `{ ok, missingInQuestions, extraInQuestions }`이며, blog variant는 caller가 `landingTestVariants`에서 제외해야 한다.
+- 현재 구현된 `validateCrossSheetIntegrity(landingTestVariants, questionVariants, resultsVariants?)`는 Landing test variant set, Questions workbook sheet-name set, Results row-level `variantId` set을 비교하는 pure helper다. 반환값은 `{ ok, missingInQuestions, extraInQuestions, missingInResults, extraInResults }`이며, `resultsVariants` 생략/`undefined` 시 기존 2-source caller와 동일하게 Landing↔Questions 정합성만 `ok`에 반영하고 Results 배열은 `[]`로 유지한다.
+- blog variant는 caller가 `landingTestVariants`에서 제외해야 한다. runtime fixture 경로는 Landing source에서 `type='test'`인 row만 `landingTestVariants`로 전달한다.
 - 불일치 1건이라도 존재하면 파일을 커밋하지 않는다. last-known-good `variant-registry.generated.ts`를 유지한다.
 - **partial activation 금지**: 일부 variant만 반영하는 부분 커밋을 허용하지 않는다.
 - cross-source 정합성의 기준축은 아래 3자 일치다.
@@ -154,7 +154,8 @@
 **2차 방어선 — Runtime Variant-scoped Fallback**:
 - 런타임 초기화 시 cross-source 검증을 재실행한다. 1차 방어선과 동일 검증 함수를 사용한다.
 - Landing source에만 존재하고 Questions workbook sheet set에 없는 variant → 해당 카드 `hide` 강등.
-- Questions workbook sheet set 또는 Results source에만 존재해 3자 정합성이 깨진 variant → 해당 variant 진입 차단 → §6.1 에러 복구 페이지.
+- Questions workbook sheet set 또는 Results source에만 존재해 3자 정합성이 깨진 variant, 또는 Questions에는 있으나 Results row가 없는 variant → 해당 variant 진입 차단 → §6.1 에러 복구 페이지.
+- 현재 fixture runtime은 `loadVariantRegistry()` 초기화 경로에서 3-source 검증을 실행하고 `blockedRuntimeVariants`를 구성한다. test route는 이 blocked set을 확인한 뒤 `resolveLandingTestEntryCardByVariant()`를 사용하므로, runtime-blocked variant는 `notFound()`가 아니라 `/test/error?variant={variantId}`로 이동한다. true route/card miss는 기존처럼 `notFound()` 처리한다.
 - 불일치 variant만 차단하며, 나머지 variant는 정상 서비스한다.
 
 ### 2.5 Runtime Lazy Validation Contract
@@ -164,6 +165,8 @@
 - 앱 초기화 시 전체 variant를 일괄 검증하지 않는다.
 - 각 variant가 실제로 **첫 진입 요청**될 때 해당 variant에 대한 검증을 1회 실행한다.
 - 첫 검증 이후: 동일 variant는 캐싱된 결과를 사용한다.
+- 현재 구현 경계는 `getLazyValidatedVariant(variantId)`이며, 결과는 모듈 수준 `Map`에 variant별로 캐싱된다. 실패 결과도 해당 variant에만 캐싱되며 다른 variant 서비스에 영향을 주지 않는다.
+- 테스트 격리를 위해 `clearLazyValidationCacheForTesting()`가 모듈 수준 cache/reset 전용 helper로 제공된다. production route/resolver는 이 helper를 import하지 않는다.
 - 검증 실패 시: session/run context 생성 없이 해당 variant 진입을 즉시 차단 → §6.1 에러 복구 페이지.
 - Landing 카탈로그 렌더링 시점에는 lazy validation이 실행되지 않는다. 랜딩에서는 `attribute`와 enterable 계약 기준으로만 카드 표시 여부를 결정한다.
 - lazy validation은 cross-source 정합성이 통과한 variant에 대해, canonical `questions[]`, resolved schema, preview derivation target(`scoring1`)을 함께 검증한다.
@@ -180,6 +183,9 @@
 - Questions workbook sheet set에 존재하고 Results source variant set에 없는 variant
   → 해당 variant 진입 차단 → §6.1 에러 복구 페이지.
   카탈로그 가시성은 `attribute` 값을 유지한다.
+- Results source variant set에만 존재하는 variant
+  → 해당 variant 진입 차단 → §6.1 에러 복구 페이지.
+  Landing catalog row가 없으므로 별도 `attribute` 강등은 발생하지 않는다.
 - 불일치 variant만 처리하며, 나머지 variant는 정상 서비스한다.
 
 **`unavailable: true` 레거시 필드 처리**:
@@ -188,9 +194,10 @@
 - 신규 source 구성에서는 `attribute` 컬럼을 단일 소스로 사용한다.
 
 **검증 범위**:
-- `validateCrossSheetIntegrity()`의 현재 구현 범위는 Landing test variant set과 Questions sheet-name set의 2-source 정합성이다. 런타임 lazy validation의 검증 대상은
-  `variant-registry.generated.ts`가 노출하는 runtime registry 데이터에 한정한다.
-- Results source까지 포함한 3-source 정합성 검증과 runtime 호출부 연결은 후속 구현 범위다.
+- `validateCrossSheetIntegrity()`의 현재 구현 범위는 optional Results source를 포함한 3-source 정합성이다. 기존 2-source 호출 경로는 backward compatibility 계약으로 유지한다.
+- 런타임 lazy validation의 검증 대상은 `variant-registry.generated.ts`/fixture runtime registry가 노출하는 variant schema와 Questions-derived canonical question data에 한정한다.
+- lazy validation 실패 stub은 `/[locale]/test/error?variant=...` query를 표시한다. query가 없으면 고정 메시지만 표시한다.
+- `debug-sample` Questions fixture는 `EVEN_AXIS_QUESTION_COUNT`를 의도적으로 발생시키는 테스트 전용 오류 fixture이며, lazy validation 실패/복구 경로 테스트에서 사용한다.
 - i18n 메시지 파일(`src/messages/`)은 검증 대상 외다.
 
 ### 2.6 In-progress Session Protection
@@ -203,229 +210,56 @@
 ### 2.7 Fixture Fallback Policy
 
 - 현재 단계의 canonical fixture layer는 단일 파일이 아니라 source별 경계로 분리한다.
-  - Landing/card metadata 및 inline preview bridge: `src/features/variant-registry/source-fixture.ts`
-  - Questions rows: `src/features/test/fixtures/questions/**`
+  - Landing/card metadata: `src/features/variant-registry/source-fixture.ts`
+  - Questions rows 및 preview Q1 source: `src/features/test/fixtures/questions/**`
+  - Results variant identity rows: `src/features/test/fixtures/results/**`
 - source fixture는 Landing / Questions / Results 3-source topology와 code-owned schema registry 조합을 모사해야 한다.
-- inline preview bridge는 Landing registry source fixture에만 유지할 수 있으며, 이는 이번 단계 한정 temporary bridge다. preview consumer 노출은 `resolveTestPreviewPayload()` 경계로 제한하고, landing UI / test runtime / blog runtime 어디에서도 raw fixture preview field를 직접 읽어서는 안 된다.
-- preview bridge의 canonical target은 source row의 first row가 아니라 **first scoring question (`scoring1`)** 이다. 다음 단계에서는 Questions `scoring1` row source로 교체하되 consumer shape는 유지해야 한다.
+- Results fixture는 Result section content schema를 정의하지 않고 row-level `variantId` 식별 경계만 제공한다. 현재 testable set은 `qmbti`, `rhythm-b`, `energy-check`, `egtt`다.
+- enterable Questions fixture 중 `qmbti`, `energy-check`, `egtt`는 even-count axis를 해소하기 위해 `Q_placeholder_*` scoring row를 추가했다. `rhythm-b`는 모든 axis가 이미 odd-count라 변경하지 않았다. `debug-sample`은 B30 lazy-validation failure 검증을 위한 의도적 `EVEN_AXIS_QUESTION_COUNT` fixture로 유지한다.
+- preview source는 Questions의 **first scoring question (`scoring1`)** 이다. preview consumer 노출은 `resolveTestPreviewPayload()` 경계로 제한하고, landing UI / test runtime / blog runtime 어디에서도 raw fixture preview field를 직접 읽어서는 안 된다.
+- source row의 first row나 profile row는 preview source가 아니다. consumer shape는 `previewQuestion`, `answerChoiceA`, `answerChoiceB`로 유지한다.
+- builder는 caller가 주입한 `questionSourcesByVariant[variant]`에서 `findFirstScoringRow()`를 적용해 `testPreviewPayloadByVariant`를 구성한다. builder 내부에는 Questions fixture direct import가 없으며, Landing source row의 `previewQuestion` / `answerA` / `answerB` inline field는 제거되었고, `src/features/landing/data`의 raw fixture compatibility export/file도 제거되었다.
 - `seq`는 source fixture 입력 전용이다. registry builder는 **`seq -> sort -> drop`** 순서를 강제해야 하며, Questions parser는 source row order 보존과 canonical index 재번호를 수행한 뒤 runtime question model에서는 source `seq`와 canonical index를 분리해야 한다.
-- 현재 Questions parser/selector 구현은 아래 경계를 사용한다.
-  - `parseSeqToQuestionType(seq)`: `seq` 패턴 기반 `QuestionType` 판정
-  - `buildCanonicalQuestions(rows, locale)`: source row 출현 순서 기준 canonical `Question[]` 생성
-  - `findFirstScoringRow(rows)`: profile row를 제외한 `scoring1` 원본 행 조회
-  - `buildVariantQuestionBank(variantId, locale)`: locale-resolved `ResolvedQuestion[]` 생성
-  - `resolveVariantPreviewQ1(variantId, locale)`: Questions fixture 기반 `scoring1` preview 후보 생성
-- `seq`가 누락되었거나, 중복되었거나, 정책상 유효하지 않으면 fixture validation을 실패로 처리해야 한다. 최종 consumer는 배열 순서만 신뢰하며 `seq` 존재를 가정하면 안 된다.
 - **테스트**: fixture 파일은 unit/e2e 테스트의 유일한 variant 소스다. Google Sheets 실연동 없이 전체 테스트 스위트가 실행 가능해야 한다.
 - **테스트 앵커**: `tests/unit/question-source-parser.test.ts`, `tests/unit/variant-question-bank.test.ts`
 - fixture source와 exported runtime registry의 구조가 builder 계약과 어긋나면 구현 오류로 처리한다.
 
-### 2.8 Preview Migration Contract
+### 2.8 Preview Migration Contract (완료)
 
 - 이 계약은 TODO가 아니라 **명시적 migration contract** 로 유지해야 한다.
-- 다음 단계에서 preview payload source는 fixture inline bridge에서 Questions의 **first scoring question (`scoring1`)** 으로 교체해야 한다.
-- 교체 후보 경계는 `resolveVariantPreviewQ1(variantId, locale)`다. 이 함수는 profile row를 건너뛰고 Questions fixture의 첫 scoring row를 반환하지만, 현재 live landing preview는 아직 `resolveTestPreviewPayload()` inline bridge 경로를 사용한다.
-- 교체 단계에서는 Landing metadata와 Questions 사이의 variant 존재 및 first scoring question 존재 검증을 추가해야 한다.
+- preview payload source는 Landing source의 legacy preview fields에서 Questions의 **first scoring question (`scoring1`)** 으로 교체 완료되었다.
+- 교체 완료 경계: builder가 주입된 Questions source rows에서 profile row를 건너뛰고 첫 scoring row를 `testPreviewPayloadByVariant`에 투영하며, `resolveTestPreviewPayload()`는 이 registry store를 소비한다. `resolveVariantPreviewQ1(variantId, locale)`는 Questions-backed `scoring1` projection helper로 유지된다.
+- `buildVariantQuestionBank(variantId, locale)`는 live test runtime에 연결되어 locale-resolved Questions fixture를 사용한다.
+- Landing metadata와 Questions 사이의 variant 존재 및 first scoring question 존재 검증은 lazy validation 및 cross-source fallback 경계에서 수행한다.
 - migration 이후에도 exported/runtime consumer shape(`previewQuestion`, `answerChoiceA`, `answerChoiceB`)는 변경하지 않는다.
 - 교체에 따른 변경 범위는 resolver/builder 내부로만 닫혀야 하며, landing/test/blog consumer 호출 시그니처 변경을 금지한다.
 
-### 2.9 Latest Confirmed Policy Sync (Authoritative)
+### 2.9 확정 정책 참조 포인터
 
-> 이 섹션은 최신 확정 정책의 요약이 아니라 **현재 문서의 상세 SSOT**다. 아래 항목과 이후 섹션이 충돌하면 이 섹션을 우선한다.
+> 아래 항목들은 본 문서의 상세 섹션에서 SSOT로 정의된다. §2.9는 독립 정책 텍스트를 중복 유지하지 않는다.
 
-#### 2.9.1 Source topology
-
-- source topology는 `Landing`, `Questions`, `Results`의 **3개 개별 Spreadsheet**를 전제로 한다.
-- GitHub Secret은 아래 4개 환경값을 사용한다.
-  - `GOOGLE_SHEETS_SA_KEY`
-  - `GOOGLE_SHEETS_ID_LANDING`
-  - `GOOGLE_SHEETS_ID_QUESTIONS`
-  - `GOOGLE_SHEETS_ID_RESULTS`
-- scoring schema용 `Schema.xlsx` 같은 **4번째 source는 도입하지 않는다**. schema는 code-owned canonical registry가 소유한다.
-
-#### 2.9.2 Questions source structure
-
-- Questions Spreadsheet에서는 **sheet name 자체가 variant ID**다.
-- Questions source에는 질문 row만 저장한다.
-- 아래 정보는 Questions source에 두지 않는다.
-  - `axisCount`
-  - `binary_majority | scale`
-  - variant별 scoring schema 본문
-
-#### 2.9.3 Question type normalization
-
-- Questions source에 `kind` 컬럼은 추가하지 않는다.
-- sync parser는 `seq` 패턴만으로 `questionType`을 결정한다.
-  - `q.{n}` → `profile`
-  - 숫자 `{n}` → `scoring`
-- 과거의 "`q.1`만 profile" 해석은 폐기한다. 앞으로는 **`q.*` 전체가 profile 문항군**이다.
-
-#### 2.9.4 Canonical normalization
-
-- source `seq`는 편집용 원본 표현으로 유지한다.
-- sync 후 canonical `questions[]`는 **source 출현 순서 기준 1-based canonical index**로 재번호한다.
-- canonical index는 아래의 단일 기준축이다.
-  - storage
-  - qualifier mapping
-  - schema validation
-  - telemetry
-  - landing pre-answer binding
-- source `seq`와 runtime canonical index는 의도적으로 분리한다.
-
-#### 2.9.5 Numbering policy
-
-- `Q1`, `Q2`는 **scoring order 기준**이다.
-- profile 문항은 canonical `questions[]`에 포함되지만 UI의 `Q 번호` 체계에서는 제외한다.
-- 아래 세 축은 서로 다른 개념으로 유지한다.
-  - canonical index
-  - scoring order
-  - user-facing `Qn`
-
-#### 2.9.6 Landing preview derivation
-
-- landing preview의 `previewQuestion`, `answerA`, `answerB`는 **해당 variant의 first scoring question (`scoring1`)** 에서 파생한다.
-- landing preview에서는 profile 문항을 사용하지 않는다.
-- 현재 fixture inline bridge는 temporary bridge일 수 있으나 canonical target은 항상 `scoring1`이다.
-- 현재 구현에는 Questions fixture 기반 preview selector `resolveVariantPreviewQ1()`가 존재한다. 단, landing UI와 `buildLandingTestQuestionBank()`의 live Q1 경로는 하위 호환을 위해 아직 `resolveTestPreviewPayload()`를 사용한다.
-
-#### 2.9.7 Durable staged entry and fresh-run commit
-
-- landing A/B 선택 시 즉시 **durable staged entry**를 저장한다.
-- staged entry에는 최소 아래가 포함된다.
-  - `variant`
-  - `preAnswerChoice`
-  - `createdAtMs`
-  - `landingIngressFlag=true`
-- landing 단계에서는 provisional pre-answer를 **durable하게 저장하되 canonical index에는 아직 bind하지 않는다**.
-- runtime entry commit 시점에 first scoring question의 canonical index를 해석해 staged pre-answer를 해당 canonical index에 bind한다.
-- same-variant landing 재선택은 항상 **restart intent**다.
-- old active run은 **commit success 전까지 보존**한다.
-- commit success 시 새 run은 old active run의 response set을 상속하지 않고, **빈 response set + first scoring answer 1개 seed** 상태로 시작한다.
-- old active run replace는 **commit success 시점에만** 발생한다.
-
-#### 2.9.8 Automatic presentation / selector policy
-
-- landing ingress 이후 자동 제시는 old run이 아니라 **새로 seed된 response set 기준**으로 동작한다.
-- unanswered bucket 우선순위는 아래와 같다.
-  1. unanswered profile questions
-  2. unanswered scoring questions
-- bucket 내부 정렬은 아래를 따른다.
-  - profile: canonical 순서
-  - scoring: scoring order 순서
-- landing ingress에서 `scoring1`이 seed된 경우 `scoring1`은 **revisitable**이지만 auto-present 대상이 되면 안 된다.
-
-#### 2.9.9 Runtime presentation layer
-
-- profile 문항은 **overlay-only**다.
-- profile 최초 응답과 수정 모두 overlay flow로만 처리한다.
-- instruction CTA 이후 profile이 존재하면 instruction overlay shell을 재사용해 profile 단계로 전환한다.
-- instruction overlay가 닫힌 뒤 별도 새 popup을 다시 띄우는 구현은 금지한다.
-- profile 완료 후에만 scoring page 본문으로 진입한다.
-- profile 수정은 test page 상단 recap에서 다시 overlay flow로 진입한다.
-- profile edit overlay에서는 instruction 본문을 다시 노출하면 안 된다.
-
-#### 2.9.10 Entry flow
-
-- landing에서는 profile 문항을 묻지 않는다.
-- direct entry:
-  - profile이 있으면 instruction 뒤 profile overlay를 먼저 진행한다.
-  - profile이 없으면 본문에서 `scoring1`부터 시작한다.
-- landing ingress:
-  - landing에서 `scoring1`이 pre-answer된 상태로 진입한다.
-  - profile이 있으면 instruction 뒤 profile overlay를 먼저 진행한다.
-  - profile이 없으면 본문에서 `scoring2`부터 시작한다.
-- landing ingress의 핵심 결과:
-  - profile questions are asked first if present
-  - first automatically presented scoring question is `scoring2`
-  - `scoring1` remains revisitable but is not auto-presented
-
-#### 2.9.11 Progress policy
-
-- 기존의 "profile 문항을 main progress 계산에 포함" 정책은 폐기한다.
-- **main progress는 scoring questions only** 기준이다.
-- main progress 공식은 항상 `answered scoring count / total scoring count`다.
-- profile은 scoring 시작 전 통과해야 하는 **overlay-only prerequisite step**이다.
-- profile overlay 안에서는 별도의 local step 표현을 사용할 수 있으나 main progress와 섞지 않는다.
-- direct entry에서 profile이 있으면, profile 완료 후 `scoring1` 응답 전까지 main progress는 `0 completed` 상태다.
-- landing ingress에서는 seed된 `scoring1`이 main progress에 포함된다.
-- profile 수정 전후로 main scoring progress는 변하지 않는다.
-
-#### 2.9.12 Telemetry policy
-
-- profile 문항도 일반 질문과 동일하게 `question_answered`를 발화한다.
-- telemetry의 `questionIndex` / `question_index_1based`는 항상 **canonical index**다.
-- scoring order 기반 UI `Q1`, `Q2`는 telemetry payload에 싣지 않는다.
-- canonical index를 유지하는 이유는 storage / qualifier mapping / schema validation / landing pre-answer binding과 기준축을 통일하기 위해서다.
-
-#### 2.9.13 `attempt_start`
-
-- `attempt_start`는 route 진입 시점이나 instruction CTA 클릭 시점이 아니라, **instruction 이후 첫 runtime question이 실제로 렌더되는 시점**에 발화한다.
-- direct entry:
-  - first profile이 있으면 profile overlay 첫 질문 렌더 시
-  - 없으면 `scoring1` 렌더 시
-- landing ingress:
-  - first profile이 있으면 profile overlay 첫 질문 렌더 시
-  - 없으면 `scoring2` 렌더 시
-
-#### 2.9.14 Runtime state semantics
-
-- 아래 상태는 논리적으로 구분한다.
-  - instruction overlay state
-  - profile overlay state
-  - scoring page state
-  - profile edit overlay state
-- instruction overlay와 profile overlay는 **동일 overlay shell 재사용**을 전제로 한다.
-- profile edit overlay도 동일 계열 shell을 재사용할 수 있으나 instruction content는 절대 재노출하지 않는다.
-
-#### 2.9.15 Implementation interpretation
-
-- `seq` 패턴만으로 profile/scoring을 판정한다.
-- `q.*`는 모두 profile이며 canonical `questions[]`에 포함한다.
-- canonical index와 UI `Q 번호`는 분리한다.
-- landing preview는 항상 `scoring1`을 사용한다.
-- landing에서는 profile을 묻지 않는다.
-- landing A/B 선택은 즉시 durable staged entry를 만든다.
-- landing provisional answer는 landing 단계에서 canonical index에 아직 bind하지 않는다.
-- same-variant landing 재선택은 항상 restart intent다.
-- landing commit success 시 fresh response set을 만들고 first scoring answer만 seed한다.
-- landing ingress 후 자동 제시는 unanswered profile → unanswered scoring이다.
-- profile 문항은 overlay-only다.
-- main progress는 scoring questions only다.
-- telemetry question index는 canonical index 기준이다.
-- `attempt_start`는 instruction 뒤 첫 runtime question render 시점에 발화한다.
+| 정책 주제 | SSOT 위치 |
+|---|---|
+| Source topology (3개 Spreadsheet, Secrets) | §2.1, §2.2 |
+| Questions source 구조 (sheet name = variantId) | §2.2 |
+| Question type normalization (`q.*` = profile) | §2.2 |
+| Canonical index / scoring order / user-facing Q label 분리 | §3.8, §3.9 |
+| Landing preview derivation (`scoring1` 기준, profile 미사용) | §3.5, §6.2 |
+| Durable staged entry / fresh-run commit / old run 보존 | §3.4, §3.5 |
+| Automatic presentation ordering (profile 우선 → scoring) | §3.9, §4.2 |
+| Runtime presentation layer (4-state overlay partition) | §3.6, §4.1 |
+| Entry flow (landing ingress vs direct, profile overlay 순서) | §3.3, §3.4, §4.1 |
+| Progress policy (scoring-only, profile = prerequisite) | §3.9, §3.11 |
+| Telemetry policy (canonical index, `attempt_start` timing) | §9.1, §9.2 |
 
 #### 2.9.16 Open but non-blocking items
 
-- 아래 항목은 아직 열려 있으나 구현 착수를 막는 차단 항목은 아니다.
-  - profile recap의 최종 위치
-  - recap 텍스트의 정확한 포맷
-  - profile 수정 진입 시 overlay header/CTA copy
-  - profile 수정 완료 후 원래 scoring 문항으로 복귀하는 세부 UX
-  - profile overlay 안의 local step indicator 표현 방식
+아래 항목은 아직 열려 있으나 구현 착수를 막는 차단 항목은 아니다.
+- profile recap의 최종 위치 / recap 텍스트 포맷
+- profile 수정 진입 시 overlay header/CTA copy
+- profile 수정 완료 후 원래 scoring 문항으로 복귀하는 세부 UX
+- profile overlay 안의 local step indicator 표현 방식
 
-#### 2.9.17 Final confirmed recap
-
-- `seq=q.*`는 profile, 숫자 `n`은 scoring이다.
-- `Q1/Q2`는 scoring order 기준이다.
-- profile은 canonical `questions[]`에는 포함되지만 UI Q 번호와는 분리된다.
-- landing preview는 `scoring1`을 사용한다.
-- landing에서는 profile을 묻지 않는다.
-- landing A/B 선택은 즉시 durable staged entry를 저장한다.
-- landing ingress commit success 시 fresh response set을 만들고 first scoring answer만 seed한다.
-- old active run은 commit success 전까지 보존되고 success 시에만 대체된다.
-- landing ingress 후 자동 제시는 unanswered profile → unanswered scoring이다.
-- `scoring1`은 revisitable이지만 auto-present되지 않는다.
-- profile은 overlay-only이며 최초 응답/수정 모두 overlay flow다.
-- instruction shell은 profile 단계에서 재사용되지만 profile 수정 시 instruction 본문은 재노출하지 않는다.
-- main progress는 scoring questions only다.
-- profile은 main progress에서 제외되는 prerequisite overlay step이다.
-- landing ingress에서는 seed된 `scoring1`이 main progress에 포함된다.
-- profile 수정 전후로 main progress는 변하지 않는다.
-- profile도 `question_answered`를 발화한다.
-- telemetry question index는 canonical index를 유지한다.
-- `attempt_start`는 instruction 뒤 첫 runtime question render 시점에 발화한다.
-
----
 
 ## 3. Core Domain & UI Lifecycle Definitions
 
@@ -485,20 +319,9 @@
 
 **Runtime Entry Commit 정의**:
 - runtime entry commit은 UI 버튼 클릭 자체가 아니라 question runtime에 진입할 실행 문맥이 확정되는 도메인 이벤트다.
-- commit 시점에 아래가 함께 확정된다:
-  - variant / run binding
-  - 시작 question 위치 (`q.1` / `scoring1` / `scoring2` / resumed cursor)
-  - staged entry consume (Landing Ingress 경로)
-  - first scoring canonical index binding
-  - fresh response set 생성 및 first scoring seed
-  - old active run replace (Landing Ingress + active run 존재 시, commit success일 때만)
-  - new run activation
-  - landing flow 종료
+- commit 시점에 아래가 함께 확정된다: variant/run binding, 시작 question 위치, staged entry consume(Landing Ingress), first scoring canonical index binding, fresh response set 생성 + first scoring seed, old active run replace(Landing Ingress + commit success 시에만), new run activation, landing flow 종료.
 
-**Instruction과의 관계**:
-- instruction Start 클릭은 commit의 한 표현이다.
-- instruction 생략 경로에서도 동일한 commit 의미를 가져야 한다.
-- commit을 instruction Start 버튼 클릭만으로 정의하면 안 된다.
+**Instruction과의 관계**: instruction Start 클릭은 commit의 한 표현이다. instruction 생략 경로에서도 동일한 commit 의미를 가져야 한다. commit을 Start 버튼 클릭만으로 정의하면 안 된다.
 
 **Commit success / failure 분기**:
 - commit success: 확정된 실행 문맥으로 question runtime 진입.
@@ -532,14 +355,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - 만료 후 same-variant 진입은 Direct Cold(fresh entry)로 처리한다.
 - 만료 시 별도 경고 없이 자연스럽게 fresh entry로 전환한다.
 
-**복구 허용 조건**: staged entry는 아래 조건을 **모두** 만족할 때만 복구 대상이다.
-- same variant
-- same tab
-- eligible browser navigation (back / forward / refresh 포함)
-- unconsumed
-- unexpired (7분 미경과)
-
-**Commit 경계**:
+**복구 허용 조건**: same variant + same tab + eligible browser navigation + unconsumed + unexpired(7분 미경과) — 모두 충족해야 복구 대상.
 - runtime entry commit 전까지 landing flow 내부에서는 staged entry가 우선 상태다.
 - runtime entry commit 후에는 staged entry 우선 규칙이 종료되고 일반 active run 규칙이 적용된다.
 - landing 단계에서는 pre-answer를 durable하게 저장하지만 canonical question index에는 아직 bind하지 않는다.
@@ -571,10 +387,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 **instructionSeen 생명주기**:
 - **기록 시점**: Start 버튼 클릭 직후, test_start 진입 직전에 `instructionSeen:{variantId} = true`로 기록한다.
 - **재표시 조건**: `instructionSeen:{variantId}`가 `true`인 경우 해당 variant의 instruction을 표시하지 않는다. Direct Resume 경로는 이 규칙의 결과적 적용이다.
-- **리셋 조건** (아래 중 하나 발생 시 `instructionSeen:{variantId}`를 삭제한다):
-  - 테스트 완료 (result screen entry commit 완료 후, 응답 데이터 휘발과 동시에 리셋)
-  - Inactivity timeout 판정 (응답 데이터 휘발과 동시에 리셋)
-- **리셋하지 않는 조건**: 처음부터 다시 하기, variant switch — 진행 데이터만 휘발하고 `instructionSeen`은 유지한다.
+- **리셋 조건**: 테스트 완료(result screen entry commit 완료 후 휘발과 동시에 리셋), Inactivity timeout 판정(휘발과 동시에 리셋).
 
 ### 3.7 Session / Run Lifecycle Contract
 
@@ -584,10 +397,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - inactive timeout: 마지막 답변 후 30분 경과. 재진입 시점에 판정. 백그라운드 타이머 불필요.
 - error state(commit-failure, derivation-failure 등)에 머무는 동안에도 active run inactivity timeout은 freeze되지 않는다.
 
-**Active Run 판정 조건**:
-- 해당 variant의 진행 상태가 존재하고, 마지막 답변으로부터 30분이 경과하지 않았으며, run이 완료되지 않은 경우 → active run 유효.
-- 30분 초과 시 → timeout 처리. §6.8 휘발 계약 즉시 적용 후 Cold Start.
-
+**Active Run 판정 조건**: 해당 variant 진행 상태 존재 + 마지막 답변으로부터 30분 미경과 + run 미완료 시 → active run 유효. 30분 초과 시 → timeout 처리, §6.8 휘발 즉시 적용 후 Cold Start.
 > **판정 절차의 구현 세부사항 (조회 방법, timestamp 비교 로직 등)은 별도 구현/설계 문서에서 정의한다.**
 
 **Verification**:
@@ -601,10 +411,8 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - canonical `questions[]` 배열은 source row 순서를 보존한 뒤 1-based canonical index로 재번호한 결과다.
 
 **Scoring question 규칙**:
-- `poleA`와 `poleB`는 필수이며 서로 달라야 한다 (`poleA ≠ poleB`).
-- 정확히 1개의 scoring axis를 평가해야 한다. 축 소속은 question의 `poleA/poleB` 쌍이 schema axis의 `poleA/poleB`와 정방향 또는 역방향으로 일치하는 항목으로 결정된다.
-- 예: schema axis가 `E/I`이면 question `E/I`와 `I/E`는 같은 axis에 속한다. 이는 질문 방향 차이일 뿐 별도 axis가 아니다.
-- 하나의 scoring question이 다중 axis에 동시에 기여하면 안 된다. bidirectional 기준으로 둘 이상의 schema axis에 매칭되어서는 안 된다.
+- `poleA`와 `poleB`는 필수이며 서로 달라야 한다(`poleA ≠ poleB`). 정확히 1개의 scoring axis를 평가해야 한다.
+- 예: schema axis `E/I`에는 question `E/I`와 `I/E` 모두 포함. 하나의 scoring question이 다중 axis에 동시 기여하면 안 된다.
 
 **Profile question 규칙**:
 - scoring axis에 귀속되지 않는다. `poleA` / `poleB`는 optional이며, EGTT 같은 qualifier profile row에서는 `undefined`일 수 있다.
@@ -636,8 +444,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - 사용자는 진행 중 이전 응답을 수정할 수 있어야 한다.
 - 이미 답변된 문항을 재방문하면 기존 답변 상태가 선택된 상태로 표시되어야 한다.
 - 최종 계산과 결과 표시는 수정이 반영된 최종 응답 집합을 기준으로 해야 한다.
-- user-facing `Q1/Q2/...`는 scoring order label일 뿐 main progress denominator나 telemetry index를 결정하지 않는다.
-- profile 문항은 main progress의 분모/분자에 포함하지 않는다. profile overlay 안에서는 별도의 local step 표기를 사용할 수 있다.
+- user-facing `Q1/Q2`는 scoring order label일 뿐 main progress/telemetry index 결정 불가. profile 문항은 main progress 분모/분자 미포함(profile overlay에서 별도 local step 표기 가능).
 - profile 수정 전후로 main progress는 변하지 않는다.
 
 **Tail Reset 계약**:
@@ -698,24 +505,17 @@ AxisScoreStat = {
 
 ScoreStats = Record<string, AxisScoreStat>
 // key: axisId (poleA+poleB)
-// key 순서는 schema.axes 선언 순서와 일치해야 한다
-// profile 문항 응답은 ScoreStats에 포함하지 않는다
-// 역방향 question도 schema axisId 아래에 집계한다
+// key 순서는 schema.axes 선언 순서와 일치. profile 문항 응답 미포함. 역방향 question도 schema axisId 아래 집계.
 ```
 
 **도출 절차**:
-1. `questions[]`에서 `questionType === 'scoring'`인 문항만 필터링한다.
-2. `schema.axes`를 선언 순서대로 순회한다.
-3. 각 `AxisSpec { poleA, poleB }`에 대해 `axisId = poleA + poleB`를 파생한다.
-4. 필터링된 scoring 문항 중 해당 axis에 속하는 문항을 bidirectional matching 기준으로 집계해 `counts`를 구성한다. schema `E/I` axis에는 question `E/I`와 `I/E`가 모두 포함된다.
-5. `counts` 기준 더 높은 pole을 `dominant`로 결정한다. `binary_majority` + 홀수 문항 보장 하에 동점은 발생하지 않는다.
-6. `scoreStats[axisId] = { poleA, poleB, counts, dominant }`를 기록한다.
-7. `derivedType` 토큰은 `schema.axes` 순서대로 각 axis의 `dominant`를 연결해 생성한다.
+1. `questions[]`에서 scoring 문항만 필터링한 뒤 `schema.axes`를 선언 순서대로 순회한다.
+3. 각 axis에서 `axisId = poleA + poleB`를 파생하고, bidirectional matching 기준으로 해당 axis scoring 문항을 집계해 `counts`를 구성한다.
+5. `counts` 기준 더 높은 pole을 `dominant`로 결정한다. `scoreStats[axisId] = { poleA, poleB, counts, dominant }`를 기록한다. `derivedType` 토큰은 `schema.axes` 순서대로 각 axis의 `dominant`를 연결해 생성한다.
 
 **Qualifier 도출 절차**:
 1. `qualifierFields`를 선언 순서대로 순회한다.
-2. 각 `QualifierFieldSpec { key, questionIndex, values, tokenLength }`에 대해 `responses.get(questionIndex)`로 해당 profile 문항의 응답을 조회한다.
-3. 응답값이 `values` 목록에 없으면 blocking error로 처리한다.
+2. 각 `QualifierFieldSpec`에 대해 `responses.get(questionIndex)`로 응답을 조회한다. 응답값이 `values` 목록에 없으면 blocking error로 처리한다.
 4. `type` segment = `derivedType` + qualifier 토큰들의 순서 연결.
 
 **EGTT 예시 (axisCount=1, qualifierFields 1개)**:
@@ -726,44 +526,10 @@ schema.qualifierFields = [{ key: 'gender', questionIndex: 1, values: ['M', 'F'],
 // questions[1] = first scoring question                                         // source seq 1 = scoring1
 // questions[2..N] = remaining scoring questions
 
-// 응답: canonical index 1(q.1)='M', scoring1 포함 scoring 결과 dominant='E'
-// derivedType = 'E'
-// qualifier gender = 'M'
-// type segment = 'EM'
-// 결과 라벨 복원: content mapping['EM'] → '에겐남'
+// 예: q.1='M'(gender), scoring dominant='E' → derivedType='E', qualifier gender='M' → type segment='EM'
 ```
 
-**나이대 qualifier 예시 (tokenLength=3, multi-value):**
-```
-schema.qualifierFields = [
-  { key: 'ageGroup', questionIndex: N, values: ['10s','20s','30s','40s','50s'], tokenLength: 3 }
-]
-// 응답: canonical index N(profile)='20s', scoring 결과 dominant='e'
-// derivedType = 'e'
-// qualifier ageGroup = '20s'
-// type segment = 'e20s'   (전체 길이 = axisCount(1) + tokenLength(3) = 4)
-```
-
-**자기보고 MBTI qualifier 예시 (tokenLength=4, 16-value):**
-```
-schema.qualifierFields = [
-  {
-    key: 'selfMbti',
-    questionIndex: N,
-    values: [
-      'enfj','esfj','entp','enfp','infj','infp',
-      'intp','intj','entj','estj','esfp','estp',
-      'isfj','isfp','istj','istp'
-    ],
-    tokenLength: 4
-  }
-]
-// 응답: Q_N='infj', scoring 결과 dominant='e'
-// 여기서 canonical index N은 profile question일 수 있으며, user-facing Q label과 일치할 필요가 없다.
-// derivedType = 'e'
-// qualifier selfMbti = 'infj'
-// type segment = 'einfj'  (전체 길이 = axisCount(1) + tokenLength(4) = 5)
-```
+**나이대 qualifier 예시** (tokenLength=3): `{ key: 'ageGroup', ..., values: ['10s','20s',...], tokenLength: 3 }`. 예: dominant=`'e'`, ageGroup=`'20s'` → type segment = `'e20s'` (길이 = 1+3 = 4).
 
 > `QUALIFIER_SPEC_INVALID` 검증 예:
 > - `values: []` → 빈 배열 → 차단
@@ -771,10 +537,7 @@ schema.qualifierFields = [
 > - `values: ['10s', '2s']` with `tokenLength: 3` → '2s'.length(2) ≠ 3 → 차단
 > - `DUPLICATE_QUALIFIER_VALUE` 검증 예: `values: ['20s', '20s', '30s']` → 중복 → 차단
 
-**Tie 처리 정책**:
-- `binary_majority` 정상 경로(odd-count rule 준수 데이터)에서 동점은 발생하지 않는다.
-- odd-count rule 위반은 §6.2 blocking data error로 사전 차단된다. 런타임 tiebreak 로직은 주 경로에 포함하지 않는다.
-
+**Tie 처리 정책**: `binary_majority` 정상 경로(odd-count rule 준수)에서 동점은 발생하지 않는다. odd-count rule 위반은 §6.2 blocking data error로 사전 차단된다.
 ### 3.12 Result Rendering Contract
 
 result 페이지 렌더링의 추상 원칙 계약이다.  
@@ -885,11 +648,7 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 
 **진입**: "결과 보기" 액션 활성화 시 result derivation loading 단계에 진입한다.
 
-**로딩 화면**:
-- 결과 도출 단계의 표면 UI는 최소 5초 로딩 화면이다.
-- 5초는 변경 가능한 설정값으로 관리한다.
-- 실제 계산 시간이 5초보다 짧아도 최소 5초를 표시한다.
-- 로딩 화면에는 "뒤로 돌아가기" 옵션을 제공한다.
+**로딩 화면**: 최소 5초(설정값) 로딩 화면 표시. 실제 계산이 빠르더라도 최소 5초 유지. "뒤로 돌아가기" 옵션 제공.
 
 **Result screen entry commit 조건**: 아래 **두 조건이 모두** 충족된 더 늦은 시점에만 result screen entry commit이 확정된다.
 - `derivation_computed = true`
@@ -931,16 +690,7 @@ result 페이지 URL은 서버 없이 result view를 재구성할 수 있는 sel
 /result/{variant}/{type}?{base64Payload}
 ```
 
-예시 (MBTI):
-```
-/result/mbti/infj?eifjafehjfioaesjif1843f
-```
-
-예시 (EGTT, qualifier 포함):
-```
-/result/egtt/EM?eifjafehjfioaesjif1843f
-```
-(`EM` = derivedType `E` + qualifier gender `M`)
+URL 예시: `/result/mbti/infj?{base64}` (MBTI), `/result/egtt/EM?{base64}` (EGTT, `EM` = derivedType `E` + qualifier gender `M`)
 
 **필드 분리 원칙**:
 - `variant`: test variant 식별자. URL path segment 1. 이 값 하나로 고정 scoring logic과 rendering schema를 유일하게 식별한다. `scoringSchemaId`는 URL 어느 위치에도 포함하지 않는다.
@@ -961,16 +711,7 @@ result 페이지 URL은 서버 없이 result view를 재구성할 수 있는 sel
 }
 ```
 
-**Base64 payload JSON 구조 (EGTT 1축 예시)**:
-```json
-{
-  "scoreStats": {
-    "ET": { "poleA": "E", "poleB": "T", "counts": { "E": 15, "T": 10 }, "dominant": "E" }
-  },
-  "shared": false
-}
-```
-(gender qualifier는 `type` segment `"EM"`에서 운반. payload에 포함하지 않는다.)
+(EGTT 1축: `scoreStats`에 axis 1개 entry만 있고, qualifier는 `type` segment에서 운반되며 payload에 미포함.)
 
 - `scoreStats` key는 scoring axis의 `poleA+poleB` 파생 문자열 (`axisId`). profile 문항 응답은 포함하지 않는다. schema 선언 순서로 직렬화한다.
 - axisCount=1 variant는 `scoreStats` entry가 1개, axisCount=2는 2개다. 구조는 동일하다.
@@ -1016,27 +757,29 @@ CTA 동작:
 
 invalid variant 입력은 runtime을 시작하지 않고 에러 복구 페이지로 이동하는 것으로 처리한다.
 
-**에러 복구 페이지 계약**:
+**현재 에러 복구 페이지 계약**:
 - crash를 유발하면 안 된다.
-- 간단한 안내 문구와 함께 테스트 카드 최대 2개를 표시한다.
 - session / run context를 생성하면 안 된다.
+- route: `/[locale]/test/error`
+- 메시지: `이 테스트에 진입할 수 없습니다`
+- `?variant=...` query가 있으면 차단된 variant를 함께 표시한다.
 
-**복구 카드 선정 규칙**:
+**Phase 4 확장 계약 — 복구 카드 선정 규칙**:
 1. 랜딩 카탈로그의 카드 목록을 선언 순서 기준으로 앞에서부터 순회한다.
 2. 해당 variant의 테스트를 사용자가 이미 완료한 경우 해당 카드를 제외한다.
 3. 완료 여부 판단 기준: local storage (이번 Phase). history 구현 이후에는 local storage + history 모두 적용 (§9.2 의무 항목 참조).
 4. 제외 후 앞에서부터 2개를 선택한다.
 
-**엣지 케이스**:
+**Phase 4 확장 계약 — 엣지 케이스**:
 - 미완료 카드가 1개뿐인 경우: 1개만 표시한다.
 - 미완료 카드가 0개인 경우 (전체 완료): 카드를 표시하지 않고 랜딩 페이지로 돌아가기 CTA만 제공한다.
 
 **Verification**:
-1. Automated: invalid variant 진입 시 에러 복구 페이지 표시 + session 생성 `0건`을 검증한다.
-2. Automated: 미완료 카드 2개 이상 존재 시 카드 2개 표시를 검증한다.
-3. Automated: 미완료 카드 1개 시 카드 1개만 표시를 검증한다.
-4. Automated: 전체 완료 시 카드 0개 + 랜딩 CTA 표시를 검증한다.
-5. Automated: 카드 선택 순서가 카탈로그 선언 순서 기준 앞에서부터임을 검증한다.
+1. Automated: invalid/lazy-validation-failed variant 진입 시 stub 에러 복구 route로 redirect되고 session 생성 `0건`을 검증한다.
+2. Phase 4 확장 Automated: 미완료 카드 2개 이상 존재 시 카드 2개 표시를 검증한다.
+3. Phase 4 확장 Automated: 미완료 카드 1개 시 카드 1개만 표시를 검증한다.
+4. Phase 4 확장 Automated: 전체 완료 시 카드 0개 + 랜딩 CTA 표시를 검증한다.
+5. Phase 4 확장 Automated: 카드 선택 순서가 카탈로그 선언 순서 기준 앞에서부터임을 검증한다.
 
 ### 6.2 Blocking Data Errors
 
@@ -1159,22 +902,8 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 - 직전 cleanup bundle(아래 폐기 항목)을 먼저 적용한 후 새 attempt로 진입한다.
 - timer / attempt id / correlation token은 새로 생성한다. partial result carryover를 금지한다.
 
-*유지 항목*:
-- 현재 variant 식별자
-- 마지막 문항 포함 최종 응답 집합
-- `all-required-answered = true`
-- 마지막 문항의 현재 선택 응답
-- result-entry eligibility 기반 자격
-
-*폐기 항목*:
-- 이전 derivation failure marker
-- 이전 `derivation-in-progress` marker
-- 이전 derivation attempt id / correlation token
-- 이전 loading timer / min-duration timer
-- 이전 partially computed result residue
-- 이전 `result-ready` / `result-entry pending` residue
-- 이전 failure-specific local storage 임시값
-
+*유지 항목*: 현재 variant 식별자, 마지막 문항 포함 최종 응답 집합, `all-required-answered = true`, result-entry eligibility.
+*폐기 항목*: 이전 derivation failure/in-progress marker, attempt id/correlation token, loading timer, partially computed result residue, result-ready/result-entry pending residue, failure-specific storage 임시값.
 **Verification**:
 1. Automated: derivation-failure 발생 시 허용 액션 3가지가 제공됨을 검증한다.
 2. Automated: "다시 결과 보기 시도" 후 이전 residue 잔류 `0건`을 검증한다.
@@ -1192,17 +921,11 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 
 > derivation-failure 상태에서는 응답 데이터를 삭제하지 않는다. result screen entry commit이 아직 발생하지 않았기 때문이다.
 
-**삭제 원칙**:
-- 삭제는 해당 variant 범위에서만 수행한다. 다른 variant 데이터를 건드리지 않는다.
-- 부분 삭제를 허용하지 않는다. 삭제는 원자적으로 수행해야 한다.
-- 삭제 완료 전 새 run 시작을 허용하지 않는다.
-
+**삭제 원칙**: 해당 variant 범위에서만 수행(다른 variant 미영향), 부분 삭제 금지(원자적), 삭제 완료 전 새 run 시작 금지.
 > **구현 세부사항 (storage key 목록, key 네이밍, store 구조)은 별도 구현/설계 문서에서 정의한다.**
 
 **Verification**:
-1. Automated: result screen entry commit 완료 직후 해당 variant의 run continuation 상태 + `instructionSeen` 잔류 `0건`을 검증한다.
-2. Automated: timeout 발생 재진입 후 해당 variant의 run continuation 상태 + `instructionSeen` 잔류 `0건`을 검증한다.
-3. Automated: "처음부터 다시 하기" commit success 직후 run continuation 상태 잔류 `0건` + `instructionSeen` 유지를 검증한다.
+1. Automated: 3가지 휘발 트리거(result commit 완료 / timeout 재진입 / 처음부터 다시 하기 commit success) 각각에서 삭제 범위 정확성 및 잔류 데이터 `0건`을 검증한다.
 4. Automated: derivation-failure 상태에서 응답 데이터가 삭제되지 않음을 검증한다.
 5. Automated: 다른 variant 데이터가 cleanup에 의해 변경되지 않음을 검증한다.
 
@@ -1249,12 +972,7 @@ ENTRY → INSTRUCTION(optional) → IN_PROGRESS → RESULT_ELIGIBLE → DERIVATI
                                    ABORTED                    DERIVATION_FAILED (non-terminal)
 ```
 
-허용 terminal 상태:
-- `completed`: result screen entry commit 완료 + result persisted
-- `pre_start_abandonment`: instruction 이탈 (started run으로 간주하지 않음)
-- `replaced_by_variant_switch`: 다른 variant로 전환
-- `inactive_timeout_closure`: 30분 경과 후 재진입 시 판정
-- `blocking_data_error_termination`: schema/data 오류로 실행 불가
+허용 terminal 상태: `completed`: result screen entry commit 완료 + result persisted / `pre_start_abandonment`: instruction 이탈 (started run으로 간주하지 않음) / `replaced_by_variant_switch`: 다른 variant로 전환 / `inactive_timeout_closure`: 30분 경과 후 재진입 시 판정 / `blocking_data_error_termination`: schema/data 오류로 실행 불가
 
 규칙:
 - 동일 run이 동시에 둘 이상의 terminal state를 갖으면 안 된다.
@@ -1310,42 +1028,23 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 이번 단계에서 telemetry는 hook 위치만이 아니라 **이벤트 발화 시점, canonical index 의미, payload 축, cross-phase 해석 규칙까지 포함한 활성 계약**을 가진다.
 
 skeleton으로 확보해야 할 hook 위치:
-1. 랜딩 카드 A/B 선택 시점 (`card_answered` 대응, ingress 경로 전용)
-   + 블로그 카드 Read more CTA 선택 시점
-   ※ `card_answered`는 landing phase 이벤트다. 이 hook은 landing→test
-   전환 경계 검증을 위한 참조 위치이며, test flow에서 재발화하지 않는다.
-2. instruction 완료 후 test runtime 진입 시점 (`attempt_start` 대응)
-   (Start 버튼 클릭 → question runtime 전환 = runtime entry commit)
-   **instruction 이후 첫 runtime question이 실제로 렌더되는 시점**에 발화한다.
-   - ingress 경로: `q.1`이 있으면 `q.1`, 없으면 `scoring2`
-   - direct 경로: `q.1`이 있으면 `q.1`, 없으면 `scoring1`
-3. question 답변 시점 (`question_answered` 대응, 문항별)
-   - profile 포함 **모든 runtime question**에서 발화한다.
-   - landing에서 pre-answer된 `scoring1`은 test runtime에서 재발화하지 않는다.
-   - 세션당 `question_answered` 총 발화 횟수는 경로에 따라 canonical 전체 문항 수에서 landing pre-answered `scoring1` 제외 여부로 달라질 수 있다. 이 비대칭은 의도된 설계이며 문서화된 계약이다.
+1. 랜딩 카드 A/B 선택 시점 (`card_answered` 대응, ingress 경로 전용) + 블로그 카드 Read more CTA. ※ `card_answered`는 landing phase 이벤트이며 test flow에서 재발화하지 않는다.
+2. instruction 완료 후 test runtime 진입 시점 (`attempt_start` 대응). **instruction 이후 첫 runtime question이 실제로 렌더되는 시점**에 발화. ingress: `q.1`→`q.1`, 없으면 `scoring2`. direct: `q.1`→`q.1`, 없으면 `scoring1`.
+3. question 답변 시점 (`question_answered` 대응). profile 포함 모든 runtime question에서 발화. landing pre-answered `scoring1`은 재발화 불필요.
 4. test 완료 확정 시점 (`final_submit` 대응, result screen entry commit)
 5. result 필수 콘텐츠(`derived_type` 블록) 뷰포트 진입 시점
    (`result_viewed` 대응, Intersection Observer 1회 발화 후 disconnect)
 6. user-visible error render 시점
 
-> **강조 주석**:
-> telemetry의 `questionIndex` / `question_index_1based`는 user-facing `Q1/Q2`가 아니라 **canonical index**다.
-> profile question이 존재하면 telemetry index와 user-facing Q label은 서로 불일치할 수 있다.
-> 분석, QA, 대시보드 집계 시 이 차이를 반드시 고려해야 한다.
+> `questionIndex`/`question_index_1based`는 canonical index 기준이며 user-facing `Q1/Q2`와 다를 수 있다.
 
 ### 9.2 다음 Phase 구현 의무 (MANDATORY)
 
 > **⚠️ 다음 Phase 구현 착수 전에 아래 항목을 완료해야 한다. 생략하고 그 다음 단계로 진행하는 것을 금지한다.**
 
 1. 최소 이벤트셋 계약:
-   **Landing phase 이벤트 (이번 단계 재구현 불필요, 연계 정합성 확인 의무)**:
-   - `landing_view`: landing phase 발화. test flow 재발화 없음.
-   - `card_answered`: ingress 경로 전용, landing phase 발화. test flow 재발화 없음.
-     `source_variant`, `target_route`, `landing_ingress_flag(=true)` 필수 필드.
-   - 위 두 이벤트와 `attempt_start`·`question_answered` 간의 연계 정합성은
-     릴리스 블로커 #28에서 검증한다.
+   Landing phase 이벤트(`landing_view`, `card_answered`)는 이번 단계 재구현 불필요. 연계 정합성은 blocker #28에서 검증한다.
 
-   **이번 단계 구현 의무**:
    - `attempt_start`: instruction 이후 첫 runtime question render 시점 발화.
      필수 추가 필드: `landing_ingress_flag`, `question_index_1based`
      (`question_index_1based`는 canonical index 기준).
@@ -1436,7 +1135,6 @@ skeleton으로 확보해야 할 hook 위치:
 | `questionType` 정책 변경 (scoring/profile 분류) | 3.8, 3.9, 3.11, 6.2, AR-007, 12.2 |
 | `qualifierFields` / `type` segment 구조 변경 | 1.3, 3.11, 5.1, 6.2, 6.3, 7.1, AR-007, 12.2 |
 | `scoringMode` 정책 변경 (신규 모드 추가 포함) | 3.11, 6.2, 12.2 |
-| `QualifierFieldSpec` 구조 변경 (key/values/tokenLength) | 3.11, 5.1, 6.3, 12.2 |
 | Session / active run / timeout 정책 변경 | 3.6, 3.7, 4.2, 6.8, 6.9, 8.1, 8.3, 12.2 |
 | instructionSeen 기록·리셋 정책 변경 | 3.6, 6.8, 8.3, 12.2 |
 | Ingress flag / validated landing-origin context / 시작 문항 정책 변경 | 3.1, 3.3, 3.4, 3.5, 3.6, 4.1, 4.2, 8.3, 12.2 |
@@ -1451,9 +1149,7 @@ skeleton으로 확보해야 할 hook 위치:
 | Derivation schema (axisCount / axis model) 변경 | 3.11, 4.6, 6.2, 5.1, 12.2 |
 | Result URL payload 구조 변경 | 5.1, 5.2, 6.3, 9.2(§5), 12.2 |
 | Result section / fallback 정책 변경 | 3.12, 6.4, 6.5, 7.1, AR-003, AR-004, 12.2 |
-| `payload.shared` 필드 정책 변경 | 5.1, 5.2, 12.2 |
 | 응답 데이터 휘발 시점 변경 | 4.6, 6.8, 8.3, 12.2 |
-| Telemetry skeleton hook 위치 변경 | 9.1, 9.2, 12.2 |
 | 에러 심각도 분류 변경 | 6.1, 6.2, 6.3, 6.4, 6.5, 12.2 |
 | cross-phase event integrity 정책 변경 (`card_answered`↔`attempt_start` 연계, `landing_ingress_flag` 계약) | 3.1, 9.1, 9.2, 12.2, Landing Requirements §12.1, §14.2 |
 | Sheets sync 계약 변경 (source topology, cross-source 검증 범위, lazy validation 정책, `unavailable` 처리 방식) | 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 12.2 |
@@ -1515,7 +1211,7 @@ Landing Requirements §14.2 check 15와 연동하며, 두 블로커의 단언이
 <!-- assertion:B29-sheets-sync-action-validation -->
 29. **Sheets Sync: Action-level Validation**: GitHub Action cross-source 검증이 불일치 감지 시 `variant-registry.generated.ts` 갱신을 차단한다. last-known-good 파일이 유지된다. partial activation(일부 variant만 반영하는 부분 커밋)이 발생하지 않는다. 검증 함수는 runtime 2차 방어선과 동일 구현을 공유해야 한다. 정합성 기준은 Landing source variant set, Questions workbook sheet-name set, Results source variant set의 3자 일치다.
 <!-- assertion:B30-runtime-lazy-validation-unavailable-guard -->
-30. **Runtime Lazy Validation & Unavailable Guard**: `getLazyValidatedVariant(variantId)` 첫 호출 시 `validateVariantDataIntegrity()` 실행 후 결과가 캐싱된다. 검증 실패 variant는 session/run context 생성 없이 §6.1 에러 복구 페이지로 이동한다. 데이터 불일치로 자동 강등된 variant(`hide` 강등 — Landing source에만 존재하고 Questions workbook sheet set에 없는 경우, §2.5 2차 방어선 기준)는 카탈로그에서 제외된다. 직접 URL 접근 시 §6.1 에러 복구 페이지로 이동한다. landing preview derivation 대상인 `scoring1`이 없는 variant도 차단 대상이다. `unavailable` 카드의 Coming Soon badge 노출 및 진입 차단은 landing-side 계약 (req-landing.md §13.2, §13.9)이 소유하며 이 blocker의 단언 범위에 포함하지 않는다. 나머지 variant는 검증 실패 variant의 영향을 받지 않는다. blocker 1~30 모두 최소 1개 자동 단언 매핑.
+30. **Runtime Lazy Validation & Unavailable Guard**: `getLazyValidatedVariant(variantId)` 첫 호출 시 `validateVariantDataIntegrity()` 실행 후 결과가 모듈 수준 `Map`에 캐싱된다. `clearLazyValidationCacheForTesting()`는 unit test 격리 전용 helper다. 검증 실패 variant는 session/run context 생성 없이 §6.1 에러 복구 페이지로 이동하며, stub route는 `?variant=` query가 있으면 차단 variant를 표시하고 query가 없으면 고정 메시지만 표시한다. `debug-sample`은 `EVEN_AXIS_QUESTION_COUNT`를 의도적으로 발생시키는 실패 fixture다. 데이터 불일치로 자동 강등된 variant(`hide` 강등 — Landing source에만 존재하고 Questions workbook sheet set에 없는 경우, §2.5 2차 방어선 기준)는 카탈로그에서 제외된다. Questions-only, Results-missing, Results-only mismatch는 catalog `attribute`를 강등하지 않고 runtime entry만 차단한다. test route는 runtime blocked set 확인 후 entry resolver를 사용하며, 직접 URL 접근 시 §6.1 에러 복구 페이지로 이동한다. landing preview derivation 대상인 `scoring1`이 없는 variant도 차단 대상이다. `unavailable` 카드의 Coming Soon badge 노출 및 진입 차단은 landing-side 계약 (req-landing.md §13.2, §13.9)이 소유하며 이 blocker의 단언 범위에 포함하지 않는다. 나머지 variant는 검증 실패 variant의 영향을 받지 않는다. B29/B30의 Group A/C 단언은 `docs/blocker-traceability.json`에 automated assertion evidence로 등록되어 있다.
 
 ### 12.3 Traceability Requirement
 

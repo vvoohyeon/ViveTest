@@ -4,7 +4,7 @@ import {buildLandingTestQuestionBank} from '../../src/features/test/question-ban
 import {resolveLandingTestCardByVariant} from '../../src/features/variant-registry';
 
 describe('landing question bank locale fallbacks', () => {
-  it('builds q1 from the resolved landing card while keeping the shared locale fallback questions', () => {
+  it('builds q1 from Questions scoring1 while keeping the shared locale fallback questions', () => {
     const card = resolveLandingTestCardByVariant('ja', 'qmbti');
     if (!card) {
       throw new Error('Expected qmbti fixture card');
@@ -24,6 +24,22 @@ describe('landing question bank locale fallbacks', () => {
       prompt: 'Which block keeps your focus the longest?',
       choiceA: 'Morning work sessions',
       choiceB: 'Afternoon work sessions'
+    });
+  });
+
+  it('skips profile rows when building the landing q1 compatibility question', () => {
+    const card = resolveLandingTestCardByVariant('en', 'egtt');
+    if (!card) {
+      throw new Error('Expected egtt fixture card');
+    }
+
+    const questions = buildLandingTestQuestionBank(card, 'en');
+
+    expect(questions[0]).toEqual({
+      id: 'q1',
+      prompt: "I'm interested in making me charming...",
+      choiceA: 'A lot',
+      choiceB: 'Not at all'
     });
   });
 });

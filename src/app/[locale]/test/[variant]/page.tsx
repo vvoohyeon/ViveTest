@@ -5,7 +5,10 @@ import {isLocale, type AppLocale} from '@/config/site';
 import {PageShell} from '@/features/landing/shell';
 import {getLazyValidatedVariant} from '@/features/test/lazy-validation';
 import {TestQuestionClient} from '@/features/test/test-question-client';
-import {resolveLandingTestCardByVariant} from '@/features/variant-registry';
+import {
+  isRuntimeTestEntryBlocked,
+  resolveLandingTestEntryCardByVariant
+} from '@/features/variant-registry';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
@@ -32,7 +35,11 @@ export default async function QuestionPage({
   }
 
   await getTranslations({locale, namespace: 'test'});
-  const card = resolveLandingTestCardByVariant(locale, variant);
+  if (isRuntimeTestEntryBlocked(variant)) {
+    redirect(buildTestErrorRedirectPath(locale, variant));
+  }
+
+  const card = resolveLandingTestEntryCardByVariant(locale, variant);
 
   if (!card) {
     notFound();

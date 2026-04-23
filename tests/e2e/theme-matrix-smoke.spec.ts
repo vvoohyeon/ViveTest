@@ -188,7 +188,8 @@ async function answerCurrentQuestion(page: Page, choice: 'A' | 'B') {
 async function completeTestAttempt(page: Page) {
   await startTestAttempt(page);
 
-  for (const choice of ['A', 'B', 'A', 'B'] as const) {
+  for (let index = 0; index < 12; index += 1) {
+    const choice = index % 2 === 0 ? 'A' : 'B';
     await answerCurrentQuestion(page, choice);
     const submitButton = page.getByTestId('test-submit-button');
     if (await submitButton.isVisible()) {

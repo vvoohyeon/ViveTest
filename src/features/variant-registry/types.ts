@@ -22,26 +22,18 @@ export interface LandingMeta {
 /**
  * Runtime-facing Q1 preview projection used by landing/test consumers.
  *
- * @migration Q1 Preview:
- * This shape is intentionally stable while its source is temporary. Today the
- * values are projected from `source-fixture.ts` inline bridge fields
- * (`previewQuestion` / `answerA` / `answerB`). The canonical target is the
- * first scoring question (`scoring1`) in the corresponding Questions sheet.
+ * This shape is intentionally stable. The live resolver now projects values
+ * from the first scoring question (`scoring1`) in the corresponding Questions
+ * sheet fixture.
  *
  * Consumers must keep using `resolveTestPreviewPayload()` and must not read
  * raw fixture fields directly. Sync may replace the source projection without
  * changing this runtime shape.
  */
-export interface InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge {
+export interface VariantRegistryRuntimePreviewPayload {
   previewQuestion: LocalizedText;
   answerChoiceA: LocalizedText;
   answerChoiceB: LocalizedText;
-}
-
-export interface VariantRegistrySourceInlineQ1Preview {
-  previewQuestion: LocalizedText;
-  answerA: LocalizedText;
-  answerB: LocalizedText;
 }
 
 interface VariantRegistrySourceCardCommon {
@@ -57,9 +49,7 @@ interface VariantRegistrySourceCardCommon {
   engagedC: number;
 }
 
-export interface VariantRegistrySourceTestCard
-  extends VariantRegistrySourceCardCommon,
-    VariantRegistrySourceInlineQ1Preview {
+export interface VariantRegistrySourceTestCard extends VariantRegistrySourceCardCommon {
   type: 'test';
   instruction: LocalizedText | string;
 }
@@ -100,7 +90,7 @@ export type VariantRegistryRuntimeLandingCard =
 
 export interface VariantRegistry {
   landingCards: ReadonlyArray<VariantRegistryRuntimeLandingCard>;
-  testPreviewPayloadByVariant: Readonly<Record<string, InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge>>;
+  testPreviewPayloadByVariant: Readonly<Record<string, VariantRegistryRuntimePreviewPayload>>;
 }
 
 export interface LocaleResolvedText {

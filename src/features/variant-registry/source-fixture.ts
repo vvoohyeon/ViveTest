@@ -1,24 +1,9 @@
 /**
- * @fileoverview Landing fixture — 랜딩 카드 및 Q1 preview inline bridge 소스.
+ * @fileoverview Landing fixture — 랜딩 카드 메타데이터 소스.
  *
- * @migration Q1 Preview (previewQuestion / answerA / answerB) 교체 계획:
- *
- *   현재 각 test 카드의 previewQuestion / answerA / answerB 는 임시 inline bridge 다.
- *   canonical target 은 Questions Sheets 해당 variant 시트의 첫 번째 scoring question(scoring1) 이다.
- *
- *   교체 경로:
- *     1. Google Sheets Sync 스크립트가 Questions Sheets에서 scoring1을 읽는다.
- *     2. sync 결과로 이 파일(또는 generated fixture)의 previewQuestion/answerA/answerB를 덮어쓴다.
- *     3. consumer는 계속 resolveTestPreviewPayload()만 사용하므로 교체 후 consumer 수정 불필요.
- *
- *   consumer 계약:
- *     - raw fixture를 직접 읽지 않는다.
- *     - 반드시 resolveTestPreviewPayload(variantId, locale) 경계를 사용한다.
- *
- *   Landing Sheets와의 관계:
- *     - previewQuestion/answerA/answerB는 Landing Sheets 컬럼에 존재하지 않는다.
- *     - Landing Sheets는 카드 메타데이터(title, subtitle, tags, instruction 등)만 관리한다.
- *     - Q1 preview는 Questions Sheets → Landing runtime artifact 투영(projection) 방식으로 제공된다.
+ * Q1 preview는 Questions fixture의 첫 번째 scoring question(scoring1)에서
+ * 파생한다. Landing source는 카드 메타데이터(title, subtitle, tags,
+ * instruction 등)만 관리한다.
  */
 import type { VariantRegistrySourceCard } from "@/features/variant-registry/types";
 
@@ -45,18 +30,6 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         en: "QMBTI opens with a quick personality rhythm check before you move into the main questions.",
         kr: "QMBTI는 본 문항에 들어가기 전에 작업 리듬 성향을 짧게 점검하는 테스트입니다.",
       },
-      previewQuestion: {
-        en: "🎉 At parties or birthday celebrations,",
-        kr: "🎉 파티나 생일잔치에 가면 나는",
-      },
-      answerA: {
-        en: "Early morning blocks",
-        kr: "처음 보는 친구랑도 금방 친해져",
-      },
-      answerB: {
-        en: "Late-night sprints",
-        kr: "원래 잘 아는 친구랑 주로 어울려",
-      },
       durationM: 3,
       sharedC: 2184,
       engagedC: 15236,
@@ -81,18 +54,6 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
       instruction: {
         en: "Rhythm B asks you to compare interruption patterns and pacing signals across your work blocks.",
         kr: "리듬 B는 작업 블록마다 방해 패턴과 페이스 신호를 비교하도록 구성된 테스트입니다.",
-      },
-      previewQuestion: {
-        en: "How often do interruptions break your pace? How often do interruptions break your pace? How often do interruptions break your pace?",
-        kr: "방해가 흐름을 끊는 빈도는 어느 정도인가요? 방해가 흐름을 끊는 빈도는 어느 정도인가요? 방해가 흐름을 끊는 빈도는 어느 정도인가요?",
-      },
-      answerA: {
-        en: "Almost never",
-        kr: "거의 없다 동해물과 백두산이 마르고 닳도록 긴 응답 예시 여기",
-      },
-      answerB: {
-        en: "Multiple times each hour",
-        kr: "한 시간에도 여러 번 있다 동해물과 백두산이 마르고 닳도록 긴 응답 예시 여기",
       },
       durationM: 4,
       sharedC: 982,
@@ -119,18 +80,6 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         en: "Debug Sample exists only for internal QA and uses a deterministic planning prompt.",
         kr: "디버그 샘플은 내부 QA 전용이며 결정형 계획 선호를 확인하는 프롬프트를 사용합니다.",
       },
-      previewQuestion: {
-        en: "Do you prefer deterministic or exploratory planning?",
-        kr: "계획은 정해진 흐름과 탐색형 접근 중 어느 쪽이 더 편한가요?",
-      },
-      answerA: {
-        en: "Deterministic",
-        kr: "정해진 흐름",
-      },
-      answerB: {
-        en: "Exploratory",
-        kr: "탐색형 접근",
-      },
       durationM: 2,
       sharedC: 74,
       engagedC: 640,
@@ -155,18 +104,6 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
       instruction: {
         en: "Energy Check maps where your daily load leaks and asks you to follow the strongest drain signal.",
         kr: "에너지 체크는 하루의 부담이 새는 지점을 추적하고 가장 큰 소모 신호를 따라가게 합니다.",
-      },
-      previewQuestion: {
-        en: "Which block drains your energy the most?",
-        kr: "어떤 시간대가 에너지를 가장 많이 소모시키나요?",
-      },
-      answerA: {
-        en: "Context switching",
-        kr: "잦은 맥락 전환",
-      },
-      answerB: {
-        en: "Long meetings",
-        kr: "긴 회의",
       },
       durationM: 5,
       sharedC: 1445,
@@ -193,18 +130,6 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         en: "Creativity Profile preview is a placeholder for the upcoming editorial release.",
         kr: "창의성 프로필은 곧 공개될 에디토리얼 버전용 임시 안내문을 사용합니다.",
       },
-      previewQuestion: {
-        en: "Placeholder preview question for upcoming card.",
-        kr: "공개 예정 카드를 위한 임시 미리보기 질문입니다.",
-      },
-      answerA: {
-        en: "Option A",
-        kr: "옵션 A",
-      },
-      answerB: {
-        en: "Option B",
-        kr: "옵션 B",
-      },
       durationM: 4,
       sharedC: 0,
       engagedC: 0,
@@ -230,18 +155,6 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         en: "Burnout Risk preview is a placeholder for the future recovery-signal test.",
         kr: "번아웃 위험 신호 카드는 향후 회복 신호 테스트를 위한 임시 안내문을 사용합니다.",
       },
-      previewQuestion: {
-        en: "Placeholder preview question for upcoming card.",
-        kr: "공개 예정 카드를 위한 임시 미리보기 질문입니다.",
-      },
-      answerA: {
-        en: "Option A",
-        kr: "옵션 A",
-      },
-      answerB: {
-        en: "Option B",
-        kr: "옵션 B",
-      },
       durationM: 4,
       sharedC: 0,
       engagedC: 0,
@@ -266,18 +179,6 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
       instruction: {
         en: "Hidden Beta explains the private prototype track that is temporarily hidden from the public catalog.",
         kr: "히든 베타는 현재 퍼블릭 카탈로그에서 숨겨진 비공개 프로토타입 트랙을 설명합니다.",
-      },
-      previewQuestion: {
-        en: "I`m interested in making me charming ipsum lorem string",
-        kr: "패션이나 나를 꾸미는 일에 관심이",
-      },
-      answerA: {
-        en: "A lot",
-        kr: "많다",
-      },
-      answerB: {
-        en: "Not at all",
-        kr: "없다",
       },
       durationM: 3,
       sharedC: 1,

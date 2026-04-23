@@ -169,7 +169,7 @@ test.describe('Instruction consent contract smoke', () => {
     await expect.poll(() => readConsent(page)).toBe('OPTED_IN');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_AVAILABLE_TEST_VARIANT)).toBe('true');
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 8');
   });
 
   test('@smoke deep-link UNKNOWN available Deny and Abandon returns home without leaving legacy UI behind', async ({
@@ -232,7 +232,7 @@ test.describe('Instruction consent contract smoke', () => {
     await page.getByTestId('test-accept-all-and-start-button').click();
     await expect.poll(() => readConsent(page)).toBe('OPTED_IN');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_AVAILABLE_TEST_VARIANT)).toBe('true');
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 8');
     await expectNoLegacyInstructionUi(page);
   });
 

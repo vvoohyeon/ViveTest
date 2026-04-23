@@ -1,7 +1,6 @@
 export {
   buildFixtureContractReport,
   deriveAvailability,
-  getVariantRegistrySourceFixture,
   isCatalogVisibleCard,
   isDebugOnlyCard,
   isEnterableCard,
@@ -13,9 +12,7 @@ export {
   resolveLandingCardByVariant,
   resolveLandingCatalog,
   resolveLandingTestCardByVariant,
-  resolveTestPreviewPayload,
-  variantRegistryGenerated,
-  variantRegistrySourceFixture
+  resolveTestPreviewPayload
 } from '@/features/variant-registry';
 export type {
   FixtureContractReport,
@@ -30,6 +27,5 @@ export type {
   LocalizedStringList,
   LocalizedText,
   TestPreviewPayload,
-  VariantRegistry,
-  VariantRegistrySourceCard
+  VariantRegistry
 } from '@/features/variant-registry';

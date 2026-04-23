@@ -1,6 +1,7 @@
 import type {AppLocale} from '../../../src/config/site';
 import {
   resolveLandingCatalog,
+  resolveLandingTestEntryCardByVariant,
   type LandingCardAttribute,
   type LandingTestCard
 } from '../../../src/features/variant-registry';
@@ -23,6 +24,7 @@ export interface TestVariantInstructionFixture {
 export const TEST_VARIANT_INSTRUCTION_FIXTURES_EN: ReadonlyArray<TestVariantInstructionFixture> =
   resolveLandingCatalog('en', {audience: 'qa'})
     .filter((card): card is LandingTestCard => card.type === 'test')
+    .filter((card) => resolveLandingTestEntryCardByVariant('en', card.variant) !== null)
     .map((card) => ({
       variant: card.variant,
       attribute: card.attribute,

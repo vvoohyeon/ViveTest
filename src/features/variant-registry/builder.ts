@@ -1,14 +1,14 @@
+import {findFirstScoringRow} from '@/features/test/question-source-parser';
 import {resolveAttribute} from '@/features/variant-registry/attribute';
 import type {
-  InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge,
   LandingMeta,
   LocalizedStringList,
   LocalizedText,
   VariantRegistry,
   VariantRegistryRuntimeLandingCard,
+  VariantRegistryRuntimePreviewPayload,
   VariantRegistrySourceBlogCard,
   VariantRegistrySourceCard,
-  VariantRegistrySourceInlineQ1Preview,
   VariantRegistrySourceTestCard
 } from '@/features/variant-registry/types';
 
@@ -24,10 +24,7 @@ const SOURCE_CARD_ALLOWED_KEYS = new Set([
   'durationM',
   'sharedC',
   'engagedC',
-  'instruction',
-  'previewQuestion',
-  'answerA',
-  'answerB'
+  'instruction'
 ]);
 const SOURCE_TEST_REQUIRED_KEYS = [
   'seq',
@@ -40,10 +37,7 @@ const SOURCE_TEST_REQUIRED_KEYS = [
   'durationM',
   'sharedC',
   'engagedC',
-  'instruction',
-  'previewQuestion',
-  'answerA',
-  'answerB'
+  'instruction'
 ] as const;
 const SOURCE_BLOG_REQUIRED_KEYS = [
   'seq',
@@ -59,6 +53,15 @@ const SOURCE_BLOG_REQUIRED_KEYS = [
 ] as const;
 
 type LooseRecord = Record<string, unknown>;
+
+export interface VariantRegistryQuestionSourceRow {
+  seq: string;
+  question: LocalizedText;
+  answerA: LocalizedText;
+  answerB: LocalizedText;
+}
+
+export type QuestionSourcesByVariant = Readonly<Record<string, ReadonlyArray<VariantRegistryQuestionSourceRow>>>;
 
 function isPlainRecord(value: unknown): value is LooseRecord {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -149,26 +152,6 @@ function normalizeLocalizedStringList(value: unknown, context: string): Localize
   throw new Error(`${context} must be a localized string-list map.`);
 }
 
-function normalizePreviewBridge(
-  rawCard: LooseRecord,
-  variant: string
-): VariantRegistrySourceInlineQ1Preview {
-  return {
-    previewQuestion: normalizeLocalizedText(
-      rawCard.previewQuestion,
-      `Landing registry source "${variant}" previewQuestion`
-    ) as LocalizedText,
-    answerA: normalizeLocalizedText(
-      rawCard.answerA,
-      `Landing registry source "${variant}" answerA`
-    ) as LocalizedText,
-    answerB: normalizeLocalizedText(
-      rawCard.answerB,
-      `Landing registry source "${variant}" answerB`
-    ) as LocalizedText
-  };
-}
-
 function normalizeSourceCard(rawCard: unknown, index: number): VariantRegistrySourceCard {
   if (!isPlainRecord(rawCard)) {
     throw new Error(`Landing registry source row at index ${index} must be an object.`);
@@ -192,8 +175,7 @@ function normalizeSourceCard(rawCard: unknown, index: number): VariantRegistrySo
       subtitle: normalizeLocalizedText(rawCard.subtitle, `Landing registry source "${variant}" subtitle`) as LocalizedText,
       tags: normalizeLocalizedStringList(rawCard.tags, `Landing registry source "${variant}" tags`),
       ...normalizeSourceMeta(rawCard),
-      instruction: normalizeLocalizedText(rawCard.instruction, `Landing registry source "${variant}" instruction`),
-      ...normalizePreviewBridge(rawCard, variant)
+      instruction: normalizeLocalizedText(rawCard.instruction, `Landing registry source "${variant}" instruction`)
     };
 
     return normalizedTestCard;
@@ -268,23 +250,28 @@ function buildRuntimeLandingCard(sourceCard: VariantRegistrySourceCard): Variant
   };
 }
 
-export function buildVariantRegistry(sourceCards: ReadonlyArray<unknown>): VariantRegistry {
+export function buildVariantRegistry(
+  sourceCards: ReadonlyArray<unknown>,
+  questionSourcesByVariant: QuestionSourcesByVariant
+): VariantRegistry {
   const normalizedSourceCards = sourceCards.map((sourceCard, index) => normalizeSourceCard(sourceCard, index));
   assertUniqueVariantAndSeq(normalizedSourceCards);
 
   const sortedSourceCards = [...normalizedSourceCards].sort((left, right) => left.seq - right.seq);
   const landingCards = sortedSourceCards.map((sourceCard) => buildRuntimeLandingCard(sourceCard));
-  // @sync-target: previewQuestion / answerA / answerB 값은 현재 source-fixture.ts inline bridge에서 온다.
-  // Google Sheets Sync 구현 이후에는 Questions Sheets의 scoring1 row가 이 값을 대체한다.
-  // consumer(resolveTestPreviewPayload)의 shape는 동일하게 유지되므로 consumer 수정 불필요.
   const testPreviewPayloadByVariant = sortedSourceCards.reduce<
-    Record<string, InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge>
+    Record<string, VariantRegistryRuntimePreviewPayload>
   >((accumulator, sourceCard) => {
     if (sourceCard.type === 'test') {
+      const firstScoringRow = findFirstScoringRow(questionSourcesByVariant[sourceCard.variant] ?? []);
+      if (!firstScoringRow) {
+        return accumulator;
+      }
+
       accumulator[sourceCard.variant] = {
-        previewQuestion: sourceCard.previewQuestion,
-        answerChoiceA: sourceCard.answerA,
-        answerChoiceB: sourceCard.answerB
+        previewQuestion: firstScoringRow.question,
+        answerChoiceA: firstScoringRow.answerA,
+        answerChoiceB: firstScoringRow.answerB
       };
     }
 

@@ -161,7 +161,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 8');
     await expect
       .poll(async () => (await readTransitionSignals(page)).filter((signal) => signal.signal === 'transition_complete').length)
       .toBe(1);
@@ -172,19 +172,20 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.reload();
     await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 8');
 
     await page.getByTestId('test-start-button').click();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 8');
     await expect
       .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY))
       .toBeNull();
 
-    await page.getByTestId('test-choice-a').click();
-    await page.getByTestId('test-next-button').click();
-    await page.getByTestId('test-choice-b').click();
-    await page.getByTestId('test-next-button').click();
-    await page.getByTestId('test-choice-a').click();
+    for (const [choiceIndex, choice] of (['A', 'B', 'A', 'B', 'A', 'B', 'A'] as const).entries()) {
+      await page.getByTestId(choice === 'A' ? 'test-choice-a' : 'test-choice-b').click();
+      if (choiceIndex < 6) {
+        await page.getByTestId('test-next-button').click();
+      }
+    }
     await page.getByTestId('test-submit-button').click();
 
     await expect(page.getByTestId('test-result-panel')).toBeVisible();
@@ -219,12 +220,16 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(attemptStart?.landing_ingress_flag).toBe(true);
     expect(attemptStart?.question_index_1based).toBe(2);
     expect(finalSubmit?.landing_ingress_flag).toBe(true);
-    expect(finalSubmit?.question_index_1based).toBe(4);
+    expect(finalSubmit?.question_index_1based).toBe(8);
     expect(finalSubmit?.final_responses).toEqual({
       q1: 'A',
       q2: 'A',
       q3: 'B',
-      q4: 'A'
+      q4: 'A',
+      q5: 'B',
+      q6: 'A',
+      q7: 'B',
+      q8: 'A'
     });
     expect(finalSubmit).not.toHaveProperty('final_q1_response');
     expect(finalSubmit).not.toHaveProperty('transition_id');
@@ -260,7 +265,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 8');
 
     await page.getByTestId('test-start-button').click();
 
@@ -283,7 +288,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   }) => {
     const optOutInstruction = getInstructionFixture(PRIMARY_OPT_OUT_TEST_VARIANT).instruction;
 
-    await delayDestinationReadyRaf(page);
+    await delayDestinationReadyRaf(page, 600);
     await page.addInitScript((storageKey) => {
       window.localStorage.setItem(storageKey, 'OPTED_OUT');
     }, TELEMETRY_CONSENT_STORAGE_KEY);
@@ -339,7 +344,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 8');
 
     await page.getByTestId('test-start-button').click();
     await expect
@@ -349,7 +354,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.goto('/en');
     await page.goto(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 8');
   });
 
   test('@smoke assertion:B9-opted-out-no-send missing consent blocks client telemetry network sends', async ({page}) => {

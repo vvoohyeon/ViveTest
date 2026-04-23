@@ -8,6 +8,10 @@ export {
   resolveAttribute
 } from '@/features/variant-registry/attribute';
 export {buildVariantRegistry} from '@/features/variant-registry/builder';
+export type {
+  QuestionSourcesByVariant,
+  VariantRegistryQuestionSourceRow
+} from '@/features/variant-registry/builder';
 export {
   applyCrossSheetRuntimeFallback,
   validateCrossSheetIntegrity,
@@ -17,6 +21,7 @@ export {
 export {buildFixtureContractReport} from '@/features/variant-registry/fixture-contract';
 export {
   loadVariantRegistry,
+  isRuntimeTestEntryBlocked,
   resolveLandingBlogCardByVariant,
   resolveLandingCardByVariant,
   resolveLandingCatalog,
@@ -35,7 +40,6 @@ export {
 export {variantRegistryGenerated} from '@/features/variant-registry/variant-registry.generated';
 export type {
   FixtureContractReport,
-  InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge,
   LandingAvailability,
   LandingBlogCard,
   LandingCard,
@@ -48,6 +52,7 @@ export type {
   LocalizedText,
   TestPreviewPayload,
   VariantRegistry,
+  VariantRegistryRuntimePreviewPayload,
   VariantRegistryRuntimeBlogCard,
   VariantRegistryRuntimeLandingCard,
   VariantRegistryRuntimeTestCard,

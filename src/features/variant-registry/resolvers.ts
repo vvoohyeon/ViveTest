@@ -27,9 +27,11 @@ import type {
   VariantRegistryRuntimeLandingCard,
   VariantRegistryRuntimeTestCard
 } from '@/features/variant-registry/types';
+import {variantRegistryGenerated} from '@/features/variant-registry/variant-registry.generated';
 
 const DEFAULT_CATALOG_AUDIENCE: LandingCatalogAudience = 'end-user';
 let fixtureRuntimeRegistryStateCache: RuntimeRegistryState | null = null;
+let generatedRuntimeRegistryStateCache: RuntimeRegistryState | null = null;
 
 interface RuntimeRegistryState {
   registry: VariantRegistry;
@@ -44,17 +46,23 @@ export interface LandingCatalogOptions {
 /**
  * 환경에 따라 적절한 VariantRegistry를 로드한다.
  *
- * - fixture: dev 환경. source-fixture.ts 기반의 현재 구현을 사용한다.
+ * - fixture: dev/test 환경. source-fixture.ts 기반의 현재 구현을 사용한다.
  * - generated: production 환경. Google Sheets Sync가 생성한
  *   variant-registry.generated.ts를 사용한다.
  *
- * ADR-D 결정에 따라 실제 production 분기 로직이 확정된다.
- * 현재는 항상 fixture 기반 registry를 반환한다.
+ * 현재 generated 파일은 fixture-built bridge지만, Action이 파일을 재생성하면
+ * production은 같은 static import 경계로 Sheets-built registry를 읽는다.
  *
  * @see docs/req-test-plan.md ADR-D
  */
 export function loadVariantRegistry(): VariantRegistry {
-  return getFixtureRuntimeRegistryState().registry;
+  return getRuntimeRegistryState().registry;
+}
+
+function getRuntimeRegistryState(): RuntimeRegistryState {
+  return process.env.NODE_ENV === 'production'
+    ? getGeneratedRuntimeRegistryState()
+    : getFixtureRuntimeRegistryState();
 }
 
 function getFixtureRuntimeRegistryState(): RuntimeRegistryState {
@@ -62,8 +70,16 @@ function getFixtureRuntimeRegistryState(): RuntimeRegistryState {
   return fixtureRuntimeRegistryStateCache;
 }
 
+function getGeneratedRuntimeRegistryState(): RuntimeRegistryState {
+  generatedRuntimeRegistryStateCache ??= {
+    registry: variantRegistryGenerated,
+    blockedRuntimeVariants: new Set()
+  };
+  return generatedRuntimeRegistryStateCache;
+}
+
 function buildFixtureRuntimeRegistryState(): RuntimeRegistryState {
-  const registry = buildVariantRegistry(getVariantRegistrySourceFixture());
+  const registry = buildVariantRegistry(getVariantRegistrySourceFixture(), questionSourceFixture);
   const landingTestVariants = registry.landingCards
     .filter((card): card is VariantRegistryRuntimeTestCard => card.type === 'test')
     .map((card) => card.variant);
@@ -161,11 +177,15 @@ export function resolveLandingTestCardByVariant(locale: AppLocale, variant: stri
 }
 
 export function resolveLandingTestEntryCardByVariant(locale: AppLocale, variant: string): LandingTestCard | null {
-  if (getFixtureRuntimeRegistryState().blockedRuntimeVariants.has(variant)) {
+  if (getRuntimeRegistryState().blockedRuntimeVariants.has(variant)) {
     return null;
   }
 
   return resolveLandingTestCardByVariant(locale, variant);
+}
+
+export function isRuntimeTestEntryBlocked(variant: string): boolean {
+  return getRuntimeRegistryState().blockedRuntimeVariants.has(variant);
 }
 
 export function resolveLandingBlogCardByVariant(locale: AppLocale, variant: string): LandingBlogCard | null {
@@ -180,10 +200,9 @@ export function resolveLandingBlogCardByVariant(locale: AppLocale, variant: stri
 /**
  * Resolves the stable landing preview payload consumed by UI/runtime code.
  *
- * This is the only consumer boundary for the temporary inline Q1 preview
- * bridge. Callers must not read `source-fixture.ts` preview fields directly.
- * The source projection can migrate to Questions `scoring1` without changing
- * this function's return shape.
+ * This is the only consumer boundary for Q1 preview projection. The live
+ * source is Questions `scoring1`; callers must not read raw fixture fields
+ * directly, and this return shape stays stable across source migrations.
  */
 export function resolveTestPreviewPayload(variant: string, locale: AppLocale): TestPreviewPayload {
   const previewPayload = loadVariantRegistry().testPreviewPayloadByVariant[variant];
@@ -206,7 +225,7 @@ export function resolveRuntimeTestCardByVariant(variant: string): VariantRegistr
 }
 
 export function resolveRuntimeTestEntryCardByVariant(variant: string): VariantRegistryRuntimeTestCard | null {
-  if (getFixtureRuntimeRegistryState().blockedRuntimeVariants.has(variant)) {
+  if (getRuntimeRegistryState().blockedRuntimeVariants.has(variant)) {
     return null;
   }
 

@@ -4,7 +4,7 @@ import {describe, expect, it} from 'vitest';
 
 import {
   buildFixtureContractReport,
-  buildVariantRegistry,
+  buildVariantRegistry as buildVariantRegistryFromSources,
   getVariantRegistrySourceFixture,
   isEnterableCard,
   loadVariantRegistry,
@@ -15,9 +15,19 @@ import {
   resolveTestPreviewPayload,
   type LandingBlogCard,
   type LandingTestCard,
+  type QuestionSourcesByVariant,
   type VariantRegistrySourceCard
 } from '../../src/features/variant-registry';
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
+
+const emptyQuestionSources: QuestionSourcesByVariant = {};
+
+function buildVariantRegistry(
+  sourceCards: ReadonlyArray<unknown>,
+  questionSourcesByVariant: QuestionSourcesByVariant = emptyQuestionSources
+) {
+  return buildVariantRegistryFromSources(sourceCards, questionSourcesByVariant);
+}
 
 describe('landing registry and resolver contract', () => {
   const legacyHeroFlagKey = 'is' + 'Hero';
@@ -71,16 +81,23 @@ describe('landing registry and resolver contract', () => {
         subtitle: {en: 'Earlier subtitle'},
         tags: {en: ['earlier']},
         instruction: {en: 'Earlier instruction'},
-        previewQuestion: {en: 'Earlier preview'},
-        answerA: {en: 'Choice A'},
-        answerB: {en: 'Choice B'},
         durationM: 1,
         sharedC: 2,
         engagedC: 3
       }
     ];
+    const injectedQuestionSources: QuestionSourcesByVariant = {
+      'earlier-test': [
+        {
+          seq: '1',
+          question: {en: 'Earlier preview'},
+          answerA: {en: 'Choice A'},
+          answerB: {en: 'Choice B'}
+        }
+      ]
+    };
 
-    const registry = buildVariantRegistry(sourceRows);
+    const registry = buildVariantRegistry(sourceRows, injectedQuestionSources);
 
     expect(registry.landingCards.map((card) => card.variant)).toEqual(['earlier-test', 'later-blog']);
     expect(registry.testPreviewPayloadByVariant['earlier-test'].previewQuestion.en).toBe('Earlier preview');
@@ -104,9 +121,6 @@ describe('landing registry and resolver contract', () => {
       subtitle: {en: 'Valid subtitle'},
       tags: {en: ['valid']},
       instruction: {en: 'Valid instruction'},
-      previewQuestion: {en: 'Preview'},
-      answerA: {en: 'A'},
-      answerB: {en: 'B'},
       durationM: 1,
       sharedC: 2,
       engagedC: 3
@@ -154,9 +168,10 @@ describe('landing registry and resolver contract', () => {
     }
   });
 
-  it('keeps the inline Q1 preview is temporary until Questions Q1 migration bridge behind the resolver boundary', () => {
+  it('keeps the Q1 preview projection behind the resolver boundary', () => {
     const qmbtiTest = resolveLandingTestCardByVariant('ja', 'qmbti');
     const qmbtiPreview = resolveTestPreviewPayload('qmbti', 'ja');
+    const egttPreview = resolveTestPreviewPayload('egtt', 'en');
 
     expect(qmbtiTest?.title).toBe('10m MBTI test');
     expect(qmbtiTest?.subtitle).toBe('Find your default deep-work cadence.');
@@ -170,6 +185,9 @@ describe('landing registry and resolver contract', () => {
       answerChoiceA: 'Early morning blocks',
       answerChoiceB: 'Late-night sprints'
     });
+    expect(egttPreview.previewQuestion).toBe("I'm interested in making me charming...");
+    expect(egttPreview.answerChoiceA).toBe('A lot');
+    expect(egttPreview.answerChoiceB).toBe('Not at all');
     expect(qmbtiTest?.test).not.toHaveProperty('previewQuestion');
   });
 
@@ -223,9 +241,6 @@ describe('landing registry and resolver contract', () => {
           subtitle: {en: 'Broken'},
           tags: {en: ['broken']},
           instruction: {en: 'Broken'},
-          previewQuestion: {en: 'Broken'},
-          answerA: {en: 'A'},
-          answerB: {en: 'B'},
           durationM: 1,
           sharedC: 1,
           engagedC: 1,
@@ -282,9 +297,6 @@ describe('landing registry and resolver contract', () => {
           tags: {en: []},
           sample: true,
           instruction: {en: 'Legacy sample instruction'},
-          previewQuestion: {en: 'Legacy sample preview'},
-          answerA: {en: 'A'},
-          answerB: {en: 'B'},
           durationM: 1,
           sharedC: 1,
           engagedC: 1
@@ -304,9 +316,6 @@ describe('landing registry and resolver contract', () => {
           tags: {en: []},
           debug: true,
           instruction: {en: 'Legacy debug instruction'},
-          previewQuestion: {en: 'Legacy debug preview'},
-          answerA: {en: 'A'},
-          answerB: {en: 'B'},
           durationM: 1,
           sharedC: 1,
           engagedC: 1

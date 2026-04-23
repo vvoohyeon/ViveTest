@@ -23,6 +23,8 @@ describe('buildVariantQuestionBank', () => {
   it('canonical index는 1-based 출현 순서', () => {
     const bank = buildVariantQuestionBank('egtt', 'en');
 
+    expect(bank[0].id).toBe('q1');
+    expect(bank[1].id).toBe('q2');
     expect(bank[0].canonicalIndex).toBe(1);
     expect(bank[1].canonicalIndex).toBe(2);
     expect(bank[2].canonicalIndex).toBe(3);

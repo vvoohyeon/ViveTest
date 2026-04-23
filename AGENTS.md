@@ -157,10 +157,10 @@
 - partial activation 금지. cross-source 불일치 상태에서 일부 variant만 반영하는 부분 갱신을 허용하지 않는다.
 - unified runtime meta key는 `durationM`, `sharedC`, `engagedC`다.
 - resolver의 `{audience: 'qa'}` 경계는 QA catalog에서만 `hide` / `debug` fixture를 드러낸다.
-- preview source는 temporary bridge를 허용하지만 consumer shape는 유지한다.
-  - 현재 bridge source는 inline preview일 수 있다.
-  - 최종 canonical target은 Questions의 first scoring question `scoring1`이다.
-  - migration 범위는 builder / resolver 내부에 가둔다.
+- preview source는 Questions의 first scoring question `scoring1`이다.
+  - source fixture에는 inline preview field를 두지 않는다.
+  - consumer shape(`previewQuestion`, `answerChoiceA`, `answerChoiceB`)는 유지한다.
+  - source 교체 범위는 builder / resolver 내부에 가둔다.
 
 ### test flow / domain / storage
 - canonical test surface는 `src/features/test/**`다.

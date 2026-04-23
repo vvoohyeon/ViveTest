@@ -1,8 +1,7 @@
 import type {AppLocale} from '@/config/site';
 import {getVariantQuestionRows} from '@/features/test/fixtures/questions';
 import {findFirstScoringRow, parseSeqToQuestionType} from '@/features/test/question-source-parser';
-import {resolveTestPreviewPayload, type LandingTestCard} from '@/features/variant-registry';
-import type {LocalizedText} from '@/features/variant-registry/types';
+import type {LandingTestCard, LocalizedText, TestPreviewPayload} from '@/features/variant-registry/types';
 
 export interface LandingTestQuestion {
   id: string;
@@ -26,6 +25,7 @@ export interface LandingTestQuestion {
  *   직접 소비하며, raw 'A'/'B'를 받지 않는다.
  */
 export interface ResolvedQuestion {
+  id: string;
   canonicalIndex: number;
   questionType: 'scoring' | 'profile';
   question: string;
@@ -119,6 +119,7 @@ export function buildVariantQuestionBank(variantId: string, locale: AppLocale): 
   const rows = getVariantQuestionRows(variantId);
 
   return rows.map((row, index) => ({
+    id: `q${index + 1}`,
     canonicalIndex: index + 1,
     questionType: parseSeqToQuestionType(row.seq),
     question: resolveLocalizedText(row.question, locale),
@@ -136,11 +137,6 @@ export function buildVariantQuestionBank(variantId: string, locale: AppLocale): 
  *   - profile question은 landing preview 대상이 아니다.
  *   - 첫 번째 scoring question이 scoring1이다.
  *   - scoring question이 없으면 null을 반환한다.
- *
- * @sync-target
- *   현재는 question fixture의 첫 번째 scoring row를 사용한다.
- *   Google Sheets Sync 구현 이후에는 Questions Sheets의 scoring1 row를
- *   builder가 이 경로에 투영한다. consumer shape는 변경되지 않는다.
  */
 export function resolveVariantPreviewQ1(variantId: string, locale: AppLocale): ResolvedPreviewQ1 | null {
   const firstScoringRow = findFirstScoringRow(getVariantQuestionRows(variantId));
@@ -155,8 +151,25 @@ export function resolveVariantPreviewQ1(variantId: string, locale: AppLocale): R
   };
 }
 
+export function resolveVariantPreviewPayload(variantId: string, locale: AppLocale): TestPreviewPayload | null {
+  const previewQ1 = resolveVariantPreviewQ1(variantId, locale);
+  if (!previewQ1) {
+    return null;
+  }
+
+  return {
+    variant: variantId,
+    previewQuestion: previewQ1.question,
+    answerChoiceA: previewQ1.answerA,
+    answerChoiceB: previewQ1.answerB
+  };
+}
+
 export function buildLandingTestQuestionBank(card: LandingTestCard, locale: AppLocale): LandingTestQuestion[] {
-  const previewPayload = resolveTestPreviewPayload(card.variant, locale);
+  const previewPayload = resolveVariantPreviewPayload(card.variant, locale);
+  if (!previewPayload) {
+    throw new Error(`Missing scoring1 preview question for variant "${card.variant}".`);
+  }
 
   return [
     {
