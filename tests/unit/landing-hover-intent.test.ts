@@ -7,6 +7,7 @@ import {
   nextHoverIntentToken,
   resolveDesktopTransformOriginX
 } from '../../src/features/landing/grid/hover-intent';
+import {useHoverIntentController} from '../../src/features/landing/grid/use-hover-intent-controller';
 
 describe('landing hover intent helpers', () => {
   it('keeps desktop hover timing constants deterministic', () => {
@@ -53,5 +54,9 @@ describe('landing hover intent helpers', () => {
     expect(resolveDesktopTransformOriginX({cardOffset: 1, rowCardCount: 3})).toBe('50%');
     expect(resolveDesktopTransformOriginX({cardOffset: 2, rowCardCount: 3})).toBe('100%');
     expect(resolveDesktopTransformOriginX({cardOffset: 0, rowCardCount: 1})).toBe('0%');
+  });
+
+  it('exposes the controller-owned hover hook entrypoint', () => {
+    expect(typeof useHoverIntentController).toBe('function');
   });
 });

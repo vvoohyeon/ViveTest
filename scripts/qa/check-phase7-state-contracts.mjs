@@ -27,6 +27,8 @@ function readExisting(relativePaths) {
 const requiredFiles = [
   'src/features/landing/model/interaction-state.ts',
   'src/features/landing/grid/use-landing-interaction-controller.ts',
+  'src/features/landing/grid/use-hover-intent-controller.ts',
+  'src/features/landing/grid/use-desktop-motion-controller.ts',
   'src/features/landing/grid/interaction-dom.ts',
   'src/features/landing/grid/landing-catalog-grid.tsx',
   'src/features/landing/grid/landing-grid-card.tsx',
@@ -72,6 +74,8 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
   const controllerFile = read('src/features/landing/grid/use-landing-interaction-controller.ts');
   const controllerAndDomFiles = readExisting([
     'src/features/landing/grid/use-landing-interaction-controller.ts',
+    'src/features/landing/grid/use-hover-intent-controller.ts',
+    'src/features/landing/grid/use-desktop-motion-controller.ts',
     'src/features/landing/grid/interaction-dom.ts'
   ]);
 
