@@ -37,7 +37,7 @@ describe('landing question bank locale fallbacks', () => {
 
     expect(questions[0]).toEqual({
       id: 'q1',
-      prompt: "I'm interested in making me charming...",
+      prompt: 'I`m interested in making me charming...',
       choiceA: 'A lot',
       choiceB: 'Not at all'
     });

@@ -185,7 +185,7 @@ describe('landing registry and resolver contract', () => {
       answerChoiceA: 'Early morning blocks',
       answerChoiceB: 'Late-night sprints'
     });
-    expect(egttPreview.previewQuestion).toBe("I'm interested in making me charming...");
+    expect(egttPreview.previewQuestion).toBe('I`m interested in making me charming...');
     expect(egttPreview.answerChoiceA).toBe('A lot');
     expect(egttPreview.answerChoiceB).toBe('Not at all');
     expect(qmbtiTest?.test).not.toHaveProperty('previewQuestion');

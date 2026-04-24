@@ -9,3 +9,4 @@ playwright-report/
 tests/e2e/*-snapshots/
 *.tsbuildinfo
 .DS_Store
+.env.local

@@ -72,10 +72,7 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         en: "Internal reference card for QA and snapshots.",
         kr: "QA와 스냅샷 검증을 위한 내부 참조 카드입니다.",
       },
-      tags: {
-        en: [],
-        kr: [],
-      },
+      tags: {},
       instruction: {
         en: "Debug Sample exists only for internal QA and uses a deterministic planning prompt.",
         kr: "디버그 샘플은 내부 QA 전용이며 결정형 계획 선호를 확인하는 프롬프트를 사용합니다.",
@@ -218,10 +215,7 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         en: "A compact field guide to selecting build-time, test-time, and runtime quality indicators that correlate with user outcomes.",
         kr: "사용자 결과와 실제로 연결되는 빌드, 테스트, 런타임 품질 지표를 고르는 짧고 실용적인 가이드입니다.",
       },
-      tags: {
-        en: [],
-        kr: [],
-      },
+      tags: {},
       durationM: 6,
       sharedC: 1180,
       engagedC: 21502,

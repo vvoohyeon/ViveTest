@@ -6,7 +6,7 @@
 **Rule**: V1 구현 범위는 랜딩 카탈로그 UI, 카드 상태 전이(Normal/Expanded), unavailable 계약, 랜딩→목적지 전환 핸드셰이크, 최소 텔레메트리, SSR/Hydration 안정성으로 한정한다.
 
 ### 1.2 Non-goals (V1)
-**Rule**: 배경 동적 연출, Google Sheets 실연동, 전역 택소노미 전체 구현, 테스트/블로그 본문 고도화는 V1 범위에서 제외한다.
+**Rule**: 배경 동적 연출, 랜딩 런타임의 Google Sheets 직접 호출, 전역 택소노미 전체 구현, 테스트/블로그 본문 고도화는 V1 범위에서 제외한다. Google Sheets → generated registry 동기화 파이프라인은 `docs/req-test.md` §2가 소유하며, 랜딩 UI는 여전히 generated runtime registry + resolver 경계만 소비한다.
 
 ### 1.3 Locked Decisions (V1)
 **Rule**: 아래 결정은 V1에서 고정하며, 임의 변경을 금지한다.
@@ -755,6 +755,7 @@
 
 ### 12.6 Data Source Contract
 **Rule**: 랜딩 구현은 generated runtime registry + adapter/resolver 경계를 사용한다. 전체 source topology SSOT는 `docs/req-test.md` §2가 소유한다.
+- Google Sheets sync 이후에도 랜딩 런타임은 Sheets API를 직접 호출하지 않는다. `scripts/sync/sync.ts`가 생성한 `variant-registry.generated.ts`를 `loadVariantRegistry()` / `resolveLandingCatalog()` 경유로만 소비한다.
 - source fixture shape와 exported runtime registry shape는 명시적으로 분리해야 한다. source 전용 `seq`는 runtime landing card payload로 전파되면 안 되며, Landing source fixture는 inline preview field를 포함하지 않는다.
 - landing / test / blog consumer는 raw fixture shape를 직접 읽지 않는다. preview payload는 `resolveTestPreviewPayload()` 같은 단일 resolver/adapter 경계로만 주입해야 하며, 접근 로직을 UI 컴포넌트 안에 분산시키는 것을 금지한다.
 - 배열 순서 계약은 `seq -> sort -> drop`으로 고정한다. 누락/중복 `seq`는 fixture validation fail로 처리한다. consumer는 배열 순서만 신뢰해야 하며 runtime `seq` 접근을 전제하면 안 된다.

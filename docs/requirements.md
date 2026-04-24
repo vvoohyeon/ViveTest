@@ -312,6 +312,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 
 ### REQ-F-020 — Spreadsheet sync operation
 - **Statement:** Operators can check sync readiness and trigger sync via machine-readable APIs. Sync validates schema before activating new content. Partial activation on validation failure is forbidden; last-known-good sources remain active. Missing language column → fallback to default locale, not flow failure.
+- **Current implementation note (2026-04-24):** Group B-2 implements the production sync path as a GitHub Actions workflow plus `scripts/sync/sync.ts`, not as an admin/operator API. It reads Landing and Questions Sheets, performs 2-source Action-level blocking while Results Sheets loading is pending, regenerates the full `variant-registry.generated.ts` only after validation, and restores the original generated file if post-write git operations fail.
 - **Confidence:** High
 
 ### REQ-F-021 — Recoverable error UX

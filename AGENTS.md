@@ -105,6 +105,8 @@
 - `npm run build`
 
 ### 참고 명령
+- `npm run sync`
+- `npm run sync:dry`
 - `npm run qa:rules`
 - `npm run qa:static`
 - `npm run qa:gate:once`

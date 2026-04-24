@@ -15,7 +15,7 @@ export const egttQuestions: ReadonlyArray<QuestionSourceRow> = [
   },
   {
     seq: '1',
-    question: {en: "I'm interested in making me charming...", kr: '패션이나 나를 꾸미는 일에 관심이'},
+    question: {en: 'I`m interested in making me charming...', kr: '패션이나 나를 꾸미는 일에 관심이'},
     poleA: 'E',
     poleB: 'T',
     answerA: {en: 'A lot', kr: '많다'},

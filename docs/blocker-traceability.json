@@ -324,6 +324,12 @@
     "assertionId": "assertion:B29-sheets-sync-action-validation-three-source-unit"
   },
   {
+    "blocker": 29,
+    "kind": "scenario_test",
+    "file": "docs/req-test.md",
+    "assertionId": "assertion:B29-sheets-sync-orchestration-scenario"
+  },
+  {
     "blocker": 30,
     "kind": "manual_checkpoint",
     "file": "docs/req-test.md",

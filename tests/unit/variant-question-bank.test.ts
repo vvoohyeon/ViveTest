@@ -67,7 +67,7 @@ describe('resolveVariantPreviewQ1', () => {
   it('egtt: q.1(profile)이 아닌 scoring1 반환', () => {
     const q1 = resolveVariantPreviewQ1('egtt', 'en');
 
-    expect(q1?.question).toContain("I'm interested in making me charming");
+    expect(q1?.question).toContain('I`m interested in making me charming');
   });
 
   it('KR locale 반환', () => {

@@ -77,6 +77,8 @@
   - Landing/card metadata: `src/features/variant-registry/source-fixture.ts`
   - Questions row fixture 및 preview Q1 source: `src/features/test/fixtures/questions/**` (`sheet name = variantId` 구조를 variant별 파일로 모사)
   - Results row fixture: `src/features/test/fixtures/results/**` (row-level `variantId` 식별 경계만 모사. Result content schema는 Phase 9 소유)
+- `scripts/sync/sheets-loader.ts`는 Google Sheets API(Service Account, `googleapis`)를 사용하는 순수 loader 경계다. 이 파일은 Landing / Questions source를 builder가 소비 가능한 source shape로 읽는 책임만 가진다. 환경변수 읽기, cross-source 검증, `buildVariantRegistry()` 호출, generated file 쓰기, Git/GitHub Actions orchestration, preview payload 파생은 이 파일의 책임이 아니다.
+- `scripts/sync/sync.ts`는 Group B-2 Action/local orchestration 경계다. `.env.local`을 `dotenv`로 조용히 로드한 뒤 `GOOGLE_SHEETS_SA_KEY`, `GOOGLE_SHEETS_ID_LANDING`, `GOOGLE_SHEETS_ID_QUESTIONS`를 요구하고, `src/config/site.ts`의 `locales`를 `loadQuestionsWorkbook()`에 그대로 주입한다. 이 스크립트는 Results Sheets 준비 전까지 `validateCrossSheetIntegrity(landingTestVariants, questionVariants)` 2-source 모드만 사용한다.
 - Questions raw row는 `src/features/variant-registry/sheets-row-normalizer.ts`가 Sheets의 snake_case locale 컬럼(`question_EN`, `answerA_EN` 등)을 `LocalizedText` 기반 `question`, `answerA`, `answerB` object로 정규화한다. `pole_A` / `pole_B`는 runtime question contract의 축 필드인 `poleA` / `poleB`로 변환하며, profile row에서는 `undefined`일 수 있다. 현재 dev fixture는 이 정규화 후 shape를 variant별 파일로 모사한다.
 - source 교체가 일어나더라도 consumer 경계는 resolver/selector로 유지한다.
 - Questions parser 경계: `question-source-parser.ts`. question bank: `question-bank.ts` (`buildVariantQuestionBank()`, `resolveVariantPreviewQ1()`). 상세는 `docs/project-analysis.md §5.3`.
@@ -99,6 +101,13 @@
   - `GOOGLE_SHEETS_ID_LANDING`
   - `GOOGLE_SHEETS_ID_QUESTIONS`
   - `GOOGLE_SHEETS_ID_RESULTS`
+- Landing source loader는 Landing workbook의 `Landing` sheet만 range `Landing`으로 직접 읽는다. `enum` sheet는 source loader 범위가 아니며, sheet list 조회 없이 이름으로 접근한다. 반환 타입은 `ReadonlyArray<VariantRegistrySourceCard>`이고 row의 `type` 값에 따라 `VariantRegistrySourceTestCard` 또는 `VariantRegistrySourceBlogCard`를 생성한다.
+- Landing flat locale columns는 loader에서 source-card nested shape로 변환한다.
+  - `title_*`, `subtitle_*`, `instruction_*` suffix는 `parseLocaleColumnKey()`와 같은 lowercase locale mapping을 따른다 (`_EN` → `en`, `_KR` → `kr`).
+  - `instruction`은 `type='test'` row에만 포함하고 `type='blog'` row에는 필드 자체를 만들지 않는다.
+  - `tags_*`는 ` | ` 구분자로 split 후 trim하며 빈 token은 제거한다. 빈 셀은 빈 배열이 아니라 locale key 생략으로 처리한다.
+  - `seq`, `durationM`, `sharedC`, `engagedC`는 `Number(value)`를 통과시킨다. NaN이 되면 해당 row를 skip하고 `console.warn`을 남긴다.
+  - `attribute`는 `available | unavailable | hide | opt_out | debug`만 허용한다. 그 외 값과 알 수 없는 `type` row는 skip하고 `console.warn`을 남긴다.
 - Questions source는 variant별 sheet 분리 구조를 사용한다. 각 sheet 이름이 `variantId`이며, Questions row에 `variantId` 컬럼이 직접 존재해야 한다고 가정하지 않는다.
 - Questions source는 `questionType` 컬럼을 직접 소유하지 않는다. sync parser가 `seq`에서 canonical `questionType`을 생성한다.
   - `q.{n}` → `questionType = 'profile'`
@@ -121,16 +130,24 @@
 
 **Production**:
 1. `main` branch push → GitHub Action 자동 트리거
-2. Action은 `GOOGLE_SHEETS_ID_LANDING`, `GOOGLE_SHEETS_ID_QUESTIONS`, `GOOGLE_SHEETS_ID_RESULTS`를 읽어 3개 source를 각각 로드한다.
-3. Questions workbook은 sheet 단위로 읽으며, sheet name을 `variantId`로 해석한다. 각 raw row는 `normalizeQuestionSheetRow(rawRow, locales)`로 parser-compatible Questions row shape로 변환한 뒤 builder/parser 경계에 전달한다.
-4. builder는 3개 source와 code-owned canonical schema registry를 결합해 cross-source 검증을 실행한다 (§2.4 기준).
-5. 검증 통과 시: `serializeRegistryToFile(registry)`로 deterministic object-literal `variant-registry.generated.ts` 파일 문자열을 생성해 갱신 → Vercel 배포 트리거
-6. 검증 실패 시: 파일 커밋 없음. last-known-good 파일 유지. Action 로그에 불일치 사유 기록.
+2. 현재 Group B-2 Action은 `GOOGLE_SHEETS_SA_KEY`, `GOOGLE_SHEETS_ID_LANDING`, `GOOGLE_SHEETS_ID_QUESTIONS`를 secret으로 주입한다. 최종 3-source 계약의 `GOOGLE_SHEETS_ID_RESULTS`는 Results Sheets 준비 완료 시 workflow에 추가한다.
+3. `scripts/sync/sheets-loader.ts`의 `loadLandingSheet(client, spreadsheetId)`는 `Landing` sheet를 `UNFORMATTED_VALUE`로 읽고 `VariantRegistrySourceCard[]` source shape로 변환한다. 이 단계에서는 builder 호출, cross-source 검증, generated file 쓰기를 수행하지 않는다.
+4. `loadQuestionsWorkbook(client, spreadsheetId, locales)`는 workbook sheet list를 조회한 뒤 sheet별 range를 읽는다. Map key는 raw sheet name 그대로 유지하며, 각 raw row는 caller가 주입한 `locales`를 그대로 사용해 `normalizeQuestionSheetRow(rawRow, locales)`를 통과한 parser-compatible Questions row shape로 변환한다.
+5. Results loader는 아직 미구현이다. Results Sheets 준비 완료 시 같은 파일에 `loadResultsSheet(client, spreadsheetId)` 경계를 추가한다.
+6. `scripts/sync/sync.ts`는 Landing row 중 `type !== 'blog'`인 variant만 `landingTestVariants`로 전달하고, Questions workbook Map key set과 함께 `validateCrossSheetIntegrity(landingTestVariants, questionVariants)`를 호출한다. 즉 현재 구현은 Results 인자를 생략한 2-source Action-level blocking 모드다. Results 준비 완료 시 같은 호출부를 3-source 모드로 교체한다.
+7. 검증 실패 시: stderr에 불일치 사유 기록, `process.exit(1)`, 파일 쓰기 없음. last-known-good 파일 유지.
+8. 검증 통과 시: `buildVariantRegistry(landingRows, questionSourcesByVariant)` positional 2인자 호출 → `serializeRegistryToFile(registry)` → `process.cwd()` 기준 `src/features/variant-registry/variant-registry.generated.ts` 현재 내용과 문자열 비교.
+9. generated 파일이 동일하면 `variant registry sync: no changes` 로그 후 정상 종료하며 파일 write / git 작업을 생략한다.
+10. generated 파일이 다르면 전체 파일을 덮어쓴 뒤 `git add`, `git commit -m "chore: sync variant registry from Sheets [skip ci]"`, `git push`를 실행한다. `[skip ci]`는 sync workflow 재트리거를 방지한다.
+11. 파일 write 이후 git 작업 중 오류가 발생하면 원본 generated 파일 내용을 복구하고 `process.exit(1)`한다. branch protection으로 직접 push가 막히는 경우는 이번 범위에서 자동 PR 생성으로 처리하지 않으며, Action 로그는 PAT bypass 또는 Actions bot 예외 설정 안내를 출력한다.
+12. `.github/workflows/sync.yml`은 `permissions: contents: write`, checkout `ref: ${{ github.ref_name }}`, Node 22, `npm ci`, GitHub Actions bot identity 설정, `npm run sync`, `continue-on-error: false`를 유지한다.
 
 **Runtime source split / Local Dev**:
 - `loadVariantRegistry()`는 generated production registry와 fixture dev/test registry가 같은 `VariantRegistry` 시그니처를 공유하도록 만든 인터페이스다. production은 `variant-registry.generated.ts`의 static generated registry를 읽고, dev/test는 metadata-only `src/features/variant-registry/source-fixture.ts`와 `questionSourceFixture`를 builder에 주입해 canonical runtime registry를 구성한다.
 - `variant-registry.generated.ts`는 Sync 스크립트가 생성할 production artifact entrypoint로 유지하며, 파일 상단에 generated/direct-edit 금지 주석을 둔다. 현재 파일은 fixture + builder 출력으로 재생성된 static object literal이며, runtime에 fixture를 다시 import해 조립하지 않는다.
 - `src/features/variant-registry/registry-serializer.ts`는 `VariantRegistry` 객체를 generated file 문자열로 바꾸는 pure boundary다. 기존 generated header와 `variantRegistryGenerated: VariantRegistry` export 구조를 유지하고 plain object key를 알파벳 순으로 정렬한다. 파일 쓰기, Google Sheets API 호출, GitHub Action wiring은 이 serializer의 책임이 아니다.
+- `scripts/sync/sheets-loader.ts`는 loader-only boundary다. `createSheetsClient()`는 Service Account JSON string을 인자로 받아 `google.auth.GoogleAuth`와 readonly spreadsheets scope로 Sheets v4 client를 생성한다. `loadLandingSheet()` / `loadQuestionsWorkbook()`은 API 호출 실패를 그대로 throw하고, 빈 sheet는 빈 배열로 반환한다.
+- `scripts/sync/sync-dry-run.ts`는 실 Sheets 연결 없이 fixture source를 builder + serializer 경로에 직접 주입해 generated TypeScript source를 stdout에 출력하는 no-write/no-git 검증 경로다. `npm run sync:dry`로 실행하며, fixture source와 generated artifact의 구조 동등성 유지에 사용한다.
 - Questions fixture는 `src/features/test/fixtures/questions/**` 아래 variant별 파일로 유지하며, `index.ts`의 `questionSourceFixture` / `getVariantQuestionRows()` 경계를 통해 sheet-name 기반 Questions source를 모사한다. registry builder는 이 fixture를 직접 import하지 않고 `questionSourcesByVariant` 파라미터로만 받는다.
 - fixture layer는 Landing / Questions / Results 3-source topology와 code-owned schema registry 결합을 모사한다. 현재 Results fixture는 `qmbti`, `rhythm-b`, `energy-check`, `egtt`의 row-level `variantId`만 제공한다.
 - source 교체 범위는 registry layer 내부에 한정되며, consumer 호출 시그니처는 유지한다.
@@ -1209,7 +1226,8 @@ skeleton으로 확보해야 할 hook 위치:
 28. **Cross-phase Event Integrity (Landing→Test)**: ingress 경로에서 `card_answered`(landing phase) → `attempt_start`(test phase) 순서 보장. `card_answered.landing_ingress_flag = true`인 세션에서 `attempt_start.landing_ingress_flag = true`이고, `attempt_start.question_index_1based`는 첫 runtime question의 canonical index임을 검증한다 (`q.1`이 있으면 `1`, 없으면 `scoring2`의 canonical index). 직접 진입 경로에서는 `card_answered` 미발화 + `attempt_start.question_index_1based`가 첫 runtime question의 canonical index임을 검증한다 (`q.1`이 있으면 `1`, 없으면 `scoring1`의 canonical index). 같은 픽스처에서 telemetry canonical index와 user-facing scoring label을 분리 검증해야 한다.
 Landing Requirements §14.2 check 15와 연동하며, 두 블로커의 단언이 동일 픽스처를 공유해야 한다.
 <!-- assertion:B29-sheets-sync-action-validation -->
-29. **Sheets Sync: Action-level Validation**: GitHub Action cross-source 검증이 불일치 감지 시 `variant-registry.generated.ts` 갱신을 차단한다. last-known-good 파일이 유지된다. partial activation(일부 variant만 반영하는 부분 커밋)이 발생하지 않는다. 검증 함수는 runtime 2차 방어선과 동일 구현을 공유해야 한다. 정합성 기준은 Landing source variant set, Questions workbook sheet-name set, Results source variant set의 3자 일치다.
+<!-- assertion:B29-sheets-sync-orchestration-scenario -->
+29. **Sheets Sync: Action-level Validation**: GitHub Action cross-source 검증이 불일치 감지 시 `variant-registry.generated.ts` 갱신을 차단한다. last-known-good 파일이 유지된다. partial activation(일부 variant만 반영하는 부분 커밋)이 발생하지 않는다. 검증 함수는 runtime 2차 방어선과 동일 구현을 공유해야 한다. 최종 정합성 기준은 Landing source variant set, Questions workbook sheet-name set, Results source variant set의 3자 일치다. 현재 Group B-2 구현은 Results Sheets 미준비 상태를 명시적으로 보류하고 `validateCrossSheetIntegrity(landingTestVariants, questionVariants)` 2-source 모드로 Action-level blocking을 수행한다. Group B-1 loader evidence는 `tests/unit/sheets-loader.test.ts`가 담당하며, `googleapis` mock 기반으로 Landing flat column 변환, Questions workbook sheet-name Map, normalizer 호출 경계, 빈 sheet, API 오류 전파를 검증한다. Group B-2 orchestration evidence는 `tests/unit/sync-orchestration.test.ts`가 담당하며, 환경변수 누락, cross-source mismatch, no-change path, write+commit+push path, git failure restore, blog variant 제외를 검증한다.
 <!-- assertion:B30-runtime-lazy-validation-unavailable-guard -->
 30. **Runtime Lazy Validation & Unavailable Guard**: `getLazyValidatedVariant(variantId)` 첫 호출 시 `validateVariantDataIntegrity()` 실행 후 결과가 모듈 수준 `Map`에 캐싱된다. `clearLazyValidationCacheForTesting()`는 unit test 격리 전용 helper다. 검증 실패 variant는 session/run context 생성 없이 §6.1 에러 복구 페이지로 이동하며, stub route는 `?variant=` query가 있으면 차단 variant를 표시하고 query가 없으면 고정 메시지만 표시한다. `debug-sample`은 `EVEN_AXIS_QUESTION_COUNT`를 의도적으로 발생시키는 실패 fixture다. 데이터 불일치로 자동 강등된 variant(`hide` 강등 — Landing source에만 존재하고 Questions workbook sheet set에 없는 경우, §2.5 2차 방어선 기준)는 카탈로그에서 제외된다. Questions-only, Results-missing, Results-only mismatch는 catalog `attribute`를 강등하지 않고 runtime entry만 차단한다. test route는 runtime blocked set 확인 후 entry resolver를 사용하며, 직접 URL 접근 시 §6.1 에러 복구 페이지로 이동한다. landing preview derivation 대상인 `scoring1`이 없는 variant도 차단 대상이다. `unavailable` 카드의 Coming Soon badge 노출 및 진입 차단은 landing-side 계약 (req-landing.md §13.2, §13.9)이 소유하며 이 blocker의 단언 범위에 포함하지 않는다. 나머지 variant는 검증 실패 variant의 영향을 받지 않는다. B29/B30의 Group A/C 단언은 `docs/blocker-traceability.json`에 automated assertion evidence로 등록되어 있다.
 
