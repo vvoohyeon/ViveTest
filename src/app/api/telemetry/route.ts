@@ -1,8 +1,10 @@
 import {NextResponse} from 'next/server';
 
+import {validateTelemetryTransportEvent} from '@/features/landing/telemetry/validation';
+
 export async function POST(request: Request) {
   try {
-    await request.json();
+    validateTelemetryTransportEvent(await request.json());
   } catch {
     return NextResponse.json({ok: false}, {status: 400});
   }

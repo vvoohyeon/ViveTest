@@ -134,7 +134,7 @@ async function readTransitionSignals(page: import('@playwright/test').Page) {
 }
 
 test.describe('Phase 10/11 transition + telemetry smoke', () => {
-  test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload assertion:B28-cross-phase-event-integrity-ingress landing test transition keeps source GNB until destination-ready and records card_answered, attempt_start, final_submit, and internal transition signals', async ({
+  test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload assertion:B18-post-attempt-session-id-e2e assertion:B28-cross-phase-event-integrity-ingress landing test transition keeps source GNB until destination-ready and records card_answered, attempt_start, final_submit, and internal transition signals', async ({
     page
   }) => {
     const events: Array<Record<string, unknown>> = [];
@@ -219,8 +219,10 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(transitionComplete?.transitionId).toBe(transitionStart?.transitionId);
     expect(attemptStart?.landing_ingress_flag).toBe(true);
     expect(attemptStart?.question_index_1based).toBe(2);
+    expect(attemptStart?.session_id).toEqual(expect.any(String));
     expect(finalSubmit?.landing_ingress_flag).toBe(true);
     expect(finalSubmit?.question_index_1based).toBe(8);
+    expect(finalSubmit?.session_id).toBe(attemptStart?.session_id);
     expect(finalSubmit?.final_responses).toEqual({
       '1': 'A',
       '2': 'A',

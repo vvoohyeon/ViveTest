@@ -216,6 +216,24 @@
     "assertionId": "assertion:B18-final-submit-validation"
   },
   {
+    "blocker": 18,
+    "kind": "automated_assertion",
+    "file": "tests/unit/landing-telemetry-validation.test.ts",
+    "assertionId": "assertion:B18-post-attempt-session-id-validation"
+  },
+  {
+    "blocker": 18,
+    "kind": "automated_assertion",
+    "file": "tests/unit/telemetry-route.test.ts",
+    "assertionId": "assertion:B18-server-telemetry-validation"
+  },
+  {
+    "blocker": 18,
+    "kind": "automated_assertion",
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B18-post-attempt-session-id-e2e"
+  },
+  {
     "blocker": 19,
     "kind": "automated_assertion",
     "file": "scripts/qa/check-blocker-traceability.mjs",

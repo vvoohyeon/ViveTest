@@ -185,7 +185,7 @@
 ### blog / telemetry / theme / QA surface
 - `/{locale}/blog`는 list-only route다.
 - blog detail은 invalid variant 또는 non-enterable variant에서 다른 글 fallback 없이 localized blog index로 redirect한다.
-- telemetry API는 parseable JSON만 받고 `204`를 반환한다. 현재 서버 측 schema validation, field rejection, persistence는 없다.
+- telemetry API는 object payload와 `event_type`을 요구하며 shared telemetry transport validation 실패 시 `400`, 성공 시 `204`를 반환한다. persistence는 없다.
 - telemetry / Vercel analytics consent source는 하나로 유지한다.
 - consent banner의 Preferences 버튼은 현재 visible no-op이다. 요구사항 변경 전 동작을 부여하지 않는다.
 - representative anchor SSOT: available test `qmbti`, opt-out test `energy-check`, primary blog `ops-handbook`

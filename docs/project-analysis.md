@@ -353,7 +353,7 @@ There are currently four custom telemetry event types in `src/features/landing/t
 | `attempt_start` | `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag` |
 | `final_submit` | same as above + `final_responses` (canonical question index string keys: `"1"`, `"2"`, ...; values: semantic `A`/`B` codes only) |
 
-`src/app/api/telemetry/route.ts` accepts any parseable JSON and returns `204`. No server-side schema validation, field rejection, or persistence. Client-side validation does not currently enforce the future `attempt_start`-and-later `session_id !== null` requirement from `docs/req-test-plan.md` Gate C.
+`src/app/api/telemetry/route.ts` requires an object payload with a supported `event_type`, reuses the shared telemetry transport validator, returns `400` on invalid schema/field hygiene/session contract failures, and returns `204` on accepted payloads. There is still no persistence. Transport validation now enforces the `attempt_start`-and-later `session_id !== null` requirement from `docs/req-test-plan.md` Gate C.
 
 ### 5.7 Styling Runtime
 

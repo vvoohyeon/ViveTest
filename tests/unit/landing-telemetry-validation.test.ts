@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {validateTelemetryEvent} from '../../src/features/landing/telemetry/validation';
+import {patchTelemetryEventForTransport, validateTelemetryEvent} from '../../src/features/landing/telemetry/validation';
 
 describe('landing telemetry validation', () => {
   it('assertion:B18-final-submit-validation accepts final_submit payloads keyed by canonical question indexes', () => {
@@ -129,5 +129,32 @@ describe('landing telemetry validation', () => {
         transition_id: 'transition-1'
       } as never)
     ).toThrow(/Legacy telemetry field/u);
+  });
+
+  it('assertion:B18-post-attempt-session-id-validation rejects post-attempt transport payloads when session_id is null', () => {
+    for (const eventType of ['attempt_start', 'final_submit'] as const) {
+      const event = {
+        event_type: eventType,
+        event_id: 'event-1',
+        session_id: 'session-1',
+        ts_ms: 1,
+        locale: 'en',
+        route: '/en/test/qmbti',
+        consent_state: 'OPTED_IN',
+        variant: 'qmbti',
+        question_index_1based: 4,
+        dwell_ms_accumulated: 1234,
+        landing_ingress_flag: true,
+        ...(eventType === 'final_submit'
+          ? {
+              final_responses: {
+                '1': 'A'
+              }
+            }
+          : {})
+      };
+
+      expect(() => patchTelemetryEventForTransport(event as never, null, 'OPTED_IN')).toThrow(/session_id/u);
+    }
   });
 });

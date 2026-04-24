@@ -256,8 +256,9 @@ Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. `Varian
 
 #### C-3. `session_id` non-null 단언 검증
 
-- [ ] `validateTelemetryEvent()` 또는 동등한 검증 함수에서 `attempt_start` 이후 이벤트에 대해 `session_id !== null` 단언 추가 완료
-- [ ] e2e smoke에서 session_id non-null 직접 단언 추가 완료
+- [x] `validateTelemetryEvent()` 또는 동등한 검증 함수에서 `attempt_start` 이후 이벤트에 대해 `session_id !== null` 단언 추가 완료
+- [x] e2e smoke에서 session_id non-null 직접 단언 추가 완료
+- 완료 상태(2026-04-25): `validateTelemetryTransportEvent()` / `patchTelemetryEventForTransport()`가 `attempt_start`·`final_submit`의 non-null session을 단언하며, `src/app/api/telemetry/route.ts`가 같은 transport validator를 재사용한다. `tests/e2e/transition-telemetry-smoke.spec.ts`의 `assertion:B18-post-attempt-session-id-e2e`가 runtime 전송 payload를 직접 검증한다.
 - 근거: `req-test.md §9.2` transport-patch 계약. blocker #18의 telemetry 전체 closure를 넓히기 위한 전제 조건.
 
 #### C-4. `landing_view` 발화 타이밍 비대칭 해석 규칙
