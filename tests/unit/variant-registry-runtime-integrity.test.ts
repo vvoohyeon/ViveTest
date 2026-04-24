@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it} from 'vitest';
 
 import {questionSourceFixture} from '../../src/features/test/fixtures/questions';
 import {resolveResultsVariantIds} from '../../src/features/test/fixtures/results';
@@ -17,6 +17,10 @@ import {
   variantRegistryGenerated,
   type VariantRegistrySourceCard
 } from '../../src/features/variant-registry';
+import {
+  clearDevRegistryCacheForTesting,
+  loadVariantRegistry
+} from '../../src/features/variant-registry/resolvers';
 
 function buildVariantRegistry(sourceCards: ReadonlyArray<unknown>) {
   return buildVariantRegistryFromSources(sourceCards, questionSourceFixture);
@@ -43,6 +47,10 @@ function buildTestSourceRow(input: {
 }
 
 describe('variant registry runtime cross-sheet fallback', () => {
+  afterEach(() => {
+    clearDevRegistryCacheForTesting();
+  });
+
   it('generated registry matches the current fixture builder output', () => {
     const sourceFixture = getVariantRegistrySourceFixture();
     const fixtureBuiltRegistry = buildVariantRegistry(sourceFixture);
@@ -140,5 +148,22 @@ describe('variant registry runtime cross-sheet fallback', () => {
     expect(blogVariants).toEqual(['ops-handbook', 'build-metrics', 'release-gate']);
     expect(integrity.missingInQuestions).not.toEqual(expect.arrayContaining(blogVariants));
     expect(integrity.missingInResults).not.toEqual(expect.arrayContaining(blogVariants));
+  });
+
+  it('loadVariantRegistry는 dev/test fixture registry를 같은 객체로 캐시한다', () => {
+    const firstRegistry = loadVariantRegistry();
+    const secondRegistry = loadVariantRegistry();
+
+    expect(secondRegistry).toBe(firstRegistry);
+  });
+
+  it('clearDevRegistryCacheForTesting 이후 loadVariantRegistry는 새 객체를 반환한다', () => {
+    const cachedRegistry = loadVariantRegistry();
+
+    clearDevRegistryCacheForTesting();
+    const freshRegistry = loadVariantRegistry();
+
+    expect(freshRegistry).not.toBe(cachedRegistry);
+    expect(freshRegistry).toEqual(cachedRegistry);
   });
 });
