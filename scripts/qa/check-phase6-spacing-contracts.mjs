@@ -32,6 +32,7 @@ function readCssBlock(css, selector) {
 
 const requiredFiles = [
   'src/features/landing/grid/spacing-plan.ts',
+  'src/features/landing/grid/use-grid-geometry-controller.ts',
   'tests/unit/landing-spacing-plan.test.ts',
   'tests/e2e/grid-smoke.spec.ts'
 ];
@@ -42,19 +43,22 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
-  const gridFile = read('src/features/landing/grid/landing-catalog-grid.tsx');
-  if (!/buildRowCompensationModel/u.test(gridFile)) {
+{
+  const gridFiles = readExisting([
+    'src/features/landing/grid/landing-catalog-grid.tsx',
+    'src/features/landing/grid/use-grid-geometry-controller.ts'
+  ]);
+  if (!/buildRowCompensationModel/u.test(gridFiles)) {
     fail('LandingCatalogGrid must use row-local compensation model in Phase 6.');
   }
-  if (!/deriveNaturalHeightFromGeometry/u.test(gridFile)) {
+  if (!/deriveNaturalHeightFromGeometry/u.test(gridFiles)) {
     fail('LandingCatalogGrid must derive natural height from geometry in Phase 6.');
   }
-  if (/scrollHeight/u.test(gridFile)) {
+  if (/scrollHeight/u.test(gridFiles)) {
     fail('LandingCatalogGrid must not depend on scrollHeight for row-local natural height in Phase 6.');
   }
 
-  if (!/data-base-gap/u.test(gridFile) && !/spacing=/u.test(gridFile)) {
+  if (!/data-base-gap/u.test(gridFiles) && !/spacing=/u.test(gridFiles)) {
     fail('LandingCatalogGrid must pass spacing contract props to card renderer in Phase 6.');
   }
 }

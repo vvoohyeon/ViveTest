@@ -385,7 +385,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B15-transition-correlation blog transition keeps source GNB visible until the destination completes its ready handshake', async ({
     page
   }) => {
-    await delayDestinationReadyRaf(page);
+    await delayDestinationReadyRaf(page, 600);
     await installTransitionSignalCollector(page);
     await page.addInitScript((storageKey) => {
       window.localStorage.setItem(storageKey, 'OPTED_IN');

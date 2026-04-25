@@ -23,6 +23,7 @@ function read(relativePath) {
 const requiredFiles = [
   'src/features/landing/grid/layout-plan.ts',
   'src/features/landing/grid/landing-catalog-grid.tsx',
+  'src/features/landing/grid/use-grid-geometry-controller.ts',
   'tests/unit/landing-grid-plan.test.ts',
   'tests/e2e/grid-smoke.spec.ts'
 ];

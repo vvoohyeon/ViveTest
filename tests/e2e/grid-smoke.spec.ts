@@ -858,10 +858,12 @@ test.describe('Phase 4 grid smoke', () => {
     const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await expect(unavailableCard).toHaveAttribute('data-interaction-mode', 'tap');
     const overlay = unavailableCard.locator('[data-slot="unavailableOverlay"]');
-    const opacity = parseFloat(
-      await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
-    );
-    expect(opacity).toBeGreaterThanOrEqual(0.95);
+    await expect(overlay).toHaveCount(1);
+    await expect
+      .poll(async () =>
+        parseFloat(await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim()))
+      )
+      .toBeGreaterThanOrEqual(0.95);
   });
 
   test('@smoke assertion:B4-geometry-active-frame desktop expanded overlay keeps same-row non-target metrics frozen', async ({
