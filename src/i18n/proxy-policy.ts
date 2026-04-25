@@ -31,11 +31,14 @@ export function resolveProxyDecision(input: {
     return {action: 'next'};
   }
 
-  if (!isAppOwnedPath(input.pathname)) {
-    return {action: 'next'};
+  if (hasDuplicateLocalePrefix(input.pathname)) {
+    return {
+      action: 'rewrite',
+      pathname: globalUnmatchedPath
+    };
   }
 
-  if (hasDuplicateLocalePrefix(input.pathname)) {
+  if (!isAppOwnedPath(input.pathname)) {
     return {
       action: 'rewrite',
       pathname: globalUnmatchedPath

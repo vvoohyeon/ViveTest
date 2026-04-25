@@ -6,12 +6,14 @@ This repository is a localized Next.js App Router application. Its real technica
 
 **Workspace verification:**
 
-- Current local Done gate for this document sync: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` (2026-04-24) — passes
-- `npm run qa:rules` (2026-04-24): passes
+- Current local Done gate for this document sync: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
+- `npm run qa:rules` (2026-04-25): passes
 - Representative Playwright smoke coverage is organized around routing, grid, state, GNB, accessibility, consent, theme matrix, Safari hover ghosting, and transition telemetry specs. Exact expanded test counts are intentionally not repeated here because they vary with browser/project matrix expansion.
 - Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required.
 
 **Implementation phase status (2026-04-24):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Phase 2 data guardrails now cover Group A and Group C runtime paths plus Group B-1/B-2 Sheets sync: 3-source-capable cross-sheet validation, Results fixture boundary, runtime fallback, entry route guard, fixture hardening for enterable variants, lazy validation + cache, `/test/error` recovery stub, Landing/Questions Google Sheets loading, Action-level 2-source sync orchestration, deterministic generated registry serialization, GitHub Actions wiring, local dry-run, dev/test registry cache reset coverage, and B29/B30 automated evidence are present. The question-bank surface has also been refactored so live `/test/{variant}` coverage is anchored on `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()`, while the legacy inline-bridge helper remains exported only as a deprecated compatibility path. Results Sheets loading remains pending and the sync script intentionally calls `validateCrossSheetIntegrity(landingTestVariants, questionVariants)` in 2-source mode until that source is ready. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
+
+**Landing interaction refactor status (2026-04-25):** the large landing controller split is complete across five wave commits. `useReducer` ownership remains in `use-landing-interaction-controller.ts`, while DOM/focus helpers, hover intent, desktop motion, mobile lifecycle, keyboard handoff, and grid geometry/RAF ownership now live in dedicated hooks/modules. `landing-catalog-grid.tsx` keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, plan calculation, JSX rendering, and data attributes. The session also closed a preview-mode routing gap: non-allowlisted, non-bypass locale-less paths such as `/foo` now rewrite through the global unmatched `/_not-found` surface so preview smoke and the documented 404 split agree.
 
 ---
 
@@ -81,7 +83,13 @@ Route tree
             │         ├─ src/features/test/fixtures/questions/** (variant-split Questions row fixtures)
             │         ├─ src/features/test/fixtures/results/** (row-level Results variantId fixture)
             │         ├─ src/features/landing/grid/use-landing-interaction-controller.ts
+            │         │    ├─ interaction-dom.ts
+            │         │    ├─ use-hover-intent-controller.ts
+            │         │    ├─ use-desktop-motion-controller.ts
+            │         │    ├─ use-mobile-card-lifecycle.ts
+            │         │    └─ use-keyboard-handoff.ts
             │         └─ src/features/landing/grid/landing-catalog-grid.tsx
+            │              └─ use-grid-geometry-controller.ts
             ├─ src/app/[locale]/blog/page.tsx (list-only blog index)
             ├─ src/app/[locale]/blog/[variant]/page.tsx (route-keyed blog detail)
             ├─ src/app/[locale]/test/[variant]/page.tsx
@@ -150,9 +158,10 @@ All 12 locale files in `src/messages/` are complete with the same 6 namespaces: 
 
 ### 4.3 Proxy Contract
 
-- Locale-less app-owned paths → 307 redirect to localized equivalent
+- Locale-less allowlisted app-owned paths → 307 redirect to localized equivalent
+- Locale-less non-allowlisted, non-bypass paths → rewrite to `/_not-found`
 - Duplicate locale prefix (e.g. `/en/en/...`) → rewrite to `/_not-found`
-- `/_next`, `/api`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by `src/i18n/locale-resolution.ts`
+- `/_next`, `/api`, `/_vercel`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by `src/i18n/locale-resolution.ts` and the static `proxy.ts` matcher
 - Locale family normalization: `ko* → kr`, Simplified Chinese → `zs`, Traditional Chinese → `zt`
 
 ### 4.4 SSR Locale Correctness
@@ -167,7 +176,9 @@ The proxy injects `X-NEXT-INTL-LOCALE`. `src/app/layout.tsx` reads it to set `<h
 
 ### 5.1 Landing Interaction Runtime
 
-The most technically distinctive part of the codebase. Several focused pure modules:
+The most technically distinctive part of the codebase. The pre-refactor monolithic interaction controller has been split into focused runtime modules while preserving reducer ownership in the controller.
+
+Pure or model-focused modules:
 
 - `src/features/landing/model/interaction-state.ts` — page/card/hover-lock state transitions
 - `src/features/landing/grid/layout-plan.ts` — row plans
@@ -175,12 +186,18 @@ The most technically distinctive part of the codebase. Several focused pure modu
 - `src/features/landing/grid/mobile-lifecycle.ts` — mobile expansion phases
 - `src/features/landing/grid/desktop-shell-phase.ts` — visual shell phases
 
-Coordinated by:
+Runtime ownership after the 2026-04-25 split:
 
-- `src/features/landing/grid/use-landing-interaction-controller.ts` — **1587 lines**, runtime state machine for focus, hover intent, keyboard handoff, reduced motion, page visibility, mobile transient shells, backdrop gestures, transition start/cancel
-- `src/features/landing/grid/landing-catalog-grid.tsx` — DOM geometry measurement, row baseline freezing, `requestAnimationFrame` timing
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — **486 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, per-card binding composition, active visual state derivation, and transition-start callback composition.
+- `src/features/landing/grid/interaction-dom.ts` — DOM/focus helpers: card-root lookup, expanded focusable selection, adjacent-card resolution, queued focus callbacks, mobile-card detection, and card-boundary resolution.
+- `src/features/landing/grid/use-hover-intent-controller.ts` — hover timers/tokens, last pointer position, card-boundary containment checks, and trigger `onMouseEnter` / `onMouseLeave` handlers.
+- `src/features/landing/grid/use-desktop-motion-controller.ts` — desktop opening/closing/handoff visual state, transition reason ref, cleanup timers, and double-RAF cleanup.
+- `src/features/landing/grid/use-mobile-card-lifecycle.ts` — mobile open/close timers, restore-ready and transient-shell timers, body scroll lock, backdrop outside gesture, queued close, and restore polling.
+- `src/features/landing/grid/use-keyboard-handoff.ts` — global keyboard-mode entry/exit listeners, pointer/mouse/wheel keyboard-mode exit, first forward-Tab landing entry, Escape collapse, trigger focus/key handlers, and expanded-body key handling.
+- `src/features/landing/grid/use-grid-geometry-controller.ts` — spacing model, row baseline snapshots, baseline freeze/restore/release timers, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
+- `src/features/landing/grid/landing-catalog-grid.tsx` — **270 lines**, keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, `LandingGridPlan` calculation, render assembly, and data attributes.
 
-State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. Styling ownership is hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` also remaps raw runtime state into semantic style classes that `landing-grid-card.module.css` consumes exclusively for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors but no longer participate in the CSS contract.
+The core risk is still choreography complexity across hover, keyboard, mobile, desktop shell phases, and geometry timing, but ownership is now explicit and testable at narrower seams. Styling ownership is hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` remaps raw runtime state into semantic style classes consumed by `landing-grid-card.module.css` for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors but no longer participate in the CSS contract.
 
 ### 5.2 GNB
 
@@ -419,7 +436,7 @@ The key lists below describe the live prototype. Phase 0 fixed the future test-f
 
 ### 7.1 Unit Tests (Vitest)
 
-Scoped to `tests/unit/`. Current file inventory: 43 `*.test.ts` files. Coverage spans route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB behavior, pure test-domain modules, cross-sheet integrity, Sheets loader normalization, sync orchestration failure/no-op/write paths, runtime integrity fallback, dev/test registry cache reset behavior, lazy validation, live question-bank APIs, and the schema registry. The legacy landing question-bank test file was removed during the 2026-04-24 question-bank refactor because its meaningful assertions now exercise `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()` directly.
+Scoped to `tests/unit/`. Current file inventory: 45 `*.test.ts` files. Coverage spans route helpers, localization helpers, proxy policy, telemetry validation, transition storage, card/data contracts, GNB behavior, landing interaction DOM helpers, hover intent, desktop shell phase hooks, mobile lifecycle hooks, grid geometry, pure test-domain modules, cross-sheet integrity, Sheets loader normalization, sync orchestration failure/no-op/write paths, runtime integrity fallback, dev/test registry cache reset behavior, lazy validation, live question-bank APIs, and the schema registry. The legacy landing question-bank test file was removed during the 2026-04-24 question-bank refactor because its meaningful assertions now exercise `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()` directly.
 
 ### 7.2 E2E Tests (Playwright)
 
@@ -434,7 +451,7 @@ Scoped to `tests/unit/`. Current file inventory: 43 `*.test.ts` files. Coverage 
 | `a11y-smoke.spec.ts` | AxeBuilder audits for landing, GNB-open, transition-overlay, KR representative state |
 | `consent-smoke.spec.ts` | Test instruction contract matrix: variant-specific instruction copy, divider/note rendering, CTA labels, consent persistence, redirect/commit semantics |
 | `theme-matrix-smoke.spec.ts` | 168 representative theme/layout/state screenshots (96 layout + 72 state) |
-| `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (5 baselines) |
+| `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (6 baselines) |
 | `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
 
 Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
@@ -464,7 +481,7 @@ The theme-matrix suites assume the combined theme label remains locked to the me
 
 Consent-specific blockers 20~23 anchor in `tests/e2e/consent-smoke.spec.ts`; remaining test-flow blockers 24~30 mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence. Blockers 27, 28, 29, and 30 now carry automated evidence, including the 3-source cross-sheet unit coverage and route-level runtime guard assertions.
 
-As of 2026-04-24, `npm run qa:rules` passes all 12 checks.
+As of 2026-04-25, `npm run qa:rules` passes all 12 checks. The landing-controller split expanded the relevant script read scopes without weakening required-file checks: Phase 6 now reads `landing-catalog-grid.tsx` plus `use-grid-geometry-controller.ts`, Phase 7 reads the controller plus `interaction-dom.ts`, hover, desktop motion, and keyboard hooks, and Phase 10 includes the mobile lifecycle hook while keeping existing CSS/e2e contract anchors.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 
@@ -472,7 +489,7 @@ As of 2026-04-24, `npm run qa:rules` passes all 12 checks.
 
 ### 7.4 Closed Follow-up Items (Historical Record)
 
-Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture drift, theme matrix / Safari baseline closure) were all closed as of 2026-04-16. No active follow-up tasks remain from that cycle. Use git history if original stub context is needed.
+Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture drift, theme matrix / Safari baseline closure) were all closed as of 2026-04-16. The 2026-04-25 landing-controller extraction cycle also closed its follow-ups: preview global 404 routing was realigned with `req-landing.md` §5.3/§5.5, and local theme-matrix/Safari visual baselines were refreshed and re-run under `PLAYWRIGHT_SERVER_MODE=preview`. Use git history if original stub context is needed.
 
 ---
 
@@ -482,7 +499,7 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 `src/proxy.ts` · `src/i18n/locale-resolution.ts` · `src/i18n/proxy-policy.ts` · `src/i18n/routing.ts` · `src/app/layout.tsx` · `src/app/[locale]/layout.tsx` · `src/app/[locale]/test/error/page.tsx` · `src/app/global-not-found.tsx` · `src/app/not-found.tsx` · `tests/e2e/routing-smoke.spec.ts`
 
 ### Landing grid / layout / interaction
-`src/features/landing/grid/use-landing-interaction-controller.ts` · `src/features/landing/grid/landing-catalog-grid.tsx` · `src/features/landing/model/interaction-state.ts` · `src/features/landing/grid/layout-plan.ts` · `src/features/landing/grid/spacing-plan.ts` · `tests/e2e/grid-smoke.spec.ts` · `tests/e2e/state-smoke.spec.ts`
+`src/features/landing/grid/use-landing-interaction-controller.ts` · `src/features/landing/grid/interaction-dom.ts` · `src/features/landing/grid/use-hover-intent-controller.ts` · `src/features/landing/grid/use-desktop-motion-controller.ts` · `src/features/landing/grid/use-mobile-card-lifecycle.ts` · `src/features/landing/grid/use-keyboard-handoff.ts` · `src/features/landing/grid/use-grid-geometry-controller.ts` · `src/features/landing/grid/landing-catalog-grid.tsx` · `src/features/landing/model/interaction-state.ts` · `src/features/landing/grid/layout-plan.ts` · `src/features/landing/grid/spacing-plan.ts` · `tests/unit/landing-interaction-dom.test.ts` · `tests/unit/landing-hover-intent.test.ts` · `tests/unit/landing-mobile-lifecycle.test.ts` · `tests/unit/landing-desktop-shell-phase.test.ts` · `tests/unit/landing-grid-plan.test.ts` · `tests/e2e/grid-smoke.spec.ts` · `tests/e2e/state-smoke.spec.ts`
 
 ### GNB / theme / shared shell
 `src/features/landing/gnb/site-gnb.tsx` · `src/features/landing/gnb/hooks/use-theme-preference.ts` · `src/features/landing/gnb/hooks/theme-transition.ts` · `public/theme-bootstrap.js` · `src/features/landing/shell/page-shell.tsx` · `tests/e2e/gnb-smoke.spec.ts` · `tests/unit/gnb-message-labels.test.ts`
@@ -511,11 +528,11 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 
 **Instruction copy ownership is intentionally split.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. Future editors need to keep both sources in sync.
 
-**Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1587 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. The most likely future refactoring cost concentration point.
+**Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is down to 486 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
 
-**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Two files stand out as primary pressure points: `use-landing-interaction-controller.ts` (1587 lines) and `site-gnb.tsx` (~831 lines).
+**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Current pressure points are `site-gnb.tsx` (~831 lines), `use-mobile-card-lifecycle.ts` (543 lines), `use-landing-interaction-controller.ts` (486 lines), `use-keyboard-handoff.ts` (367 lines), and `use-grid-geometry-controller.ts` (330 lines).
 
-**Screenshot-driven QA remains concentrated in the instruction surface.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions.
+**Screenshot-driven QA remains concentrated in the instruction surface and visual matrix.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions. The 2026-04-25 refactor refreshed local theme-matrix and Safari baselines under preview mode; future layout/motion edits should re-run the same preview visual smoke before release.
 
 **Tech stack notes:**
 - `next@16.2.4`, `react@19.2.4`, `next-intl@4.9.1`
