@@ -14,6 +14,7 @@ import {
   resolveAdjacentCardVariant,
   resolveCardBoundaryElement
 } from '../../src/features/landing/grid/interaction-dom';
+import {useKeyboardHandoff} from '../../src/features/landing/grid/use-keyboard-handoff';
 
 function mountShell() {
   document.body.innerHTML = `
@@ -111,5 +112,9 @@ describe('landing interaction DOM helpers', () => {
     vi.runAllTimers();
 
     expect(document.activeElement?.textContent).toBe('QMBTI');
+  });
+
+  it('exposes the keyboard handoff hook entrypoint', () => {
+    expect(typeof useKeyboardHandoff).toBe('function');
   });
 });

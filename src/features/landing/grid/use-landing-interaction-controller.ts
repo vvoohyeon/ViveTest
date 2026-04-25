@@ -19,16 +19,7 @@ import type {
   LandingCardVisualState,
   LandingMobileSnapshotView
 } from '@/features/landing/grid/landing-grid-card';
-import {
-  focusCardByVariant,
-  getCardRootElement,
-  getExpandedFocusableElements,
-  isDocumentLevelFocusTarget,
-  isMobileCardElement,
-  isVisibleFocusableElement,
-  queueFocusCallback,
-  resolveAdjacentCardVariant
-} from '@/features/landing/grid/interaction-dom';
+import {isMobileCardElement} from '@/features/landing/grid/interaction-dom';
 import {
   initialLandingMobileLifecycleState,
   reduceLandingMobileLifecycleState,
@@ -50,6 +41,7 @@ import {
   useMobileCardLifecycle,
   type MobileBackdropBindings
 } from '@/features/landing/grid/use-mobile-card-lifecycle';
+import {useKeyboardHandoff} from '@/features/landing/grid/use-keyboard-handoff';
 
 export interface LandingCardInteractionBindings {
   state: LandingCardVisualState;
@@ -172,34 +164,6 @@ export function useLandingInteractionController({
     clearHoverTimer
   });
 
-  const focusLandingReverseGnbTarget = useCallback((): boolean => {
-    if (typeof document === 'undefined') {
-      return false;
-    }
-
-    const selectors = isMobileViewport
-      ? ['[data-testid="gnb-mobile-menu-trigger"]', '.gnb-mobile .gnb-ci-link']
-      : ['[data-testid="gnb-settings-trigger"]', '.gnb-desktop-links a:last-of-type', '.gnb-desktop .gnb-ci-link'];
-
-    for (const selector of selectors) {
-      const candidate = document.querySelector<HTMLElement>(selector);
-      if (!isVisibleFocusableElement(candidate)) {
-        continue;
-      }
-
-      candidate.focus();
-      return true;
-    }
-
-    return false;
-  }, [isMobileViewport]);
-
-  const queueLandingReverseGnbTargetFocus = useCallback(() => {
-    queueFocusCallback(() => {
-      focusLandingReverseGnbTarget();
-    });
-  }, [focusLandingReverseGnbTarget]);
-
   useLayoutEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       return;
@@ -276,49 +240,6 @@ export function useLandingInteractionController({
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const handleGlobalKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Tab') {
-        dispatchInteraction({
-          type: 'KEYBOARD_MODE_ENTER'
-        });
-
-        if (!event.shiftKey && isDocumentLevelFocusTarget(event.target) && focusCardByVariant(shellRef.current, firstEnterableCardVariant)) {
-          event.preventDefault();
-          return;
-        }
-      } else if (event.key === 'Escape') {
-        dispatchInteraction({
-          type: 'ESCAPE',
-          nowMs: event.timeStamp
-        });
-      }
-    };
-
-    const handleGlobalPointerEvent = (event: PointerEvent | MouseEvent | WheelEvent) => {
-      recordPointerInput(event);
-      dispatchInteraction({
-        type: 'KEYBOARD_MODE_EXIT'
-      });
-    };
-
-    window.addEventListener('keydown', handleGlobalKeyDown, true);
-    window.addEventListener('pointermove', handleGlobalPointerEvent, {passive: true});
-    window.addEventListener('mousedown', handleGlobalPointerEvent, {passive: true});
-    window.addEventListener('wheel', handleGlobalPointerEvent, {passive: true});
-
-    return () => {
-      window.removeEventListener('keydown', handleGlobalKeyDown, true);
-      window.removeEventListener('pointermove', handleGlobalPointerEvent);
-      window.removeEventListener('mousedown', handleGlobalPointerEvent);
-      window.removeEventListener('wheel', handleGlobalPointerEvent);
-    };
-  }, [firstEnterableCardVariant, recordPointerInput, shellRef]);
-
-  useEffect(() => {
     return () => {
       clearHoverTimer();
       clearMobileTimers();
@@ -372,6 +293,22 @@ export function useLandingInteractionController({
       nowMs: typeof window !== 'undefined' ? window.performance.now() : 0
     });
   }, [clearHoverTimer, resetMobileRuntime]);
+
+  const {resolveKeyboardHandlers} = useKeyboardHandoff({
+    state: interactionState,
+    dispatch: dispatchInteraction,
+    interactionMode,
+    isMobileViewport,
+    shellRef,
+    cardVariants,
+    firstEnterableCardVariant,
+    mobileLifecycleState,
+    beginMobileOpen,
+    beginMobileKeyboardHandoff,
+    collapseExpandedCard,
+    setDesktopTransitionReason,
+    recordPointerInput
+  });
 
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
     const cardEnterable = isEnterableCard(card);
@@ -440,62 +377,10 @@ export function useLandingInteractionController({
         }
       : null;
     const hoverHandlers = resolveHoverHandlers(card);
-    const handleExpandedBodyKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-      if (event.key !== 'Tab' || !cardEnterable) {
-        return;
-      }
-
-      dispatchInteraction({type: 'KEYBOARD_MODE_ENTER'});
-
-      const target = event.target instanceof HTMLElement ? event.target : null;
-      if (!target) {
-        return;
-      }
-
-      const cardElement = getCardRootElement(event.currentTarget) ?? event.currentTarget;
-      const focusables = getExpandedFocusableElements(cardElement);
-      const focusIndex = focusables.findIndex((candidate) => candidate === target);
-      if (focusIndex < 0) {
-        return;
-      }
-
-      if (event.shiftKey) {
-        if (focusIndex > 0) {
-          event.preventDefault();
-          focusables[focusIndex - 1]?.focus();
-          return;
-        }
-
-        if (isMobileViewport) {
-          event.preventDefault();
-          beginMobileKeyboardHandoff(card.variant, resolveAdjacentCardVariant(cardVariants, card.variant, -1) ?? card.variant, event.timeStamp);
-          return;
-        }
-
-        if (focusCardByVariant(shellRef.current, card.variant)) {
-          event.preventDefault();
-        }
-        return;
-      }
-
-      if (focusIndex < focusables.length - 1) {
-        event.preventDefault();
-        focusables[focusIndex + 1]?.focus();
-        return;
-      }
-
-      const nextCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, 1);
-      if (isMobileViewport) {
-        event.preventDefault();
-        beginMobileKeyboardHandoff(card.variant, nextCardVariant, event.timeStamp);
-        return;
-      }
-
-      desktopTransitionReasonRef.current = 'handoff';
-      if (focusCardByVariant(shellRef.current, nextCardVariant)) {
-        event.preventDefault();
-      }
-    };
+    const keyboardHandlers = resolveKeyboardHandlers(card, {
+      cardEnterable,
+      keyboardAriaDisabled
+    });
 
     return {
       state: visualState,
@@ -518,136 +403,8 @@ export function useLandingInteractionController({
       mobileRestoreReady:
         mobileRestoreReadyVariant === card.variant || (mobileOwnsCard && mobileLifecycleState.restoreReady),
       mobileSnapshot,
-      onFocus: (event) => {
-        desktopTransitionReasonRef.current =
-          interactionState.expandedCardVariant && interactionState.expandedCardVariant !== card.variant && cardEnterable
-            ? 'handoff'
-            : interactionState.expandedCardVariant && interactionState.expandedCardVariant !== card.variant
-              ? 'collapse'
-              : 'expand';
-        dispatchInteraction({
-          type: 'CARD_FOCUS',
-          nowMs: event.timeStamp,
-          interactionMode,
-          cardVariant: card.variant,
-          available: cardEnterable
-        });
-      },
-      onKeyDown: (event) => {
-        if (event.key === 'Tab') {
-          dispatchInteraction({type: 'KEYBOARD_MODE_ENTER'});
-
-          if (!cardEnterable) {
-            return;
-          }
-
-          const cardElement = getCardRootElement(event.currentTarget) ?? event.currentTarget;
-          const isExpanded = interactionState.expandedCardVariant === card.variant;
-          const focusables = getExpandedFocusableElements(cardElement);
-          const firstFocusable = focusables[0] ?? null;
-          const lastFocusable = focusables[focusables.length - 1] ?? null;
-          const target = event.target instanceof HTMLElement ? event.target : null;
-
-          if (!event.shiftKey && isExpanded && target === event.currentTarget && firstFocusable) {
-            event.preventDefault();
-            firstFocusable.focus();
-            return;
-          }
-
-          if (!event.shiftKey && lastFocusable && target === lastFocusable) {
-            const nextCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, 1);
-            desktopTransitionReasonRef.current = 'handoff';
-            if (focusCardByVariant(shellRef.current, nextCardVariant)) {
-              event.preventDefault();
-            }
-            return;
-          }
-
-          if (event.shiftKey && firstFocusable && target === firstFocusable) {
-            if (isMobileViewport) {
-              event.preventDefault();
-              beginMobileKeyboardHandoff(card.variant, resolveAdjacentCardVariant(cardVariants, card.variant, -1) ?? card.variant, event.timeStamp);
-              return;
-            }
-
-            const previousCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, -1);
-            desktopTransitionReasonRef.current = 'handoff';
-            if (focusCardByVariant(shellRef.current, previousCardVariant)) {
-              event.preventDefault();
-            }
-            return;
-          }
-
-          if (event.shiftKey && target === event.currentTarget) {
-            const previousCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, -1);
-            if (isMobileViewport) {
-              event.preventDefault();
-              if (previousCardVariant) {
-                beginMobileKeyboardHandoff(card.variant, previousCardVariant, event.timeStamp);
-                return;
-              }
-
-              beginMobileKeyboardHandoff(card.variant, null, event.timeStamp);
-              queueLandingReverseGnbTargetFocus();
-              return;
-            }
-
-            desktopTransitionReasonRef.current = 'handoff';
-
-            if (focusCardByVariant(shellRef.current, previousCardVariant)) {
-              event.preventDefault();
-              return;
-            }
-
-            desktopTransitionReasonRef.current = 'collapse';
-            dispatchInteraction({
-              type: 'CARD_COLLAPSE',
-              nowMs: event.timeStamp,
-              interactionMode,
-              cardVariant: card.variant
-            });
-            queueLandingReverseGnbTargetFocus();
-            event.preventDefault();
-          }
-          return;
-        }
-
-        if ((event.key === 'Enter' || event.key === ' ') && keyboardAriaDisabled) {
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          collapseExpandedCard();
-          return;
-        }
-
-        if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
-          event.preventDefault();
-
-          if (!cardEnterable) {
-            return;
-          }
-
-          if (isMobileCardElement(event.currentTarget)) {
-            if (mobileLifecycleState.phase === 'NORMAL' && mobileLifecycleState.cardVariant !== card.variant) {
-              beginMobileOpen(card.variant);
-            }
-            return;
-          }
-
-          desktopTransitionReasonRef.current = 'expand';
-          dispatchInteraction({
-            type: 'CARD_EXPAND',
-            nowMs: event.timeStamp,
-            interactionMode,
-            cardVariant: card.variant,
-            available: cardEnterable
-          });
-        }
-      },
+      onFocus: keyboardHandlers.onFocus,
+      onKeyDown: keyboardHandlers.onKeyDown,
       onClick: (event) => {
         if (keyboardAriaDisabled) {
           event.preventDefault();
@@ -678,7 +435,7 @@ export function useLandingInteractionController({
       },
       onMouseEnter: hoverHandlers.onMouseEnter,
       onMouseLeave: hoverHandlers.onMouseLeave,
-      onExpandedBodyKeyDown: handleExpandedBodyKeyDown,
+      onExpandedBodyKeyDown: keyboardHandlers.onExpandedBodyKeyDown,
       onAnswerChoiceSelect: (choice, event) => {
         if (card.type !== 'test') {
           return;
