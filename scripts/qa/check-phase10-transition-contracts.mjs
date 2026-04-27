@@ -27,6 +27,7 @@ const requiredFiles = [
   'src/features/landing/landing-runtime.tsx',
   'src/features/test/test-question-client.tsx',
   'src/features/landing/blog/blog-destination-client.tsx',
+  'src/features/landing/grid/use-mobile-card-lifecycle.ts',
   'src/features/landing/grid/landing-grid-card.module.css',
   'tests/e2e/transition-telemetry-smoke.spec.ts'
 ];

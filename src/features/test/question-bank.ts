@@ -165,6 +165,11 @@ export function resolveVariantPreviewPayload(variantId: string, locale: AppLocal
   };
 }
 
+/**
+ * @deprecated Live `/test/{variant}` 경로는 `buildVariantQuestionBank()`를 사용한다.
+ * 이 함수는 inline-bridge 기반 하위 호환 경로로만 남아 있다.
+ * 신규 코드에서 호출하지 않는다.
+ */
 export function buildLandingTestQuestionBank(card: LandingTestCard, locale: AppLocale): LandingTestQuestion[] {
   const previewPayload = resolveVariantPreviewPayload(card.variant, locale);
   if (!previewPayload) {

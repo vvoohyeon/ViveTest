@@ -29,7 +29,8 @@
     "readMore": "और पढ़ें"
   },
   "test": {
-    "progress": "प्रश्न {current} / {total}",
+    "progressLabel": "प्रगति",
+    "progressValue": "{percent}%",
     "prev": "पिछला",
     "next": "अगला",
     "submit": "सबमिट करें",

@@ -148,7 +148,7 @@ test.describe('Instruction consent contract smoke', () => {
     await expect.poll(() => readConsent(page)).toBe('OPTED_OUT');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_OPT_OUT_TEST_VARIANT)).toBe('true');
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('25%');
   });
 
   test('@smoke assertion:B21-accept-all-and-start-contract deep-link UNKNOWN available uses note-based CTA contract and Accept All and Start begins at Q1', async ({
@@ -169,7 +169,7 @@ test.describe('Instruction consent contract smoke', () => {
     await expect.poll(() => readConsent(page)).toBe('OPTED_IN');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_AVAILABLE_TEST_VARIANT)).toBe('true');
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 8');
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
   });
 
   test('@smoke deep-link UNKNOWN available Deny and Abandon returns home without leaving legacy UI behind', async ({
@@ -202,7 +202,7 @@ test.describe('Instruction consent contract smoke', () => {
     await expect.poll(() => readConsent(page)).toBe('OPTED_OUT');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_OPT_OUT_TEST_VARIANT)).toBe('true');
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
   });
 
   test('@smoke assertion:B23-opted-out-available-warning-contract direct available OPTED_OUT replaces the old redirect contract with warning copy and Keep Current Preference', async ({
@@ -232,7 +232,7 @@ test.describe('Instruction consent contract smoke', () => {
     await page.getByTestId('test-accept-all-and-start-button').click();
     await expect.poll(() => readConsent(page)).toBe('OPTED_IN');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_AVAILABLE_TEST_VARIANT)).toBe('true');
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 8');
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
     await expectNoLegacyInstructionUi(page);
   });
 
@@ -255,7 +255,7 @@ test.describe('Instruction consent contract smoke', () => {
     await expect.poll(() => readConsent(page)).toBe('OPTED_OUT');
     await expect.poll(() => readInstructionSeen(page, PRIMARY_OPT_OUT_TEST_VARIANT)).toBe('true');
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
   });
 
   for (const fixture of TEST_VARIANT_INSTRUCTION_FIXTURES_EN) {

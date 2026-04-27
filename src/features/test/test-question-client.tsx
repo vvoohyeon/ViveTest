@@ -47,6 +47,12 @@ interface QuestionBootstrapState {
   instructionSeen: boolean;
 }
 
+interface ScoringProgress {
+  answered: number;
+  total: number;
+  percent: number;
+}
+
 const testPanelSurfaceClassName =
   'rounded-[18px] p-5 [background:color-mix(in_srgb,var(--panel-solid)_94%,transparent)] [box-shadow:var(--dialog-shadow)]';
 const testShellCardClassName =
@@ -115,6 +121,38 @@ function resolveInitialAnswers(input: {
 
   const firstScoringQuestion = findFirstScoringQuestion(input.questions);
   return firstScoringQuestion ? {[firstScoringQuestion.id]: input.landingIngress.preAnswerChoice} : {};
+}
+
+function hasSemanticAnswer(answer: 'A' | 'B' | undefined): answer is 'A' | 'B' {
+  return answer === 'A' || answer === 'B';
+}
+
+export function buildCanonicalFinalResponses(input: {
+  questions: ReadonlyArray<ResolvedQuestion>;
+  answers: Record<string, 'A' | 'B'>;
+}): Record<string, 'A' | 'B'> {
+  return input.questions.reduce<Record<string, 'A' | 'B'>>((accumulator, question) => {
+    const answer = input.answers[question.id];
+    if (hasSemanticAnswer(answer)) {
+      accumulator[String(question.canonicalIndex)] = answer;
+    }
+    return accumulator;
+  }, {});
+}
+
+export function resolveScoringProgress(input: {
+  questions: ReadonlyArray<ResolvedQuestion>;
+  answers: Record<string, 'A' | 'B'>;
+}): ScoringProgress {
+  const scoringQuestions = input.questions.filter((question) => question.questionType === 'scoring');
+  const answered = scoringQuestions.filter((question) => hasSemanticAnswer(input.answers[question.id])).length;
+  const total = scoringQuestions.length;
+
+  return {
+    answered,
+    total,
+    percent: total === 0 ? 0 : Math.round((answered / total) * 100)
+  };
 }
 
 export function resolveQuestionBootstrapState(input: {
@@ -332,6 +370,10 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
 
   const currentQuestion = questions[runtimeState.currentQuestionIndex - 1] ?? questions[0];
   const totalQuestions = questions.length;
+  const scoringProgress = resolveScoringProgress({
+    questions,
+    answers: runtimeState.answers
+  });
   const currentAnswer = currentQuestion ? runtimeState.answers[currentQuestion.id] : undefined;
   const allAnswered = questions.every((question) => runtimeState.answers[question.id] === 'A' || runtimeState.answers[question.id] === 'B');
 
@@ -378,13 +420,10 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
 
     settleCurrentQuestionDwell();
     const dwellMsAccumulated = Object.values(dwellByQuestionRef.current).reduce((sum, value) => sum + value, 0);
-    const finalResponses = questions.reduce<Record<string, 'A' | 'B'>>((accumulator, question) => {
-      const answer = runtimeState.answers[question.id];
-      if (answer) {
-        accumulator[question.id] = answer;
-      }
-      return accumulator;
-    }, {});
+    const finalResponses = buildCanonicalFinalResponses({
+      questions,
+      answers: runtimeState.answers
+    });
     trackFinalSubmit({
       locale,
       route: pathname,
@@ -410,9 +449,26 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
       <header className={testShellHeaderClassName}>
         <div>
           <h1 className="m-0">{card.title}</h1>
-          <p className="m-0 text-[var(--muted-ink)]" data-testid="test-progress">
-            {t('progress', {current: runtimeState.currentQuestionIndex, total: totalQuestions})}
-          </p>
+          <div className="grid gap-2" data-testid="test-progress">
+            <div
+              aria-label={t('progressLabel')}
+              aria-valuemax={scoringProgress.total}
+              aria-valuemin={0}
+              aria-valuenow={scoringProgress.answered}
+              aria-valuetext={t('progressValue', {percent: scoringProgress.percent})}
+              className="h-2 overflow-hidden rounded-full bg-[var(--interactive-neutral-bg-strong)]"
+              data-testid="test-progress-bar"
+              role="progressbar"
+            >
+              <div
+                className="h-full rounded-full bg-[var(--interactive-accent-bg)] transition-[width] duration-150 ease-out"
+                style={{width: `${scoringProgress.percent}%`}}
+              />
+            </div>
+            <span className="text-sm font-semibold text-[var(--muted-ink)]" data-testid="test-progress-percent">
+              {t('progressValue', {percent: scoringProgress.percent})}
+            </span>
+          </div>
         </div>
       </header>
 

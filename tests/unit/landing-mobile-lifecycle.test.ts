@@ -5,6 +5,7 @@ import {
   MOBILE_EXPANDED_DURATION_MS,
   reduceLandingMobileLifecycleState
 } from '../../src/features/landing/grid/mobile-lifecycle';
+import {useMobileCardLifecycle} from '../../src/features/landing/grid/use-mobile-card-lifecycle';
 
 describe('landing mobile lifecycle reducer', () => {
   it('uses the fixed mobile duration contract', () => {
@@ -93,5 +94,9 @@ describe('landing mobile lifecycle reducer', () => {
     );
 
     expect(closing.phase).toBe('CLOSING');
+  });
+
+  it('exposes the controller-owned mobile card lifecycle hook entrypoint', () => {
+    expect(typeof useMobileCardLifecycle).toBe('function');
   });
 });

@@ -29,7 +29,8 @@
     "readMore": "続きを読む"
   },
   "test": {
-    "progress": "全{total}問中 {current}問目",
+    "progressLabel": "進行状況",
+    "progressValue": "{percent}%",
     "prev": "前へ",
     "next": "次へ",
     "submit": "送信",

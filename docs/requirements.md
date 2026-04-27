@@ -93,12 +93,7 @@ The following decisions are locked. Detailed SSOT for each is `docs/req-test.md 
 ### REQ-F-001 — Test catalog and availability
 - **Statement:** Expose multiple test variants; clearly separate enterable from unavailable. Entry from landing is gated behind back/expanded CTA only.
 - **Rationale:** Users need discoverability while avoiding dead-end flows.
-- **Acceptance criteria:**
-  - For enterable catalog items, navigation/entry MUST be triggered only by an explicit CTA in the item's expanded/back state; clicking/tapping non-CTA regions of the card MUST NOT start navigation.
-  - The front/browsing face of a catalog card MUST NOT include any start/entry CTA.
-  - Enterable variants may be standard available items or consent-independent opt-out-capable items; both remain gated behind the same back-state CTA and instruction-step entry contracts.
-  - Unavailable variants are visible but non-startable, labeled as unavailable/coming soon.
-  - Debug variants must never appear in the production end-user catalog.
+- **Key constraints:** Front face of catalog cards MUST NOT include any start/entry CTA. Debug variants must never appear in the production end-user catalog. Full entry gating and attribute contract: `docs/req-landing.md §6`, §13.2, §13.9.
 - **Confidence:** High
 
 ### REQ-F-002 — Test variant validation and error recovery
@@ -119,12 +114,7 @@ The following decisions are locked. Detailed SSOT for each is `docs/req-test.md 
 ### REQ-F-004 — Session lifecycle continuity
 - **Statement:** Session identity must continue across instruction, test, and result, with explicit handling for session reuse and test-type switching.
 - **Rationale:** Maintains continuity for user flow and telemetry correctness.
-- **Acceptance criteria:**
-  - Reused active sessions are detectable. Switching test type closes/replaces prior context.
-  - Inactive session timeout is 30 minutes from the last answered question, evaluated at re-entry point (not by background timer).
-  - Landing ingress creates a durable staged entry immediately, but canonical binding of the provisional answer is deferred until runtime entry commit.
-  - Same-variant landing reselect is treated as restart intent. Old active runs remain intact until commit success.
-  - Commit success for landing ingress creates a fresh response set and seeds only the first scoring answer.
+- **Key constraints:** 30-minute inactivity timeout, evaluated at re-entry point (not by background timer). Full session/run lifecycle contract: `docs/req-test.md §3.4`, §3.5, §3.7.
 - **Confidence:** High
 
 ### REQ-F-005 — Binary question model
@@ -137,11 +127,7 @@ The following decisions are locked. Detailed SSOT for each is `docs/req-test.md 
 
 ### REQ-F-006 — Progress and completion gating
 - **Statement:** Test completion must occur only after all required questions are answered.
-- **Acceptance criteria:**
-  - Main progress = answered scoring-question count / total scoring-question count.
-  - Profile questions are prerequisite overlay steps excluded from main progress numerator/denominator.
-  - Completion transition is blocked until all required answers exist across the full canonical question set.
-  - Result derivation uses only the scoring-question subset.
+- **Key constraint:** Main progress = answered scoring count / total scoring count. Profile questions are excluded from main progress. Full gating contract: `docs/req-test.md §3.9`.
 - **Confidence:** High
 
 ### REQ-F-007 — Variant-specific derivation logic (by test family)
@@ -186,10 +172,7 @@ The following decisions are locked. Detailed SSOT for each is `docs/req-test.md 
 - **Statement:** The system must generate a share URL that self-contains the minimum payload required to reconstruct the full result view without server-side result lookup.
 - **Rationale:** Enables server-independent sharing while allowing profile/content rendering to remain dynamic at view time.
 - **Acceptance criteria:**
-  - URL format: `/result/{variant}/{type}?{base64Payload}`
-    - `{variant}`: test variant identifier as URL path segment 1. Each variant maps to exactly one fixed scoring logic and rendering schema. No `scoringSchemaId` is required in the payload.
-    - `{type}`: result type segment as URL path segment 2. For variants without `qualifierFields`, length equals `axisCount`. For variants with `qualifierFields` (e.g., EGTT), length equals `axisCount + sum(qualifierFields[i].tokenLength)`. Full type segment contract: Test Flow Requirements §3.11 (SSOT).
-    - `{base64Payload}`: URL-safe Base64 encoding (`+`→`-`, `/`→`_`, padding `=` removed) of a JSON object.
+  - URL format: `/result/{variant}/{type}?{base64Payload}`. `{type}` = derivedType token, extended by qualifier tokens when `qualifierFields` is declared. Full URL structure and Base64 encoding contract: `docs/req-test.md §5.1`.
   - A valid share URL opens and reconstructs the result view without server result retrieval.
   - The base64 payload MUST include `scoreStats` (per variant schema) and `shared` (boolean: `true` when generated as a share link, `false` otherwise).
   - The base64 payload MUST NOT include `scoringSchemaId`, `derivedType`, or `testVariantId`. These are fully expressed by the URL path segments.
@@ -202,6 +185,7 @@ The following decisions are locked. Detailed SSOT for each is `docs/req-test.md 
 ### REQ-F-011 — Nickname validation and privacy boundaries
 - **Statement:** Optional nickname input must be validated using an explicit allowed-character policy and length limit, and must respect strict privacy boundaries.
 - **Acceptance criteria:**
+  - Nickname is user-visible presentation data only; it has no role outside of UI display.
   - Nickname is trimmed and length-limited to 15 characters.
   - Unsupported characters are rejected using an explicit allowlist policy.
   - Nickname MUST NOT be included in tracking events or analytics ingestion payloads.
@@ -277,15 +261,7 @@ The following events are RESERVED for future phase-specific adoption and MUST NO
 #### Interpretation rule
 If a lower-trust global document and an active landing/test SSOT differ, the active SSOT takes precedence for current implementation and QA gating.
 
-- **Payload requirements (non-PII):**
-  - Every public telemetry event MUST include `event_id`, `ts_ms`, `locale`, `route`, and `consent_state`.
-  - `session_id` is transport-patched when consent/session are available; queued pre-sync events may originate with `session_id=null` before transport patching.
-  - `card_answered` MUST include `source_variant`, `target_route`, and `landing_ingress_flag=true`.
-  - `attempt_start` and `final_submit` MUST include `variant`, `question_index_1based`, `dwell_ms_accumulated`, and `landing_ingress_flag`.
-  - `question_answered` MUST include canonical question index and MUST apply to profile and scoring questions alike, excluding the landing-preanswered first scoring answer.
-  - `question_index_1based` is canonical-index based, not user-facing `Q1/Q2` based.
-  - `final_submit` MUST include `final_responses` containing canonical question-indexed semantic response codes for all questions (scoring and profile). Current runtime payload uses `'A' | 'B'` codes, not raw question/answer text. Domain derivation must first project these codes into pole/qualifier tokens through the Test Flow Requirements §3.8 projection boundary.
-  - `transition_id`, `result_reason`, and `final_q1_response` are reserved for internal transition logic and MUST NOT appear in public telemetry payloads.
+- **Payload rules (non-PII):** All public events include `event_id`, `ts_ms`, `locale`, `route`, `consent_state`. `question_index_1based` is canonical-index based (not user-facing `Q1/Q2`). `final_submit` includes `final_responses` as canonical question-indexed `'A'|'B'` codes, projected through the response-projection boundary before derivation. `transition_id`, `result_reason`, `final_q1_response` MUST NOT appear in analytics payloads. Per-event field contract: `docs/req-landing.md §12.2`, `docs/req-test.md §9.1`.
 - **Confidence:** High
 
 ### REQ-F-017 — Tracking data retention
@@ -339,45 +315,22 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 - **Statement:** UI CTAs/system messages use i18n resources. Questions/answers/result interpretation use synced Sheets sources with the user-selected language column. No country-specific question sets or scoring logic.
 - **Confidence:** High
 
-### REQ-F-027 — Landing catalog entry gating (device-aware)
-- **Statement:** Entry must be gated behind the card's back/expanded state and an explicit CTA activation. First tap on touch expands only; it must not start navigation.
-- **Confidence:** Medium
+### REQ-F-027~036 — Landing Interaction Catalog (Summary)
 
-### REQ-F-028 — Instant-start first question contract (landing test cards)
-- **Statement:** Landing test card back presents two answer-choice CTAs. Selecting one both initiates entry and commits the `scoring1` answer. Instruction step must not invalidate this committed answer. Profile/qualifier steps may appear before the next runtime scoring question even though `scoring1` was committed at entry.
-- **Confidence:** Medium
+These requirements govern the landing catalog interaction model. Full policy and contract: `docs/req-landing.md` (sections noted per entry).
 
-### REQ-F-029 — Front/back title consistency
-- **Statement:** Front/back title mismatch is a blocking content/data validation error for that item.
-- **Confidence:** Medium
-
-### REQ-F-030 — Unavailable catalog interaction contract
-- **Statement:** Unavailable test items are visible but must not allow expanded/flip behavior or expose any entry CTA. Coming-soon disclosure must be default-visible on touch. Keyboard focus may land on unavailable cards for accessibility but must not provide any path to entry CTAs.
-- **Confidence:** Medium
-
-### REQ-F-031 — Transition lock policy (landing → destination)
-- **Statement:** Navigation initiation enters a transitioning state that locks scroll and input-driven state changes, and freezes the initiating card's visual state until navigation completes. No other catalog items may become interactive while transitioning.
-- **Confidence:** Medium
-
-### REQ-F-032 — Return-to-landing restoration scope
-- **Statement:** Returning from a destination page must restore prior landing scroll position. Transient interactive states (expanded cards, hover-driven emphasis, prior keyboard focus) may reset to defaults.
-- **Confidence:** High
-
-### REQ-F-033 — Keyboard access path to back-state CTAs
-- **Statement:** Keyboard users must be able to reach and activate back/expanded-state CTAs. Keyboard interactions on the front face must not start navigation.
-- **Confidence:** Medium
-
-### REQ-F-034 — Single-card attention lock on desktop
-- **Statement:** While one card is in back/expanded state or unavailable disclosure is active, other catalog cards must not enter back/expanded states or expose entry CTAs.
-- **Confidence:** Medium
-
-### REQ-F-035 — Mobile catalog scroll/interaction lock during back-state
-- **Statement:** While an enterable catalog card is in back/expanded state on touch, background catalog scrolling must be locked and other catalog items must not become interactive.
-- **Confidence:** Medium
-
-### REQ-F-036 — Navigation bar swap timing during transitions
-- **Statement:** The GNB must remain in the source-page configuration throughout the transitioning state and switch to destination-page configuration only after navigation completes.
-- **Confidence:** Medium
+| REQ-F | Statement summary | Confidence | SSOT |
+|---|---|---|---|
+| REQ-F-027 — Entry gating (device-aware) | Back/expanded CTA only; first touch = expand only, not navigation. | Medium | req-landing §6, §8.2 |
+| REQ-F-028 — Instant-start first question | Landing card CTAs commit `scoring1` answer at entry. Instruction must not invalidate. | Medium | req-landing §13.4 |
+| REQ-F-029 — Front/back title consistency | Title mismatch is a blocking content/data validation error. | Medium | req-landing §6.5 |
+| REQ-F-030 — Unavailable item contract | Visible but non-interactive; coming-soon disclosure default-visible on touch. | Medium | req-landing §13.2 |
+| REQ-F-031 — Transition lock | Navigation entry locks scroll/input; freezes initiating card visual state until complete. | Medium | req-landing §8.6, §13.3 |
+| REQ-F-032 — Return scroll restoration | Return to landing restores prior scroll position; transient states may reset. | High | req-landing §13.8 |
+| REQ-F-033 — Keyboard CTA access | Keyboard must reach back-state CTAs; front-face keyboard MUST NOT start navigation. | Medium | req-landing §9 |
+| REQ-F-034 — Desktop single-card lock | One card expanded = others locked from entering expanded state. | Medium | req-landing §7 |
+| REQ-F-035 — Mobile scroll lock during back-state | Enterable card expanded on touch = background scroll locked, others non-interactive. | Medium | req-landing §8.5 |
+| REQ-F-036 — GNB swap timing | GNB stays in source-page config until navigation completes. | Medium | req-landing §8.6, §13.3 |
 
 ## 5) Conceptual Data Model
 - **Test Variant:** identifier, availability status, display metadata.
@@ -391,7 +344,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 - **Runtime Presentation State:** logical state partition for instruction overlay, profile overlay, scoring page, and profile edit overlay. Overlay shell reuse does not permit instruction content to reappear during profile edit.
 - **Result:** finalized `derivedType` (variant-defined label token) and `scoreStats` (schema-defined axes/metrics), with profile/content rendered from the latest mapping at view time.
 - **Share Payload:** encoded minimal result data for portable reconstruction of the full result view. URL structure: `/result/{variant}/{type}?{base64Payload}`. `variant` and `type` (derivedType token) are URL path segments. The base64 payload contains `scoreStats` and `shared` (boolean). `scoringSchemaId` is not included; `variant` serves as the sole schema identifier. Optional `nickname` may be included only when the user explicitly opts in at share time.
-- **History Entry:** a per-run record containing runId, createdAt, testVariantId, derivedType, and the stored share URL string. The UI may optionally provide a grouped view keyed by (testVariantId, derivedType).
+- **History Entry:** a per-run record containing runId, createdAt, testVariantId, derivedType, and the stored share URL string; presentation data (variant/type) is reconstructed from the URL payload at view time. The UI may optionally provide a grouped view keyed by (testVariantId, derivedType).
 - **Tracking Event:** identifier, event type, metadata, environment, processing timestamp.
 - **Admin Insight:** funnel stats, trends, alerts, recommendations.
 

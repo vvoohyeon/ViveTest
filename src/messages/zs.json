@@ -29,7 +29,8 @@
     "readMore": "阅读更多"
   },
   "test": {
-    "progress": "第 {current} 题，共 {total} 题",
+    "progressLabel": "进度",
+    "progressValue": "{percent}%",
     "prev": "上一题",
     "next": "下一题",
     "submit": "提交",

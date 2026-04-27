@@ -45,36 +45,6 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Next는 matcher를 정적 리터럴로만 인식하므로 앱 소유 경로 목록을 여기서 직접 고정한다.
-  matcher: [
-    '/',
-    '/blog',
-    '/blog/:variant',
-    '/history',
-    '/test/:variant',
-    '/en',
-    '/en/:path*',
-    '/kr',
-    '/kr/:path*',
-    '/zs',
-    '/zs/:path*',
-    '/zt',
-    '/zt/:path*',
-    '/ja',
-    '/ja/:path*',
-    '/es',
-    '/es/:path*',
-    '/fr',
-    '/fr/:path*',
-    '/pt',
-    '/pt/:path*',
-    '/de',
-    '/de/:path*',
-    '/hi',
-    '/hi/:path*',
-    '/id',
-    '/id/:path*',
-    '/ru',
-    '/ru/:path*'
-  ]
+  // Next는 matcher를 정적 리터럴로만 인식하므로 bypass 경계도 여기서 함께 고정한다.
+  matcher: ['/((?!_next|api|_vercel|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)']
 };

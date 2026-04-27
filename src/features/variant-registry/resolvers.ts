@@ -33,6 +33,11 @@ const DEFAULT_CATALOG_AUDIENCE: LandingCatalogAudience = 'end-user';
 let fixtureRuntimeRegistryStateCache: RuntimeRegistryState | null = null;
 let generatedRuntimeRegistryStateCache: RuntimeRegistryState | null = null;
 
+/** @internal 테스트 전용. 프로덕션 코드에서 호출하지 않는다. */
+export function clearDevRegistryCacheForTesting(): void {
+  fixtureRuntimeRegistryStateCache = null;
+}
+
 interface RuntimeRegistryState {
   registry: VariantRegistry;
   blockedRuntimeVariants: ReadonlySet<string>;

@@ -2,21 +2,18 @@
 
 ## 1. Current State At A Glance
 
-This repository is a localized Next.js App Router application. Its real technical center of gravity is a landing-to-destination interaction system plus a fixture-backed, policy-driven test-entry shell, not the full assessment product described in `docs/requirements.md`. The codebase is best understood as a V1 front-end interaction prototype with mature contract coverage in landing, transition, consent, and telemetry seams, plus a separate pure test-domain foundation that is only partially wired into the user-facing runtime.
+This repository is a localized Next.js App Router application. Its real technical center of gravity is a landing-to-destination interaction system plus a fixture-backed, policy-driven test-entry shell, not the full assessment product described in `docs/requirements.md`. The codebase is best understood as a V1 front-end interaction prototype with mature contract coverage in landing, transition, consent, and telemetry seams, plus a separate pure test-domain foundation that is currently used by entry-time guardrails rather than by the live question/result runtime.
 
 **Workspace verification:**
 
-- `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/theme-matrix-smoke.spec.ts tests/e2e/safari-hover-ghosting.spec.ts`: 174 tests — passes
-- `node scripts/qa/check-phase11-telemetry-contracts.mjs`: passes
-- `npm run qa:rules` (2026-04-24 Sheets sync B-2 docs sync gate): passes
-- `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` (2026-04-24 Sheets sync B-2 docs sync gate): pass
-- `npm --silent run sync:dry` + generated file diff (2026-04-24 Sheets sync B-2 docs sync gate): pass
-- `npx --yes github-actionlint .github/workflows/sync.yml` (2026-04-24 Sheets sync B-2 docs sync gate): pass
-- Ownership migration final gate (`check-phase4`~`check-phase10`, `grid/state/gnb/a11y/theme-matrix/transition` Playwright smoke): pass
-- `npm test`: 44 unit test files / 230 tests — passes
+- Current local Done gate for this document sync: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
+- `npm run qa:rules` (2026-04-25): passes
+- Representative Playwright smoke coverage is organized around routing, grid, state, GNB, accessibility, consent, theme matrix, Safari hover ghosting, and transition telemetry specs. Exact expanded test counts are intentionally not repeated here because they vary with browser/project matrix expansion.
 - Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required.
 
-**Implementation phase status (2026-04-24):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Phase 2 data guardrails now cover Group A and Group C runtime paths plus Group B-1/B-2 Sheets sync: 3-source-capable cross-sheet validation, Results fixture boundary, runtime fallback, entry route guard, fixture hardening for enterable variants, lazy validation + cache, `/test/error` recovery stub, Landing/Questions Google Sheets loading, Action-level 2-source sync orchestration, deterministic generated registry serialization, GitHub Actions wiring, local dry-run, and B29/B30 automated evidence are present. Results Sheets loading remains pending and the sync script intentionally calls `validateCrossSheetIntegrity(landingTestVariants, questionVariants)` in 2-source mode until that source is ready. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
+**Implementation phase status (2026-04-24):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Phase 2 data guardrails now cover Group A and Group C runtime paths plus Group B-1/B-2 Sheets sync: 3-source-capable cross-sheet validation, Results fixture boundary, runtime fallback, entry route guard, fixture hardening for enterable variants, lazy validation + cache, `/test/error` recovery stub, Landing/Questions Google Sheets loading, Action-level 2-source sync orchestration, deterministic generated registry serialization, GitHub Actions wiring, local dry-run, dev/test registry cache reset coverage, and B29/B30 automated evidence are present. The question-bank surface has also been refactored so live `/test/{variant}` coverage is anchored on `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()`, while the legacy inline-bridge helper remains exported only as a deprecated compatibility path. Results Sheets loading remains pending and the sync script intentionally calls `validateCrossSheetIntegrity(landingTestVariants, questionVariants)` in 2-source mode until that source is ready. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
+
+**Landing interaction refactor status (2026-04-25):** the large landing controller split is complete across five wave commits. `useReducer` ownership remains in `use-landing-interaction-controller.ts`, while DOM/focus helpers, hover intent, desktop motion, mobile lifecycle, keyboard handoff, and grid geometry/RAF ownership now live in dedicated hooks/modules. `landing-catalog-grid.tsx` keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, plan calculation, JSX rendering, and data attributes. The session also closed a preview-mode routing gap: non-allowlisted, non-bypass locale-less paths such as `/foo` now rewrite through the global unmatched `/_not-found` surface so preview smoke and the documented 404 split agree.
 
 ---
 
@@ -32,6 +29,7 @@ This repository is a localized Next.js App Router application. Its real technica
 - Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/landing/telemetry/`)
 - Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
 - Blog index/list route plus route-driven article detail (`src/features/landing/blog/blog-destination-client.tsx`, `src/app/[locale]/blog/[variant]/page.tsx`)
+- Test entry recovery stub route (`src/app/[locale]/test/error/page.tsx`) used by runtime-blocked and lazy-validation-failed variants
 - Fixture-backed variant registry with generated runtime export, source/runtime type separation, `seq` validation + sort/drop, resolver-only preview access, unified landing meta keys, and resolver-backed card lookup (`src/features/variant-registry/`)
 - Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `axisMatchesQuestion`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`). Key interface contracts are frozen by Phase 0–1 ADRs (brand type shapes, `validateVariant()` result union, `BlockingDataErrorReason` enum).
 - Code-owned test schema registry and projection boundary reservation: `src/features/test/schema-registry.ts` owns the variant → `ScoringLogicType` → `ScoringSchema` template mapping, while `src/features/test/response-projection.ts` reserves the future A/B runtime response → domain token projection layer.
@@ -40,7 +38,7 @@ This repository is a localized Next.js App Router application. Its real technica
 
 | Area | Current implementation |
 |---|---|
-| Test destination | Policy-driven instruction overlay keyed by ingress type + consent state + `attribute`, registry-backed instruction copy, 4-question compatibility flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry |
+| Test destination | Policy-driven instruction overlay keyed by ingress type + consent state + `attribute`, registry-backed instruction copy, fixture-backed canonical question flow, manual previous/next navigation, answer state, dwell tracking, placeholder result panel, `attempt_start` / `final_submit` telemetry |
 | Test domain foundation | Pure domain validators, integrity checks, derivation helpers, canonical index / `questionType` / qualifier-aware types, and type-segment parsing/building under `src/features/test/domain/`, covered by dedicated unit tests |
 | Blog destination | List-only index route, variant-keyed article detail route, article list |
 
@@ -85,7 +83,13 @@ Route tree
             │         ├─ src/features/test/fixtures/questions/** (variant-split Questions row fixtures)
             │         ├─ src/features/test/fixtures/results/** (row-level Results variantId fixture)
             │         ├─ src/features/landing/grid/use-landing-interaction-controller.ts
+            │         │    ├─ interaction-dom.ts
+            │         │    ├─ use-hover-intent-controller.ts
+            │         │    ├─ use-desktop-motion-controller.ts
+            │         │    ├─ use-mobile-card-lifecycle.ts
+            │         │    └─ use-keyboard-handoff.ts
             │         └─ src/features/landing/grid/landing-catalog-grid.tsx
+            │              └─ use-grid-geometry-controller.ts
             ├─ src/app/[locale]/blog/page.tsx (list-only blog index)
             ├─ src/app/[locale]/blog/[variant]/page.tsx (route-keyed blog detail)
             ├─ src/app/[locale]/test/[variant]/page.tsx
@@ -97,6 +101,7 @@ Route tree
             │         ├─ src/features/test/instruction-overlay.tsx
             │         ├─ src/features/test/question-source-parser.ts
             │         └─ src/features/test/question-bank.ts
+            ├─ src/app/[locale]/test/error/page.tsx (stub recovery surface)
             └─ src/app/[locale]/history/page.tsx
 
 Shared page wrapper (all localized routes)
@@ -104,7 +109,7 @@ Shared page wrapper (all localized routes)
        ├─ TransitionGnbOverlay
        ├─ SiteGnb
        ├─ <main>
-       └─ TelemetryConsentBanner
+       └─ TelemetryConsentBanner (unless route disables the default banner)
 
 Telemetry
   └─ src/features/landing/telemetry/consent-source.ts (single consent gate)
@@ -139,10 +144,11 @@ Current route files under `src/app/` expose the following application surface:
 /[locale]/blog/[variant] (dynamic)
 /[locale]/history        (dynamic)
 /[locale]/test/[variant] (dynamic)
+/[locale]/test/error     (dynamic)
 /api/telemetry           (dynamic)
 ```
 
-Segment/global 404 handling is implemented through `src/app/not-found.tsx` and `src/app/global-not-found.tsx`, not through a dedicated user-facing page route file.
+Segment/global 404 handling is implemented through `src/app/not-found.tsx` and `src/app/global-not-found.tsx`. The test error page is not a 404 surface; it is the user-facing recovery stub for runtime-blocked variants and lazy validation failures.
 
 ### 4.2 Supported Locales
 
@@ -152,9 +158,10 @@ All 12 locale files in `src/messages/` are complete with the same 6 namespaces: 
 
 ### 4.3 Proxy Contract
 
-- Locale-less app-owned paths → 307 redirect to localized equivalent
+- Locale-less allowlisted app-owned paths → 307 redirect to localized equivalent
+- Locale-less non-allowlisted, non-bypass paths → rewrite to `/_not-found`
 - Duplicate locale prefix (e.g. `/en/en/...`) → rewrite to `/_not-found`
-- `/_next`, `/api`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by `src/i18n/locale-resolution.ts`
+- `/_next`, `/api`, `/_vercel`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by `src/i18n/locale-resolution.ts` and the static `proxy.ts` matcher
 - Locale family normalization: `ko* → kr`, Simplified Chinese → `zs`, Traditional Chinese → `zt`
 
 ### 4.4 SSR Locale Correctness
@@ -169,7 +176,9 @@ The proxy injects `X-NEXT-INTL-LOCALE`. `src/app/layout.tsx` reads it to set `<h
 
 ### 5.1 Landing Interaction Runtime
 
-The most technically distinctive part of the codebase. Several focused pure modules:
+The most technically distinctive part of the codebase. The pre-refactor monolithic interaction controller has been split into focused runtime modules while preserving reducer ownership in the controller.
+
+Pure or model-focused modules:
 
 - `src/features/landing/model/interaction-state.ts` — page/card/hover-lock state transitions
 - `src/features/landing/grid/layout-plan.ts` — row plans
@@ -177,12 +186,18 @@ The most technically distinctive part of the codebase. Several focused pure modu
 - `src/features/landing/grid/mobile-lifecycle.ts` — mobile expansion phases
 - `src/features/landing/grid/desktop-shell-phase.ts` — visual shell phases
 
-Coordinated by:
+Runtime ownership after the 2026-04-25 split:
 
-- `src/features/landing/grid/use-landing-interaction-controller.ts` — **1587 lines**, runtime state machine for focus, hover intent, keyboard handoff, reduced motion, page visibility, mobile transient shells, backdrop gestures, transition start/cancel
-- `src/features/landing/grid/landing-catalog-grid.tsx` — DOM geometry measurement, row baseline freezing, `requestAnimationFrame` timing
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — **486 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, per-card binding composition, active visual state derivation, and transition-start callback composition.
+- `src/features/landing/grid/interaction-dom.ts` — DOM/focus helpers: card-root lookup, expanded focusable selection, adjacent-card resolution, queued focus callbacks, mobile-card detection, and card-boundary resolution.
+- `src/features/landing/grid/use-hover-intent-controller.ts` — hover timers/tokens, last pointer position, card-boundary containment checks, and trigger `onMouseEnter` / `onMouseLeave` handlers.
+- `src/features/landing/grid/use-desktop-motion-controller.ts` — desktop opening/closing/handoff visual state, transition reason ref, cleanup timers, and double-RAF cleanup.
+- `src/features/landing/grid/use-mobile-card-lifecycle.ts` — mobile open/close timers, restore-ready and transient-shell timers, body scroll lock, backdrop outside gesture, queued close, and restore polling.
+- `src/features/landing/grid/use-keyboard-handoff.ts` — global keyboard-mode entry/exit listeners, pointer/mouse/wheel keyboard-mode exit, first forward-Tab landing entry, Escape collapse, trigger focus/key handlers, and expanded-body key handling.
+- `src/features/landing/grid/use-grid-geometry-controller.ts` — spacing model, row baseline snapshots, baseline freeze/restore/release timers, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
+- `src/features/landing/grid/landing-catalog-grid.tsx` — **270 lines**, keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, `LandingGridPlan` calculation, render assembly, and data attributes.
 
-State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. Styling ownership is hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` also remaps raw runtime state into semantic style classes that `landing-grid-card.module.css` consumes exclusively for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors but no longer participate in the CSS contract.
+The core risk is still choreography complexity across hover, keyboard, mobile, desktop shell phases, and geometry timing, but ownership is now explicit and testable at narrower seams. Styling ownership is hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` remaps raw runtime state into semantic style classes consumed by `landing-grid-card.module.css` for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors but no longer participate in the CSS contract.
 
 ### 5.2 GNB
 
@@ -218,6 +233,8 @@ Current fixture inventory:
 
 `loadVariantRegistry()` now has an explicit runtime source split: production reads the static `variantRegistryGenerated` artifact, while dev/test builds a fixture registry by injecting `questionSourceFixture` into `buildVariantRegistry()`. The dev/test fixture path then runs 3-source validation and applies `applyCrossSheetRuntimeFallback()`: Landing-only variants are downgraded to `hide`, while Questions-only, Results-missing, and Results-only mismatches are added to `blockedRuntimeVariants` without changing catalog attributes for existing cards. `src/app/[locale]/test/[variant]/page.tsx` checks that blocked set before resolving the entry card, redirects blocked variants to `/test/error?variant=...`, and then uses `resolveLandingTestEntryCardByVariant()` for the route-level card lookup.
 
+The dev/test fixture registry state is intentionally cached at module scope so repeated `loadVariantRegistry()` calls return the same `VariantRegistry` object within one test/runtime process. A 2026-04-24 refactor added `clearDevRegistryCacheForTesting()` in `src/features/variant-registry/resolvers.ts` as a direct-import-only test isolation hook. It resets only the fixture registry cache, is not exposed through `src/features/variant-registry/index.ts`, and is covered by `tests/unit/variant-registry-runtime-integrity.test.ts` with both reference-equality and reset-invalidates-cache assertions. The production static import path remains unchanged.
+
 `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The builder does not import Questions fixtures; callers inject `questionSourcesByVariant`, and the preview store is projected from each variant's first scoring row via `findFirstScoringRow()`. `resolveTestPreviewPayload()` reads the registry's `testPreviewPayloadByVariant` store and exposes the stable `previewQuestion` / `answerChoiceA` / `answerChoiceB` runtime shape. Runtime meta keys are unified as `durationM` / `sharedC` / `engagedC`.
 
 `src/features/variant-registry/sheets-row-normalizer.ts` is the pure pre-sync Questions row normalization boundary for Group B callers. It converts raw Sheets columns such as `question_EN`, `answerA_KR`, and `pole_A` / `pole_B` into parser-compatible `QuestionSourceRow` shape (`question` / `answerA` / `answerB` `LocalizedText`, `poleA` / `poleB`). Locale suffix mapping is owned by `parseLocaleColumnKey()` (`EN` → `en`, `KR` → `kr`, `ZS` → `zs` via lowercase normalization), unsupported columns/locales are ignored, and empty string values are omitted so the existing default-locale fallback path remains responsible for display fallback. `tests/unit/sheets-row-normalizer.test.ts` verifies both TypeScript assignability to `QuestionSourceRow` and runtime compatibility with `buildCanonicalQuestions()`.
@@ -234,11 +251,11 @@ Current fixture inventory:
 
 `src/features/variant-registry/registry-serializer.ts` is the pure generated-file serialization boundary. `serializeRegistryToFile(registry)` returns the TypeScript file contents for an object-literal `variantRegistryGenerated` export using the existing generated header, `import type {VariantRegistry} from './types'`, and deterministic alphabetic object-key ordering. `tests/unit/registry-serializer.test.ts` checks parseability, deterministic output, key-order normalization, and structural equivalence against the currently importable generated registry data. This utility does not read Sheets, write files, or run Git; `scripts/sync/sync.ts` owns that orchestration.
 
-`src/features/test/question-source-parser.ts` is the pure Questions parser boundary: `parseSeqToQuestionType()` (`q.*` → profile, numeric → scoring), `buildCanonicalQuestions()` (source-order 1-based canonical indexes), and `findFirstScoringRow()`. Group D preview migration is complete: `src/features/test/question-bank.ts` exposes live `buildVariantQuestionBank()` runtime wiring and `resolveVariantPreviewQ1()` for direct Questions-backed `scoring1` projection helpers, while landing UI preview consumption stays behind the variant-registry resolver. `src/features/landing/data/` now re-exports resolver-backed variant-registry surfaces only; the raw fixture compatibility export/file is removed.
+`src/features/test/question-source-parser.ts` is the pure Questions parser boundary: `parseSeqToQuestionType()` (`q.*` → profile, numeric → scoring), `buildCanonicalQuestions()` (source-order 1-based canonical indexes), and `findFirstScoringRow()`. Group D preview migration is complete: `src/features/test/question-bank.ts` exposes live `buildVariantQuestionBank()` runtime wiring and `resolveVariantPreviewQ1()` for direct Questions-backed `scoring1` projection helpers, while landing UI preview consumption stays behind the variant-registry resolver. `buildLandingTestQuestionBank()` remains exported but is now explicitly marked `@deprecated`; it is an inline-bridge compatibility helper and not the live `/test/{variant}` question source. The 2026-04-24 refactor removed the direct `buildLandingTestQuestionBank()` unit-test path (`tests/unit/landing-question-bank.test.ts`) and consolidated meaningful coverage into `tests/unit/variant-question-bank.test.ts`, where the live APIs now cover locale fallback and profile-row skipping for `scoring1`. `src/features/landing/data/` now re-exports resolver-backed variant-registry surfaces only; the raw fixture compatibility export/file is removed.
 
 ### 5.4 Transition Runtime
 
-Landing-to-destination handshake: `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` writes `PendingLandingTransition` to `sessionStorage`, records return scroll state, and, for test cards, writes a landing ingress record (`variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`).
+Landing-to-destination handshake: `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` writes `PendingLandingTransition` to `sessionStorage`, records return scroll position plus source variant, and, for test cards, writes a landing ingress record (`variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`).
 
 On the destination side, `src/features/landing/transition/transition-runtime-monitor.tsx` enforces a **1600ms timeout**. `TransitionGnbOverlay` keeps a landing-context GNB visible during pending transition. `LandingRuntime` restores scroll on return and cancels stale transitions with `USER_CANCEL`.
 
@@ -248,13 +265,13 @@ Result reasons: `USER_CANCEL`, `DUPLICATE_LOCALE`, `DESTINATION_TIMEOUT`, `DESTI
 
 **Blog** (`src/features/landing/blog/server-model.ts`, `src/features/landing/blog/blog-destination-client.tsx`): `variant` is the only article identifier. Invalid or non-enterable variants redirect to the localized blog index. Pending transition is an overlay/completion signal only. The detail route exports `generateMetadata()`.
 
-**Test** (`src/features/test/test-question-client.tsx`): policy-driven instruction gating, variant Questions fixture runtime wiring through `buildVariantQuestionBank()`, landing-ingress seeding of `scoring1`, direct-entry start from `q.1` when profile rows exist or `scoring1` otherwise, dwell time tracking, and `attempt_start` / `final_submit` telemetry. Ingress entries keep the landing `scoring1` pre-answer, then start from `q.1` for profile-first variants such as `egtt` or from `scoring2` when no profile row exists. `src/features/test/entry-policy.ts` separates content, CTA configuration, and action effects; `src/features/test/instruction-overlay.tsx` renders the composed instruction surface. `src/app/[locale]/test/[variant]/page.tsx` regex-validates the URL segment, redirects runtime-blocked variants to `/test/error?variant=...`, resolves via `resolveLandingTestEntryCardByVariant(locale, variant)`, fails closed with `notFound()` on true miss, and runs `getLazyValidatedVariant()` before mounting the runtime.
+**Test** (`src/features/test/test-question-client.tsx`): policy-driven instruction gating, variant Questions fixture runtime wiring through `buildVariantQuestionBank()`, landing-ingress seeding of `scoring1`, direct-entry start at canonical question 1, dwell time tracking, and `attempt_start` / `final_submit` telemetry. Ingress entries keep the landing `scoring1` pre-answer, then start at the first current-fixture question that is not the first scoring question: `qmbti` starts at canonical index 2, while profile-first `egtt` starts at canonical index 1 (`q.1`). The live question panel uses all resolved fixture rows, displays main progress as answered scoring count / total scoring count via progressbar + percent, requires explicit Next/Previous clicks, and renders a placeholder result panel after Submit. It does not yet run score derivation, result URL construction, answer projection into domain tokens, tail reset, active-run resume, or history persistence. `final_submit.final_responses` uses canonical question index string keys (`"1"`, `"2"`, ...) mapped to semantic `A` / `B` codes. `src/features/test/entry-policy.ts` separates content, CTA configuration, and action effects; `src/features/test/instruction-overlay.tsx` renders the composed instruction surface. `src/app/[locale]/test/[variant]/page.tsx` regex-validates the URL segment, redirects runtime-blocked variants to `/test/error?variant=...`, resolves via `resolveLandingTestEntryCardByVariant(locale, variant)`, fails closed with `notFound()` on true miss, and runs `getLazyValidatedVariant()` before mounting the runtime.
 
 **Pure test-domain foundation** (`src/features/test/domain/*`): separate pure module for branded ids, schema/question models, variant validation, question-model validation, variant data integrity checks, score derivation, and type-segment parsing/building. `derivation.ts` exports the shared `axisMatchesQuestion()` helper so `computeScoreStats()`, `validateQuestionModel()`, and `validateVariantDataIntegrity()` all use the same bidirectional axis matching rule. `Question.poleA` / `Question.poleB` are required for `scoring` questions and optional for `profile` questions (ADR-X).
 
 `src/features/test/schema-registry.ts` is the single owner of the variant → `ScoringLogicType` → `ScoringSchema` template mapping. MBTI variants share the 4-axis `E/I`, `S/N`, `T/F`, `J/P` schema. EGTT resolves to one `E/T` axis plus the `gender` qualifier with `['M', 'F']` token values.
 
-**Live runtime status**: `test-question-client.tsx` still does not import `src/features/test/domain/` directly. The route `page.tsx` uses the lazy-validation boundary, so domain integrity failures now redirect to the §6.1 stub error-recovery route before session/run context creation. The current stub route is `/[locale]/test/error`; it displays `이 테스트에 진입할 수 없습니다`, and includes the blocked variant when `?variant=...` is present. Phase 4 still owns the full recovery-card UI expansion.
+**Live runtime status**: `test-question-client.tsx` still does not import `src/features/test/domain/` directly. The route `page.tsx` uses the lazy-validation boundary, so domain integrity failures now redirect to the §6.1 stub error-recovery route before session/run context creation. The current stub route is `/[locale]/test/error`; it displays `이 테스트에 진입할 수 없습니다`, includes the blocked variant when `?variant=...` is present, uses `PageShell` with the test GNB context, and suppresses the default consent banner. Phase 4 still owns the full recovery-card UI expansion.
 
 ### 5.5.1 Phase 1 Domain Foundation — Frozen Interface Contracts
 
@@ -342,6 +359,8 @@ buildTypeSegment(derivedType: string, responses: Map<QuestionIndex, string>, sch
 
 `src/features/landing/telemetry/validation.ts` — rejects PII-shaped keys and legacy fields (`transition_id`, `result_reason`, `final_q1_response`).
 
+There are currently four custom telemetry event types in `src/features/landing/telemetry/types.ts`: `landing_view`, `card_answered`, `attempt_start`, and `final_submit`. `question_answered`, `result_viewed`, and user-visible error events are described in `docs/req-test.md` as future hooks but are not implemented in the live telemetry type union.
+
 **Active event surface:**
 
 | Event | Required fields |
@@ -349,9 +368,9 @@ buildTypeSegment(derivedType: string, responses: Map<QuestionIndex, string>, sch
 | `landing_view` | deduplicated by locale:route |
 | `card_answered` | `source_variant`, `target_route`, `landing_ingress_flag=true` |
 | `attempt_start` | `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag` |
-| `final_submit` | same as above + `final_responses` (semantic `A`/`B` codes only) |
+| `final_submit` | same as above + `final_responses` (canonical question index string keys: `"1"`, `"2"`, ...; values: semantic `A`/`B` codes only) |
 
-`src/app/api/telemetry/route.ts` accepts any parseable JSON and returns `204`. No server-side schema validation, field rejection, or persistence. All guarantees are client-side only.
+`src/app/api/telemetry/route.ts` requires an object payload with a supported `event_type`, reuses the shared telemetry transport validator, returns `400` on invalid schema/field hygiene/session contract failures, and returns `204` on accepted payloads. There is still no persistence. Transport validation now enforces the `attempt_start`-and-later `session_id !== null` requirement from `docs/req-test-plan.md` Gate C.
 
 ### 5.7 Styling Runtime
 
@@ -388,7 +407,7 @@ The key lists below describe the live prototype. Phase 0 fixed the future test-f
 **sessionStorage keys:**
 - `vivetest-landing-pending-transition`
 - `vivetest-landing-return-scroll-y`
-- `vivetest-landing-return-card-id`
+- `vivetest-landing-return-variant`
 - `vivetest-test-instruction-seen:{variant}`
 - `vivetest-landing-ingress:{variant}`
 
@@ -407,7 +426,7 @@ The key lists below describe the live prototype. Phase 0 fixed the future test-f
 - `[Deny and Abandon]` and `[Keep Current Preference]` do not record `instructionSeen`; they redirect home instead.
 - Auto-commit after `instructionSeen` now applies only to the plain `[Start]` path because note-based consent policies keep `canAutoCommitAfterInstructionSeen=false`.
 - Blog destination rejects invalid or non-enterable variants by redirecting to the localized blog index.
-- Test variant URL validation is stricter than before: runtime-blocked variants redirect to `/test/error?variant=...`, while true route/card misses still use `notFound()`.
+- Test variant URL validation is stricter than before: malformed variant segments and true route/card misses still use `notFound()`, while runtime-blocked variants and lazy-validation failures redirect to `/test/error?variant=...`.
 - `history` page shares the full landing shell and GNB.
 - Preferences button in the consent banner is a visible no-op.
 
@@ -417,11 +436,11 @@ The key lists below describe the live prototype. Phase 0 fixed the future test-f
 
 ### 7.1 Unit Tests (Vitest)
 
-Scoped to `tests/unit/`. Latest rerun: 44 files / 230 tests. Coverage spans route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB behavior, pure test-domain modules, cross-sheet integrity, Sheets loader normalization, sync orchestration failure/no-op/write paths, runtime integrity fallback, lazy validation, and the schema registry.
+Scoped to `tests/unit/`. Current file inventory: 45 `*.test.ts` files. Coverage spans route helpers, localization helpers, proxy policy, telemetry validation, transition storage, card/data contracts, GNB behavior, landing interaction DOM helpers, hover intent, desktop shell phase hooks, mobile lifecycle hooks, grid geometry, pure test-domain modules, cross-sheet integrity, Sheets loader normalization, sync orchestration failure/no-op/write paths, runtime integrity fallback, dev/test registry cache reset behavior, lazy validation, live question-bank APIs, and the schema registry. The legacy landing question-bank test file was removed during the 2026-04-24 question-bank refactor because its meaningful assertions now exercise `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()` directly.
 
 ### 7.2 E2E Tests (Playwright)
 
-9 spec files / 275 tests in `tests/e2e/`:
+9 spec files in `tests/e2e/`:
 
 | Spec | Contract covered |
 |---|---|
@@ -432,7 +451,7 @@ Scoped to `tests/unit/`. Latest rerun: 44 files / 230 tests. Coverage spans rout
 | `a11y-smoke.spec.ts` | AxeBuilder audits for landing, GNB-open, transition-overlay, KR representative state |
 | `consent-smoke.spec.ts` | Test instruction contract matrix: variant-specific instruction copy, divider/note rendering, CTA labels, consent persistence, redirect/commit semantics |
 | `theme-matrix-smoke.spec.ts` | 168 representative theme/layout/state screenshots (96 layout + 72 state) |
-| `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (5 baselines) |
+| `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (6 baselines) |
 | `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
 
 Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
@@ -462,25 +481,25 @@ The theme-matrix suites assume the combined theme label remains locked to the me
 
 Consent-specific blockers 20~23 anchor in `tests/e2e/consent-smoke.spec.ts`; remaining test-flow blockers 24~30 mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence. Blockers 27, 28, 29, and 30 now carry automated evidence, including the 3-source cross-sheet unit coverage and route-level runtime guard assertions.
 
-As of 2026-04-24, `npm run qa:rules` passes all 12 checks.
+As of 2026-04-25, `npm run qa:rules` passes all 12 checks. The landing-controller split expanded the relevant script read scopes without weakening required-file checks: Phase 6 now reads `landing-catalog-grid.tsx` plus `use-grid-geometry-controller.ts`, Phase 7 reads the controller plus `interaction-dom.ts`, hover, desktop motion, and keyboard hooks, and Phase 10 includes the mobile lifecycle hook while keeping existing CSS/e2e contract anchors.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 
-**Least verified areas** correspond directly to unimplemented product surfaces: scoring correctness, result semantics, history persistence, backend ingestion guarantees, Results Sheets loading, and branch-protected production push policy.
+**Least verified areas** correspond directly to unimplemented or stubbed product surfaces: live score derivation wiring, result URL/payload rendering, answer projection from runtime `A`/`B` to domain tokens, question-level telemetry hooks, history persistence, backend ingestion guarantees, Results Sheets loading, and branch-protected production push policy.
 
 ### 7.4 Closed Follow-up Items (Historical Record)
 
-Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture drift, theme matrix / Safari baseline closure) were all closed as of 2026-04-16. No active follow-up tasks remain from that cycle. Use git history if original stub context is needed.
+Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture drift, theme matrix / Safari baseline closure) were all closed as of 2026-04-16. The 2026-04-25 landing-controller extraction cycle also closed its follow-ups: preview global 404 routing was realigned with `req-landing.md` §5.3/§5.5, and local theme-matrix/Safari visual baselines were refreshed and re-run under `PLAYWRIGHT_SERVER_MODE=preview`. Use git history if original stub context is needed.
 
 ---
 
 ## 8. Task Entry Guide
 
 ### Routing / locale / not-found
-`src/proxy.ts` · `src/i18n/locale-resolution.ts` · `src/i18n/proxy-policy.ts` · `src/i18n/routing.ts` · `src/app/layout.tsx` · `src/app/[locale]/layout.tsx` · `src/app/global-not-found.tsx` · `src/app/not-found.tsx` · `tests/e2e/routing-smoke.spec.ts`
+`src/proxy.ts` · `src/i18n/locale-resolution.ts` · `src/i18n/proxy-policy.ts` · `src/i18n/routing.ts` · `src/app/layout.tsx` · `src/app/[locale]/layout.tsx` · `src/app/[locale]/test/error/page.tsx` · `src/app/global-not-found.tsx` · `src/app/not-found.tsx` · `tests/e2e/routing-smoke.spec.ts`
 
 ### Landing grid / layout / interaction
-`src/features/landing/grid/use-landing-interaction-controller.ts` · `src/features/landing/grid/landing-catalog-grid.tsx` · `src/features/landing/model/interaction-state.ts` · `src/features/landing/grid/layout-plan.ts` · `src/features/landing/grid/spacing-plan.ts` · `tests/e2e/grid-smoke.spec.ts` · `tests/e2e/state-smoke.spec.ts`
+`src/features/landing/grid/use-landing-interaction-controller.ts` · `src/features/landing/grid/interaction-dom.ts` · `src/features/landing/grid/use-hover-intent-controller.ts` · `src/features/landing/grid/use-desktop-motion-controller.ts` · `src/features/landing/grid/use-mobile-card-lifecycle.ts` · `src/features/landing/grid/use-keyboard-handoff.ts` · `src/features/landing/grid/use-grid-geometry-controller.ts` · `src/features/landing/grid/landing-catalog-grid.tsx` · `src/features/landing/model/interaction-state.ts` · `src/features/landing/grid/layout-plan.ts` · `src/features/landing/grid/spacing-plan.ts` · `tests/unit/landing-interaction-dom.test.ts` · `tests/unit/landing-hover-intent.test.ts` · `tests/unit/landing-mobile-lifecycle.test.ts` · `tests/unit/landing-desktop-shell-phase.test.ts` · `tests/unit/landing-grid-plan.test.ts` · `tests/e2e/grid-smoke.spec.ts` · `tests/e2e/state-smoke.spec.ts`
 
 ### GNB / theme / shared shell
 `src/features/landing/gnb/site-gnb.tsx` · `src/features/landing/gnb/hooks/use-theme-preference.ts` · `src/features/landing/gnb/hooks/theme-transition.ts` · `public/theme-bootstrap.js` · `src/features/landing/shell/page-shell.tsx` · `tests/e2e/gnb-smoke.spec.ts` · `tests/unit/gnb-message-labels.test.ts`
@@ -495,13 +514,13 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 `tests/e2e/theme-matrix-manifest.json` · `tests/e2e/theme-matrix-smoke.spec.ts` · `tests/e2e/helpers/landing-fixture.ts` · `tests/e2e/safari-hover-ghosting.spec.ts`
 
 ### Test route runtime / instruction shell
-`src/features/test/test-question-client.tsx` · `src/features/test/entry-policy.ts` · `src/features/test/instruction-overlay.tsx` · `src/features/test/question-bank.ts` · `src/features/test/question-source-parser.ts` · `tests/unit/question-source-parser.test.ts` · `tests/unit/variant-question-bank.test.ts` · `docs/req-test.md` · `docs/req-test-plan.md`
+`src/app/[locale]/test/[variant]/page.tsx` · `src/app/[locale]/test/error/page.tsx` · `src/features/test/test-question-client.tsx` · `src/features/test/entry-policy.ts` · `src/features/test/instruction-overlay.tsx` · `src/features/test/question-bank.ts` · `src/features/test/question-source-parser.ts` · `src/features/test/lazy-validation.ts` · `tests/unit/question-source-parser.test.ts` · `tests/unit/variant-question-bank.test.ts` · `tests/unit/test-question-bootstrap.test.ts` · `tests/unit/test-entry-policy.test.ts` · `tests/unit/test-lazy-validation.test.ts` · `docs/req-test.md` · `docs/req-test-plan.md`
 
 ### Test domain foundation
 `src/features/test/domain/index.ts` · `src/features/test/domain/types.ts` · `src/features/test/domain/validate-variant.ts` · `src/features/test/domain/validate-question-model.ts` · `src/features/test/domain/validate-variant-data-integrity.ts` · `src/features/test/domain/derivation.ts` · `src/features/test/domain/type-segment.ts` · `src/features/test/schema-registry.ts` · `src/features/test/response-projection.ts` · `tests/unit/test-domain-variant-validation.test.ts` · `tests/unit/test-domain-question-model.test.ts` · `tests/unit/test-domain-derivation.test.ts` · `tests/unit/test-domain-type-segment.test.ts` · `tests/unit/schema-registry.test.ts`
 
 ### Data model / fixture contract
-`src/features/variant-registry/source-fixture.ts` · `src/features/variant-registry/builder.ts` · `src/features/variant-registry/attribute.ts` · `src/features/variant-registry/resolvers.ts` · `src/features/variant-registry/types.ts` · `src/features/variant-registry/sheets-row-normalizer.ts` · `scripts/sync/sheets-loader.ts` · `scripts/sync/sync.ts` · `scripts/sync/sync-dry-run.ts` · `.github/workflows/sync.yml` · `src/features/test/fixtures/questions/index.ts` · `src/features/test/fixtures/questions/types.ts` · `tests/unit/sheets-loader.test.ts` · `tests/unit/sync-orchestration.test.ts`
+`src/features/variant-registry/source-fixture.ts` · `src/features/variant-registry/builder.ts` · `src/features/variant-registry/attribute.ts` · `src/features/variant-registry/resolvers.ts` · `src/features/variant-registry/types.ts` · `src/features/variant-registry/cross-sheet-integrity.ts` · `src/features/variant-registry/registry-serializer.ts` · `src/features/variant-registry/sheets-row-normalizer.ts` · `scripts/sync/sheets-loader.ts` · `scripts/sync/sync.ts` · `scripts/sync/sync-dry-run.ts` · `.github/workflows/sync.yml` · `src/features/test/fixtures/questions/index.ts` · `src/features/test/fixtures/questions/types.ts` · `src/features/test/fixtures/results/index.ts` · `tests/unit/sheets-loader.test.ts` · `tests/unit/sync-orchestration.test.ts` · `tests/unit/cross-sheet-integrity.test.ts` · `tests/unit/registry-serializer.test.ts` · `tests/unit/variant-registry-runtime-integrity.test.ts`
 
 ---
 
@@ -509,13 +528,13 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 
 **Instruction copy ownership is intentionally split.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. Future editors need to keep both sources in sync.
 
-**Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1587 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. The most likely future refactoring cost concentration point.
+**Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is down to 486 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
 
-**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Two files stand out as primary pressure points: `use-landing-interaction-controller.ts` (1587 lines) and `site-gnb.tsx` (~831 lines).
+**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Current pressure points are `site-gnb.tsx` (~831 lines), `use-mobile-card-lifecycle.ts` (543 lines), `use-landing-interaction-controller.ts` (486 lines), `use-keyboard-handoff.ts` (367 lines), and `use-grid-geometry-controller.ts` (330 lines).
 
-**Screenshot-driven QA remains concentrated in the instruction surface.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions.
+**Screenshot-driven QA remains concentrated in the instruction surface and visual matrix.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions. The 2026-04-25 refactor refreshed local theme-matrix and Safari baselines under preview mode; future layout/motion edits should re-run the same preview visual smoke before release.
 
 **Tech stack notes:**
-- `next@16.1.6`, `react@19.2.4`, `next-intl@4.8.3`
+- `next@16.2.4`, `react@19.2.4`, `next-intl@4.9.1`
 - `motion@12.34.0` installed but not imported anywhere in `src` or `tests`; any adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract
 - Tailwind v4 active via `src/app/globals.css`; `src/app/globals.css` is limited to tokens/shared anchor base; `data-*` anchors continue serving QA/debug and Playwright coverage. Any further follow-up should stay within feature-local CSS.

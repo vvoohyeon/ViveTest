@@ -10,6 +10,7 @@ import {
   resolveLandingRowExpandedShellInlineScale,
   resolveLandingViewportTier
 } from '@/features/landing/grid/layout-plan';
+import {useGridGeometryController} from '@/features/landing/grid/use-grid-geometry-controller';
 
 describe('landing grid layout plan', () => {
   it('applies desktop wide row rules with underfilled final row', () => {
@@ -167,5 +168,9 @@ describe('landing grid layout plan', () => {
     );
     expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'two-column', rowIndex: 1})).toBe(1);
     expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'mobile', rowIndex: 3})).toBe(1);
+  });
+
+  it('exposes the catalog-grid geometry controller hook entrypoint', () => {
+    expect(typeof useGridGeometryController).toBe('function');
   });
 });

@@ -29,7 +29,8 @@
     "readMore": "Читать далее"
   },
   "test": {
-    "progress": "Вопрос {current} из {total}",
+    "progressLabel": "Прогресс",
+    "progressValue": "{percent}%",
     "prev": "Назад",
     "next": "Далее",
     "submit": "Отправить",

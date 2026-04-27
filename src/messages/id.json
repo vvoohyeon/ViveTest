@@ -29,7 +29,8 @@
     "readMore": "Baca selengkapnya"
   },
   "test": {
-    "progress": "Pertanyaan {current} dari {total}",
+    "progressLabel": "Progres",
+    "progressValue": "{percent}%",
     "prev": "Sebelumnya",
     "next": "Berikutnya",
     "submit": "Kirim",

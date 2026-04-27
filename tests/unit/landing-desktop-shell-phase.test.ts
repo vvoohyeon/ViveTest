@@ -4,6 +4,7 @@ import {
   resolveDesktopShellPhase,
   shouldRenderDesktopStageShell
 } from '../../src/features/landing/grid/desktop-shell-phase';
+import {useDesktopMotionController} from '../../src/features/landing/grid/use-desktop-motion-controller';
 
 describe('landing desktop shell phase', () => {
   it('keeps same-card hover-out collapse in closing and cleanup-pending phases until cleanup finishes', () => {
@@ -50,5 +51,9 @@ describe('landing desktop shell phase', () => {
     expect(shouldRenderDesktopStageShell(handoffSource)).toBe(false);
     expect(handoffTarget).toBe('handoff-target');
     expect(shouldRenderDesktopStageShell(handoffTarget)).toBe(true);
+  });
+
+  it('exposes the controller-owned desktop motion hook entrypoint', () => {
+    expect(typeof useDesktopMotionController).toBe('function');
   });
 });

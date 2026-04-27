@@ -64,6 +64,16 @@ describe('resolveVariantPreviewQ1', () => {
     expect(q1?.answerB).toBe('Late-night sprints');
   });
 
+  it('locale별 문항 텍스트가 없으면 default locale 텍스트로 fallback한다', () => {
+    const q1 = resolveVariantPreviewQ1('qmbti', 'ja');
+
+    expect(q1).toEqual({
+      question: '🎉 At parties or birthday celebrations,',
+      answerA: 'Early morning blocks',
+      answerB: 'Late-night sprints'
+    });
+  });
+
   it('egtt: q.1(profile)이 아닌 scoring1 반환', () => {
     const q1 = resolveVariantPreviewQ1('egtt', 'en');
 
