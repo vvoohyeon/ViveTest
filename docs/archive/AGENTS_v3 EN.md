@@ -1,9 +1,8 @@
 # AGENTS.md
 
 > **Purpose of this file**: A declarative store for project-specific facts, architecture constraints, and validation commands.
-> Brainstorming, planning, TDD, code review, and other development workflows are handled by Superpowers skills. Do not add procedural workflow instructions to this file.
-
----
+> Brainstorming, planning, TDD, code review, and other development workflows are handled by
+> Superpowers skills. gstack planning/QA outputs are stored under `docs/`. Do not add procedural workflow instructions to this file.
 
 ## 1. Required Checks Before Starting Any Task
 
@@ -37,11 +36,18 @@ Before touching any of the paths below, confirm the relevant contract document a
 
 ### Task Entry Map
 
-- routing / locale / not-found: `docs/req-landing.md` §5, `docs/project-analysis.md` §4, `src/proxy.ts`, `src/i18n/**`, `tests/e2e/routing-smoke.spec.ts`
-- landing grid / GNB / theme: `docs/req-landing.md` §6–11, `src/features/landing/grid/**`, `src/features/landing/gnb/**`, `public/theme-bootstrap.js`
-- transition / telemetry / consent: `docs/req-landing.md` §8, §12, §13, `src/features/landing/transition/**`, `src/features/landing/telemetry/**`, `tests/e2e/transition-telemetry-smoke.spec.ts`, `tests/e2e/consent-smoke.spec.ts`
-- test flow / domain: `docs/req-test.md`, `docs/req-test-plan.md`, `src/features/test/**`, `src/features/test/domain/**`, `tests/unit/test-domain-*.test.ts`
-- variant registry / fixture boundary: `docs/req-landing.md` §12, `docs/req-test.md` §2, `docs/project-analysis.md` §5.3, `src/features/variant-registry/**`, `scripts/sync/**`, `tests/unit/landing-data-contract.test.ts`, `scripts/qa/check-variant-registry-contracts.mjs`
+- routing / locale / not-found: `docs/req-landing.md` §5, `docs/project-analysis.md` §4,
+  `src/proxy.ts`, `src/i18n/**`, `tests/e2e/routing-smoke.spec.ts`
+- landing grid / GNB / theme: `docs/req-landing.md` §6–11, `src/features/landing/grid/**`,
+  `src/features/landing/gnb/**`, `public/theme-bootstrap.js`
+- transition / telemetry / consent: `docs/req-landing.md` §8, §12, §13,
+  `src/features/landing/transition/**`, `src/features/landing/telemetry/**`,
+  `tests/e2e/transition-telemetry-smoke.spec.ts`, `tests/e2e/consent-smoke.spec.ts`
+- test flow / domain: `docs/req-test.md`, `docs/req-test-plan.md`, `src/features/test/**`,
+  `src/features/test/domain/**`, `tests/unit/test-domain-*.test.ts`
+- variant registry / fixture boundary: `docs/req-landing.md` §12, `docs/req-test.md` §2,
+  `docs/project-analysis.md` §5.3, `src/features/variant-registry/**`, `scripts/sync/**`,
+  `tests/unit/landing-data-contract.test.ts`, `scripts/qa/check-variant-registry-contracts.mjs`
 
 ---
 
@@ -62,11 +68,11 @@ Before touching any of the paths below, confirm the relevant contract document a
   - `src/features/test/schema-registry.ts`: owns the variant → ScoringLogicType → ScoringSchema mapping
   - `src/features/test/response-projection.ts`: reserved for future A/B response → domain token projection layer (currently unimplemented placeholder)
   - `src/features/variant-registry/**`: fixture source, builder, resolver, generated runtime registry
-  - `scripts/sync/**`: Sheets loading (`sheets-loader.ts`), sync orchestration (`sync.ts`), dry-run verification (`sync-dry-run.ts`), and registry serialization (`registry-serializer.ts`). Contract: `docs/req-test.md §2`.
+  - `scripts/sync/**`: Sheets loading (`sheets-loader.ts`), sync orchestration (`sync.ts`), dry-run verification (`sync-dry-run.ts`), registry serialization `registry-serializer.ts`). Contract: `docs/req-test.md §2`.
   - `src/i18n/**`: locale resolution, request policy, SSR `html lang` sync
   - `src/lib/routes/**`: locale-free typed route authoring
   - `src/i18n/localized-path.ts`: locale prefix application
-  - `src/messages/*.json`: shared UI copy — namespaces are `gnb`, `landing`, `test`, `blog`, `history`, `consent`
+  - `src/messages/*.json`: shared UI copy — namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent`
   - `public/theme-bootstrap.js`: pre-hydration theme bootstrap
   - `scripts/qa/*.mjs`: machine-enforced contract checks
   - `docs/blocker-traceability.json`: blocker evidence registry — current blockers `1..30`
@@ -103,7 +109,7 @@ Before touching any of the paths below, confirm the relevant contract document a
 
 Why caution is required:
 - These files are directly tied to locale entry, SSR `html lang`, route authoring, runtime registry export, screenshot closure, and blocker evidence contracts.
-- `variant-registry.generated.ts` is not a hand-written source of truth. Even when a direct edit seems necessary, check `source-fixture.ts`, `builder.ts`, and `resolvers.ts` first.
+- `variant-registry.generated.ts` is not a hand-written source of truth. When a direct edit seems necessary, check `source-fixture.ts`, `builder.ts`, and `resolvers.ts` first.
 - `scripts/qa/*.mjs` runs machine-enforced contract checks — modifying them changes the interpretation of the QA gate itself.
 
 ### Do Not Modify / Build Artifacts
@@ -134,11 +140,35 @@ Use the commands below when the Superpowers `verification-before-completion` ski
 - `npm run test:e2e:smoke`
 
 ### Additional Checks by Change Type
-- routing / locale / not-found: `node scripts/qa/check-phase1-contracts.mjs`, `npm test -- tests/unit/route-builder.test.ts tests/unit/localized-path.test.ts tests/unit/locale-resolution.test.ts tests/unit/proxy-policy.test.ts tests/unit/request-locale-header.test.ts tests/unit/locale-config.test.ts`, `npx playwright test tests/e2e/routing-smoke.spec.ts`
-- variant registry / fixture boundary: `node scripts/qa/check-variant-registry-contracts.mjs`, `node scripts/qa/check-variant-only-contracts.mjs`, `npm test -- tests/unit/landing-data-contract.test.ts tests/unit/landing-card-contract.test.ts`
-- telemetry / consent / transition: `node scripts/qa/check-phase11-telemetry-contracts.mjs`, `npm test -- tests/unit/landing-telemetry-validation.test.ts tests/unit/landing-telemetry-runtime.test.ts tests/unit/landing-transition-store.test.ts`, `npx playwright test tests/e2e/consent-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts`
-- landing grid / state / GNB / theme: `node scripts/qa/check-phase4-grid-contracts.mjs`, `node scripts/qa/check-phase5-card-contracts.mjs`, `node scripts/qa/check-phase6-spacing-contracts.mjs`, `node scripts/qa/check-phase7-state-contracts.mjs`, `node scripts/qa/check-phase8-accessibility-contracts.mjs`, `node scripts/qa/check-phase9-performance-contracts.mjs`, `node scripts/qa/check-phase10-transition-contracts.mjs`, `npm test -- tests/unit/landing-interaction-dom.test.ts tests/unit/landing-hover-intent.test.ts tests/unit/landing-mobile-lifecycle.test.ts tests/unit/landing-desktop-shell-phase.test.ts tests/unit/landing-grid-plan.test.ts`, `npx playwright test tests/e2e/grid-smoke.spec.ts tests/e2e/state-smoke.spec.ts tests/e2e/gnb-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts`
-- test flow / domain: `npm test -- tests/unit/test-domain-variant-validation.test.ts tests/unit/test-domain-question-model.test.ts tests/unit/test-domain-derivation.test.ts tests/unit/test-domain-type-segment.test.ts tests/unit/test-entry-policy.test.ts tests/unit/test-question-bootstrap.test.ts`, `npx playwright test tests/e2e/consent-smoke.spec.ts`
+- routing / locale / not-found: `node scripts/qa/check-phase1-contracts.mjs`,
+  `npm test -- tests/unit/route-builder.test.ts tests/unit/localized-path.test.ts
+  tests/unit/locale-resolution.test.ts tests/unit/proxy-policy.test.ts
+  tests/unit/request-locale-header.test.ts tests/unit/locale-config.test.ts`,
+  `npx playwright test tests/e2e/routing-smoke.spec.ts`
+- variant registry / fixture boundary: `node scripts/qa/check-variant-registry-contracts.mjs`,
+  `node scripts/qa/check-variant-only-contracts.mjs`,
+  `npm test -- tests/unit/landing-data-contract.test.ts tests/unit/landing-card-contract.test.ts`
+- telemetry / consent / transition: `node scripts/qa/check-phase11-telemetry-contracts.mjs`,
+  `npm test -- tests/unit/landing-telemetry-validation.test.ts
+  tests/unit/landing-telemetry-runtime.test.ts tests/unit/landing-transition-store.test.ts`,
+  `npx playwright test tests/e2e/consent-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts`
+- landing grid / state / GNB / theme: `node scripts/qa/check-phase4-grid-contracts.mjs`,
+  `node scripts/qa/check-phase5-card-contracts.mjs`,
+  `node scripts/qa/check-phase6-spacing-contracts.mjs`,
+  `node scripts/qa/check-phase7-state-contracts.mjs`,
+  `node scripts/qa/check-phase8-accessibility-contracts.mjs`,
+  `node scripts/qa/check-phase9-performance-contracts.mjs`,
+  `node scripts/qa/check-phase10-transition-contracts.mjs`,
+  `npm test -- tests/unit/landing-interaction-dom.test.ts tests/unit/landing-hover-intent.test.ts
+  tests/unit/landing-mobile-lifecycle.test.ts tests/unit/landing-desktop-shell-phase.test.ts
+  tests/unit/landing-grid-plan.test.ts`,
+  `npx playwright test tests/e2e/grid-smoke.spec.ts tests/e2e/state-smoke.spec.ts
+  tests/e2e/gnb-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts`
+- test flow / domain: `npm test -- tests/unit/test-domain-variant-validation.test.ts
+  tests/unit/test-domain-question-model.test.ts tests/unit/test-domain-derivation.test.ts
+  tests/unit/test-domain-type-segment.test.ts tests/unit/test-entry-policy.test.ts
+  tests/unit/test-question-bootstrap.test.ts`,
+  `npx playwright test tests/e2e/consent-smoke.spec.ts`
 
 ### Notes on `qa:rules` Exclusion
 - As of 2026-04-16, the Phase 11 visual smoke baseline has been committed as a local QA asset.
@@ -204,12 +234,9 @@ Do not reference external code patterns from the internet. Replicate the followi
 - The live anchors for question bank access are `buildVariantQuestionBank()` and `resolveVariantPreviewQ1()`. The legacy inline-bridge helper is exported only as a deprecated compatibility path.
 - The test route does not render route-local consent banners, confirm dialogs, or blocked popups.
 - Do not confuse current runtime keys with Phase 3 future keys documented in specs:
-  - Key SSOT:
-    - Landing keys: `src/features/landing/storage/storage-keys.ts`
-    - Test keys (Phase 3): `src/features/test/storage/storage-keys.ts`
-    - Exception: `public/theme-bootstrap.js` retains `'vivetest-theme'` as string literal (TS import not possible)
-  - Current localStorage: `vivetest-theme`, `vivetest-telemetry-consent`, `vivetest-telemetry-session-id`
-  - Current sessionStorage: `vivetest-current-path`, `vivetest-previous-path`, `vivetest-landing-pending-transition`, `vivetest-landing-return-scroll-y`, `vivetest-landing-return-variant`, `vivetest-test-instruction-seen:{variant}`, `vivetest-landing-ingress:{variant}`
+  - Key SSOT: [To be confirmed — no key declaration SSOT file currently exists]
+  - Current localStorage: `vivetest-theme`, `vivetest-current-path`, `vivetest-previous-path`, `vivetest-telemetry-consent`, `vivetest-telemetry-session-id`
+  - Current sessionStorage: `vivetest-landing-pending-transition`, `vivetest-landing-return-scroll-y`, `vivetest-landing-return-variant`, `vivetest-test-instruction-seen:{variant}`, `vivetest-landing-ingress:{variant}`
   - Documented future keys: `test:{variant}:...`, `test:{variant}:flag:{flagName}`
 - `instructionSeen` remains a variant-scoped `sessionStorage` key.
 - Do not introduce unauthorized storage keys.
@@ -224,14 +251,14 @@ Do not reference external code patterns from the internet. Replicate the followi
 - Theme-matrix QA uses only the representative `en` and `kr` matrix rows — not all locales.
 - The combined theme label wording family uses the `Language ⋅ Theme` format.
 - `public/theme-bootstrap.js` reads `vivetest-theme` before hydration.
-- The `motion` package is installed but not imported anywhere in `src` or `tests`. Any adoption must align with `docs/req-landing.md` §8.3 Core Motion Contract. [Temporary note: as of 2026-04-15]
+- The `motion` package is installed but not imported anywhere in `src` or `tests`. Any adoption must align with `docs/req-landing.md` §8.3 Core Motion Contract. [Temporary note: 2026-04-15]
 - Tailwind v4 is active. Runtime styling ownership is split between `src/app/globals.css` (tokens/base) and feature-local style sources. `src/app/globals.css` covers 112 lines of token/base surface; landing grid/card motion, focus, and reduced-motion are owned by `src/features/landing/grid/landing-grid-card.module.css`. [Updated: 2026-04-21]
 - Tech stack: `next@16.2.4`, `react@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0` (unused)
 
 ### High-Risk Areas
 
-The files and subsystems below directly affect usability, accessibility, responsiveness, performance, and design system consistency.
-Any Superpowers plan that touches these paths must explicitly identify which of those dimensions is at risk and must include subagent-level QA regression coverage.
+The files and subsystems below directly affect usability, accessibility, responsiveness, performance, and design system consistency. Any Superpowers plan that touches these paths must explicitly identify which of those dimensions is at risk and must include subagent-level QA
+regression coverage.
 
 - `src/features/landing/grid/use-landing-interaction-controller.ts` — 486-line orchestrator. Owns two `useReducer` instances, capability/reduced-motion/visibility sync, card binding composition, and transition start callbacks. DOM/focus helpers, hover intent, desktop motion, mobile lifecycle, keyboard handoff, and grid geometry/RAF have been extracted into dedicated hooks/modules in the same directory. [Updated: 2026-04-25]
 - `src/features/landing/grid/use-mobile-card-lifecycle.ts` — 543 lines. Owns mobile card lifecycle. Sensitive to landing grid timing contracts. [Updated: 2026-04-25]
@@ -297,9 +324,9 @@ When spawning a subagent, always inject the following constraints:
   - `test flow` / `entry-policy` / `question-bank` / `domain`: `tests/unit/test-domain-*.test.ts`, `tests/unit/test-entry-policy.test.ts`, `tests/unit/test-question-bootstrap.test.ts`, `tests/unit/variant-question-bank.test.ts`, `tests/unit/test-lazy-validation.test.ts`, `tests/unit/schema-registry.test.ts`, and `tests/e2e/consent-smoke.spec.ts` if applicable
   - `variant-registry` / `data model`: `check-variant-registry-contracts.mjs`, `check-variant-only-contracts.mjs`, `tests/unit/landing-data-contract.test.ts`, `tests/unit/registry-serializer.test.ts`, `tests/unit/variant-registry-runtime-integrity.test.ts`
   - `blog detail` / `subtitle continuity`: `tests/unit/blog-server-model.test.ts`, `tests/unit/landing-card-contract.test.ts`
-  - `AGENTS.md`: cross-reference file paths, commands, locale set, representative anchors, and baseline state against the actual repository.
+  - `AGENTS.md`: cross-reference file paths, commands, locale set, representative anchors,and baseline state against the actual repository.
   - If the change triggers any update condition listed in §9, update the relevant contract documents and `AGENTS.md` in the same commit.
-- If the change includes a bug fix or behavior change, confirm that regression test coverage has been added or updated for the affected scenario.
+- If the change includes a bug fix or behavior change, confirm that regression test coverage has   been added or updated for the affected scenario.
 
 ---
 
@@ -319,10 +346,9 @@ Update `AGENTS.md` whenever any of the following change:
 - Gold standard files
 - Directory ownership
 - A repo-specific agent mistake that has occurred two or more times in code review or agent execution
+- gstack output documents saved under `docs/` (arch review reports, QA findings) that establish new architecture decisions or constraints binding to future implementation
 
-Clarification thresholds, orchestration strategy, and Superpowers routing rules belong in Codex Custom Instructions — not in this file.
-Keep only facts and commands specific to this repository.
-Temporary operational states must be noted with a date.
+Clarification thresholds, orchestration strategy, and tool routing rules belong in Codex Custom Instructions — not in this file. Keep only facts and commands specific to this repository. Temporary operational states must be noted with a date.
 
 ---
 
@@ -335,3 +361,48 @@ Temporary operational states must be noted with a date.
   - Child documents must not repeat content from the parent
   - Child documents contain only deltas
   - If a conflict arises between a child document and a repo-wide fact, update the root `AGENTS.md` first — do not override from the child
+
+---
+
+## 11. gstack Integration Notes
+
+This section contains project-specific information for gstack invocations. gstack is installed at `~/.codex/skills/gstack-*/` and available via slash commands in the Codex TUI.
+
+### Approved Phase Boundaries
+gstack may only be invoked at the following project phases. Invocation during active Superpowers implementation loops is prohibited (see Custom Instructions §8).
+
+| Phase | Approved Commands | Trigger Condition |
+|:---|:---|:---|
+| Pre-implementation: Discovery | `/office-hours`, `/plan-ceo-review` | New epic or PRD with unresolved ambiguity in `docs/req-landing.md` or `docs/req-test.md` |
+| Pre-implementation: Architecture | `/plan-eng-review` | Data model, API surface, or variant registry structure needs to be locked before `writing-plans` begins |
+| Pre-implementation: Security | `/cso` | New auth surface, consent mechanism, external API integration, or telemetry contract |
+| Post-implementation: E2E QA | `/qa` | Frontend feature complete; staging URL available for headless browser verification |
+| Post-implementation: Arch Review | `/review` | Pre-merge cross-cutting security or architecture review on a completed branch |
+
+### Context to Provide When Invoking gstack
+When invoking any gstack command, provide the following as context input:
+
+- Relevant SSOT document path and section (e.g., `docs/req-landing.md §8`)
+- Active route surface affected (from §2)
+- Any ADR constraints from `docs/req-test-plan.md` that are in scope
+- Representative anchor for the affected area (from §2 ownership or §6 QA surface)
+
+Do not pass full conversation history. Provide only the bounded context for the current decision.
+
+### Output Storage Rules
+gstack review output (arch review reports, CEO review summaries, QA findings) must be saved as Markdown files under `docs/gstack/` before the session closes. Naming convention:
+
+```
+docs/gstack/{YYYY-MM-DD}-{command}-{scope}.md
+```
+
+Examples:
+- `docs/gstack/2026-05-01-plan-eng-review-variant-registry-v2.md`
+- `docs/gstack/2026-05-03-qa-landing-grid-phase12.md`
+
+Any gstack output that establishes a new architecture decision binding to future implementation must be cross-referenced in `docs/project-analysis.md` and noted in `docs/blocker-traceability.json` if it introduces a new constraint or blocker.
+
+### Token Cost Governance
+- Each gstack expert invocation: 10,000+ tokens
+- Limit to one gstack command per phase boundary per session unless a finding requires immediate follow-up (e.g., `/cso` finding requires `/plan-eng-review` revision)
+- Do not use gstack for tasks solvable within the Superpowers pipeline or lightweight path

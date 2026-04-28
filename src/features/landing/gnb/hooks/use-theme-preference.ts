@@ -5,8 +5,8 @@ import {flushSync} from 'react-dom';
 
 import type {ThemePreference} from '@/features/landing/gnb/types';
 import {runBlurCircleTransition} from '@/features/landing/gnb/hooks/theme-transition';
+import {LOCAL_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
 
-const THEME_STORAGE_KEY = 'vivetest-theme';
 type ResolvedTheme = Exclude<ThemePreference, 'system'>;
 
 interface ApplyThemeOptions {
@@ -37,7 +37,7 @@ function readStoredThemePreference(): ThemePreference {
   }
 
   try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    const stored = window.localStorage.getItem(LOCAL_STORAGE_KEYS.THEME);
     return stored === 'light' || stored === 'dark' ? stored : 'system';
   } catch {
     return 'system';
@@ -59,7 +59,7 @@ function writeThemePreferenceToDom(themePreference: ThemePreference, resolvedThe
 
   if (themePreference === 'system') {
     try {
-      window.localStorage.removeItem(THEME_STORAGE_KEY);
+      window.localStorage.removeItem(LOCAL_STORAGE_KEYS.THEME);
     } catch {
       // Ignore storage failures and keep runtime theme only.
     }
@@ -67,7 +67,7 @@ function writeThemePreferenceToDom(themePreference: ThemePreference, resolvedThe
   }
 
   try {
-    window.localStorage.setItem(THEME_STORAGE_KEY, themePreference);
+    window.localStorage.setItem(LOCAL_STORAGE_KEYS.THEME, themePreference);
   } catch {
     // Ignore storage failures and keep runtime theme only.
   }

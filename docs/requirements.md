@@ -319,7 +319,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 
 These requirements govern the landing catalog interaction model. Full policy and contract: `docs/req-landing.md` (sections noted per entry).
 
-| REQ-F | Statement summary | Confidence | SSOT |
+| REQ-F | Statement overview | Confidence | SSOT |
 |---|---|---|---|
 | REQ-F-027 — Entry gating (device-aware) | Back/expanded CTA only; first touch = expand only, not navigation. | Medium | req-landing §6, §8.2 |
 | REQ-F-028 — Instant-start first question | Landing card CTAs commit `scoring1` answer at entry. Instruction must not invalidate. | Medium | req-landing §13.4 |

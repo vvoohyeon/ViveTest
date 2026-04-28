@@ -397,14 +397,19 @@ Storage key changes should be treated as runtime-contract changes, not implement
 
 The key lists below describe the live prototype. Phase 0 fixed the future test-flow storage topology in documentation as `test:{variant}:...` plus `test:{variant}:flag:{flagName}`, but runtime key migration has not happened yet, so the current keys and the future Phase 3 contract should not be conflated.
 
+**Storage key SSOT:**
+- Landing keys: `src/features/landing/storage/storage-keys.ts`
+- Test keys (Phase 3 placeholder): `src/features/test/storage/storage-keys.ts`
+- Exception: `public/theme-bootstrap.js` retains `'vivetest-theme'` as a string literal because the pre-hydration script cannot import TypeScript.
+
 **localStorage keys:**
 - `vivetest-theme`
-- `vivetest-current-path`
-- `vivetest-previous-path`
 - `vivetest-telemetry-consent`
 - `vivetest-telemetry-session-id`
 
 **sessionStorage keys:**
+- `vivetest-current-path`
+- `vivetest-previous-path`
 - `vivetest-landing-pending-transition`
 - `vivetest-landing-return-scroll-y`
 - `vivetest-landing-return-variant`

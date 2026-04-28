@@ -28,12 +28,11 @@ import {useGnbCapability} from '@/features/landing/gnb/hooks/use-gnb-capability'
 import {getTransitionOrigin} from '@/features/landing/gnb/hooks/theme-transition';
 import {useThemePreference} from '@/features/landing/gnb/hooks/use-theme-preference';
 import type {GnbContext, MobileMenuState} from '@/features/landing/gnb/types';
+import {SESSION_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder, type LocaleFreeRoute} from '@/lib/routes/route-builder';
 
 const MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS = 220;
-const CURRENT_PATH_STORAGE_KEY = 'vivetest-current-path';
-const PREVIOUS_PATH_STORAGE_KEY = 'vivetest-previous-path';
 
 type CloseReason = 'button' | 'outside' | 'escape';
 
@@ -406,12 +405,12 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     }
 
     try {
-      const currentStoredPath = window.sessionStorage.getItem(CURRENT_PATH_STORAGE_KEY);
+      const currentStoredPath = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.CURRENT_PATH);
       if (currentStoredPath && currentStoredPath !== pathname) {
-        window.sessionStorage.setItem(PREVIOUS_PATH_STORAGE_KEY, currentStoredPath);
+        window.sessionStorage.setItem(SESSION_STORAGE_KEYS.PREVIOUS_PATH, currentStoredPath);
       }
-      window.sessionStorage.setItem(CURRENT_PATH_STORAGE_KEY, pathname);
-      previousInternalPathRef.current = window.sessionStorage.getItem(PREVIOUS_PATH_STORAGE_KEY);
+      window.sessionStorage.setItem(SESSION_STORAGE_KEYS.CURRENT_PATH, pathname);
+      previousInternalPathRef.current = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.PREVIOUS_PATH);
     } catch {
       previousInternalPathRef.current = null;
     }

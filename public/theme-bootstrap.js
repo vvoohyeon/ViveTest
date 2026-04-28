@@ -1,3 +1,6 @@
+// Storage key: 'vivetest-theme'
+// SSOT: src/features/landing/storage/storage-keys.ts > LOCAL_STORAGE_KEYS.THEME
+// TS import가 불가능한 pre-hydration 스크립트이므로 string literal을 유지한다.
 (function () {
   var root = document.documentElement;
 

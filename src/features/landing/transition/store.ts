@@ -1,3 +1,5 @@
+import {SESSION_STORAGE_KEYS, variantSessionKeys} from '@/features/landing/storage/storage-keys';
+
 export type LandingTransitionResultReason =
   | 'USER_CANCEL'
   | 'DUPLICATE_LOCALE'
@@ -24,12 +26,6 @@ export interface LandingIngressRecord {
 
 export const LANDING_TRANSITION_STORE_EVENT = 'landing:transition-store-change';
 export const LANDING_TRANSITION_CLEANUP_EVENT = 'landing:transition-cleanup';
-
-const PENDING_TRANSITION_KEY = 'vivetest-landing-pending-transition';
-const RETURN_SCROLL_Y_KEY = 'vivetest-landing-return-scroll-y';
-const RETURN_SCROLL_VARIANT_KEY = 'vivetest-landing-return-variant';
-const INSTRUCTION_SEEN_PREFIX = 'vivetest-test-instruction-seen:';
-const LANDING_INGRESS_PREFIX = 'vivetest-landing-ingress:';
 
 function getSessionStorage(): Storage | null {
   if (typeof window === 'undefined') {
@@ -84,36 +80,37 @@ function dispatchTransitionEvent(name: string, detail: Record<string, unknown>):
 }
 
 export function writePendingLandingTransition(transition: PendingLandingTransition): void {
-  writeJson(PENDING_TRANSITION_KEY, transition);
+  writeJson(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION, transition);
   dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
-    key: PENDING_TRANSITION_KEY,
+    key: SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION,
     transitionId: transition.transitionId
   });
 }
 
 export function readPendingLandingTransition(): PendingLandingTransition | null {
-  return readJson<PendingLandingTransition>(PENDING_TRANSITION_KEY);
+  return readJson<PendingLandingTransition>(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION);
 }
 
 export function clearPendingLandingTransition(): void {
   const storage = getSessionStorage();
-  storage?.removeItem(PENDING_TRANSITION_KEY);
+  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION);
   dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
-    key: PENDING_TRANSITION_KEY,
+    key: SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION,
     transitionId: null
   });
 }
 
 export function writeLandingIngress(record: LandingIngressRecord): void {
-  writeJson(`${LANDING_INGRESS_PREFIX}${record.variant}`, record);
+  const key = variantSessionKeys.landingIngress(record.variant);
+  writeJson(key, record);
   dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
-    key: `${LANDING_INGRESS_PREFIX}${record.variant}`,
+    key,
     variant: record.variant
   });
 }
 
 export function readLandingIngress(variant: string): LandingIngressRecord | null {
-  return readJson<LandingIngressRecord>(`${LANDING_INGRESS_PREFIX}${variant}`);
+  return readJson<LandingIngressRecord>(variantSessionKeys.landingIngress(variant));
 }
 
 export function consumeLandingIngress(variant: string): LandingIngressRecord | null {
@@ -122,7 +119,7 @@ export function consumeLandingIngress(variant: string): LandingIngressRecord | n
     return null;
   }
 
-  const key = `${LANDING_INGRESS_PREFIX}${variant}`;
+  const key = variantSessionKeys.landingIngress(variant);
   const value = readJson<LandingIngressRecord>(key);
   storage.removeItem(key);
   return value;
@@ -130,21 +127,22 @@ export function consumeLandingIngress(variant: string): LandingIngressRecord | n
 
 export function clearLandingIngress(variant: string): void {
   const storage = getSessionStorage();
-  storage?.removeItem(`${LANDING_INGRESS_PREFIX}${variant}`);
+  const key = variantSessionKeys.landingIngress(variant);
+  storage?.removeItem(key);
   dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
-    key: `${LANDING_INGRESS_PREFIX}${variant}`,
+    key,
     variant
   });
 }
 
 export function markInstructionSeen(variant: string): void {
   const storage = getSessionStorage();
-  storage?.setItem(`${INSTRUCTION_SEEN_PREFIX}${variant}`, 'true');
+  storage?.setItem(variantSessionKeys.instructionSeen(variant), 'true');
 }
 
 export function hasSeenInstruction(variant: string): boolean {
   const storage = getSessionStorage();
-  return storage?.getItem(`${INSTRUCTION_SEEN_PREFIX}${variant}`) === 'true';
+  return storage?.getItem(variantSessionKeys.instructionSeen(variant)) === 'true';
 }
 
 export function saveLandingReturnScrollY(scrollY: number, sourceVariant?: string): void {
@@ -153,15 +151,15 @@ export function saveLandingReturnScrollY(scrollY: number, sourceVariant?: string
     return;
   }
 
-  storage.setItem(RETURN_SCROLL_Y_KEY, String(Math.max(0, Math.trunc(scrollY))));
+  storage.setItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y, String(Math.max(0, Math.trunc(scrollY))));
   if (sourceVariant) {
-    storage.setItem(RETURN_SCROLL_VARIANT_KEY, sourceVariant);
+    storage.setItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT, sourceVariant);
   } else {
-    storage.removeItem(RETURN_SCROLL_VARIANT_KEY);
+    storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   }
 
   dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
-    key: RETURN_SCROLL_Y_KEY,
+    key: SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y,
     sourceVariant: sourceVariant ?? null
   });
 }
@@ -172,7 +170,7 @@ export function readLandingReturnScrollY(): number | null {
     return null;
   }
 
-  const raw = storage.getItem(RETURN_SCROLL_Y_KEY);
+  const raw = storage.getItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
   if (!raw) {
     return null;
   }
@@ -193,7 +191,7 @@ export function readLandingReturnVariant(): string | null {
     return null;
   }
 
-  const value = storage.getItem(RETURN_SCROLL_VARIANT_KEY);
+  const value = storage.getItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   return value && value.trim().length > 0 ? value : null;
 }
 
@@ -209,10 +207,10 @@ export function clearLandingReturnScroll(): void {
     return;
   }
 
-  storage.removeItem(RETURN_SCROLL_Y_KEY);
-  storage.removeItem(RETURN_SCROLL_VARIANT_KEY);
+  storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
+  storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
-    key: RETURN_SCROLL_Y_KEY,
+    key: SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y,
     sourceVariant: null
   });
 }

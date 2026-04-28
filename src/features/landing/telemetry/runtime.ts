@@ -16,6 +16,7 @@ import {
   type TelemetryConsentSnapshot,
   useTelemetryConsentSource
 } from '@/features/landing/telemetry/consent-source';
+import {LOCAL_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
 import type {
   AttemptStartTelemetryEvent,
   CardAnsweredTelemetryEvent,
@@ -27,7 +28,6 @@ import type {
 import {patchTelemetryEventForTransport, validateTelemetryEvent} from '@/features/landing/telemetry/validation';
 
 const TELEMETRY_ENDPOINT = '/api/telemetry';
-const TELEMETRY_SESSION_ID_STORAGE_KEY = 'vivetest-telemetry-session-id';
 
 interface TelemetrySnapshot {
   consentState: TelemetryConsentState;
@@ -61,7 +61,7 @@ function getLocalStorage(): Storage | null {
 
 function resolveSessionId(): string | null {
   const storage = getLocalStorage();
-  const stored = storage?.getItem(TELEMETRY_SESSION_ID_STORAGE_KEY)?.trim() ?? '';
+  const stored = storage?.getItem(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID)?.trim() ?? '';
   if (stored) {
     return stored;
   }
@@ -72,7 +72,7 @@ function resolveSessionId(): string | null {
   }
 
   try {
-    storage?.setItem(TELEMETRY_SESSION_ID_STORAGE_KEY, nextSessionId);
+    storage?.setItem(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID, nextSessionId);
   } catch {
     // Ignore storage failures and keep the in-memory value.
   }
@@ -83,7 +83,7 @@ function resolveSessionId(): string | null {
 function clearSessionId(): void {
   runtimeState.sessionId = null;
   try {
-    getLocalStorage()?.removeItem(TELEMETRY_SESSION_ID_STORAGE_KEY);
+    getLocalStorage()?.removeItem(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID);
   } catch {
     // Ignore storage failures during opt-out cleanup.
   }
@@ -216,7 +216,7 @@ export function resetTelemetryRuntimeForTests(): void {
   resetTelemetryConsentSourceForTests();
 
   try {
-    getLocalStorage()?.removeItem(TELEMETRY_SESSION_ID_STORAGE_KEY);
+    getLocalStorage()?.removeItem(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID);
   } catch {
     // Ignore storage cleanup failures in test reset helpers.
   }
