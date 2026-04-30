@@ -38,6 +38,7 @@ The following decisions are locked. Detailed SSOT for each is `docs/req-test.md 
 - Main progress is scoring-only. Profile completion is a prerequisite overlay step.
 - Telemetry question indexes use canonical index only. `attempt_start` fires when the first runtime question is actually rendered after instruction.
 - `scoringLogicType` canonical location: `src/features/test/schema-registry.ts`. No Schema.xlsx 4th source.
+- instructionSeen lifecycle and qualifier collection: qualifier questions (e.g. EGTT gender) are collected inside the instruction overlay as an intended design; bypassing instruction bypasses qualifier collection. `instructionSeen` is deleted by all three volatility triggers (result screen entry commit, inactivity timeout, restart). SSOT: `docs/req-test.md §6.8`.
 
 ## 2) Roles and Permissions
 
@@ -107,8 +108,11 @@ The following decisions are locked. Detailed SSOT for each is `docs/req-test.md 
 - **Confidence:** High
 
 ### REQ-F-003 — Instruction gate before test start
-- **Statement:** A user must pass through an instruction step before test execution. Consent-related branching is resolved inside the instruction step; the test route must not expose a separate route-local consent banner or dialog.
-- **Rationale:** Establishes context and supports consistent session tracking.
+- **Statement:** A user must pass through an instruction step before test execution. Consent-related branching is resolved inside the instruction step; the test route must not expose a separate route-local consent banner or dialog. For variants with profile questions (qualifier questions such as EGTT gender), qualifier collection is embedded in the instruction overlay as an intended design. Bypassing instruction bypasses qualifier collection.
+- **Rationale:** Establishes context and supports consistent session tracking. Embedding qualifier collection in the instruction step keeps the initial question runtime focused on scoring questions only.
+- **Key constraints:**
+  - `instructionSeen` lifecycle and reset conditions are governed by `docs/req-test.md §6.8` (single SSOT).
+  - All three volatility triggers (result screen entry commit, inactivity timeout, restart) delete `instructionSeen`, causing instruction overlay (including qualifier collection) to re-display on the next entry.
 - **Confidence:** High
 
 ### REQ-F-004 — Session lifecycle continuity
@@ -341,7 +345,7 @@ These requirements govern the landing catalog interaction model. Full policy and
 - **Answer Option:** display label + dimension contribution.
 - **Session:** id, variant, status, start/last activity timestamps, staged-entry context where applicable.
 - **Response Set:** ordered answers, progress, completion state. Landing ingress commit creates a fresh response set seeded with only the first scoring answer. Main progress uses the scoring subset; completion still requires the full canonical question set.
-- **Runtime Presentation State:** logical state partition for instruction overlay, profile overlay, scoring page, and profile edit overlay. Overlay shell reuse does not permit instruction content to reappear during profile edit.
+- **Runtime Presentation State:** logical state partition for instruction overlay, profile overlay, scoring page, and profile edit overlay. The instruction overlay includes qualifier question collection for applicable variants (e.g. EGTT gender question); this is an intended design, not an implementation convenience. Overlay shell reuse does not permit instruction content to reappear during profile edit. Profile edit overlay shows qualifier questions only, without instruction copy.
 - **Result:** finalized `derivedType` (variant-defined label token) and `scoreStats` (schema-defined axes/metrics), with profile/content rendered from the latest mapping at view time.
 - **Share Payload:** encoded minimal result data for portable reconstruction of the full result view. URL structure: `/result/{variant}/{type}?{base64Payload}`. `variant` and `type` (derivedType token) are URL path segments. The base64 payload contains `scoreStats` and `shared` (boolean). `scoringSchemaId` is not included; `variant` serves as the sole schema identifier. Optional `nickname` may be included only when the user explicitly opts in at share time.
 - **History Entry:** a per-run record containing runId, createdAt, testVariantId, derivedType, and the stored share URL string; presentation data (variant/type) is reconstructed from the URL payload at view time. The UI may optionally provide a grouped view keyed by (testVariantId, derivedType).

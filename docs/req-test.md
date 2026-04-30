@@ -389,9 +389,9 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - landing ingress에서 profile question이 존재하면 runtime의 첫 화면은 qualifier step(`q.*`)일 수 있다. 이 경우에도 landing이 미리 답한 문항은 항상 `scoring1`이다.
 
 **instructionSeen 생명주기**:
-- **기록 시점**: Start 버튼 클릭 직후, test_start 진입 직전에 `instructionSeen:{variantId} = true`로 기록한다.
+- **기록 시점**: Start 버튼 클릭 직후, test_start 진입 직전에 `instructionSeen:{variantId} = true`로 기록한다. qualifier question(예: EGTT 성별 질문)은 instruction overlay 안에서 수집되는 것이 의도된 설계이므로, instructionSeen이 `true`이면 qualifier 수집 단계도 함께 생략된다.
 - **재표시 조건**: `instructionSeen:{variantId}`가 `true`인 경우 해당 variant의 instruction을 표시하지 않는다. Direct Resume 경로는 이 규칙의 결과적 적용이다.
-- **리셋 조건**: 테스트 완료(result screen entry commit 완료 후 휘발과 동시에 리셋), Inactivity timeout 판정(휘발과 동시에 리셋).
+- **리셋 조건**: §6.8이 단일 SSOT다. 세 가지 휘발 트리거 (result screen entry commit 완료 / inactivity timeout 판정 / 처음부터 다시 하기 commit success) 모두 `instructionSeen`을 포함 삭제한다. 삭제 후 다음 진입 시 instruction overlay (qualifier question 수집 포함)가 재표시된다. 삭제 범위 세부사항은 §6.8 참조.
 
 ### 3.7 Session / Run Lifecycle Contract
 
@@ -739,8 +739,8 @@ result 페이지 접근 시 아래 케이스 매트릭스에 따라 UX를 분기
 **케이스 3**: history 미구현 상태이므로 이번 단계에서 케이스 2와 동일하게 처리한다. history 구현 단계에서 케이스 3 분기를 반드시 추가해야 한다 (AR-006).
 
 CTA 동작:
-- **다시하기**: `/test/{variant}`로 이동. `instructionSeen`이 완료/timeout 시 리셋된 상태이므로, 테스트 페이지 진입 시 instruction overlay가 자동 표시된다. 별도 `/instruction` 라우트를 거치지 않는다.
-- **나도 테스트하기**: `/test/{variant}`로 이동. `instructionSeen`이 없는 첫 진입이므로, 테스트 페이지 진입 시 instruction overlay가 자동 표시된다.
+- **다시하기**: `/test/{variant}`로 이동. result screen entry commit 완료 시 `instructionSeen`이 삭제되므로, 테스트 페이지 진입 시 instruction overlay(qualifier question 수집 포함)가 자동 표시된다. 별도 `/instruction` 라우트를 거치지 않는다.
+- **나도 테스트하기**: `/test/{variant}`로 이동. `instructionSeen`이 없는 첫 진입이므로, 테스트 페이지 진입 시 instruction overlay (qualifier question 수집 포함)가 자동 표시된다.
 
 **Verification**:
 1. Automated: `payload.shared = false`인 유효 payload 접근 시 케이스 1 UX를 검증한다.
@@ -915,7 +915,13 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 |---|---|
 | Result screen entry commit 완료 | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
 | Inactivity timeout (30분, 재진입 시 판정) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
-| 처음부터 다시 하기 (commit success 시) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 제외) |
+| 처음부터 다시 하기 (commit success 시) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
+
+> **instructionSeen 삭제 정책 (§6.8이 단일 SSOT)**: 세 트리거 모두 `instructionSeen`을 포함 삭제한다. instructionSeen이 삭제되면 다음 진입 시 instruction overlay(qualifier question 수집 포함)가 재표시된다.
+> §3.6의 리셋 조건은 이 섹션을 참조한다.
+
+> **variant 범위 격리**: `instructionSeen` 삭제는 trigger가 발생한 해당 variant에 한정된다. "해당 variant에 대해 사용자가 instruction을 본 사실"만 삭제하며, 다른 variant의 `instructionSeen`에 영향을 주지 않는다.
+> variant switch 및 blocking data error cleanup 시에는 해당 variant의 `instructionSeen`이 유지된다 (§8.3 참조).
 
 > derivation-failure 상태에서는 응답 데이터를 삭제하지 않는다. result screen entry commit이 아직 발생하지 않았기 때문이다.
 
@@ -926,6 +932,7 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 1. Automated: 3가지 휘발 트리거(result commit 완료 / timeout 재진입 / 처음부터 다시 하기 commit success) 각각에서 삭제 범위 정확성 및 잔류 데이터 `0건`을 검증한다.
 4. Automated: derivation-failure 상태에서 응답 데이터가 삭제되지 않음을 검증한다.
 5. Automated: 다른 variant 데이터가 cleanup에 의해 변경되지 않음을 검증한다.
+6. Automated: "처음부터 다시 하기" commit success 시 `instructionSeen`이 삭제되고, 다음 진입에서 instruction overlay가 표시됨을 검증한다.
 
 ### 6.9 Restoration / Continuity
 
@@ -1002,7 +1009,7 @@ result derivation 전환 구간에서 아래 상태를 구분해서 관리해야
 
 | 상황 | Cleanup 범위 |
 |---|---|
-| 처음부터 다시 하기 (commit success) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 유지) |
+| 처음부터 다시 하기 (commit success) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
 | Timeout 판정 (재진입 시) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
 | Result screen entry commit 완료 | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
 | Commit-failure 발생 | new staged entry + restart intent + pending new-run context 폐기. old active run 유지 |
@@ -1012,6 +1019,12 @@ result derivation 전환 구간에서 아래 상태를 구분해서 관리해야
 | Back-from-loading | `derivation_in_progress` 임시 상태 + loading residue 정리. 응답 집합 유지 |
 | 전환 실패/취소 (랜딩→테스트) | validated landing-origin context 관련 상태 (`instructionSeen` 유지) |
 | variant switch / blocking data error | 해당 variant의 모든 실행 문맥 상태 (`instructionSeen` 유지) |
+
+> **instructionSeen 범위 주석**: variant switch / blocking data error cleanup
+> 시 `instructionSeen` 유지는 "해당 variant에 대해 사용자가 instruction을
+> 본 사실"을 유지하는 것이다. 전역 유지가 아니며, 다른 variant의
+> `instructionSeen`과 무관하다. `instructionSeen` 삭제 정책의 단일 SSOT는
+> §6.8이다.
 
 cleanup은 해당 variant 범위에만 영향을 준다.
 
@@ -1132,7 +1145,7 @@ skeleton으로 확보해야 할 hook 위치:
 | `qualifierFields` / `type` segment 구조 변경 | 1.3, 3.11, 5.1, 6.2, 6.3, 7.1, AR-007, 12.2 |
 | `scoringMode` 정책 변경 (신규 모드 추가 포함) | 3.11, 6.2, 12.2 |
 | Session / active run / timeout 정책 변경 | 3.6, 3.7, 4.2, 6.8, 6.9, 8.1, 8.3, 12.2 |
-| instructionSeen 기록·리셋 정책 변경 | 3.6, 6.8, 8.3, 12.2 |
+| instructionSeen 기록·리셋 정책 변경 | **§6.8 (SSOT)**, §3.6(§6.8 참조로 대체), §8.3, §5.2, §12.2 |
 | Ingress flag / validated landing-origin context / 시작 문항 정책 변경 | 3.1, 3.3, 3.4, 3.5, 3.6, 4.1, 4.2, 8.3, 12.2 |
 | canonical index / scoring order / user-facing Q label 관계 변경 | 3.1, 3.3, 3.8, 3.9, 4.3, 9.1, 9.2, AR-007, 12.2 |
 | Staged entry expiry 변경 | 3.5, 1.3, 8.3, 12.2 |
@@ -1168,7 +1181,7 @@ skeleton으로 확보해야 할 hook 위치:
 
 1. **Variant Validation / Error Recovery**: invalid variant가 crash를 유발하지 않는다. 에러 복구 페이지로 이동하며 session이 생성되지 않는다. 복구 카드가 카탈로그 순서 + 완료 이력 필터 기준으로 최대 2개 표시된다.
 2. **진입 경로 분기**: Landing Ingress / Direct Cold / Direct Resume 각 경로 분기 정확성. completed run 재진입이 Direct Cold로 분류됨.
-3. **Instruction Gate**: start는 instruction 문맥에서만 발생한다. instruction 이탈은 pre-test abandonment로 구분된다. `instructionSeen`은 Start 클릭 시점에 기록되고, result screen entry commit 완료 및 timeout 시 리셋된다. 처음부터 다시 하기·variant switch 시 `instructionSeen`이 유지된다.
+3. **Instruction Gate**: start는 instruction 문맥에서만 발생한다. instruction 이탈은 pre-test abandonment로 구분된다. qualifier question(예: EGTT 성별 질문)은 instruction overlay 안에서 수집되므로, instructionSeen이 `true`이면 qualifier 수집 단계도 생략된다. `instructionSeen`은 Start 클릭 시점에 기록된다. 세 가지 휘발 트리거(result screen entry commit 완료 / inactivity timeout / 처음부터 다시 하기 commit success) 모두에서 `instructionSeen`이 포함 삭제된다. variant switch 및 blocking data error cleanup 시 해당 variant의 `instructionSeen`은 유지된다. 세부: §6.8 (단일 SSOT) 참조.
 4. **Instruction / Ingress Continuity**: `scoring1` pre-answer가 있는 진입에서 instruction이 기존 응답을 무효화하지 않는다. consume 시점이 Start 클릭 직후(또는 test_start)임을 검증한다.
 5. **Active Run 판정**: 30분 경계값 전후 판정 정확성. timeout 시 휘발.
 6. **응답 데이터 휘발**: result screen entry commit 후, timeout 후, 처음부터 다시 하기 commit success 후 — 잔류 데이터 `0건`. derivation-failure 상태에서 응답 데이터 미삭제.
