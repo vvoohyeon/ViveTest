@@ -65,7 +65,7 @@
 ## Test Flow / Domain / Storage {#TestFlow}
 
 - Canonical test surface: `src/features/test/**`. Do not reintroduce `src/features/landing/test/*`.
-- Public API: `src/features/test/domain/index.ts` only.
+- Domain public API: `src/features/test/domain/index.ts` only.
 - Contracts frozen by Phase 0–1 ADRs (`docs/req-test-plan.md`) — must not change without a new ADR:
   - `VariantId = string & { readonly __brand: 'VariantId' }`
   - `QuestionIndex = number & { readonly __brand: 'QuestionIndex' }`
@@ -78,7 +78,7 @@
 - Test route: does not render route-local consent banners, confirm dialogs, or blocked popups.
 - Storage Key SSOT:
   - Landing keys → `src/features/landing/storage/storage-keys.ts`
-  - Test keys (Phase 3 future) → `src/features/test/storage/storage-keys.ts`
+  - Test keys → `src/features/test/storage/storage-keys.ts` compatibility re-export; concrete Phase 3 key API lives in `src/features/test/storage/test-storage-keys.ts`
   - ADR-B external legacy key: `vivetest-test-instruction-seen:{variant}`
     remains outside the ADR-B prefix form (`test:{variant}:instructionSeen`) until Phase 5 migration.
   - Exception: `public/theme-bootstrap.js` retains `'vivetest-theme'` as string literal

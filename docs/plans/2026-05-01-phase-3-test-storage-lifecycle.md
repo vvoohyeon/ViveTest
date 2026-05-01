@@ -8,6 +8,16 @@
 
 **Tech Stack:** Next.js 16, React 19, TypeScript strict mode, Vitest with JSDOM helpers, browser `localStorage` for ADR-B test keys, browser `sessionStorage` for the existing legacy `instructionSeen` key.
 
+## Implementation Outcome (2026-05-01)
+
+- Completed inline with TDD: active run tests failed before implementation, state flag tests failed before implementation, and volatility tests failed against the interim active-run-only cleanup before the full cleanup implementation.
+- Implemented `src/features/test/storage/` public storage API for ADR-B keys: active run, response set key, five independent flags, and trigger-independent run data volatility.
+- Preserved the Phase 3 legacy `instructionSeen` contract by deleting `variantSessionKeys.instructionSeen(variantId)` from `sessionStorage`; no `test:{variant}:instructionSeen` migration was introduced.
+- Kept `src/features/test/storage/storage-keys.ts` as a compatibility re-export to the concrete Phase 3 key API in `test-storage-keys.ts`.
+- Added blocker traceability evidence for `assertion:B5-active-run-timeout-boundary-unit`, `assertion:B6-volatility-trigger-cleanup-unit`, and `assertion:B17-cleanup-set-zero-residue-unit`; added the Phase 10 manual checkpoint `assertion:B17-cleanup-set-atomicity-e2e-phase10`.
+- Updated stale storage-key wording in `docs/project-analysis.md` and `docs/agent-guides/project-rules.md`.
+- Final verification passed: storage suite, test-flow scoped suite, `node scripts/qa/check-blocker-traceability.mjs`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+
 ---
 
 ## Pre-Implementation Checks

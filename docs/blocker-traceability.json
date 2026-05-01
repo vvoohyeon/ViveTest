@@ -60,10 +60,22 @@
     "assertionId": "assertion:B5-axe-canonical"
   },
   {
+    "blocker": 5,
+    "kind": "automated_assertion",
+    "file": "tests/unit/test-storage-active-run.test.ts",
+    "assertionId": "assertion:B5-active-run-timeout-boundary-unit"
+  },
+  {
     "blocker": 6,
     "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B6-transition-ingress"
+  },
+  {
+    "blocker": 6,
+    "kind": "automated_assertion",
+    "file": "tests/unit/test-storage-volatility.test.ts",
+    "assertionId": "assertion:B6-volatility-trigger-cleanup-unit"
   },
   {
     "blocker": 7,
@@ -202,6 +214,18 @@
     "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B17-return-restore"
+  },
+  {
+    "blocker": 17,
+    "kind": "automated_assertion",
+    "file": "tests/unit/test-storage-volatility.test.ts",
+    "assertionId": "assertion:B17-cleanup-set-zero-residue-unit"
+  },
+  {
+    "blocker": 17,
+    "kind": "manual_checkpoint",
+    "file": "docs/req-test-plan.md",
+    "assertionId": "assertion:B17-cleanup-set-atomicity-e2e-phase10"
   },
   {
     "blocker": 18,

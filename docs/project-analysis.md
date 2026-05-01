@@ -400,17 +400,24 @@ Tailwind v4 is active via `src/app/globals.css` `@import "tailwindcss"` plus `po
 
 Storage key changes should be treated as runtime-contract changes, not implementation details.
 
-The key lists below describe the live prototype. Phase 0 fixed the future test-flow storage topology in documentation as `test:{variant}:...` plus `test:{variant}:flag:{flagName}`, but runtime key migration has not happened yet, so the current keys and the future Phase 3 contract should not be conflated.
+The key lists below describe the live prototype plus the Phase 3 test storage contract. Phase 3 now owns ADR-B test-flow storage topology as `test:{variant}:...` plus `test:{variant}:flag:{flagName}`. The legacy `instructionSeen` key remains in sessionStorage until the Phase 5 instruction-gate migration.
 
 **Storage key SSOT:**
 - Landing keys: `src/features/landing/storage/storage-keys.ts`
-- Test keys (Phase 3 placeholder): `src/features/test/storage/storage-keys.ts`
+- Test keys: `src/features/test/storage/storage-keys.ts` compatibility re-export, with the concrete Phase 3 API in `src/features/test/storage/test-storage-keys.ts`
 - Exception: `public/theme-bootstrap.js` retains `'vivetest-theme'` as a string literal because the pre-hydration script cannot import TypeScript.
 
 **localStorage keys:**
 - `vivetest-theme`
 - `vivetest-telemetry-consent`
 - `vivetest-telemetry-session-id`
+- `test:{variant}:activeRun`
+- `test:{variant}:responses`
+- `test:{variant}:flag:derivation_in_progress`
+- `test:{variant}:flag:derivation_computed`
+- `test:{variant}:flag:min_loading_duration_elapsed`
+- `test:{variant}:flag:result_entry_committed`
+- `test:{variant}:flag:result_persisted`
 
 **sessionStorage keys:**
 - `vivetest-current-path`
