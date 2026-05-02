@@ -5,7 +5,6 @@ import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useId,
@@ -17,35 +16,21 @@ import {
 import type {AppLocale} from '@/config/site';
 import {SettingsControls} from '@/features/landing/gnb/components/settings-controls';
 import {ThemeModeIcon} from '@/features/landing/gnb/components/theme-mode-icon';
-import {
-  DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS,
-  MOBILE_MENU_CLOSE_DURATION_MS,
-  shouldCancelOutsideCloseAsScroll,
-  shouldOpenDesktopSettingsByHover,
-  shouldUseHistoryBack
-} from '@/features/landing/gnb/behavior';
+import {shouldOpenDesktopSettingsByHover} from '@/features/landing/gnb/behavior';
+import {useGnbBackNavigation} from '@/features/landing/gnb/hooks/use-gnb-back-navigation';
 import {useGnbCapability} from '@/features/landing/gnb/hooks/use-gnb-capability';
+import {useGnbDesktopSettings} from '@/features/landing/gnb/hooks/use-gnb-desktop-settings';
+import {useGnbMobileMenu} from '@/features/landing/gnb/hooks/use-gnb-mobile-menu';
 import {getTransitionOrigin} from '@/features/landing/gnb/hooks/theme-transition';
 import {useThemePreference} from '@/features/landing/gnb/hooks/use-theme-preference';
-import type {GnbContext, MobileMenuState} from '@/features/landing/gnb/types';
-import {SESSION_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
+import type {GnbContext} from '@/features/landing/gnb/types';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder, type LocaleFreeRoute} from '@/lib/routes/route-builder';
-
-const MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS = 220;
-
-type CloseReason = 'button' | 'outside' | 'escape';
 
 interface SiteGnbProps {
   locale: AppLocale;
   context: GnbContext;
   currentRoute: LocaleFreeRoute;
-}
-
-interface OutsideGesture {
-  active: boolean;
-  startX: number;
-  startY: number;
 }
 
 type LandingKeyboardEntryMode = 'card-first' | 'gnb';
@@ -107,26 +92,11 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const settingsPanelId = useId();
   const mobileMenuPanelId = useId();
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [mobileMenuState, setMobileMenuState] = useState<MobileMenuState>('closed');
   const [landingKeyboardEntryMode, setLandingKeyboardEntryMode] = useState<LandingKeyboardEntryMode>(
     context === 'landing' ? 'card-first' : 'gnb'
   );
 
   const gnbShellRef = useRef<HTMLElement | null>(null);
-  const settingsRootRef = useRef<HTMLDivElement | null>(null);
-  const settingsHoverCloseTimerRef = useRef<number | null>(null);
-
-  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const mobileMenuCloseTimerRef = useRef<number | null>(null);
-  const mobileMenuCloseReasonRef = useRef<CloseReason | null>(null);
-  const mobileBackFallbackTimerRef = useRef<number | null>(null);
-  const previousInternalPathRef = useRef<string | null>(null);
-  const outsideGestureRef = useRef<OutsideGesture>({
-    active: false,
-    startX: 0,
-    startY: 0
-  });
 
   const homeHref = useMemo(() => buildLocalizedPath(RouteBuilder.landing(), locale), [locale]);
   const blogHref = useMemo(() => buildLocalizedPath(RouteBuilder.blog(), locale), [locale]);
@@ -138,20 +108,36 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     viewportWidth,
     hoverCapable
   });
-  const canOpenDesktopSettingsByHover = () => {
-    if (hoverOpenEnabled) {
-      return true;
-    }
 
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return false;
-    }
+  const {
+    settingsOpen,
+    settingsRootRef,
+    openSettingsImmediate,
+    toggleSettingsOpen,
+    closeSettingsImmediate,
+    clearSettingsHoverCloseTimer,
+    desktopSettingsEnter,
+    desktopSettingsLeave,
+    desktopSettingsBlurCapture
+  } = useGnbDesktopSettings({hoverOpenEnabled, viewportWidth, hoverCapable});
 
-    return shouldOpenDesktopSettingsByHover({
-      viewportWidth: window.innerWidth,
-      hoverCapable: window.matchMedia('(hover: hover) and (pointer: fine)').matches
-    });
-  };
+  const {
+    mobileMenuState,
+    mobileMenuTriggerRef,
+    setMobileMenuOpen,
+    requestMobileMenuClose,
+    closeMobileMenuImmediate,
+    clearMobileMenuCloseTimer,
+    mobileMenuBackdropPointerDown,
+    mobileMenuBackdropPointerMove,
+    mobileMenuBackdropPointerEnd
+  } = useGnbMobileMenu();
+
+  const {handleTestBack, handleStandardBack, clearMobileBackFallbackTimer} = useGnbBackNavigation({
+    pathname,
+    homeHref,
+    router
+  });
 
   const shouldDeferLandingGnbEntry = isLandingContext && !settingsOpen && mobileMenuState === 'closed';
   const desktopLandingTabIndex =
@@ -232,7 +218,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     }
 
     return mobileTargets;
-  }, [mobileMenuPanelId, mobileMenuState, settingsOpen, settingsPanelId]);
+  }, [mobileMenuPanelId, mobileMenuState, mobileMenuTriggerRef, settingsOpen, settingsPanelId]);
 
   const focusFirstLandingCardTrigger = useCallback(() => {
     if (typeof document === 'undefined') {
@@ -249,18 +235,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     trigger.focus();
     return true;
   }, []);
-
-  const clearSettingsHoverCloseTimer = useCallback(() => {
-    if (settingsHoverCloseTimerRef.current !== null) {
-      window.clearTimeout(settingsHoverCloseTimerRef.current);
-      settingsHoverCloseTimerRef.current = null;
-    }
-  }, []);
-
-  const closeSettingsImmediate = useCallback(() => {
-    clearSettingsHoverCloseTimer();
-    setSettingsOpen(false);
-  }, [clearSettingsHoverCloseTimer]);
 
   const routeKeyboardWithinGnb = useCallback(
     (event: Pick<KeyboardEvent, 'key' | 'shiftKey' | 'altKey' | 'ctrlKey' | 'metaKey' | 'preventDefault'>) => {
@@ -296,52 +270,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     [closeSettingsImmediate, focusFirstLandingCardTrigger, getOrderedKeyboardTargets, isLandingContext, settingsOpen]
   );
 
-  const clearMobileMenuCloseTimer = useCallback(() => {
-    if (mobileMenuCloseTimerRef.current !== null) {
-      window.clearTimeout(mobileMenuCloseTimerRef.current);
-      mobileMenuCloseTimerRef.current = null;
-    }
-  }, []);
-
-  const clearMobileBackFallbackTimer = useCallback(() => {
-    if (mobileBackFallbackTimerRef.current !== null) {
-      window.clearTimeout(mobileBackFallbackTimerRef.current);
-      mobileBackFallbackTimerRef.current = null;
-    }
-  }, []);
-
-  const completeMobileMenuClose = useCallback(() => {
-    mobileMenuCloseReasonRef.current = null;
-    setMobileMenuState('closed');
-    mobileMenuTriggerRef.current?.focus();
-  }, []);
-
-  const requestMobileMenuClose = useCallback(
-    (reason: CloseReason) => {
-      if (mobileMenuState !== 'open') {
-        return;
-      }
-
-      mobileMenuCloseReasonRef.current = reason;
-      setMobileMenuState('closing');
-      clearMobileMenuCloseTimer();
-      mobileMenuCloseTimerRef.current = window.setTimeout(() => {
-        completeMobileMenuClose();
-      }, MOBILE_MENU_CLOSE_DURATION_MS);
-    },
-    [clearMobileMenuCloseTimer, completeMobileMenuClose, mobileMenuState]
-  );
-
-  const cancelMobileMenuCloseFromScroll = useCallback(() => {
-    if (mobileMenuState !== 'closing' || mobileMenuCloseReasonRef.current !== 'outside') {
-      return;
-    }
-
-    clearMobileMenuCloseTimer();
-    mobileMenuCloseReasonRef.current = null;
-    setMobileMenuState('open');
-  }, [clearMobileMenuCloseTimer, mobileMenuState]);
-
   const handleLocaleChange = useCallback(
     (nextLocale: AppLocale) => {
       if (nextLocale === locale) {
@@ -349,94 +277,11 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       }
 
       closeSettingsImmediate();
-      clearMobileMenuCloseTimer();
-      setMobileMenuState('closed');
+      closeMobileMenuImmediate();
       router.push(buildLocalizedPath(currentRoute, nextLocale));
     },
-    [clearMobileMenuCloseTimer, closeSettingsImmediate, currentRoute, locale, router]
+    [closeMobileMenuImmediate, closeSettingsImmediate, currentRoute, locale, router]
   );
-
-  const handleTestBack = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const previousInternalPath = previousInternalPathRef.current;
-    const hasInternalPrevious = !!previousInternalPath && previousInternalPath !== pathname;
-
-    if (!hasInternalPrevious || window.history.length <= 1) {
-      router.push(homeHref, {scroll: false});
-      return;
-    }
-
-    const beforePathname = window.location.pathname;
-    window.history.back();
-
-    clearMobileBackFallbackTimer();
-    mobileBackFallbackTimerRef.current = window.setTimeout(() => {
-      if (window.location.pathname === beforePathname) {
-        router.push(homeHref, {scroll: false});
-      }
-    }, MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS);
-  }, [clearMobileBackFallbackTimer, homeHref, pathname, router]);
-
-  const handleStandardBack = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (
-      shouldUseHistoryBack({
-        historyLength: window.history.length,
-        referrer: document.referrer,
-        currentOrigin: window.location.origin
-      })
-    ) {
-      window.history.back();
-      return;
-    }
-
-    router.push(homeHref, {scroll: false});
-  }, [homeHref, router]);
-
-  useEffect(() => {
-    if (pathname.length === 0) {
-      return;
-    }
-
-    try {
-      const currentStoredPath = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.CURRENT_PATH);
-      if (currentStoredPath && currentStoredPath !== pathname) {
-        window.sessionStorage.setItem(SESSION_STORAGE_KEYS.PREVIOUS_PATH, currentStoredPath);
-      }
-      window.sessionStorage.setItem(SESSION_STORAGE_KEYS.CURRENT_PATH, pathname);
-      previousInternalPathRef.current = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.PREVIOUS_PATH);
-    } catch {
-      previousInternalPathRef.current = null;
-    }
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!settingsOpen) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (!settingsRootRef.current?.contains(target)) {
-        closeSettingsImmediate();
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-    };
-  }, [closeSettingsImmediate, settingsOpen]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -459,23 +304,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [closeSettingsImmediate, mobileMenuState, requestMobileMenuClose, settingsOpen]);
-
-  useEffect(() => {
-    if (mobileMenuState === 'closed') {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    const previousTouchAction = document.body.style.touchAction;
-
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.touchAction = previousTouchAction;
-    };
-  }, [mobileMenuState]);
 
   useEffect(() => {
     if (!isLandingContext) {
@@ -550,75 +378,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     };
   }, [clearMobileBackFallbackTimer, clearMobileMenuCloseTimer, clearSettingsHoverCloseTimer]);
 
-  const desktopSettingsEnter = () => {
-    if (!canOpenDesktopSettingsByHover()) {
-      return;
-    }
-    clearSettingsHoverCloseTimer();
-    setSettingsOpen(true);
-  };
-
-  const desktopSettingsLeave = () => {
-    if (!canOpenDesktopSettingsByHover()) {
-      return;
-    }
-    clearSettingsHoverCloseTimer();
-    settingsHoverCloseTimerRef.current = window.setTimeout(() => {
-      setSettingsOpen(false);
-    }, DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS);
-  };
-
-  const desktopSettingsBlurCapture = () => {
-    if (!settingsOpen) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      const active = document.activeElement;
-      if (active instanceof Node && settingsRootRef.current?.contains(active)) {
-        return;
-      }
-
-      closeSettingsImmediate();
-    });
-  };
-
-  const mobileMenuBackdropPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (mobileMenuState !== 'open') {
-      return;
-    }
-
-    outsideGestureRef.current = {
-      active: true,
-      startX: event.clientX,
-      startY: event.clientY
-    };
-
-    requestMobileMenuClose('outside');
-  };
-
-  const mobileMenuBackdropPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!outsideGestureRef.current.active) {
-      return;
-    }
-
-    if (
-      shouldCancelOutsideCloseAsScroll({
-        startX: outsideGestureRef.current.startX,
-        startY: outsideGestureRef.current.startY,
-        endX: event.clientX,
-        endY: event.clientY
-      })
-    ) {
-      outsideGestureRef.current.active = false;
-      cancelMobileMenuCloseFromScroll();
-    }
-  };
-
-  const mobileMenuBackdropPointerEnd = () => {
-    outsideGestureRef.current.active = false;
-  };
-
   const settingsLabels = {
     theme: t('theme'),
     light: t('light'),
@@ -678,12 +437,10 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           tabIndex={desktopLandingTabIndex}
           onFocus={() => {
             if (!hoverOpenEnabled) {
-              setSettingsOpen(true);
+              openSettingsImmediate();
             }
           }}
-          onClick={() => {
-            setSettingsOpen((previous) => !previous);
-          }}
+          onClick={toggleSettingsOpen}
           data-testid="gnb-settings-trigger"
         >
           <ThemeModeIcon theme={resolvedTheme} className={gnbSettingsTriggerIconClassName} />
@@ -760,7 +517,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                 tabIndex={mobileLandingTabIndex}
                 onClick={() => {
                   if (mobileMenuState === 'closed') {
-                    setMobileMenuState('open');
+                    setMobileMenuOpen();
                     return;
                   }
                   requestMobileMenuClose('button');

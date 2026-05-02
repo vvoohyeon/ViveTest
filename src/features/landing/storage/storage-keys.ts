@@ -35,13 +35,13 @@ export const LOCAL_STORAGE_KEYS = {
 export const SESSION_STORAGE_KEYS = {
   /**
    * 현재 방문 중인 내부 경로.
-   * 소유: src/features/landing/gnb/site-gnb.tsx
+   * 소유: src/features/landing/gnb/hooks/use-gnb-back-navigation.ts
    */
   CURRENT_PATH: "vivetest-current-path",
 
   /**
    * 직전에 방문했던 내부 경로. back 버튼 동작에 사용.
-   * 소유: src/features/landing/gnb/site-gnb.tsx
+   * 소유: src/features/landing/gnb/hooks/use-gnb-back-navigation.ts
    */
   PREVIOUS_PATH: "vivetest-previous-path",
 
