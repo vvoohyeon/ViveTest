@@ -72,6 +72,8 @@ npx playwright test \
   tests/e2e/a11y-smoke.spec.ts
 ```
 
+For full local E2E smoke or `qa:gate:once`, install Playwright browsers with `npx playwright install chromium webkit`. Theme-matrix local baseline regeneration and provenance fields are documented in `tests/e2e/README.md`.
+
 ### test flow / domain {#test-flow}
 
 ```bash

@@ -100,6 +100,7 @@
   Do not add behavior before requirements change.
 - Representative anchors: available test `qmbti` · opt-out test `energy-check` · primary blog `ops-handbook`.
 - Theme-matrix QA uses only representative `en` and `kr` matrix rows — not all locales.
+- Theme-matrix screenshot baselines are local ignored files under `tests/e2e/*-snapshots/`;   regenerate them and record local provenance using `tests/e2e/README.md`.
 - Combined theme label format: `Language ⋅ Theme`.
 - `public/theme-bootstrap.js` reads `vivetest-theme` before hydration.
 - `motion` package installed but not imported anywhere in `src` or `tests`.

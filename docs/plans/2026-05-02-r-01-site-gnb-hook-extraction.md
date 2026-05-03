@@ -2,6 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:test-driven-development` as the high-risk guardrail, adapted to this task's explicit constraint that no test files may be modified. Execute inline one unit at a time after explicit user approval. Do not use subagents, automated multi-wave execution, or automated implementation pipelines.
 
+**Status:** COMPLETE
+**Completion Date:** 2026-05-03
+**Completion Note:** theme-matrix gate failure resolved as local baseline provenance issue, not R-01 production regression. See handoff doc §0-5.
+**Cleanup Documentation Note:** E2E browser setup and theme-matrix local baseline regeneration are documented in `tests/e2e/README.md`.
+
 **Goal:** Extract desktop settings, mobile menu, and route-aware back-navigation behavior from `src/features/landing/gnb/site-gnb.tsx` into three focused hooks while preserving rendered output and visible behavior.
 
 **Architecture:** Keep `SiteGnb` as the JSX, keyboard-routing, Escape-priority, and cleanup coordinator. Move only the approved state/ref/callback/effect clusters into one hook per behavioral concern under `src/features/landing/gnb/hooks/`, with the R-06 future-move notice in each new file. Preserve all class name constants, JSX structure, keyboard routing, and existing behavior module boundaries.
@@ -292,14 +297,14 @@ Expected: pass with zero failures.
 - QA script read scopes were inspected and left unchanged because the only `site-gnb.tsx` read checks aria-label wiring that remains in `site-gnb.tsx`.
 - Updated `docs/project-analysis.md` to remove the stale claim that `site-gnb.tsx` owns the moved behavior.
 
-Verification status:
+Verification status before 2026-05-03 baseline resolution:
 
 - `npm run typecheck` passed after Task 1.
 - `npm run typecheck` passed after Task 2.
 - `npm run qa:rules` passed after Task 3.
 - `npm run qa:gate:once` passed through lint, typecheck, `qa:rules`, build, and all unit tests, then failed in `test:e2e:smoke`.
 
-Outstanding verification blockers:
+Previously outstanding verification blockers:
 
 - Chromium theme-matrix screenshot comparisons reproduce 1-10 pixel diffs on representative cases; GNB behavioral smoke and a11y smoke passed.
 
@@ -307,3 +312,5 @@ Resolved verification blockers:
 
 - User approved WebKit installation; `npx playwright install webkit` completed and installed build `webkit-2227`.
 - `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/safari-hover-ghosting.spec.ts --project=webkit-ghosting --grep @smoke` passed: 6/6.
+- 2026-05-03 follow-up resolved theme-matrix as a stale local baseline provenance issue, regenerated baselines from commit `8f65e2805fff94ac726c3be251c2cd20f1f1a0c7`, and confirmed `npm run qa:gate:once` PASS.
+- Cleanup 4/5 documentation now lives in `tests/e2e/README.md`.

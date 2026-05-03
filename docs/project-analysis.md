@@ -9,7 +9,7 @@ This repository is a localized Next.js App Router application. Its real technica
 - Current local Done gate for this document sync: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
 - `npm run qa:rules` (2026-04-25): passes
 - Representative Playwright smoke coverage is organized around routing, grid, state, GNB, accessibility, consent, theme matrix, Safari hover ghosting, and transition telemetry specs. Exact expanded test counts are intentionally not repeated here because they vary with browser/project matrix expansion.
-- Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required.
+- Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required; regeneration and local provenance fields are documented in `tests/e2e/README.md`.
 
 **Implementation phase status (2026-04-24):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Phase 2 data guardrails now cover Group A and Group C runtime paths plus Group B-1/B-2 Sheets sync: 3-source-capable cross-sheet validation, Results fixture boundary, runtime fallback, entry route guard, fixture hardening for enterable variants, lazy validation + cache, `/test/error` recovery stub, Landing/Questions Google Sheets loading, Action-level 2-source sync orchestration, deterministic generated registry serialization, GitHub Actions wiring, local dry-run, dev/test registry cache reset coverage, and B29/B30 automated evidence are present. The question-bank surface has also been refactored so live `/test/{variant}` coverage is anchored on `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()`, and the legacy inline-bridge compatibility export has been removed. Results Sheets loading remains pending and the sync script intentionally calls `validateCrossSheetIntegrity(landingTestVariants, questionVariants)` in 2-source mode until that source is ready. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
 
@@ -475,6 +475,8 @@ Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of tru
 
 The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
 
+Local full-smoke reproduction requires Playwright Chromium and WebKit installation. WebKit ghosting coverage was verified with `webkit-2227` on 2026-05-03; install with `npx playwright install chromium webkit`.
+
 ### 7.3 Custom QA Scripts (`scripts/qa/`)
 
 `qa:rules` runs 12 checks:
@@ -528,7 +530,7 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 `src/features/landing/telemetry/runtime.ts` · `src/features/landing/telemetry/validation.ts` · `src/features/landing/telemetry/consent-source.ts` · `src/app/api/telemetry/route.ts` · `src/app/vercel-analytics-gate.tsx` · `scripts/qa/check-phase11-telemetry-contracts.mjs` · `tests/e2e/consent-smoke.spec.ts` · `docs/req-landing.md §12` · `docs/req-test.md §9`
 
 ### Screenshot baseline / representative fixture
-`tests/e2e/theme-matrix-manifest.json` · `tests/e2e/theme-matrix-smoke.spec.ts` · `tests/e2e/helpers/landing-fixture.ts` · `tests/e2e/safari-hover-ghosting.spec.ts`
+`tests/e2e/theme-matrix-manifest.json` · `tests/e2e/theme-matrix-smoke.spec.ts` · `tests/e2e/helpers/landing-fixture.ts` · `tests/e2e/safari-hover-ghosting.spec.ts` · `tests/e2e/README.md`
 
 ### Test route runtime / instruction shell
 `src/app/[locale]/test/[variant]/page.tsx` · `src/app/[locale]/test/error/page.tsx` · `src/features/test/test-question-client.tsx` · `src/features/test/entry-policy.ts` · `src/features/test/instruction-overlay.tsx` · `src/features/test/question-bank.ts` · `src/features/test/question-source-parser.ts` · `src/features/test/lazy-validation.ts` · `tests/unit/question-source-parser.test.ts` · `tests/unit/variant-question-bank.test.ts` · `tests/unit/test-question-bootstrap.test.ts` · `tests/unit/test-entry-policy.test.ts` · `tests/unit/test-lazy-validation.test.ts` · `docs/req-test.md` · `docs/req-test-plan.md`
@@ -549,7 +551,7 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 
 **`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Current pressure points are `site-gnb.tsx` (587 lines), `use-landing-interaction-controller.ts` (486 lines), `use-keyboard-handoff.ts` (367 lines), and `use-grid-geometry-controller.ts` (330 lines). GNB behavior pressure is now split across focused desktop settings, mobile menu, and back-navigation hooks. `use-mobile-card-lifecycle.ts` is now 281 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (115), and `use-mobile-transient-shell.ts` (86).
 
-**Screenshot-driven QA remains concentrated in the instruction surface and visual matrix.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions. The 2026-04-25 refactor refreshed local theme-matrix and Safari baselines under preview mode; future layout/motion edits should re-run the same preview visual smoke before release.
+**Screenshot-driven QA remains concentrated in the instruction surface and visual matrix.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions. The 2026-05-03 R-01 follow-up confirmed theme-matrix baseline provenance, not code output, as the blocker source; future local baseline regeneration should use the preview command and provenance checklist in `tests/e2e/README.md`.
 
 **Tech stack notes:**
 - `next@16.2.4`, `react@19.2.4`, `next-intl@4.9.1`

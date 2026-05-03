@@ -1,0 +1,175 @@
+# Landing Interaction Controller Refactor Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Project override: execute inline only after explicit user approval; do not use subagents, parallel agents, or automated multi-wave execution.
+
+**Goal:** Simplify landing interaction controller and keyboard handoff internals without unintended UI regressions, while updating the now-changed keyboard-mode and mobile snapshot contracts.
+
+**Architecture:** Keep state truth in existing reducers and controller-owned runtime hooks. Extract only local pure helpers inside `use-landing-interaction-controller.ts`, remove duplicate defensive branches, and keep event behavior explicit in `use-keyboard-handoff.ts`. Contract-visible changes are limited to keyboard-mode exit semantics and removal of the debug-only mobile snapshot write marker.
+
+**Tech Stack:** Next.js 16, React 19, TypeScript, Vitest, Playwright, custom QA contract scripts.
+
+---
+
+## Approval Status
+
+Plan mode is required because the task touches High-Risk landing grid files and updates SSOT/QA contracts.
+
+- Approved decisions already received:
+  - Remove the `wheel` keyboard-mode listener and update SSOT/QA scripts accordingly.
+  - Expand scope for `snapshotWriteCount` removal to `landing-grid-card.tsx` and related E2E coverage.
+- Decision still required before implementation:
+  - User approval of this plan.
+
+## Files To Modify
+
+- `docs/plans/2026-05-03-landing-interaction-controller-refactor.md` - this approved plan.
+- `docs/req-landing.md` - update §7.5 keyboard-mode exit contract from `pointermove`/`mousedown`/`wheel` exit to the new pointer tracking and `mousedown` exit split.
+- `scripts/qa/check-phase7-state-contracts.mjs` - align Phase 7 static gate with the new no-`wheel` listener contract.
+- `tests/e2e/state-smoke.spec.ts` - add Playwright regression coverage for pointermove/wheel preserving keyboard mode and mousedown exiting it.
+- `tests/e2e/transition-telemetry-smoke.spec.ts` - update mobile snapshot assertions to require no `data-mobile-snapshot-writes` marker.
+- `src/features/landing/grid/use-keyboard-handoff.ts` - remove `wheel`, split pointer handlers, replace local mobile DOM tier check with `isMobileViewport`.
+- `src/features/landing/grid/use-landing-interaction-controller.ts` - apply controller refactors and remove `snapshotWriteCount` from `mobileSnapshot`.
+- `src/features/landing/grid/landing-grid-card.tsx` - remove `snapshotWriteCount` from `LandingMobileSnapshotView` and from the DOM data attribute.
+
+## Relevant SSOT And Guides
+
+- `docs/req-landing.md §6-§11`
+  - Grid composition, state model, interaction/motion, accessibility, responsiveness, performance.
+- `docs/req-landing.md §7.5`
+  - Current keyboard-mode exit contract; will be updated as part of this task.
+- `docs/req-landing.md §8.5`
+  - Mobile snapshot restoration and single-snapshot lifecycle invariants.
+- `docs/agent-guides/project-rules.md §Blog-Telemetry-Theme`
+  - Landing QA surface and motion package boundary.
+- `docs/agent-guides/verification-commands.md §landing`
+  - Scope-specific validation anchors.
+
+## Impact Assessment
+
+- Shared components: `LandingGridCard` public snapshot view shape changes by removing only `snapshotWriteCount`; active layout/motion snapshot fields stay intact.
+- Localization: no message or route changes.
+- A11y: keyboard-mode exit semantics change; regression coverage must confirm keyboard focus and `aria-disabled` behavior remain stable.
+- State contracts: `prefersReducedMotion` state becomes derived from `interactionState.pageState`, preserving reducer as SSOT.
+- Core user flow: card expansion, mobile open/close, CTA transition start, reduced-motion lock, and keyboard traversal must remain functional.
+- Risk dimensions: usability, a11y, responsiveness, performance, and design system consistency are all in scope because the High-Risk landing grid interaction files are touched.
+
+## Implementation Tasks
+
+### Task 1: Write Contract And Regression Tests First
+
+**Files:**
+- Modify: `docs/req-landing.md`
+- Modify: `scripts/qa/check-phase7-state-contracts.mjs`
+- Modify: `tests/e2e/state-smoke.spec.ts`
+- Modify: `tests/e2e/transition-telemetry-smoke.spec.ts`
+
+- [ ] Update `docs/req-landing.md §7.5` so keyboard mode exits on `mousedown`, while `pointermove` only records pointer position and `wheel` does not exit keyboard mode.
+- [ ] Update `scripts/qa/check-phase7-state-contracts.mjs` to require `pointermove` and `mousedown`, reject `window.addEventListener('wheel', ...)` in `use-keyboard-handoff.ts`, and keep the message aligned with the new contract.
+- [ ] Add a Playwright regression in `tests/e2e/state-smoke.spec.ts` that enters keyboard mode with `Tab`, verifies `pointermove` and `wheel` keep `data-keyboard-mode="true"`, then verifies `mousedown` switches it to `"false"`.
+- [ ] Replace the two `data-mobile-snapshot-writes="1"` assertions in `tests/e2e/transition-telemetry-smoke.spec.ts` with assertions that the attribute is absent.
+- [ ] Verify RED:
+  - `npx playwright test tests/e2e/state-smoke.spec.ts --grep "keyboard mode"`
+  - `npx playwright test tests/e2e/transition-telemetry-smoke.spec.ts --grep "mobile expanded lifecycle|mobile repeated"`
+  - `npm run qa:rules`
+- [ ] Expected RED result: these fail against the current implementation because `pointermove`/`wheel` exit keyboard mode, `wheel` listener still exists, and `data-mobile-snapshot-writes` is still rendered.
+
+### Task 2: Refactor Keyboard Handoff Event Handling
+
+**Files:**
+- Modify: `src/features/landing/grid/use-keyboard-handoff.ts`
+
+- [ ] Remove `isMobileCardElement` from the import list.
+- [ ] Replace the single `handleGlobalPointerEvent` with `handleGlobalPointerMove` and `handleGlobalPointerDown`.
+- [ ] Keep `recordPointerInput(event)` in both handlers.
+- [ ] Dispatch `KEYBOARD_MODE_EXIT` only in `handleGlobalPointerDown`.
+- [ ] Remove `window.addEventListener('wheel', ...)` and the matching cleanup line.
+- [ ] Replace the `onKeyDown` `isMobileCardElement(event.currentTarget)` branch with `isMobileViewport`.
+- [ ] Verify GREEN for this unit:
+  - `npx playwright test tests/e2e/state-smoke.spec.ts --grep "keyboard mode"`
+  - `node scripts/qa/check-phase7-state-contracts.mjs`
+
+### Task 3: Refactor Landing Interaction Controller Internals
+
+**Files:**
+- Modify: `src/features/landing/grid/use-landing-interaction-controller.ts`
+
+- [ ] Remove the local `prefersReducedMotion` `useState` and all `setPrefersReducedMotion` calls.
+- [ ] Simplify reduced-motion sync to dispatch only `REDUCED_MOTION_ENABLE` or `REDUCED_MOTION_DISABLE`.
+- [ ] Return `prefersReducedMotion: interactionState.pageState === 'REDUCED_MOTION'`.
+- [ ] Remove only the four specified client-only guards:
+  - `collapseExpandedCard` fallback around `window.performance.now()`
+  - `beginTransition` fallback around `window.performance.now()`
+  - `LANDING_TRANSITION_CLEANUP_EVENT` effect early return
+  - `visibilitychange` effect early return
+- [ ] Keep both `useLayoutEffect` `window.matchMedia` SSR guards unchanged.
+- [ ] Rename `transitionSourceVariant` to `transitionSourceCardVariant`.
+- [ ] Add `isTransitioning` at the top of `resolveCardInteractionBindings` and use it for blocked, disabled, and tab index policy.
+- [ ] Add local pure helpers `resolveDesktopMotionRole` and `resolveVisualState`.
+- [ ] Compute `resolvedRestoreReady` once and reuse it in `mobileSnapshot.restoreReady` and `mobileRestoreReady`.
+- [ ] Remove `snapshotWriteCount` from the `mobileSnapshot` object.
+- [ ] Remove the redundant `!cardEnterable` `onClick` guard.
+- [ ] Remove the `isMobileCardElement` import and replace the click branch with `isMobileViewport`.
+- [ ] Verify GREEN for this unit:
+  - `npm run typecheck`
+  - `npm run test -- landing-hover-intent landing-grid-plan`
+
+### Task 4: Remove Snapshot Write Marker From Card View
+
+**Files:**
+- Modify: `src/features/landing/grid/landing-grid-card.tsx`
+
+- [ ] Remove `snapshotWriteCount` from `LandingMobileSnapshotView`.
+- [ ] Remove `data-mobile-snapshot-writes` from the rendered card attributes.
+- [ ] Do not remove `cardHeightPx`, `anchorTopPx`, `cardLeftPx`, `cardWidthPx`, `titleTopPx`, or `restoreReady`.
+- [ ] Do not modify `src/features/landing/grid/mobile-lifecycle.ts`; reducer-owned `snapshotWriteCount` can remain internal until a separate lifecycle cleanup is requested.
+- [ ] Verify GREEN for this unit:
+  - `npm run typecheck`
+  - `npx playwright test tests/e2e/transition-telemetry-smoke.spec.ts --grep "mobile expanded lifecycle|mobile repeated"`
+
+### Task 5: Final Verification And Documentation Check
+
+**Files:**
+- Inspect: `docs/`
+- No expected code changes unless verification exposes drift.
+
+- [ ] Run the root Basic Gates in order:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm test`
+  - `npm run build`
+- [ ] Run the user-requested suite in order:
+  - `npm run typecheck`
+  - `npm run qa:rules`
+  - `npm run test -- landing-hover-intent landing-grid-plan state-smoke`
+  - `npm run qa:gate`
+- [ ] Run explicit High-Risk Playwright coverage if not already fully covered by `qa:gate` output review:
+  - `npx playwright test tests/e2e/state-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts`
+- [ ] Inspect affected `docs/` files and ensure the only required doc drift update is the approved `docs/req-landing.md §7.5` contract change.
+- [ ] If two or more independent plan units are completed and verified in one long session, write `.planning/STATE.md` at the required boundary before continuing.
+
+## Validation Commands
+
+Final acceptance requires all applicable commands below to pass with zero errors:
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run qa:rules
+npm run test -- landing-hover-intent landing-grid-plan state-smoke
+npm run qa:gate
+npx playwright test tests/e2e/state-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts
+```
+
+`npm run qa:gate` is the 3-pass release gate because the script expands to three consecutive `qa:gate:once` runs.
+
+## Non-Goals
+
+- Do not reintroduce `src/middleware.ts`.
+- Do not modify `public/theme-bootstrap.js`.
+- Do not change `useLayoutEffect` SSR guards.
+- Do not wrap event handlers or `resolveCardInteractionBindings` in new `useCallback`s.
+- Do not remove `isMobileCardElement` from `interaction-dom.ts`.
+- Do not remove mobile snapshot geometry fields that drive CSS variables or motion origins.
+- Do not refactor `mobile-lifecycle.ts` or remove its internal `snapshotWriteCount` state in this task.
