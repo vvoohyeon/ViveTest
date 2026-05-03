@@ -90,24 +90,34 @@ export function useDesktopMotionController({
         handoffTargetCardVariant:
           current.handoffTargetCardVariant === cardVariant ? null : current.handoffTargetCardVariant
       }));
-
-      desktopCleanupFrameRef.current = window.requestAnimationFrame(() => {
-        desktopCleanupFrameRef.current = null;
-        desktopCleanupFrameNestedRef.current = window.requestAnimationFrame(() => {
-          desktopCleanupFrameNestedRef.current = null;
-          setDesktopMotionState((current) =>
-            current.cleanupPendingCardVariant === cardVariant
-              ? {
-                  ...current,
-                  cleanupPendingCardVariant: null
-                }
-              : current
-          );
-        });
-      });
     },
     [clearDesktopCleanupFrames]
   );
+
+  useLayoutEffect(() => {
+    const cleanupPendingCardVariant = desktopMotionState.cleanupPendingCardVariant;
+    if (!cleanupPendingCardVariant) {
+      return;
+    }
+
+    clearDesktopCleanupFrames();
+    desktopCleanupFrameRef.current = window.requestAnimationFrame(() => {
+      desktopCleanupFrameRef.current = null;
+      desktopCleanupFrameNestedRef.current = window.requestAnimationFrame(() => {
+        desktopCleanupFrameNestedRef.current = null;
+        setDesktopMotionState((current) =>
+          current.cleanupPendingCardVariant === cleanupPendingCardVariant
+            ? {
+                ...current,
+                cleanupPendingCardVariant: null
+              }
+            : current
+        );
+      });
+    });
+
+    return clearDesktopCleanupFrames;
+  }, [clearDesktopCleanupFrames, desktopMotionState.cleanupPendingCardVariant]);
 
   // Desktop closing/opening markers must land before paint or the trigger briefly flashes back in.
   /* eslint-disable react-hooks/set-state-in-effect */

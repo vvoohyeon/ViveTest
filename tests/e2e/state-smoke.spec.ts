@@ -258,6 +258,34 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(secondCard).toHaveAttribute('data-card-state', 'normal');
   });
 
+  test('@smoke assertion:B5-keyboard-mode pointermove and wheel preserve keyboard mode while mousedown exits it', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    await page.locator('body').click({position: {x: 1, y: 1}});
+    await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
+
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const cardBox = await firstCard.boundingBox();
+    expect(cardBox).not.toBeNull();
+    await expect(firstCard).toHaveAttribute('data-keyboard-mode', 'true');
+
+    await page.mouse.move((cardBox?.x ?? 0) + 8, (cardBox?.y ?? 0) + 8);
+    await expect(firstCard).toHaveAttribute('data-keyboard-mode', 'true');
+
+    await page.mouse.wheel(0, 120);
+    await expect(firstCard).toHaveAttribute('data-keyboard-mode', 'true');
+
+    await page.locator('body').dispatchEvent('mousedown', {
+      button: 0,
+      clientX: 1,
+      clientY: 1
+    });
+    await expect(firstCard).toHaveAttribute('data-keyboard-mode', 'false');
+  });
+
   test('@smoke assertion:B5-keyboard-sequential unavailable keyboard target collapses the previous expanded card after internal CTA traversal completes', async ({
     page
   }) => {

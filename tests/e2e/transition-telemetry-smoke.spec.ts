@@ -518,7 +518,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(page.getByTestId('landing-grid-mobile-backdrop')).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
     await expect(card).toHaveAttribute('data-mobile-phase', /OPENING|OPEN/u);
-    await expect(card).toHaveAttribute('data-mobile-snapshot-writes', '1');
+    await expect.poll(() => card.getAttribute('data-mobile-snapshot-writes')).toBeNull();
 
     const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
     await backdrop.dispatchEvent('pointerdown', {
@@ -799,7 +799,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       clientY: 16
     });
 
-    await expect(firstCard).toHaveAttribute('data-mobile-snapshot-writes', '1');
+    await expect.poll(() => firstCard.getAttribute('data-mobile-snapshot-writes')).toBeNull();
     await expect(firstCard).toHaveAttribute('data-mobile-phase', /OPENING|CLOSING/u);
 
     await secondCard.getByTestId('landing-grid-card-trigger').click();

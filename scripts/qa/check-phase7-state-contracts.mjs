@@ -97,8 +97,13 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
     fail('Interaction controller must dispatch mode + visibility synchronization events.');
   }
 
-  if (!/pointermove/u.test(controllerAndDomFiles) || !/mousedown/u.test(controllerAndDomFiles) || !/wheel/u.test(controllerAndDomFiles)) {
-    fail('Interaction controller must exit keyboard mode on pointer input.');
+  const keyboardHandoffFile = readExisting(['src/features/landing/grid/use-keyboard-handoff.ts']);
+  if (!/pointermove/u.test(controllerAndDomFiles) || !/mousedown/u.test(controllerAndDomFiles)) {
+    fail('Interaction controller must track pointermove and exit keyboard mode on mousedown in Phase 7.');
+  }
+
+  if (/window\.addEventListener\(\s*['"]wheel['"]/u.test(keyboardHandoffFile)) {
+    fail('Interaction controller must not register a wheel listener to exit keyboard mode in Phase 7.');
   }
 
   if (!/resolveCardStateForVariant/u.test(controllerFile) || !/resolveCardTabIndex/u.test(controllerFile)) {

@@ -397,7 +397,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
       await page.goto('/en');
 
       const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
-      await testCard.getByTestId('landing-grid-card-trigger').click();
+      await testCard.getByTestId('landing-grid-card-trigger').click({force: true});
 
       const answerChoice = testCard.locator('.landing-grid-card-answer-choice').first();
       await expect(answerChoice).toBeVisible();

@@ -431,13 +431,15 @@
 - handoff: 직전 카드 이탈 전이는 `0ms` 즉시 종료를 허용하고 최종 대상만 전이를 유지한다.
 - handoff 외 종료는 일반 복귀 모션 규칙을 따른다.
 - 키보드 모드 진입: `Tab/Shift+Tab` 입력 감지.
-- 키보드 모드 종료: `pointermove` 또는 `mousedown` 또는 `wheel` 입력 감지 시 즉시 종료.
+- 키보드 모드 종료: `mousedown` 입력 감지 시 즉시 종료한다.
+- `pointermove`는 키보드 모드를 종료하지 않고 최근 포인터 위치만 기록한다.
+- `wheel`은 키보드 모드 종료 입력으로 취급하지 않으며 전역 keyboard-mode 종료 listener를 두지 않는다.
 - 이벤트 안전성: `relatedTarget` 부재/비-Element/DOM 외부 대상에서도 런타임 예외 없이 동작해야 한다.
 - hover enter/leave 이벤트 도착 순서 역전/지연이 있어도 최종 상태는 결정적으로 동일해야 한다.
 
 **Verification**:
 1. Automated: `tabIndex`, `aria-disabled`, keydown 차단 규칙을 검증한다.
-2. Automated: pointer 입력으로 키보드 모드가 즉시 해제되는지 검증한다.
+2. Automated: `mousedown` 입력은 키보드 모드를 즉시 해제하고, `pointermove`/`wheel` 입력은 키보드 모드를 유지하는지 검증한다.
 3. Automated: rapid hover sweep에서 uncaught runtime error `0건`을 검증한다.
 
 ### 7.6 Keyboard Sequential Expansion Override (All Viewports)

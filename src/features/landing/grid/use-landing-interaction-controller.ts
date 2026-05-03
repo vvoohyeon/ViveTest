@@ -19,12 +19,12 @@ import type {
   LandingCardVisualState,
   LandingMobileSnapshotView
 } from '@/features/landing/grid/landing-grid-card';
-import {isMobileCardElement} from '@/features/landing/grid/interaction-dom';
 import {
   initialLandingMobileLifecycleState,
   reduceLandingMobileLifecycleState,
   type LandingMobileLifecycleState
 } from '@/features/landing/grid/mobile-lifecycle';
+import type {CardState} from '@/features/landing/model/state-types';
 import {
   initialLandingInteractionState,
   isCardKeyboardAriaDisabled,
@@ -35,7 +35,10 @@ import {
   type LandingInteractionState
 } from '@/features/landing/model/interaction-state';
 import {LANDING_TRANSITION_CLEANUP_EVENT} from '@/features/landing/transition/store';
-import {useDesktopMotionController} from '@/features/landing/grid/use-desktop-motion-controller';
+import {
+  useDesktopMotionController,
+  type DesktopMotionState
+} from '@/features/landing/grid/use-desktop-motion-controller';
 import {useHoverIntentController} from '@/features/landing/grid/use-hover-intent-controller';
 import {
   useMobileCardLifecycle,
@@ -96,6 +99,73 @@ export function resolveInteractionMode(viewportWidth: number, hoverCapability: b
   return hoverCapability ? 'hover' : 'tap';
 }
 
+function resolveDesktopMotionRole(input: {
+  cardEnterable: boolean;
+  cardState: CardState;
+  cardVariant: string;
+  desktopMotionState: DesktopMotionState;
+  isMobileViewport: boolean;
+  transitionExpanded: boolean;
+}): LandingCardDesktopMotionRole {
+  const {
+    cardEnterable,
+    cardState,
+    cardVariant,
+    desktopMotionState,
+    isMobileViewport,
+    transitionExpanded
+  } = input;
+
+  if (desktopMotionState.handoffSourceCardVariant === cardVariant) {
+    return 'handoff-source';
+  }
+
+  if (desktopMotionState.handoffTargetCardVariant === cardVariant) {
+    return 'handoff-target';
+  }
+
+  if (desktopMotionState.openingCardVariant === cardVariant) {
+    return 'opening';
+  }
+
+  if (desktopMotionState.closingCardVariant === cardVariant) {
+    return 'closing';
+  }
+
+  if (!isMobileViewport && (transitionExpanded || (cardState === 'EXPANDED' && cardEnterable))) {
+    return 'steady';
+  }
+
+  return 'idle';
+}
+
+function resolveVisualState(input: {
+  cardEnterable: boolean;
+  cardState: CardState;
+  desktopCleanupPending: boolean;
+  desktopClosingVisible: boolean;
+  transitionExpanded: boolean;
+}): LandingCardVisualState {
+  const {
+    cardEnterable,
+    cardState,
+    desktopCleanupPending,
+    desktopClosingVisible,
+    transitionExpanded
+  } = input;
+
+  if (
+    transitionExpanded ||
+    desktopClosingVisible ||
+    desktopCleanupPending ||
+    (cardState === 'EXPANDED' && cardEnterable)
+  ) {
+    return 'expanded';
+  }
+
+  return cardState === 'FOCUSED' ? 'focused' : 'normal';
+}
+
 export function useLandingInteractionController({
   cards,
   viewportWidth,
@@ -105,7 +175,6 @@ export function useLandingInteractionController({
   onPrimaryCtaSelect
 }: UseLandingInteractionControllerInput): UseLandingInteractionControllerResult {
   const [hoverCapability, setHoverCapability] = useState<boolean>(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
   const [interactionState, dispatchInteraction] = useReducer(
     reduceLandingInteractionState,
     initialLandingInteractionState
@@ -114,7 +183,7 @@ export function useLandingInteractionController({
     reduceLandingMobileLifecycleState,
     initialLandingMobileLifecycleState
   );
-  const [transitionSourceVariant, setTransitionSourceCardVariant] = useState<string | null>(null);
+  const [transitionSourceCardVariant, setTransitionSourceCardVariant] = useState<string | null>(null);
 
   const interactionMode = useMemo(
     () => resolveInteractionMode(viewportWidth, hoverCapability),
@@ -126,6 +195,7 @@ export function useLandingInteractionController({
     [cards]
   );
   const isMobileViewport = viewportTier === 'mobile';
+  const prefersReducedMotion = interactionState.pageState === 'REDUCED_MOTION';
 
   const {
     desktopMotionState,
@@ -191,7 +261,6 @@ export function useLandingInteractionController({
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     const syncReducedMotion = (nowMs: number) => {
-      setPrefersReducedMotion(query.matches);
       dispatchInteraction({
         type: query.matches ? 'REDUCED_MOTION_ENABLE' : 'REDUCED_MOTION_DISABLE',
         nowMs
@@ -201,7 +270,6 @@ export function useLandingInteractionController({
     syncReducedMotion(window.performance.now());
 
     const handleReducedMotionChange = (event: MediaQueryListEvent) => {
-      setPrefersReducedMotion(event.matches);
       dispatchInteraction({
         type: event.matches ? 'REDUCED_MOTION_ENABLE' : 'REDUCED_MOTION_DISABLE',
         nowMs: event.timeStamp
@@ -222,10 +290,6 @@ export function useLandingInteractionController({
   }, [interactionMode]);
 
   useEffect(() => {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
     const handleVisibilityChange = (event: Event) => {
       dispatchInteraction({
         type: document.hidden ? 'PAGE_HIDDEN' : 'PAGE_VISIBLE',
@@ -258,7 +322,7 @@ export function useLandingInteractionController({
     setTransitionSourceCardVariant(null);
     dispatchInteraction({
       type: 'CARD_COLLAPSE',
-      nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
+      nowMs: window.performance.now(),
       interactionMode,
       cardVariant: null
     });
@@ -270,10 +334,6 @@ export function useLandingInteractionController({
   ]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
     const handleTransitionCleanup = () => {
       collapseExpandedCard();
     };
@@ -290,7 +350,7 @@ export function useLandingInteractionController({
     setTransitionSourceCardVariant(cardVariant);
     dispatchInteraction({
       type: 'PAGE_TRANSITION_START',
-      nowMs: typeof window !== 'undefined' ? window.performance.now() : 0
+      nowMs: window.performance.now()
     });
   }, [clearHoverTimer, resetMobileRuntime]);
 
@@ -311,13 +371,14 @@ export function useLandingInteractionController({
   });
 
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
+    const isTransitioning = interactionState.pageState === 'TRANSITIONING';
     const cardEnterable = isEnterableCard(card);
     const pointerBlocked = isCardPointerInteractionBlocked(interactionState, card.variant);
     const keyboardAriaDisabled = isCardKeyboardAriaDisabled(interactionState, card.variant) || !cardEnterable;
     const cardState = resolveCardStateForVariant(interactionState, card.variant);
     const transitionExpanded =
-      interactionState.pageState === 'TRANSITIONING' &&
-      transitionSourceVariant === card.variant &&
+      isTransitioning &&
+      transitionSourceCardVariant === card.variant &&
       cardEnterable;
     const mobileOwnsCard = mobileLifecycleState.cardVariant === card.variant;
     const mobilePhase: LandingCardMobilePhase = mobileOwnsCard ? mobileLifecycleState.phase : 'NORMAL';
@@ -327,18 +388,14 @@ export function useLandingInteractionController({
       !isMobileViewport && desktopMotionState.closingCardVariant === card.variant && cardEnterable;
     const desktopCleanupPending =
       !isMobileViewport && desktopMotionState.cleanupPendingCardVariant === card.variant && cardEnterable;
-    const desktopMotionRole: LandingCardDesktopMotionRole =
-      desktopMotionState.handoffSourceCardVariant === card.variant
-        ? 'handoff-source'
-        : desktopMotionState.handoffTargetCardVariant === card.variant
-          ? 'handoff-target'
-          : desktopMotionState.openingCardVariant === card.variant
-            ? 'opening'
-            : desktopMotionState.closingCardVariant === card.variant
-              ? 'closing'
-              : !isMobileViewport && (transitionExpanded || (cardState === 'EXPANDED' && cardEnterable))
-                ? 'steady'
-                : 'idle';
+    const desktopMotionRole = resolveDesktopMotionRole({
+      cardEnterable,
+      cardState,
+      cardVariant: card.variant,
+      desktopMotionState,
+      isMobileViewport,
+      transitionExpanded
+    });
     const desktopShellPhase = resolveDesktopShellPhase({
       available: cardEnterable,
       isMobileViewport,
@@ -350,21 +407,21 @@ export function useLandingInteractionController({
       isMobileViewport &&
       mobileLifecycleState.phase !== 'NORMAL' &&
       (mobileLifecycleState.cardVariant !== card.variant || mobileLifecycleState.phase !== 'OPEN');
-    const visualState: LandingCardVisualState =
-      transitionExpanded ||
-      desktopClosingVisible ||
-      desktopCleanupPending ||
-      (cardState === 'EXPANDED' && cardEnterable)
-        ? 'expanded'
-        : cardState === 'FOCUSED'
-          ? 'focused'
-          : 'normal';
+    const visualState = resolveVisualState({
+      cardEnterable,
+      cardState,
+      desktopCleanupPending,
+      desktopClosingVisible,
+      transitionExpanded
+    });
     const mobileSnapshotSource =
       mobileTransientShellState.cardVariant === card.variant && mobileTransientShellState.snapshot
         ? mobileTransientShellState.snapshot
         : mobileOwnsCard
           ? mobileLifecycleState.snapshot
           : null;
+    const resolvedRestoreReady =
+      mobileRestoreReadyVariant === card.variant || (mobileOwnsCard && mobileLifecycleState.restoreReady);
     const mobileSnapshot = mobileSnapshotSource
       ? {
           cardHeightPx: mobileSnapshotSource.cardHeightPx,
@@ -372,8 +429,7 @@ export function useLandingInteractionController({
           cardLeftPx: mobileSnapshotSource.cardLeftPx,
           cardWidthPx: mobileSnapshotSource.cardWidthPx,
           titleTopPx: mobileSnapshotSource.titleTopPx,
-          snapshotWriteCount: mobileLifecycleState.snapshotWriteCount,
-          restoreReady: mobileRestoreReadyVariant === card.variant || (mobileOwnsCard && mobileLifecycleState.restoreReady)
+          restoreReady: resolvedRestoreReady
         }
       : null;
     const hoverHandlers = resolveHoverHandlers(card);
@@ -388,20 +444,12 @@ export function useLandingInteractionController({
       desktopShellPhase,
       hoverLockEnabled: interactionState.hoverLock.enabled,
       keyboardMode: interactionState.hoverLock.keyboardMode,
-      interactionBlocked:
-        interactionState.pageState === 'TRANSITIONING' ? true : pointerBlocked || mobileInteractionLocked,
-      ariaDisabled:
-        interactionState.pageState === 'TRANSITIONING'
-          ? true
-          : keyboardAriaDisabled || mobileInteractionLocked,
-      tabIndex:
-        interactionState.pageState === 'TRANSITIONING' || mobileInteractionLocked
-          ? -1
-          : resolveCardTabIndex(interactionState, card.variant),
+      interactionBlocked: isTransitioning ? true : pointerBlocked || mobileInteractionLocked,
+      ariaDisabled: isTransitioning ? true : keyboardAriaDisabled || mobileInteractionLocked,
+      tabIndex: isTransitioning || mobileInteractionLocked ? -1 : resolveCardTabIndex(interactionState, card.variant),
       mobilePhase,
       mobileTransientMode,
-      mobileRestoreReady:
-        mobileRestoreReadyVariant === card.variant || (mobileOwnsCard && mobileLifecycleState.restoreReady),
+      mobileRestoreReady: resolvedRestoreReady,
       mobileSnapshot,
       onFocus: keyboardHandlers.onFocus,
       onKeyDown: keyboardHandlers.onKeyDown,
@@ -412,12 +460,7 @@ export function useLandingInteractionController({
           return;
         }
 
-        if (!cardEnterable) {
-          event.preventDefault();
-          return;
-        }
-
-        if (isMobileCardElement(event.currentTarget)) {
+        if (isMobileViewport) {
           if (mobileLifecycleState.phase === 'NORMAL' && mobileLifecycleState.cardVariant !== card.variant) {
             beginMobileOpen(card.variant);
           }
@@ -467,7 +510,7 @@ export function useLandingInteractionController({
 
   const activeVisualCardVariant = isMobileViewport
     ? mobileLifecycleState.cardVariant ?? mobileTransientShellState.cardVariant
-    : transitionSourceVariant ??
+    : transitionSourceCardVariant ??
       interactionState.expandedCardVariant ??
       desktopMotionState.closingCardVariant ??
       desktopMotionState.cleanupPendingCardVariant;

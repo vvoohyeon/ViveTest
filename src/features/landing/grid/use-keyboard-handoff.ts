@@ -14,7 +14,6 @@ import {
   getCardRootElement,
   getExpandedFocusableElements,
   isDocumentLevelFocusTarget,
-  isMobileCardElement,
   isVisibleFocusableElement,
   queueFocusCallback,
   resolveAdjacentCardVariant
@@ -120,7 +119,11 @@ export function useKeyboardHandoff({
       }
     };
 
-    const handleGlobalPointerEvent = (event: PointerEvent | MouseEvent | WheelEvent) => {
+    const handleGlobalPointerMove = (event: PointerEvent) => {
+      recordPointerInput(event);
+    };
+
+    const handleGlobalPointerDown = (event: MouseEvent) => {
       recordPointerInput(event);
       dispatch({
         type: 'KEYBOARD_MODE_EXIT'
@@ -128,15 +131,13 @@ export function useKeyboardHandoff({
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown, true);
-    window.addEventListener('pointermove', handleGlobalPointerEvent, {passive: true});
-    window.addEventListener('mousedown', handleGlobalPointerEvent, {passive: true});
-    window.addEventListener('wheel', handleGlobalPointerEvent, {passive: true});
+    window.addEventListener('pointermove', handleGlobalPointerMove, {passive: true});
+    window.addEventListener('mousedown', handleGlobalPointerDown, {passive: true});
 
     return () => {
       window.removeEventListener('keydown', handleGlobalKeyDown, true);
-      window.removeEventListener('pointermove', handleGlobalPointerEvent);
-      window.removeEventListener('mousedown', handleGlobalPointerEvent);
-      window.removeEventListener('wheel', handleGlobalPointerEvent);
+      window.removeEventListener('pointermove', handleGlobalPointerMove);
+      window.removeEventListener('mousedown', handleGlobalPointerDown);
     };
   }, [dispatch, firstEnterableCardVariant, recordPointerInput, shellRef]);
 
@@ -324,7 +325,7 @@ export function useKeyboardHandoff({
               return;
             }
 
-            if (isMobileCardElement(event.currentTarget)) {
+            if (isMobileViewport) {
               if (mobileLifecycleState.phase === 'NORMAL' && mobileLifecycleState.cardVariant !== card.variant) {
                 beginMobileOpen(card.variant);
               }

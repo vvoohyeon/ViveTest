@@ -53,7 +53,6 @@ export interface LandingMobileSnapshotView {
   cardLeftPx: number;
   cardWidthPx: number;
   titleTopPx: number;
-  snapshotWriteCount: number;
   restoreReady: boolean;
 }
 
@@ -723,7 +722,6 @@ export function LandingGridCard({
       data-mobile-snapshot-left={mobileSnapshot ? mobileSnapshot.cardLeftPx : undefined}
       data-mobile-snapshot-width={mobileSnapshot ? mobileSnapshot.cardWidthPx : undefined}
       data-mobile-snapshot-title-top={mobileSnapshot ? mobileSnapshot.titleTopPx : undefined}
-      data-mobile-snapshot-writes={mobileSnapshot ? mobileSnapshot.snapshotWriteCount : undefined}
       data-mobile-restore-ready={
         isMobileViewport && mobilePhase !== 'NORMAL' ? (mobileRestoreReady ? 'true' : 'false') : undefined
       }
