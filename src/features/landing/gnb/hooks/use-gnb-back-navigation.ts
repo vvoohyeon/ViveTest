@@ -3,11 +3,12 @@
 import type {useRouter} from 'next/navigation';
 import {useCallback, useEffect, useRef} from 'react';
 
-import {shouldUseHistoryBack} from '@/features/landing/gnb/behavior';
+import {
+  MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS,
+  shouldUseHistoryBack
+} from '@/features/landing/gnb/behavior';
 import {SESSION_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
 import type {LocalizedRoutePath} from '@/i18n/localized-path';
-
-const MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS = 220;
 
 type AppRouter = ReturnType<typeof useRouter>;
 

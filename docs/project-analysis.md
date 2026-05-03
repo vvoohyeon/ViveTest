@@ -210,6 +210,8 @@ The core risk is still choreography complexity across hover, keyboard, mobile, d
 
 Key supporting files: `src/features/landing/gnb/behavior.ts`, `src/features/landing/gnb/types.ts` (defines `GnbContext` per route: landing/blog/history/test), `src/features/landing/gnb/hooks/use-gnb-desktop-settings.ts`, `src/features/landing/gnb/hooks/use-gnb-mobile-menu.ts`, `src/features/landing/gnb/hooks/use-gnb-back-navigation.ts`.
 
+2026-05-03 GNB cleanup note: `behavior.ts` centralizes shared GNB timing constants including mobile test-back fallback timing; `useGnbDesktopSettings()` now accepts only render-current `hoverOpenEnabled`, and `useGnbMobileMenu()` keeps an explicit local `OutsideGesture` type with fresh pointer-down object assignment for future hook-level tests.
+
 Theme subsystem: `public/theme-bootstrap.js` (sets before hydration from `localStorage`), `src/features/landing/gnb/hooks/use-theme-preference.ts` (persists manual overrides), `src/features/landing/gnb/hooks/theme-transition.ts` (2500ms blur-circle View Transition API, with reduced-motion fallback).
 
 `src/features/landing/shell/page-shell.tsx` mounts the GNB for every localized route — it is a shared runtime controller, not a page-local header.
@@ -504,7 +506,7 @@ As of 2026-04-25, `npm run qa:rules` passes all 12 checks. The landing-controlle
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 
-**Least verified areas** correspond directly to unimplemented or stubbed product surfaces: live score derivation wiring, result URL/payload rendering, answer projection from runtime `A`/`B` to domain tokens, question-level telemetry hooks, history persistence, backend ingestion guarantees, Results Sheets loading, and branch-protected production push policy.
+**Least verified areas** correspond directly to unimplemented or stubbed product surfaces: live score derivation wiring, contracted result screen rendering, test error recovery cards, answer projection from runtime `A`/`B` to domain tokens, question-level telemetry hooks, history persistence, backend ingestion guarantees, Results Sheets loading, and branch-protected production push policy.
 
 ### 7.4 Closed Follow-up Items (Historical Record)
 

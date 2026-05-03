@@ -119,7 +119,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     desktopSettingsEnter,
     desktopSettingsLeave,
     desktopSettingsBlurCapture
-  } = useGnbDesktopSettings({hoverOpenEnabled, viewportWidth, hoverCapable});
+  } = useGnbDesktopSettings({hoverOpenEnabled});
 
   const {
     mobileMenuState,

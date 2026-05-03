@@ -2,10 +2,7 @@
 
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-import {
-  DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS,
-  shouldOpenDesktopSettingsByHover
-} from '@/features/landing/gnb/behavior';
+import {DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS} from '@/features/landing/gnb/behavior';
 
 /**
  * @future-move R-06
@@ -16,27 +13,10 @@ export function useGnbDesktopSettings({
   hoverOpenEnabled
 }: {
   hoverOpenEnabled: boolean;
-  viewportWidth: number;
-  hoverCapable: boolean;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRootRef = useRef<HTMLDivElement | null>(null);
   const settingsHoverCloseTimerRef = useRef<number | null>(null);
-
-  const canOpenDesktopSettingsByHover = useCallback(() => {
-    if (hoverOpenEnabled) {
-      return true;
-    }
-
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return false;
-    }
-
-    return shouldOpenDesktopSettingsByHover({
-      viewportWidth: window.innerWidth,
-      hoverCapable: window.matchMedia('(hover: hover) and (pointer: fine)').matches
-    });
-  }, [hoverOpenEnabled]);
 
   const clearSettingsHoverCloseTimer = useCallback(() => {
     if (settingsHoverCloseTimerRef.current !== null) {
@@ -61,16 +41,16 @@ export function useGnbDesktopSettings({
   }, [clearSettingsHoverCloseTimer]);
 
   const desktopSettingsEnter = useCallback(() => {
-    if (!canOpenDesktopSettingsByHover()) {
+    if (!hoverOpenEnabled) {
       return;
     }
 
     clearSettingsHoverCloseTimer();
     setSettingsOpen(true);
-  }, [canOpenDesktopSettingsByHover, clearSettingsHoverCloseTimer]);
+  }, [clearSettingsHoverCloseTimer, hoverOpenEnabled]);
 
   const desktopSettingsLeave = useCallback(() => {
-    if (!canOpenDesktopSettingsByHover()) {
+    if (!hoverOpenEnabled) {
       return;
     }
 
@@ -78,7 +58,7 @@ export function useGnbDesktopSettings({
     settingsHoverCloseTimerRef.current = window.setTimeout(() => {
       setSettingsOpen(false);
     }, DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS);
-  }, [canOpenDesktopSettingsByHover, clearSettingsHoverCloseTimer]);
+  }, [clearSettingsHoverCloseTimer, hoverOpenEnabled]);
 
   const desktopSettingsBlurCapture = useCallback(() => {
     if (!settingsOpen) {

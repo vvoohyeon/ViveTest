@@ -2,6 +2,7 @@ export const MOBILE_BREAKPOINT_MAX = 767;
 export const DESKTOP_SETTINGS_HOVER_MIN_WIDTH = 1024;
 export const DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS = 140;
 export const MOBILE_MENU_CLOSE_DURATION_MS = 180;
+export const MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS = 220;
 export const MOBILE_MENU_SCROLL_CANCEL_THRESHOLD_PX = 10;
 
 export function shouldOpenDesktopSettingsByHover(input: {

@@ -21,11 +21,11 @@ import type {MobileMenuState} from '@/features/landing/gnb/types';
  */
 type CloseReason = 'button' | 'outside' | 'escape';
 
-interface OutsideGesture {
+type OutsideGesture = {
   active: boolean;
   startX: number;
   startY: number;
-}
+};
 
 export function useGnbMobileMenu() {
   const [mobileMenuState, setMobileMenuState] = useState<MobileMenuState>('closed');

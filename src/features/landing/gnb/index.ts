@@ -8,6 +8,7 @@ export {
   MOBILE_BREAKPOINT_MAX,
   MOBILE_MENU_CLOSE_DURATION_MS,
   MOBILE_MENU_SCROLL_CANCEL_THRESHOLD_PX,
+  MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS,
   shouldCancelOutsideCloseAsScroll,
   shouldOpenDesktopSettingsByHover,
   shouldUseHistoryBack
