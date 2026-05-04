@@ -161,7 +161,8 @@ All 12 locale files in `src/messages/` are complete with the same 6 namespaces: 
 - Locale-less allowlisted app-owned paths → 307 redirect to localized equivalent
 - Locale-less non-allowlisted, non-bypass paths → rewrite to `/_not-found`
 - Duplicate locale prefix (e.g. `/en/en/...`) → rewrite to `/_not-found`
-- `/_next`, `/api`, `/_vercel`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by `src/i18n/locale-resolution.ts` and the static `proxy.ts` matcher
+- `/_next`, `/api`, `/_vercel`, `/_not-found`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by the static `src/proxy.ts` matcher
+- Route ownership decisions live in private helpers in `src/i18n/proxy-policy.ts`; locale token/family normalization lives in `src/i18n/locale-resolution.ts`
 - Locale family normalization: `ko* → kr`, Simplified Chinese → `zs`, Traditional Chinese → `zt`
 
 ### 4.4 SSR Locale Correctness

@@ -2,9 +2,6 @@ import {describe, expect, it} from 'vitest';
 
 import {
   hasDuplicateLocalePrefix,
-  isAppOwnedPath,
-  isBypassPath,
-  isLocaleLessAllowlistedPath,
   parseLocalePrefix,
   resolveLocaleFromCookieOrHeader,
   withLocalePrefix
@@ -47,9 +44,51 @@ describe('locale resolution helpers', () => {
 
     expect(
       resolveLocaleFromCookieOrHeader({
+        acceptLanguage: 'zh-Hant-HK,zh;q=0.9,en-US;q=0.8'
+      })
+    ).toBe('zt');
+
+    expect(
+      resolveLocaleFromCookieOrHeader({
+        acceptLanguage: 'zh-Hans-CN,zh;q=0.9,en-US;q=0.8'
+      })
+    ).toBe('zs');
+
+    expect(
+      resolveLocaleFromCookieOrHeader({
+        acceptLanguage: 'zh-HK,zh;q=0.9,en-US;q=0.8'
+      })
+    ).toBe('zt');
+
+    expect(
+      resolveLocaleFromCookieOrHeader({
+        acceptLanguage: 'zh-SG,zh;q=0.9,en-US;q=0.8'
+      })
+    ).toBe('zs');
+
+    expect(
+      resolveLocaleFromCookieOrHeader({
         acceptLanguage: 'fr-FR,fr;q=0.9,de;q=0.8'
       })
     ).toBe('fr');
+
+    expect(
+      resolveLocaleFromCookieOrHeader({
+        acceptLanguage: 'pt-BR,pt;q=0.9,en-US;q=0.8'
+      })
+    ).toBe('pt');
+
+    expect(
+      resolveLocaleFromCookieOrHeader({
+        acceptLanguage: 'de-AT,de;q=0.9,en-US;q=0.8'
+      })
+    ).toBe('de');
+
+    expect(
+      resolveLocaleFromCookieOrHeader({
+        acceptLanguage: 'id-ID,id;q=0.9,en-US;q=0.8'
+      })
+    ).toBe('id');
 
     expect(
       resolveLocaleFromCookieOrHeader({
@@ -77,29 +116,6 @@ describe('locale resolution helpers', () => {
     expect(hasDuplicateLocalePrefix('/ja/ja/blog')).toBe(true);
     expect(hasDuplicateLocalePrefix('/zs/zt/blog')).toBe(true);
     expect(hasDuplicateLocalePrefix('/en/blog')).toBe(false);
-  });
-
-  it('handles allowlisted locale-less paths and bypass paths', () => {
-    expect(isLocaleLessAllowlistedPath('/blog')).toBe(true);
-    expect(isLocaleLessAllowlistedPath('/blog/ops-handbook')).toBe(true);
-    expect(isLocaleLessAllowlistedPath('/history')).toBe(true);
-    expect(isLocaleLessAllowlistedPath('/test/alpha')).toBe(true);
-    expect(isLocaleLessAllowlistedPath('/test/alpha/question')).toBe(false);
-    expect(isLocaleLessAllowlistedPath('/foo')).toBe(false);
-
-    expect(isAppOwnedPath('/')).toBe(true);
-    expect(isAppOwnedPath('/en/blog')).toBe(true);
-    expect(isAppOwnedPath('/en/blog/ops-handbook')).toBe(true);
-    expect(isAppOwnedPath('/zs/blog')).toBe(true);
-    expect(isAppOwnedPath('/test/alpha')).toBe(true);
-    expect(isAppOwnedPath('/test/alpha/question')).toBe(false);
-    expect(isAppOwnedPath('/foo')).toBe(false);
-    expect(isAppOwnedPath('/va-123/view')).toBe(false);
-
-    expect(isBypassPath('/_next/static/chunk.js')).toBe(true);
-    expect(isBypassPath('/api/hello')).toBe(true);
-    expect(isBypassPath('/favicon.ico')).toBe(true);
-    expect(isBypassPath('/blog')).toBe(false);
   });
 
   it('prefixes locale to locale-free paths', () => {

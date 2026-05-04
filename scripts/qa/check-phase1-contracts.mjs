@@ -74,6 +74,7 @@ for (const pageFile of appPageFiles) {
 
 const sourceFiles = walkFiles('src', (file) => /\.(ts|tsx)$/u.test(file));
 const routeBypassPattern = /\bas\s+(Route|never)\b/u;
+// Warning: keep this pattern in sync with localeMetadata keys in src/config/site.ts when adding locales.
 const duplicateLocalePattern = /\/(en|kr|zs|zt|ja|es|fr|pt|de|hi|id|ru)\/(en|kr|zs|zt|ja|es|fr|pt|de|hi|id|ru)(\/|["'`])/u;
 
 for (const sourceFile of sourceFiles) {

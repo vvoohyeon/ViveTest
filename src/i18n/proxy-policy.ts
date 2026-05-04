@@ -1,17 +1,27 @@
 import {
-  globalUnmatchedPath,
   hasDuplicateLocalePrefix,
-  isAppOwnedPath,
-  isBypassPath,
-  isLocaleLessAllowlistedPath,
   parseLocalePrefix,
   resolveLocaleFromCookieOrHeader,
   withLocalePrefix
 } from '@/i18n/locale-resolution';
+import {type AppLocale} from '@/config/site';
+
+const globalUnmatchedPath = '/_not-found';
+
+const allowlistPattern = [/^\/blog\/?$/u, /^\/blog\/[^/]+\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/?$/u] as const;
+
+function isLocaleLessAllowlistedPath(pathname: string): boolean {
+  return allowlistPattern.some((pattern) => pattern.test(pathname));
+}
+
+function isAppOwnedPath(pathname: string): boolean {
+  return pathname === '/' || isLocaleLessAllowlistedPath(pathname) || parseLocalePrefix(pathname) !== null;
+}
 
 export type ProxyDecision =
   | {
       action: 'next';
+      locale?: AppLocale;
     }
   | {
       action: 'redirect';
@@ -27,10 +37,6 @@ export function resolveProxyDecision(input: {
   cookieLocale?: string | null;
   acceptLanguage?: string | null;
 }): ProxyDecision {
-  if (isBypassPath(input.pathname)) {
-    return {action: 'next'};
-  }
-
   if (hasDuplicateLocalePrefix(input.pathname)) {
     return {
       action: 'rewrite',
@@ -45,8 +51,10 @@ export function resolveProxyDecision(input: {
     };
   }
 
-  if (parseLocalePrefix(input.pathname)) {
-    return {action: 'next'};
+  const localePrefix = parseLocalePrefix(input.pathname);
+
+  if (localePrefix) {
+    return {action: 'next', locale: localePrefix};
   }
 
   const locale = resolveLocaleFromCookieOrHeader({
@@ -68,5 +76,5 @@ export function resolveProxyDecision(input: {
     };
   }
 
-  return {action: 'next'};
+  /* unreachable */ return {action: 'next'};
 }

@@ -19,18 +19,50 @@ Plan mode is required because this task touches Ask First files and routing/loca
 - `docs/req-landing.md §5`
 - `docs/project-analysis.md §4`
 
-Implementation must not start until the user explicitly approves this plan in a later session.
+Implementation was approved by the user on 2026-05-04 and executed in this session.
 
 Approved planning scope:
 
 - Include unit test updates in `tests/unit/locale-resolution.test.ts`, `tests/unit/request-locale-header.test.ts`, and `tests/unit/proxy-policy.test.ts`.
 - Keep E2E routing coverage unchanged. Do not modify `tests/e2e/routing-smoke.spec.ts`.
 
-Decision still required before implementation:
+Decision status:
 
-- User approval to execute this plan.
+- No remaining pre-implementation decision. The user explicitly requested immediate execution.
 
-## Current-State Snapshot
+## Implementation Outcome - 2026-05-04
+
+- R-07 was implemented with no intended routing behavior change.
+- The three affected unit test files were updated first, and the targeted RED run failed as expected because localized proxy decisions did not yet include `locale`.
+- `src/i18n/proxy-policy.ts` now owns route-policy-only helpers privately and returns `locale` for localized `next` decisions.
+- `src/proxy.ts` consumes `decision.locale`, no longer imports `request-locale-header.ts`, and excludes `/_not-found` in the matcher.
+- `src/i18n/locale-resolution.ts` now focuses on locale token/prefix resolution; route-policy exports were removed.
+- `src/i18n/request-locale-header.ts` keeps the SSR header constant/resolvers only.
+- `scripts/qa/check-phase1-contracts.mjs` received the planned ASCII maintenance comment.
+- `tests/e2e/routing-smoke.spec.ts` and `tests/e2e/helpers/**` were not modified.
+
+Verification outcome:
+
+- Pre-edit baseline `npm run qa:gate`: PASS.
+- Unit and TypeScript checks during units: PASS.
+- Contract searches: no removed public helper references or exports remain outside the private `proxy-policy.ts` helpers; `/_not-found` appears in the proxy matcher and private proxy policy path.
+- `npx tsc --noEmit`: PASS.
+- `npm run qa:rules`: PASS.
+- `npm run test:e2e:smoke`: PASS, 274 passed in preview mode.
+- Routing scope checks: PASS (`check-phase1-contracts`, routing unit subset, `routing-smoke.spec.ts`).
+- Basic gates: PASS (`npm run lint`, `npm run typecheck`, `npm test`, `npm run build`).
+
+Known verification note:
+
+- `npm run test:e2e -- --grep "@smoke"` runs the smoke suite in dev-server mode and failed in theme-matrix screenshot comparisons against local preview baselines. The first failing theme-matrix case passed when rerun in preview mode, and the full preview smoke script passed. No out-of-scope visual baseline or transition code changes were made for this dev-mode-only mismatch.
+
+Documentation check:
+
+- `docs/req-landing.md §5`, `docs/project-analysis.md §4`, `docs/agent-guides/project-rules.md §Architecture`, and `docs/agent-guides/verification-commands.md §routing` were inspected.
+- `docs/project-analysis.md §4.3` was updated after final diff inspection to keep implementation ownership notes aligned with the refactor: static bypass responsibility is documented at the `src/proxy.ts` matcher, route ownership helpers at `src/i18n/proxy-policy.ts`, and locale normalization at `src/i18n/locale-resolution.ts`.
+- The pre-existing `/result/[variant]/[type]` allowlist tension remains intentionally unchanged.
+
+## Pre-Implementation Snapshot
 
 Verified from the checkout on 2026-05-04:
 
@@ -361,6 +393,7 @@ Run contract searches:
 
 ```bash
 rg -n "getRequestLocaleHeaderValueFromPathname|isBypassPath|isLocaleLessAllowlistedPath|isAppOwnedPath" src tests
+rg -n "getRequestLocaleHeaderValueFromPathname|isBypassPath|isLocaleLessAllowlistedPath|isAppOwnedPath" src tests --glob '!src/i18n/proxy-policy.ts'
 rg -n "globalUnmatchedPath" src tests --glob '!src/i18n/proxy-policy.ts'
 rg -n "request-locale-header" src/proxy.ts
 rg -n "_not-found" src/proxy.ts src/i18n/proxy-policy.ts
@@ -368,7 +401,8 @@ rg -n "_not-found" src/proxy.ts src/i18n/proxy-policy.ts
 
 Expected:
 
-- First three commands have no matches.
+- The first broad command may show private `isLocaleLessAllowlistedPath` / `isAppOwnedPath` helpers in `src/i18n/proxy-policy.ts`.
+- The refined helper search and the next two commands have no matches.
 - Last command shows `_not-found` in `src/proxy.ts` matcher and private `globalUnmatchedPath` in `src/i18n/proxy-policy.ts`.
 
 Run user-requested checks:
