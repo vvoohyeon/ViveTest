@@ -366,9 +366,28 @@ export function useLandingInteractionController({
     beginMobileOpen,
     beginMobileKeyboardHandoff,
     collapseExpandedCard,
-    setDesktopTransitionReason,
-    recordPointerInput
+    setDesktopTransitionReason
   });
+
+  useEffect(() => {
+    const passiveListenerOptions: AddEventListenerOptions = {passive: true};
+
+    const handlePointerMove = (event: PointerEvent) => {
+      recordPointerInput(event);
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      recordPointerInput(event);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, passiveListenerOptions);
+    window.addEventListener('mousedown', handleMouseDown, passiveListenerOptions);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove, passiveListenerOptions);
+      window.removeEventListener('mousedown', handleMouseDown, passiveListenerOptions);
+    };
+  }, [recordPointerInput]);
 
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
     const isTransitioning = interactionState.pageState === 'TRANSITIONING';

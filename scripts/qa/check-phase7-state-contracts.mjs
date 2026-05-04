@@ -30,6 +30,9 @@ const requiredFiles = [
   'src/features/landing/grid/use-hover-intent-controller.ts',
   'src/features/landing/grid/use-desktop-motion-controller.ts',
   'src/features/landing/grid/use-keyboard-handoff.ts',
+  'src/features/landing/grid/use-keyboard-mode-tracker.ts',
+  'src/features/landing/grid/use-landing-keyboard-entry.ts',
+  'src/features/landing/grid/use-card-keyboard-handler.ts',
   'src/features/landing/grid/interaction-dom.ts',
   'src/features/landing/grid/landing-catalog-grid.tsx',
   'src/features/landing/grid/landing-grid-card.tsx',
@@ -78,6 +81,9 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
     'src/features/landing/grid/use-hover-intent-controller.ts',
     'src/features/landing/grid/use-desktop-motion-controller.ts',
     'src/features/landing/grid/use-keyboard-handoff.ts',
+    'src/features/landing/grid/use-keyboard-mode-tracker.ts',
+    'src/features/landing/grid/use-landing-keyboard-entry.ts',
+    'src/features/landing/grid/use-card-keyboard-handler.ts',
     'src/features/landing/grid/interaction-dom.ts'
   ]);
 
@@ -97,7 +103,12 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
     fail('Interaction controller must dispatch mode + visibility synchronization events.');
   }
 
-  const keyboardHandoffFile = readExisting(['src/features/landing/grid/use-keyboard-handoff.ts']);
+  const keyboardHandoffFile = readExisting([
+    'src/features/landing/grid/use-keyboard-handoff.ts',
+    'src/features/landing/grid/use-keyboard-mode-tracker.ts',
+    'src/features/landing/grid/use-landing-keyboard-entry.ts',
+    'src/features/landing/grid/use-card-keyboard-handler.ts'
+  ]);
   if (!/pointermove/u.test(controllerAndDomFiles) || !/mousedown/u.test(controllerAndDomFiles)) {
     fail('Interaction controller must track pointermove and exit keyboard mode on mousedown in Phase 7.');
   }
