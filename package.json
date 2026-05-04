@@ -11,7 +11,7 @@
     "typecheck": "npm run typegen && tsc --noEmit",
     "sync": "vite-node -c ./vitest.config.ts scripts/sync/sync.ts",
     "sync:dry": "vite-node -c ./vitest.config.ts scripts/sync/sync-dry-run.ts",
-    "qa:rules": "node scripts/qa/check-phase1-contracts.mjs && node scripts/qa/check-phase4-grid-contracts.mjs && node scripts/qa/check-phase5-card-contracts.mjs && node scripts/qa/check-phase6-spacing-contracts.mjs && node scripts/qa/check-phase7-state-contracts.mjs && node scripts/qa/check-phase8-accessibility-contracts.mjs && node scripts/qa/check-phase9-performance-contracts.mjs && node scripts/qa/check-phase10-transition-contracts.mjs && node scripts/qa/check-phase11-telemetry-contracts.mjs && node scripts/qa/check-variant-registry-contracts.mjs && node scripts/qa/check-variant-only-contracts.mjs && node scripts/qa/check-blocker-traceability.mjs",
+    "qa:rules": "node scripts/qa/run-all.mjs",
     "qa:static": "npm run lint && npm run typecheck && npm run qa:rules",
     "test": "vitest run",
     "test:e2e": "playwright test",

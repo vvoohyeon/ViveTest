@@ -1,8 +1,9 @@
-import {readdirSync, readFileSync, statSync} from 'node:fs';
+import {readdirSync, statSync} from 'node:fs';
 import path from 'node:path';
 
-const rootDir = process.cwd();
-const errors = [];
+import {createChecker, fileExists, read} from './_utils.mjs';
+
+const {fail, finish} = createChecker();
 const THEME_MATRIX_SNAPSHOT_SUFFIX = '-chromium-darwin.png';
 const SAFARI_GHOSTING_SNAPSHOT_SUFFIX = '-webkit-ghosting-darwin.png';
 const REQUIRED_SAFARI_GHOSTING_SNAPSHOT_STEMS = [
@@ -13,28 +14,12 @@ const REQUIRED_SAFARI_GHOSTING_SNAPSHOT_STEMS = [
   'steady-row1-short-expanded-content-fit'
 ];
 
-function fail(message) {
-  errors.push(message);
-}
-
-function fileExists(relativePath) {
-  try {
-    return statSync(path.join(rootDir, relativePath)).isFile();
-  } catch {
-    return false;
-  }
-}
-
 function directoryExists(relativePath) {
   try {
-    return statSync(path.join(rootDir, relativePath)).isDirectory();
+    return statSync(path.join(process.cwd(), relativePath)).isDirectory();
   } catch {
     return false;
   }
-}
-
-function read(relativePath) {
-  return readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
 function readJson(relativePath) {
@@ -46,7 +31,7 @@ function listPngFiles(relativePath) {
     return [];
   }
 
-  return readdirSync(path.join(rootDir, relativePath))
+  return readdirSync(path.join(process.cwd(), relativePath))
     .filter((fileName) => fileName.endsWith('.png'))
     .sort();
 }
@@ -372,12 +357,4 @@ if (fileExists('playwright.config.ts')) {
   }
 }
 
-if (errors.length > 0) {
-  console.error('Phase 11 telemetry contract checks failed:');
-  for (const issue of errors) {
-    console.error(`- ${issue}`);
-  }
-  process.exit(1);
-}
-
-console.log('Phase 11 telemetry contract checks passed.');
+finish('Phase 11 telemetry');

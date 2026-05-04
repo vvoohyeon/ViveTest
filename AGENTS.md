@@ -130,6 +130,8 @@ npm run test:e2e:smoke
 **QA baseline notes**
 - `qa:rules` excluded from default Done gate. As of 2026-04-25: passes Phase 11,
   variant registry, variant-only, and blocker traceability checks.
+- `qa:rules` delegates to `scripts/qa/run-all.mjs`, which runs the same 12 checks
+  in parallel and prints buffered child output after completion. *(2026-05-05)*
 - Playwright baselines: local PNGs under `tests/e2e/*-snapshots/`.
   Visual smoke helper auto-creates missing baselines; falls back to comparison when baseline exists.
 

@@ -1,24 +1,6 @@
-import {readFileSync, statSync} from 'node:fs';
-import path from 'node:path';
+import {createChecker, fileExists, read} from './_utils.mjs';
 
-const rootDir = process.cwd();
-const errors = [];
-
-function fail(message) {
-  errors.push(message);
-}
-
-function fileExists(relativePath) {
-  try {
-    return statSync(path.join(rootDir, relativePath)).isFile();
-  } catch {
-    return false;
-  }
-}
-
-function read(relativePath) {
-  return readFileSync(path.join(rootDir, relativePath), 'utf8');
-}
+const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'src/lib/routes/route-builder.ts',
@@ -145,12 +127,4 @@ if (fileExists('docs/project-analysis.md')) {
   }
 }
 
-if (errors.length > 0) {
-  console.error('Variant-only contract checks failed:');
-  for (const issue of errors) {
-    console.error(`- ${issue}`);
-  }
-  process.exit(1);
-}
-
-console.log('Variant-only contract checks passed.');
+finish('Variant-only');

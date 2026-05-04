@@ -7,7 +7,7 @@ This repository is a localized Next.js App Router application. Its real technica
 **Workspace verification:**
 
 - Current local Done gate for this document sync: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
-- `npm run qa:rules` (2026-04-25): passes
+- `npm run qa:rules` (2026-05-05): passes all 12 checks through the buffered parallel runner in `scripts/qa/run-all.mjs`
 - Representative Playwright smoke coverage is organized around routing, grid, state, GNB, accessibility, consent, theme matrix, Safari hover ghosting, and transition telemetry specs. Exact expanded test counts are intentionally not repeated here because they vary with browser/project matrix expansion.
 - Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required; regeneration and local provenance fields are documented in `tests/e2e/README.md`.
 
@@ -474,7 +474,7 @@ Scoped to `tests/unit/`. Current file inventory: 45 `*.test.ts` files. Coverage 
 | `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (6 baselines) |
 | `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
 
-Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
+Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; ingress storage-key constants are constructed through `buildIngressStorageKey(variant)` so representative key values stay centralized; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
 
 The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
 
@@ -482,7 +482,7 @@ Local full-smoke reproduction requires Playwright Chromium and WebKit installati
 
 ### 7.3 Custom QA Scripts (`scripts/qa/`)
 
-`qa:rules` runs 12 checks:
+`qa:rules` delegates to `scripts/qa/run-all.mjs`, which runs the same 12 checks in parallel and prints each child script's buffered output after completion:
 
 | Script | Contract enforced |
 |---|---|
@@ -503,7 +503,9 @@ Local full-smoke reproduction requires Playwright Chromium and WebKit installati
 
 Consent-specific blockers 20~23 anchor in `tests/e2e/consent-smoke.spec.ts`; remaining test-flow blockers 24~30 mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence. Blockers 27, 28, 29, and 30 now carry automated evidence, including the 3-source cross-sheet unit coverage and route-level runtime guard assertions.
 
-As of 2026-04-25, `npm run qa:rules` passes all 12 checks. The landing-controller split expanded the relevant script read scopes without weakening required-file checks: Phase 6 now reads `landing-catalog-grid.tsx` plus `use-grid-geometry-controller.ts`, Phase 7 reads the controller plus `interaction-dom.ts`, hover, desktop motion, and keyboard hooks, and Phase 10 includes the mobile lifecycle hook while keeping existing CSS/e2e contract anchors.
+Shared local QA plumbing lives in `scripts/qa/_utils.mjs`, and the Phase 1 duplicate-locale regex source lives in `scripts/qa/_locale-list.mjs`. Phase-specific helper functions remain inside their original scripts.
+
+As of 2026-05-05, `npm run qa:rules` passes all 12 checks through the runner. The landing-controller split expanded the relevant script read scopes without weakening required-file checks: Phase 6 now reads `landing-catalog-grid.tsx` plus `use-grid-geometry-controller.ts`, Phase 7 reads the controller plus `interaction-dom.ts`, hover, desktop motion, and keyboard hooks, and Phase 10 includes the mobile lifecycle hook while keeping existing CSS/e2e contract anchors.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 

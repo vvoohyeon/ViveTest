@@ -1,50 +1,9 @@
-import {readdirSync, readFileSync, statSync} from 'node:fs';
 import path from 'node:path';
 
-const rootDir = process.cwd();
-const errors = [];
+import {createChecker, fileExists, read, toPosix, walkFiles} from './_utils.mjs';
+import {QA_LOCALE_PATTERN_SOURCE} from './_locale-list.mjs';
 
-function toPosix(filePath) {
-  return filePath.split(path.sep).join('/');
-}
-
-function fail(message) {
-  errors.push(message);
-}
-
-function fileExists(relativePath) {
-  try {
-    return statSync(path.join(rootDir, relativePath)).isFile();
-  } catch {
-    return false;
-  }
-}
-
-function walkFiles(startDir, filter) {
-  const absolute = path.join(rootDir, startDir);
-  const stack = [absolute];
-  const results = [];
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current) {
-      continue;
-    }
-
-    for (const entry of readdirSync(current, {withFileTypes: true})) {
-      const absoluteEntry = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(absoluteEntry);
-        continue;
-      }
-      if (entry.isFile() && filter(absoluteEntry)) {
-        results.push(absoluteEntry);
-      }
-    }
-  }
-
-  return results;
-}
+const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'src/app/layout.tsx',
@@ -66,7 +25,7 @@ if (fileExists('src/middleware.ts')) {
 
 const appPageFiles = walkFiles('src/app', (file) => file.endsWith('page.tsx'));
 for (const pageFile of appPageFiles) {
-  const relative = toPosix(path.relative(rootDir, pageFile));
+  const relative = toPosix(path.relative(process.cwd(), pageFile));
   if (!relative.startsWith('src/app/[locale]/')) {
     fail(`All real pages must be under src/app/[locale]/**. Found: ${relative}`);
   }
@@ -74,12 +33,14 @@ for (const pageFile of appPageFiles) {
 
 const sourceFiles = walkFiles('src', (file) => /\.(ts|tsx)$/u.test(file));
 const routeBypassPattern = /\bas\s+(Route|never)\b/u;
-// Warning: keep this pattern in sync with localeMetadata keys in src/config/site.ts when adding locales.
-const duplicateLocalePattern = /\/(en|kr|zs|zt|ja|es|fr|pt|de|hi|id|ru)\/(en|kr|zs|zt|ja|es|fr|pt|de|hi|id|ru)(\/|["'`])/u;
+const duplicateLocalePattern = new RegExp(
+  `/(${QA_LOCALE_PATTERN_SOURCE})/(${QA_LOCALE_PATTERN_SOURCE})(/|["'\`])`,
+  'u'
+);
 
 for (const sourceFile of sourceFiles) {
-  const relative = toPosix(path.relative(rootDir, sourceFile));
-  const content = readFileSync(sourceFile, 'utf8');
+  const relative = toPosix(path.relative(process.cwd(), sourceFile));
+  const content = read(relative);
 
   if (routeBypassPattern.test(content)) {
     fail(`Disallowed typed-route bypass cast found in ${relative}`);
@@ -94,7 +55,7 @@ for (const sourceFile of sourceFiles) {
   }
 }
 
-const rootLayoutContent = readFileSync(path.join(rootDir, 'src/app/layout.tsx'), 'utf8');
+const rootLayoutContent = read('src/app/layout.tsx');
 if (/lang=\{defaultLocale\}/u.test(rootLayoutContent)) {
   fail('Root layout must not hard-code html lang to defaultLocale; request-scoped locale resolution is required.');
 }
@@ -115,15 +76,13 @@ const bannedDeterministicPatterns = [
 ];
 
 for (const target of deterministicTargets) {
-  const targetPath = path.join(rootDir, target);
-  const stats = statSync(targetPath);
-  const targetFiles = stats.isFile()
-    ? [targetPath]
+  const targetFiles = fileExists(target)
+    ? [path.join(process.cwd(), target)]
     : walkFiles(target, (file) => /\.(ts|tsx)$/u.test(file));
 
   for (const file of targetFiles) {
-    const relative = toPosix(path.relative(rootDir, file));
-    const content = readFileSync(file, 'utf8');
+    const relative = toPosix(path.relative(process.cwd(), file));
+    const content = read(relative);
 
     for (const {pattern, label} of bannedDeterministicPatterns) {
       if (pattern.test(content)) {
@@ -133,12 +92,4 @@ for (const target of deterministicTargets) {
   }
 }
 
-if (errors.length > 0) {
-  console.error('Phase 1 contract checks failed:');
-  for (const issue of errors) {
-    console.error(`- ${issue}`);
-  }
-  process.exit(1);
-}
-
-console.log('Phase 1 contract checks passed.');
+finish('Phase 1');
