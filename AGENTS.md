@@ -172,7 +172,7 @@ Required fields before approval and before implementation begins:
 - [ ] Validation commands (per `docs/agent-guides/verification-commands.md`)
 - [ ] Decisions requiring user confirmation before execution
 
-Any plan missing these fields must be revised before approval.
+Any plan missing these fields must be revised before approval. Plan documents have no length limit — exhaustive detail is the goal, not a side effect.
 
 ---
 

@@ -88,7 +88,7 @@ For lightweight tasks: state any assumption in one sentence, run the basic gates
 - Execute one approved plan unit at a time. Verify each unit before advancing.
 - Follow Surgical Changes: do not touch files or logic outside the approved scope.
 - If context drift is detected mid-session, re-read `AGENTS.md` and the approved plan before continuing.
-- If implementation would push any file past 500 lines or require splitting into 3 or more new files, stop immediately — propose a refactoring plan in markdown and await approval before continuing.
+- If implementation would push any source code file past 500 lines or require splitting into 3 or more new source code files, stop immediately — propose a refactoring plan in markdown and await approval. This limit never applies to documentation or plan files.
 
 ---
 
@@ -168,8 +168,8 @@ Do not proceed until the user responds. If continuing, resume from the plan with
 - Consult **Gold Standards** (`AGENTS.md §6`) before referencing external code patterns; external patterns are acceptable only when they do not conflict
 - Do not perform any of the following without explicit prior approval: adding external packages, modifying build or deployment configuration, deleting files, accessing external networks, running destructive commands
 - Do not invoke GSD-style automated multi-wave execution, parallel agents, or automated implementation pipelines. `.planning/STATE.md` never authorizes autonomous execution
-- Do not create a new file exceeding 500 lines. Exceptions: centralized TypeScript global type declarations; self-contained sequential pipeline logic with no reuse potential across the codebase.
-- Do not create or extract a file under 30 lines unless it is reused in multiple places and can be independently unit-tested; inline single-use code into the caller instead.
+- Do not create a new source code file exceeding 500 lines. Exceptions: centralized TypeScript global type declarations; self-contained sequential pipeline logic with no reuse potential across the codebase. (Documentation files are exempt.)
+- Do not create or extract a source code file under 30 lines unless it is reused in multiple places and can be independently unit-tested; inline single-use code into the caller instead. (Documentation files are exempt.)
 
 ---
 
