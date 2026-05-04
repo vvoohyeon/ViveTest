@@ -56,8 +56,7 @@ Directory ownership details → `docs/agent-guides/project-rules.md §Ownership`
 ### Never — Do Not Modify
 
 - Do not reintroduce `src/middleware.ts`. Single request entry: `src/proxy.ts`.
-- Never edit build artifacts directly: `.next/`, `node_modules/`, `coverage/`,
-  `test-results/`, `playwright-report/`, `dist/`, `out/`, `output/`, `tsconfig.tsbuildinfo`.
+Never edit build artifacts directly: `.next/`, `node_modules/`, `coverage/`, `test-results/`, `playwright-report/`, `dist/`, `out/`, `output/`, `tsconfig.tsbuildinfo`, `next-env.d.ts` (Next.js typegen output — not tracked by Git).
 
 ### Ask First — Modify with Caution
 
@@ -172,7 +171,7 @@ Required fields before approval and before implementation begins:
 - [ ] Validation commands (per `docs/agent-guides/verification-commands.md`)
 - [ ] Decisions requiring user confirmation before execution
 
-Any plan missing these fields must be revised before approval.
+Any plan missing these fields must be revised before approval. Plan documents have no length limit — exhaustive detail is the goal, not a side effect.
 
 ---
 
