@@ -251,6 +251,10 @@ export function reduceLandingInteractionState(
         }
       };
     case 'KEYBOARD_MODE_ENTER':
+      if (settledState.hoverLock.keyboardMode) {
+        return settledState;
+      }
+
       return {
         ...settledState,
         hoverLock: {
