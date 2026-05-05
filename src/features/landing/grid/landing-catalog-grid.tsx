@@ -96,7 +96,6 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
   const {spacingModel, baselineState} = useGridGeometryController({
     cards,
     shellRef,
-    containerRef,
     previousPlanKeyRef,
     previousColumnModeRef,
     plan,
@@ -180,7 +179,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
       data-mobile-restore-ready-card-variant={mobileRestoreReadyVariant ?? ''}
       data-baseline-phase={baselineState.phase}
       data-baseline-active-card-variant={baselineState.activeCardVariant ?? ''}
-      data-baseline-frozen-rows={baselineState.frozenRows.join(',')}
+      data-baseline-frozen-rows={[...baselineState.snapshots.keys()].join(',')}
     >
       {mobileBackdropBindings.active ? (
         <div
