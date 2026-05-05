@@ -52,6 +52,28 @@ describe('gnb behavior contracts', () => {
     ).toBe(false);
   });
 
+  it('respects an explicit thresholdPx override', () => {
+    expect(
+      shouldCancelOutsideCloseAsScroll({
+        startX: 0,
+        startY: 0,
+        endX: 0,
+        endY: 5,
+        thresholdPx: 4
+      })
+    ).toBe(true);
+
+    expect(
+      shouldCancelOutsideCloseAsScroll({
+        startX: 0,
+        startY: 0,
+        endX: 0,
+        endY: 4,
+        thresholdPx: 4
+      })
+    ).toBe(false);
+  });
+
   it('uses history.back only when same-origin referrer exists', () => {
     expect(
       shouldUseHistoryBack({
