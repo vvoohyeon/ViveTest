@@ -1,6 +1,7 @@
 export {SiteGnb} from '@/features/landing/gnb/site-gnb';
 export type {GnbContext, MobileMenuState, ThemePreference} from '@/features/landing/gnb/types';
 export {SettingsControls} from '@/features/landing/gnb/components';
+export {useGnbKeyboardModeTracker} from '@/features/landing/gnb/hooks/use-keyboard-mode-tracker';
 export {useGnbCapability, useThemePreference} from '@/features/landing/gnb/hooks';
 export {
   DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS,
