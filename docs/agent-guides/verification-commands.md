@@ -43,6 +43,7 @@ node scripts/qa/check-phase11-telemetry-contracts.mjs
 npm test -- \
   tests/unit/landing-telemetry-validation.test.ts \
   tests/unit/landing-telemetry-runtime.test.ts \
+  tests/unit/landing-transition-runtime.test.ts \
   tests/unit/landing-transition-store.test.ts
 npx playwright test \
   tests/e2e/consent-smoke.spec.ts \
@@ -65,10 +66,12 @@ npm test -- \
   tests/unit/landing-mobile-lifecycle.test.ts \
   tests/unit/landing-desktop-shell-phase.test.ts \
   tests/unit/landing-grid-plan.test.ts \
+  tests/unit/landing-baseline-manager.test.ts \
   tests/unit/gnb-behavior.test.ts \
   tests/unit/gnb-desktop-settings.test.ts \
   tests/unit/gnb-mobile-menu.test.ts \
-  tests/unit/gnb-back-navigation.test.ts
+  tests/unit/gnb-back-navigation.test.ts \
+  tests/unit/gnb-theme-transition.test.ts
 npx playwright test \
   tests/e2e/grid-smoke.spec.ts \
   tests/e2e/state-smoke.spec.ts \

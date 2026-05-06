@@ -133,7 +133,7 @@
 2. 쿠키가 없거나 무효면 `Accept-Language`를 파싱해 지원 locale 최적 매치를 선택한다.
 3. 매치 실패 시 `defaultLocale`로 리다이렉트한다.
 - locale 없는 경로 처리(V2 고정): 허용 목록 기반 리다이렉트만 허용한다.
-- 허용 목록(locale-less redirect allowlist): `/blog`, `/blog/[variant]`, `/history`, `/test/[variant]`, `/result/[variant]/[type]`
+- 허용 목록(locale-less redirect allowlist): `/blog`, `/blog/[variant]`, `/history`, `/test/[variant]`
 - 허용 목록에 없는 locale-less 경로는 locale 주입 리다이렉트하지 않고 global unmatched 404로 처리한다.
 - duplicate locale prefix는 비정상 경로로 분기해 전역 unmatched 404 전략으로 처리한다.
 - localized request가 실제 페이지로 통과할 때는 proxy가 request-scoped locale header를 주입해 root document semantics(`html lang`)의 서버 반영 근거를 제공해야 한다.
@@ -158,7 +158,7 @@
 - `as Route`, `as never` 같은 우회 캐스팅을 금지한다.
 
 **Verification**:
-1. Automated: RouteBuilder 단위 테스트(landing/blog/blogArticle/history/test/result)를 수행한다.
+1. Automated: RouteBuilder 단위 테스트(landing/blog/blogArticle/history/test/testError)를 수행한다.
 2. Automated: `/blog` index direct entry, `/blog/{variant}` direct entry, detail refresh, 목록 링크 이동, landing CTA 유입, invalid/non-enterable redirect를 각각 검증한다.
 3. Automated: ESLint rule 또는 코드 검색으로 금지 패턴을 검사한다.
 
