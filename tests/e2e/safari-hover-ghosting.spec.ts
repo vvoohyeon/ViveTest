@@ -234,7 +234,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     await page.goto('/en');
   });
 
-  test('@smoke row1 same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}, testInfo) => {
+  test('@smoke @gate row1 same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}, testInfo) => {
     const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const firstCardBox = await runHoverOutCollapseCycles({
       page,
@@ -252,7 +252,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     await expectBufferToMatchLocalSnapshot(screenshot, 'hover-out-row1-settled.png', testInfo);
   });
 
-  test('@smoke lower-row same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}, testInfo) => {
+  test('@smoke @gate lower-row same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}, testInfo) => {
     const lowerRowCard = page.locator('[data-card-variant="build-metrics"]');
     const lowerRowCardBox = await runHoverOutCollapseCycles({
       page,
@@ -270,7 +270,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     await expectBufferToMatchLocalSnapshot(screenshot, 'hover-out-lower-row-settled.png', testInfo);
   });
 
-  test('@smoke row1 handoff source skips close and cleanup phases', async ({page}) => {
+  test('@smoke @gate row1 handoff source skips close and cleanup phases', async ({page}) => {
     const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const secondCard = page.locator('[data-card-variant="rhythm-b"]');
 
@@ -284,7 +284,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
   });
 
-  test('@smoke row1 steady expanded short card stays content-fit without leaking the in-flow shell', async ({page}, testInfo) => {
+  test('@smoke @gate row1 steady expanded short card stays content-fit without leaking the in-flow shell', async ({page}, testInfo) => {
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await settleDesktopExpandedCard(page, card);
     const overlayMetrics = await readDesktopExpandedOverlayMetrics(card);
@@ -301,7 +301,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     });
   });
 
-  test('@smoke lower-row steady expanded shadow keeps a full envelope', async ({page}, testInfo) => {
+  test('@smoke @gate lower-row steady expanded shadow keeps a full envelope', async ({page}, testInfo) => {
     await expectSteadyExpandedShadowSnapshot({
       page,
       card: page.locator('[data-card-variant="build-metrics"]'),
@@ -310,7 +310,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     });
   });
 
-  test('@smoke desktop settings panel removes the top seam without shifting the current theme button', async ({
+  test('@smoke @gate desktop settings panel removes the top seam without shifting the current theme button', async ({
     page
   }, testInfo) => {
     const {trigger, panel} = await openDesktopSettingsPanel(page);

@@ -40,7 +40,8 @@
       "routeTemplate": "/{locale}",
       "settleRecipe": "landing-normal",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "gate": true
     },
     {
       "id": "blog-default",
@@ -48,7 +49,8 @@
       "routeTemplate": "/{locale}/blog",
       "settleRecipe": "landing-normal",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "gate": true
     },
     {
       "id": "history-default",
@@ -56,7 +58,8 @@
       "routeTemplate": "/{locale}/history",
       "settleRecipe": "landing-normal",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "gate": true
     },
     {
       "id": "test-instruction",
@@ -64,7 +67,8 @@
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-instruction",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "gate": true
     }
   ],
   "stateCases": [
@@ -74,7 +78,8 @@
       "routeTemplate": "/{locale}",
       "settleRecipe": "landing-test-expanded",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "tablet-wide"]
+      "viewportKeys": ["desktop-wide", "tablet-wide"],
+      "gate": true
     },
     {
       "id": "landing-blog-expanded",
@@ -82,7 +87,8 @@
       "routeTemplate": "/{locale}",
       "settleRecipe": "landing-blog-expanded",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "tablet-wide"]
+      "viewportKeys": ["desktop-wide", "tablet-wide"],
+      "gate": true
     },
     {
       "id": "landing-settings-open",
@@ -90,7 +96,8 @@
       "routeTemplate": "/{locale}",
       "settleRecipe": "desktop-settings-open",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide"]
+      "viewportKeys": ["desktop-wide"],
+      "gate": true
     },
     {
       "id": "blog-settings-open",
@@ -98,7 +105,8 @@
       "routeTemplate": "/{locale}/blog",
       "settleRecipe": "desktop-settings-open",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide"]
+      "viewportKeys": ["desktop-wide"],
+      "gate": true
     },
     {
       "id": "history-settings-open",
@@ -106,7 +114,8 @@
       "routeTemplate": "/{locale}/history",
       "settleRecipe": "desktop-settings-open",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide"]
+      "viewportKeys": ["desktop-wide"],
+      "gate": true
     },
     {
       "id": "test-question",
@@ -114,7 +123,8 @@
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-question",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "tablet-wide"]
+      "viewportKeys": ["desktop-wide", "tablet-wide"],
+      "gate": true
     },
     {
       "id": "test-result",
@@ -122,7 +132,8 @@
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-result",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "tablet-wide"]
+      "viewportKeys": ["desktop-wide", "tablet-wide"],
+      "gate": true
     },
     {
       "id": "mobile-landing-test-expanded",
@@ -130,7 +141,8 @@
       "routeTemplate": "/{locale}",
       "settleRecipe": "mobile-landing-test-expanded",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"]
+      "viewportKeys": ["mobile"],
+      "gate": true
     },
     {
       "id": "mobile-landing-blog-expanded",
@@ -138,7 +150,8 @@
       "routeTemplate": "/{locale}",
       "settleRecipe": "mobile-landing-blog-expanded",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"]
+      "viewportKeys": ["mobile"],
+      "gate": true
     },
     {
       "id": "mobile-landing-menu-open",
@@ -146,7 +159,8 @@
       "routeTemplate": "/{locale}",
       "settleRecipe": "mobile-menu-open",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"]
+      "viewportKeys": ["mobile"],
+      "gate": true
     },
     {
       "id": "mobile-blog-menu-open",
@@ -154,7 +168,8 @@
       "routeTemplate": "/{locale}/blog",
       "settleRecipe": "mobile-menu-open",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"]
+      "viewportKeys": ["mobile"],
+      "gate": true
     },
     {
       "id": "mobile-history-menu-open",
@@ -162,7 +177,8 @@
       "routeTemplate": "/{locale}/history",
       "settleRecipe": "mobile-menu-open",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"]
+      "viewportKeys": ["mobile"],
+      "gate": true
     },
     {
       "id": "mobile-test-question",
@@ -170,14 +186,17 @@
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-question",
       "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"]
+      "viewportKeys": ["mobile"],
+      "gate": true
     },
     {
       "id": "mobile-test-result",
       "suite": "state",
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-result",
-      "viewportKeys": ["mobile"]
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["mobile"],
+      "gate": true
     }
   ]
 }

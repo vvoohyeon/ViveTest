@@ -125,6 +125,8 @@ npm run qa:gate:once    # Heavy — run before release or when investigating fla
 npm run qa:gate         # Full release validation pipeline
 npm run test:e2e
 npm run test:e2e:smoke
+npm run test:e2e:gate
+npm run qa:visual:full  # Full theme-matrix baseline regeneration
 ```
 
 **QA baseline notes**
@@ -134,6 +136,10 @@ npm run test:e2e:smoke
   in parallel and prints buffered child output after completion. *(2026-05-05)*
 - Playwright baselines: local PNGs under `tests/e2e/*-snapshots/`.
   Visual smoke helper auto-creates missing baselines; falls back to comparison when baseline exists.
+- Theme-matrix baseline provenance is tracked at
+  `tests/e2e/theme-matrix-baseline-provenance.md`.
+- `qa:gate:once` uses the `@gate` E2E subset. Use `qa:visual:full` for full
+  theme-matrix baseline regeneration.
 
 → Change-type specific commands: `docs/agent-guides/verification-commands.md`
 

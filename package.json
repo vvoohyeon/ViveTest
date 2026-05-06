@@ -16,8 +16,10 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "PLAYWRIGHT_SERVER_MODE=preview playwright test --grep @smoke",
-    "qa:gate:once": "npm run qa:static && npm run build && npm run test && npm run test:e2e:smoke",
-    "qa:gate": "npm run qa:gate:once && npm run qa:gate:once && npm run qa:gate:once"
+    "test:e2e:gate": "PLAYWRIGHT_SERVER_MODE=preview playwright test --grep @gate",
+    "qa:gate:once": "npm run qa:static && npm run build && npm run test && npm run test:e2e:gate",
+    "qa:gate": "npm run qa:gate:once && npm run qa:gate:once && npm run qa:gate:once",
+    "qa:visual:full": "PLAYWRIGHT_SERVER_MODE=preview playwright test tests/e2e/theme-matrix-smoke.spec.ts --update-snapshots"
   },
   "dependencies": {
     "@vercel/analytics": "2.0.1",

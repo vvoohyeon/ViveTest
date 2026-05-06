@@ -48,6 +48,7 @@ interface ThemeMatrixCaseTemplate {
   localeKeys?: MatrixLocale[];
   themeKeys?: MatrixTheme[];
   viewportKeys: ViewportKey[];
+  gate?: boolean;
 }
 
 interface ThemeMatrixManifest {
@@ -80,6 +81,41 @@ function buildThemeMatrixCases(manifest: ThemeMatrixManifest): ThemeMatrixCase[]
     for (const locale of locales) {
       for (const theme of themes) {
         for (const viewportKey of template.viewportKeys) {
+          const viewport = manifest.viewports[viewportKey];
+          cases.push({
+            ...template,
+            locale,
+            theme,
+            viewportKey,
+            viewport: {
+              width: viewport.width,
+              height: viewport.height
+            },
+            route: template.routeTemplate.replace('{locale}', locale),
+            screenshotName: `theme-${template.suite}-${template.id}-${locale}-${theme}-${viewportKey}.png`
+          });
+        }
+      }
+    }
+  }
+
+  return cases;
+}
+
+function buildGateThemeMatrixCases(manifest: ThemeMatrixManifest): ThemeMatrixCase[] {
+  const caseTemplates = [...manifest.layoutCases, ...manifest.stateCases].filter((template) => template.gate === true);
+  const cases: ThemeMatrixCase[] = [];
+
+  for (const template of caseTemplates) {
+    const locales = template.localeKeys ?? manifest.locales;
+    const themes = template.themeKeys ?? manifest.themes;
+    const viewportKeys = template.viewportKeys.filter(
+      (viewportKey) => manifest.viewports[viewportKey].stateCanonical === true
+    );
+
+    for (const locale of locales) {
+      for (const theme of themes) {
+        for (const viewportKey of viewportKeys) {
           const viewport = manifest.viewports[viewportKey];
           cases.push({
             ...template,
@@ -267,10 +303,31 @@ async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
 }
 
 const themeMatrixCases = buildThemeMatrixCases(themeMatrixManifest);
+const themeMatrixGateCases = buildGateThemeMatrixCases(themeMatrixManifest);
 
 test.describe('Phase 11 theme matrix smoke', () => {
   for (const matrixCase of themeMatrixCases) {
     test(`@smoke assertion:B8-theme-matrix ${matrixCase.suite} ${matrixCase.id} ${matrixCase.locale} ${matrixCase.theme} ${matrixCase.viewportKey}`, async ({
+      browser
+    }, testInfo) => {
+      await captureRepresentativeState({
+        browser,
+        theme: matrixCase.theme,
+        route: matrixCase.route,
+        viewport: matrixCase.viewport,
+        screenshotName: matrixCase.screenshotName,
+        testInfo,
+        settle: async (page) => {
+          await applySettleRecipe(page, matrixCase.settleRecipe);
+        }
+      });
+    });
+  }
+});
+
+test.describe('Phase 11 theme matrix gate', () => {
+  for (const matrixCase of themeMatrixGateCases) {
+    test(`@gate @smoke assertion:B8-theme-matrix ${matrixCase.suite} ${matrixCase.id} ${matrixCase.locale} ${matrixCase.theme} ${matrixCase.viewportKey}`, async ({
       browser
     }, testInfo) => {
       await captureRepresentativeState({

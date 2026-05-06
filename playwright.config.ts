@@ -14,7 +14,11 @@ export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
   expect: {
-    timeout: 5_000
+    timeout: 5_000,
+    toHaveScreenshot: {
+      threshold: 0.01,
+      maxDiffPixels: 20
+    }
   },
   fullyParallel: false,
   retries: process.env.CI ? 2 : 0,

@@ -31,16 +31,13 @@ On a new machine, or when local baseline staleness is confirmed, regenerate the
 theme-matrix baselines from the current preview build:
 
 ```bash
-PLAYWRIGHT_SERVER_MODE=preview \
-npx playwright test tests/e2e/theme-matrix-smoke.spec.ts \
-  --update-snapshots \
-  --reporter=line
+npm run qa:visual:full
 ```
 
-After regeneration, write a local provenance record at:
+After regeneration, update the tracked provenance record at:
 
 ```text
-tests/e2e/theme-matrix-smoke.spec.ts-snapshots/BASELINE_PROVENANCE.md
+tests/e2e/theme-matrix-baseline-provenance.md
 ```
 
 Include these fields:
@@ -48,8 +45,12 @@ Include these fields:
 - Date generated
 - Git commit SHA from `git rev-parse HEAD`
 - OS, Node version, and Playwright version
+- Regeneration and gate verification commands/results
 - Reason for regeneration
 
-This provenance file is local-only because it lives beside the ignored PNG
-baselines. T-01 will replace this with a durable CI artifact based baseline
-workflow.
+The PNG baselines remain local-only because they live under the ignored
+`tests/e2e/*-snapshots/` folders. The provenance document is tracked so
+distributed local environments can see the latest accepted regeneration and
+gate verification result. The `@gate` tier is the reduced gate path, and
+`npm run qa:visual:full` remains the full theme-matrix baseline regeneration
+path.
