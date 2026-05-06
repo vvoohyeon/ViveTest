@@ -67,7 +67,7 @@ function writeJson(key: string, value: unknown): void {
   storage.setItem(key, JSON.stringify(value));
 }
 
-function dispatchTransitionEvent(name: string, detail: Record<string, unknown>): void {
+function dispatchStoreChangeEvent(name: string, detail: Record<string, unknown>): void {
   if (typeof window === 'undefined') {
     return;
   }
@@ -81,7 +81,7 @@ function dispatchTransitionEvent(name: string, detail: Record<string, unknown>):
 
 export function writePendingLandingTransition(transition: PendingLandingTransition): void {
   writeJson(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION, transition);
-  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+  dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     key: SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION,
     transitionId: transition.transitionId
   });
@@ -94,7 +94,7 @@ export function readPendingLandingTransition(): PendingLandingTransition | null 
 export function clearPendingLandingTransition(): void {
   const storage = getSessionStorage();
   storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION);
-  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+  dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     key: SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION,
     transitionId: null
   });
@@ -103,7 +103,7 @@ export function clearPendingLandingTransition(): void {
 export function writeLandingIngress(record: LandingIngressRecord): void {
   const key = variantSessionKeys.landingIngress(record.variant);
   writeJson(key, record);
-  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+  dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     key,
     variant: record.variant
   });
@@ -129,7 +129,7 @@ export function clearLandingIngress(variant: string): void {
   const storage = getSessionStorage();
   const key = variantSessionKeys.landingIngress(variant);
   storage?.removeItem(key);
-  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+  dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     key,
     variant
   });
@@ -158,7 +158,7 @@ export function saveLandingReturnScrollY(scrollY: number, sourceVariant?: string
     storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   }
 
-  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
+  dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     key: SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y,
     sourceVariant: sourceVariant ?? null
   });
@@ -181,7 +181,8 @@ export function readLandingReturnScrollY(): number | null {
 
 export function consumeLandingReturnScrollY(): number | null {
   const value = readLandingReturnScrollY();
-  clearLandingReturnScroll();
+  const storage = getSessionStorage();
+  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
   return value;
 }
 
@@ -197,7 +198,8 @@ export function readLandingReturnVariant(): string | null {
 
 export function consumeLandingReturnVariant(): string | null {
   const value = readLandingReturnVariant();
-  clearLandingReturnScroll();
+  const storage = getSessionStorage();
+  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   return value;
 }
 
@@ -209,8 +211,11 @@ export function clearLandingReturnScroll(): void {
 
   storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
   storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
-  dispatchTransitionEvent(LANDING_TRANSITION_STORE_EVENT, {
-    key: SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y,
+  dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
+    keys: [
+      SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y,
+      SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT
+    ],
     sourceVariant: null
   });
 }
@@ -218,17 +223,19 @@ export function clearLandingReturnScroll(): void {
 export function rollbackLandingTransition(input: {
   variant?: string;
 }): void {
-  if (typeof document !== 'undefined') {
-    document.body.style.overflow = '';
-    document.body.style.touchAction = '';
-  }
+  const storage = getSessionStorage();
 
-  clearPendingLandingTransition();
-  clearLandingReturnScroll();
+  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION);
+  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
+  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   if (input.variant) {
-    clearLandingIngress(input.variant);
+    storage?.removeItem(variantSessionKeys.landingIngress(input.variant));
   }
-  dispatchTransitionEvent(LANDING_TRANSITION_CLEANUP_EVENT, {
+  dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
+    key: SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION,
+    transitionId: null
+  });
+  dispatchStoreChangeEvent(LANDING_TRANSITION_CLEANUP_EVENT, {
     variant: input.variant ?? null
   });
 }

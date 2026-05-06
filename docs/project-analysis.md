@@ -269,11 +269,11 @@ The dev/test fixture registry state is intentionally cached at module scope so r
 
 ### 5.4 Transition Runtime
 
-Landing-to-destination handshake: `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` writes `PendingLandingTransition` to `sessionStorage`, records return scroll position plus source variant, and, for test cards, writes a landing ingress record (`variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`).
+Landing-to-destination handshake: `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` records return scroll position plus source variant, writes `PendingLandingTransition` to `sessionStorage`, and, for valid test-card transitions, writes a landing ingress record (`variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`). Duplicate-locale target routes return `null` before this persistence path and emit no transition signal or telemetry.
 
 On the destination side, `src/features/landing/transition/transition-runtime-monitor.tsx` enforces a **1600ms timeout**. `TransitionGnbOverlay` keeps a landing-context GNB visible during pending transition. `LandingRuntime` restores scroll on return and cancels stale transitions with `USER_CANCEL`.
 
-Result reasons: `USER_CANCEL`, `DUPLICATE_LOCALE`, `DESTINATION_TIMEOUT`, `DESTINATION_LOAD_ERROR`, `UNKNOWN`. Cleanup is centralized in `rollbackLandingTransition()`. All persistence is session-scoped and client-only.
+Result reasons: `USER_CANCEL`, `DUPLICATE_LOCALE`, `DESTINATION_TIMEOUT`, `DESTINATION_LOAD_ERROR`, `UNKNOWN`. Cleanup is centralized in `rollbackLandingTransition()`, which removes pending, return-scroll, and ingress storage directly before dispatching one pending-store event and one cleanup event. All persistence is session-scoped and client-only.
 
 ### 5.5 Destination Bootstrap
 
@@ -445,7 +445,7 @@ The key lists below describe the live prototype plus the Phase 3 test storage co
 **Prototype behaviors that are easy to miss:**
 
 - Landing ingress is consumed exactly once: deep-link `/test` entry starts from `q.1` when a profile row exists or `scoring1` otherwise, without `card_answered` or `transition_start`; landing-ingress entry keeps the pre-answered `scoring1` and starts from `q.1` for profile-first variants or `scoring2` otherwise.
-- `card_answered` fires at transition start for test cards — telemetry can record ingress intent even when the destination later fails closed.
+- `card_answered` fires at transition start for valid test cards — telemetry can record ingress intent even when the destination later fails closed.
 - Test-route consent writes now originate only from instruction CTA actions; the page renders no route-local consent banner, no confirm dialog, and no blocked-start popup.
 - `vivetest-test-instruction-seen:{variant}` is still variant-scoped in `sessionStorage`.
 - `[Start]`, `[Accept All and Start]`, and `[Deny and Start]` record `instructionSeen` and commit runtime entry.

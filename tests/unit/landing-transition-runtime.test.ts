@@ -1,13 +1,18 @@
 import {JSDOM} from 'jsdom';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
+import {SESSION_STORAGE_KEYS} from '../../src/features/landing/storage/storage-keys';
 import {resetTelemetryRuntimeForTests, syncTelemetryConsent} from '../../src/features/landing/telemetry/runtime';
 import {
   beginLandingTransition,
   terminatePendingLandingTransition
 } from '../../src/features/landing/transition/runtime';
 import {LANDING_TRANSITION_SIGNAL_EVENT} from '../../src/features/landing/transition/signals';
-import {readLandingIngress, readPendingLandingTransition} from '../../src/features/landing/transition/store';
+import {
+  LANDING_TRANSITION_STORE_EVENT,
+  readLandingIngress,
+  readPendingLandingTransition
+} from '../../src/features/landing/transition/store';
 
 const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 
@@ -96,11 +101,17 @@ describe('landing transition runtime', () => {
     expect(signals).toHaveLength(2);
   });
 
-  it('keeps card_answered public telemetry while duplicate-locale test ingress fails closed internally', () => {
+  it('returns null without side effects for duplicate-locale target routes', () => {
     const signals: Array<Record<string, unknown>> = [];
+    const storeEvents: Array<Record<string, unknown>> = [];
     window.addEventListener(LANDING_TRANSITION_SIGNAL_EVENT, ((event: Event) => {
       if (event instanceof window.CustomEvent) {
         signals.push(event.detail as Record<string, unknown>);
+      }
+    }) as EventListener);
+    window.addEventListener(LANDING_TRANSITION_STORE_EVENT, ((event: Event) => {
+      if (event instanceof window.CustomEvent) {
+        storeEvents.push(event.detail as Record<string, unknown>);
       }
     }) as EventListener);
 
@@ -115,17 +126,11 @@ describe('landing transition runtime', () => {
     });
 
     expect(pending).toBeNull();
+    expect(window.sessionStorage.getItem(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION)).toBeNull();
     expect(readPendingLandingTransition()).toBeNull();
     expect(readLandingIngress('qmbti')).toBeNull();
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(signals.map((signal) => signal.signal)).toEqual(['transition_start', 'transition_fail']);
-    expect(signals[1]?.resultReason).toBe('DUPLICATE_LOCALE');
-
-    const [cardAnsweredCall] = vi.mocked(fetch).mock.calls;
-    const cardAnsweredPayload = JSON.parse(String(cardAnsweredCall?.[1]?.body ?? '{}'));
-    expect(cardAnsweredPayload.event_type).toBe('card_answered');
-    expect(cardAnsweredPayload.source_variant).toBe('qmbti');
-    expect(cardAnsweredPayload.target_route).toBe('/ja/ja/test/qmbti');
-    expect(cardAnsweredPayload.landing_ingress_flag).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(storeEvents).toHaveLength(0);
+    expect(signals).toHaveLength(0);
   });
 });

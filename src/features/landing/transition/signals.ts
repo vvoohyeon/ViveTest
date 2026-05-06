@@ -20,7 +20,7 @@ export interface LandingTransitionSignalDetail {
 
 export function emitLandingTransitionSignal(
   detail: LandingTransitionSignalDetail
-): LandingTransitionSignalDetail {
+): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(
       new window.CustomEvent(LANDING_TRANSITION_SIGNAL_EVENT, {
@@ -28,6 +28,4 @@ export function emitLandingTransitionSignal(
       })
     );
   }
-
-  return detail;
 }

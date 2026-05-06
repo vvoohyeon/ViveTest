@@ -31,6 +31,10 @@ interface BeginLandingTransitionInput {
 }
 
 export function beginLandingTransition(input: BeginLandingTransitionInput): PendingLandingTransition | null {
+  if (DUPLICATE_LOCALE_PATH_PATTERN.test(input.targetRoute)) {
+    return null;
+  }
+
   const transitionId = createCorrelationId('transition');
   const pendingTransition: PendingLandingTransition = {
     transitionId,
@@ -42,10 +46,10 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
     preAnswerChoice: input.preAnswerChoice
   };
 
-  writePendingLandingTransition(pendingTransition);
   if (typeof window !== 'undefined') {
     saveLandingReturnScrollY(window.scrollY, input.sourceVariant);
   }
+  writePendingLandingTransition(pendingTransition);
 
   if (input.targetType === 'test' && input.preAnswerChoice) {
     writeLandingIngress({
@@ -69,14 +73,6 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
     sourceVariant: input.sourceVariant,
     targetRoute: input.targetRoute
   });
-
-  if (DUPLICATE_LOCALE_PATH_PATTERN.test(input.targetRoute)) {
-    terminatePendingLandingTransition({
-      signal: 'transition_fail',
-      resultReason: 'DUPLICATE_LOCALE'
-    });
-    return null;
-  }
 
   return pendingTransition;
 }

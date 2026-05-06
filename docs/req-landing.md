@@ -898,10 +898,11 @@
 - 전환 시작 후 지속시간과 무관하게 반드시 종료 이벤트(`complete|fail|cancel`)로 정리해야 한다.
 - `short transition` 조기 return 등으로 fail/cancel 정리 생략을 금지한다.
 - 정리 시 pending transition/state/flag/body lock 누수를 금지한다.
+- duplicate-locale target route는 전환 시작 전 no-op으로 종료하며 pending/ingress/telemetry/internal signal을 생성하지 않는다.
 
 **QA 최소 액션 케이스**:
 1. 랜딩 CTA 직후 사용자 취소(뒤로가기/중단)
-2. locale duplicate 실패
+2. duplicate-locale preflight no-op
 3. 목적지 라우트 진입 실패(타임아웃/로드 실패)
 
 ### 13.7 Question Dwell Time
@@ -981,7 +982,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
 15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_variant`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `card_answered`가 landing phase의 `scoring1` 기록임을 유지하고, `attempt_start.question_index_1based`가 UI `Qn`이 아니라 첫 runtime question의 canonical index로 정확히 발화하며, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
-16. Rollback Cleanup Closure: fail/cancel 3케이스(사용자 취소, locale duplicate, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
+16. Rollback Cleanup Closure: fail/cancel 케이스(사용자 취소, 목적지 타임아웃, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건`, duplicate-locale preflight no-op에서 pending/ingress/telemetry/internal signal `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
 18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses` 포함, canonical 전 문항 맵) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).
 19. Traceability Closure: 이 섹션(§14.2)의 모든 블로킹 항목이 최소 1개 이상의 자동 단언과 매핑되어야 하며, 미매핑 `0건` PASS (Section 14.3).
