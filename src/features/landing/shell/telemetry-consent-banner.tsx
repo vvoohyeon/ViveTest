@@ -3,7 +3,7 @@
 import {useTranslations} from 'next-intl';
 
 import {ConsentBanner} from '@/features/landing/shell/consent-banner';
-import {setTelemetryConsentState, useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
+import {setTelemetryConsentState, useTelemetryConsentSource} from '@/features/telemetry/consent-source';
 
 export function TelemetryConsentBanner() {
   const t = useTranslations('consent');

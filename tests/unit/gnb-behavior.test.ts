@@ -6,7 +6,7 @@ import {
   shouldCancelOutsideCloseAsScroll,
   shouldOpenDesktopSettingsByHover,
   shouldUseHistoryBack
-} from '../../src/features/landing/gnb/behavior';
+} from '../../src/features/gnb/behavior';
 
 describe('gnb behavior contracts', () => {
   it('enables desktop hover-open only on desktop width and hover-capable inputs', () => {

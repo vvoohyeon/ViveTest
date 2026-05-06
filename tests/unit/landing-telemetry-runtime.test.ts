@@ -7,7 +7,7 @@ import {
   setTelemetryConsentState,
   syncTelemetryConsent,
   trackLandingView
-} from '../../src/features/landing/telemetry/runtime';
+} from '../../src/features/telemetry/runtime';
 
 const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 

@@ -4,7 +4,7 @@ import {useCallback} from 'react';
 import {usePathname, useRouter} from 'next/navigation';
 
 import type {AppLocale} from '@/config/site';
-import {beginLandingTransition} from '@/features/landing/transition/runtime';
+import {beginLandingTransition} from '@/features/transition/runtime';
 import type {LandingBlogCard, LandingTestCard} from '@/features/variant-registry';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';

@@ -3,7 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {
   getBlogDetailPageModel,
   getBlogIndexPageModel
-} from '../../src/features/landing/blog/server-model';
+} from '../../src/features/blog/server-model';
 
 describe('blog server page model', () => {
   it('keeps the blog index route list-only and preserves canonical registry order', () => {

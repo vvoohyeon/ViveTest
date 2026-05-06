@@ -91,8 +91,8 @@ const consumerPreviewLeakFiles = [
   'src/features/test/question-bank.ts',
   'src/features/test/test-question-client.tsx',
   'src/features/landing/grid/landing-grid-card.tsx',
-  'src/features/landing/blog/server-model.ts',
-  'src/features/landing/blog/blog-destination-client.tsx'
+  'src/features/blog/server-model.ts',
+  'src/features/blog/blog-destination-client.tsx'
 ];
 
 for (const relativePath of consumerPreviewLeakFiles) {

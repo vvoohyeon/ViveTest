@@ -1,4 +1,4 @@
-import type {TelemetryConsentState} from '@/features/landing/telemetry/types';
+import type {TelemetryConsentState} from '@/features/telemetry/types';
 import type {
   LandingAvailability,
   LandingCardAttribute,

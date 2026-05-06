@@ -6,7 +6,7 @@ const requiredFiles = [
   'package.json',
   'src/features/landing/grid/landing-grid-card.tsx',
   'src/features/landing/grid/landing-grid-card.module.css',
-  'src/features/landing/gnb/site-gnb.tsx',
+  'src/features/gnb/site-gnb.tsx',
   'tests/e2e/a11y-smoke.spec.ts',
   'tests/e2e/state-smoke.spec.ts',
   'tests/e2e/gnb-smoke.spec.ts'
@@ -38,8 +38,8 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   }
 }
 
-if (fileExists('src/features/landing/gnb/site-gnb.tsx')) {
-  const gnbFile = read('src/features/landing/gnb/site-gnb.tsx');
+if (fileExists('src/features/gnb/site-gnb.tsx')) {
+  const gnbFile = read('src/features/gnb/site-gnb.tsx');
 
   if (!/aria-label=\{t\('settings'\)\}/u.test(gnbFile)) {
     fail('Desktop settings trigger must expose an aria-label.');

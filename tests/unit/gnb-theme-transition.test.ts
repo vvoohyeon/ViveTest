@@ -3,7 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {
   THEME_TRANSITION_CONFIG,
   resolveThemeTransitionDuration
-} from '../../src/features/landing/gnb/hooks/theme-transition';
+} from '../../src/features/gnb/hooks/theme-transition';
 
 describe('gnb theme transition contracts', () => {
   it('keeps the blur circle duration config at 2500ms by default', () => {

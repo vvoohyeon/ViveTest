@@ -2,8 +2,8 @@
 import {act, renderHook} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS} from '../../src/features/landing/gnb/behavior';
-import {useGnbBackNavigation} from '../../src/features/landing/gnb/hooks/use-gnb-back-navigation';
+import {MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS} from '../../src/features/gnb/behavior';
+import {useGnbBackNavigation} from '../../src/features/gnb/hooks/use-gnb-back-navigation';
 import {SESSION_STORAGE_KEYS} from '../../src/features/landing/storage/storage-keys';
 import type {LocalizedRoutePath} from '../../src/i18n/localized-path';
 import {makeRouter} from './__mocks__/router';

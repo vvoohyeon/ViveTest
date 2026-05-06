@@ -22,7 +22,7 @@ import {
 import {resolveDesktopTransformOriginX} from '@/features/landing/grid/hover-intent';
 import {useLandingInteractionController} from '@/features/landing/grid/use-landing-interaction-controller';
 import {useGridGeometryController} from '@/features/landing/grid/use-grid-geometry-controller';
-import {useLandingTransition} from '@/features/landing/transition/use-landing-transition';
+import {useLandingTransition} from '@/features/transition/use-landing-transition';
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
 const INITIAL_GRID_INLINE_SIZE = CONTAINER_MAX_WIDTH - TABLET_DESKTOP_SIDE_PADDING * 2;

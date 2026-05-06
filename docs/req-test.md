@@ -222,7 +222,7 @@
 - enterable Questions fixture 중 `qmbti`, `energy-check`, `egtt`는 even-count axis를 해소하기 위해 `Q_placeholder_*` scoring row를 추가했다. `rhythm-b`는 모든 axis가 이미 odd-count라 변경하지 않았다. `debug-sample`은 B30 lazy-validation failure 검증을 위한 의도적 `EVEN_AXIS_QUESTION_COUNT` fixture로 유지한다.
 - preview source는 Questions의 **first scoring question (`scoring1`)** 이다. preview consumer 노출은 `resolveTestPreviewPayload()` 경계로 제한하고, landing UI / test runtime / blog runtime 어디에서도 raw fixture preview field를 직접 읽어서는 안 된다.
 - source row의 first row나 profile row는 preview source가 아니다. consumer shape는 `previewQuestion`, `answerChoiceA`, `answerChoiceB`로 유지한다.
-- builder는 caller가 주입한 `questionSourcesByVariant[variant]`에서 `findFirstScoringRow()`를 적용해 `testPreviewPayloadByVariant`를 구성한다. builder 내부에는 Questions fixture direct import가 없으며, Landing source row의 `previewQuestion` / `answerA` / `answerB` inline field는 제거되었고, `src/features/landing/data`의 raw fixture compatibility export/file도 제거되었다.
+- builder는 caller가 주입한 `questionSourcesByVariant[variant]`에서 `findFirstScoringRow()`를 적용해 `testPreviewPayloadByVariant`를 구성한다. builder 내부에는 Questions fixture direct import가 없으며, Landing source row의 `previewQuestion` / `answerA` / `answerB` inline field는 제거되었다. 런타임 consumer는 `src/features/variant-registry`의 resolver/types 경계를 직접 사용한다.
 - `seq`는 source fixture 입력 전용이다. registry builder는 **`seq -> sort -> drop`** 순서를 강제해야 하며, Questions parser는 source row order 보존과 canonical index 재번호를 수행한 뒤 runtime question model에서는 source `seq`와 canonical index를 분리해야 한다.
 - **테스트**: fixture 파일은 unit/e2e 테스트의 유일한 variant 소스다. Google Sheets 실연동 없이 전체 테스트 스위트가 실행 가능해야 한다.
 - **테스트 앵커**: `tests/unit/question-source-parser.test.ts`, `tests/unit/variant-question-bank.test.ts`

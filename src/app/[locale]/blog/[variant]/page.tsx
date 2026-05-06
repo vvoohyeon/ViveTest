@@ -3,8 +3,8 @@ import {notFound, redirect} from 'next/navigation';
 import {getTranslations} from 'next-intl/server';
 
 import {isLocale} from '@/config/site';
-import {BlogDestinationClient} from '@/features/landing/blog/blog-destination-client';
-import {getBlogDetailPageModel} from '@/features/landing/blog/server-model';
+import {BlogDestinationClient} from '@/features/blog/blog-destination-client';
+import {getBlogDetailPageModel} from '@/features/blog/server-model';
 import {PageShell} from '@/features/landing/shell';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';

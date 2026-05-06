@@ -1,4 +1,4 @@
-import type {TelemetryConsentState, TelemetryEvent, TelemetryEventType} from '@/features/landing/telemetry/types';
+import type {TelemetryConsentState, TelemetryEvent, TelemetryEventType} from '@/features/telemetry/types';
 
 const FORBIDDEN_FIELD_PATTERN =
   /^(question_text|answer_text|free_input|free_text|email|ip|fingerprint)$/iu;

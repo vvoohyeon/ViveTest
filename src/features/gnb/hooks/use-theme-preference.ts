@@ -3,8 +3,8 @@
 import {useCallback, useEffect, useState} from 'react';
 import {flushSync} from 'react-dom';
 
-import type {ThemePreference} from '@/features/landing/gnb/types';
-import {runBlurCircleTransition} from '@/features/landing/gnb/hooks/theme-transition';
+import type {ThemePreference} from '@/features/gnb/types';
+import {runBlurCircleTransition} from '@/features/gnb/hooks/theme-transition';
 import {LOCAL_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
 
 type ResolvedTheme = Exclude<ThemePreference, 'system'>;

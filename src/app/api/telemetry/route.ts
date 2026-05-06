@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 
-import {validateTelemetryTransportEvent} from '@/features/landing/telemetry/validation';
+import {validateTelemetryTransportEvent} from '@/features/telemetry/validation';
 
 export async function POST(request: Request) {
   try {

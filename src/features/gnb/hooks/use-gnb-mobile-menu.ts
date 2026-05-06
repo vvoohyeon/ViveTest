@@ -11,8 +11,8 @@ import {
 import {
   MOBILE_MENU_CLOSE_DURATION_MS,
   shouldCancelOutsideCloseAsScroll
-} from '@/features/landing/gnb/behavior';
-import type {MobileMenuState} from '@/features/landing/gnb/types';
+} from '@/features/gnb/behavior';
+import type {MobileMenuState} from '@/features/gnb/types';
 
 /**
  * @future-move R-06

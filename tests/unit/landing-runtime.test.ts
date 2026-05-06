@@ -5,7 +5,7 @@ import {
   consumePendingReturnScrollRestore,
   resolveLandingReturnScrollTop
 } from '../../src/features/landing/landing-runtime';
-import {readLandingReturnScrollY, saveLandingReturnScrollY} from '../../src/features/landing/transition/store';
+import {readLandingReturnScrollY, saveLandingReturnScrollY} from '../../src/features/transition/store';
 
 function installDom() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {

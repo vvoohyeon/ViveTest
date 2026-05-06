@@ -14,16 +14,16 @@ import {
 } from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {SettingsControls} from '@/features/landing/gnb/components/settings-controls';
-import {ThemeModeIcon} from '@/features/landing/gnb/components/theme-mode-icon';
-import {shouldOpenDesktopSettingsByHover} from '@/features/landing/gnb/behavior';
-import {useGnbBackNavigation} from '@/features/landing/gnb/hooks/use-gnb-back-navigation';
-import {useGnbCapability} from '@/features/landing/gnb/hooks/use-gnb-capability';
-import {useGnbDesktopSettings} from '@/features/landing/gnb/hooks/use-gnb-desktop-settings';
-import {useGnbMobileMenu} from '@/features/landing/gnb/hooks/use-gnb-mobile-menu';
-import {getTransitionOrigin} from '@/features/landing/gnb/hooks/theme-transition';
-import {useThemePreference} from '@/features/landing/gnb/hooks/use-theme-preference';
-import type {GnbContext} from '@/features/landing/gnb/types';
+import {SettingsControls} from '@/features/gnb/components/settings-controls';
+import {ThemeModeIcon} from '@/features/gnb/components/theme-mode-icon';
+import {shouldOpenDesktopSettingsByHover} from '@/features/gnb/behavior';
+import {useGnbBackNavigation} from '@/features/gnb/hooks/use-gnb-back-navigation';
+import {useGnbCapability} from '@/features/gnb/hooks/use-gnb-capability';
+import {useGnbDesktopSettings} from '@/features/gnb/hooks/use-gnb-desktop-settings';
+import {useGnbMobileMenu} from '@/features/gnb/hooks/use-gnb-mobile-menu';
+import {getTransitionOrigin} from '@/features/gnb/hooks/theme-transition';
+import {useThemePreference} from '@/features/gnb/hooks/use-theme-preference';
+import type {GnbContext} from '@/features/gnb/types';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder, type LocaleFreeRoute} from '@/lib/routes/route-builder';
 

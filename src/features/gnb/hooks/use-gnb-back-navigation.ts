@@ -6,7 +6,7 @@ import {useCallback, useEffect, useRef} from 'react';
 import {
   MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS,
   shouldUseHistoryBack
-} from '@/features/landing/gnb/behavior';
+} from '@/features/gnb/behavior';
 import {SESSION_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
 import type {LocalizedRoutePath} from '@/i18n/localized-path';
 

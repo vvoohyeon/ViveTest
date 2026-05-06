@@ -2,7 +2,7 @@
 
 import {SpeedInsights} from '@vercel/speed-insights/next';
 
-import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
+import {useTelemetryConsentSource} from '@/features/telemetry/consent-source';
 
 export function VercelSpeedInsightsGate() {
   const consentSnapshot = useTelemetryConsentSource();

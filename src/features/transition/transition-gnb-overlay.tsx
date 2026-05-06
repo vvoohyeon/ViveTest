@@ -1,8 +1,8 @@
 'use client';
 
 import type {AppLocale} from '@/config/site';
-import {SiteGnb, type GnbContext} from '@/features/landing/gnb';
-import {usePendingLandingTransition} from '@/features/landing/transition/use-pending-landing-transition';
+import {SiteGnb, type GnbContext} from '@/features/gnb';
+import {usePendingLandingTransition} from '@/features/transition/use-pending-landing-transition';
 import {RouteBuilder, type LocaleFreeRoute} from '@/lib/routes/route-builder';
 
 interface TransitionGnbOverlayProps {

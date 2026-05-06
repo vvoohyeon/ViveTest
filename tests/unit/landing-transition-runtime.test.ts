@@ -2,17 +2,17 @@ import {JSDOM} from 'jsdom';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {SESSION_STORAGE_KEYS} from '../../src/features/landing/storage/storage-keys';
-import {resetTelemetryRuntimeForTests, syncTelemetryConsent} from '../../src/features/landing/telemetry/runtime';
+import {resetTelemetryRuntimeForTests, syncTelemetryConsent} from '../../src/features/telemetry/runtime';
 import {
   beginLandingTransition,
   terminatePendingLandingTransition
-} from '../../src/features/landing/transition/runtime';
-import {LANDING_TRANSITION_SIGNAL_EVENT} from '../../src/features/landing/transition/signals';
+} from '../../src/features/transition/runtime';
+import {LANDING_TRANSITION_SIGNAL_EVENT} from '../../src/features/transition/signals';
 import {
   LANDING_TRANSITION_STORE_EVENT,
   readLandingIngress,
   readPendingLandingTransition
-} from '../../src/features/landing/transition/store';
+} from '../../src/features/transition/store';
 
 const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 

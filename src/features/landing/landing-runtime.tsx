@@ -4,13 +4,13 @@ import {usePathname} from 'next/navigation';
 import {useEffect, useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {trackLandingView, useTelemetryBootstrap} from '@/features/landing/telemetry/runtime';
-import {terminatePendingLandingTransition} from '@/features/landing/transition/runtime';
+import {trackLandingView, useTelemetryBootstrap} from '@/features/telemetry/runtime';
+import {terminatePendingLandingTransition} from '@/features/transition/runtime';
 import {
   clearLandingReturnScroll,
   readLandingReturnScrollY,
   readPendingLandingTransition
-} from '@/features/landing/transition/store';
+} from '@/features/transition/store';
 
 interface LandingRuntimeProps {
   locale: AppLocale;

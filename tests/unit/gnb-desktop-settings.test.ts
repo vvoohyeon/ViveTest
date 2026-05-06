@@ -2,8 +2,8 @@
 import {act, renderHook} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS} from '../../src/features/landing/gnb/behavior';
-import {useGnbDesktopSettings} from '../../src/features/landing/gnb/hooks/use-gnb-desktop-settings';
+import {DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS} from '../../src/features/gnb/behavior';
+import {useGnbDesktopSettings} from '../../src/features/gnb/hooks/use-gnb-desktop-settings';
 
 describe('useGnbDesktopSettings', () => {
   beforeEach(() => {

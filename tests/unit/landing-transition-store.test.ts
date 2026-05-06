@@ -18,7 +18,7 @@ import {
   saveLandingReturnScrollY,
   writeLandingIngress,
   writePendingLandingTransition
-} from '../../src/features/landing/transition/store';
+} from '../../src/features/transition/store';
 
 function installDom() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {

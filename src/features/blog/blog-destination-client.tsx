@@ -10,8 +10,8 @@ import {RouteBuilder} from '@/lib/routes/route-builder';
 import {
   completePendingLandingTransition,
   terminatePendingLandingTransition
-} from '@/features/landing/transition/runtime';
-import {readPendingLandingTransition} from '@/features/landing/transition/store';
+} from '@/features/transition/runtime';
+import {readPendingLandingTransition} from '@/features/transition/store';
 import type {LandingBlogCard} from '@/features/variant-registry';
 
 interface BlogDestinationClientProps {

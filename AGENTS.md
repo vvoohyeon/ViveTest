@@ -85,11 +85,11 @@ include Playwright E2E regression coverage (§5).
 - `src/features/landing/grid/use-landing-interaction-controller.ts`
 - `src/features/landing/grid/use-mobile-card-lifecycle.ts`
 - `src/features/landing/grid/use-keyboard-handoff.ts`
-- `src/features/landing/gnb/site-gnb.tsx`
+- `src/features/gnb/site-gnb.tsx`
 - `src/features/landing/shell/page-shell.tsx`
 - `public/theme-bootstrap.js`
-- `src/features/landing/telemetry/consent-source.ts`
-- `src/features/landing/transition/`
+- `src/features/telemetry/consent-source.ts`
+- `src/features/transition/`
 
 ### Always — Modify Freely
 
@@ -160,8 +160,8 @@ Consult before referencing external patterns. Replicate the following exactly.
 | Pure domain public surface | `src/features/test/domain/index.ts` |
 | Pure validator | `src/features/test/domain/validate-variant.ts` |
 | Instruction entry policy | `src/features/test/entry-policy.ts` |
-| Telemetry payload hygiene | `src/features/landing/telemetry/validation.ts` |
-| Transition storage/runtime | `src/features/landing/transition/runtime.ts` |
+| Telemetry payload hygiene | `src/features/telemetry/validation.ts` |
+| Transition storage/runtime | `src/features/transition/runtime.ts` |
 | Representative e2e anchor | `tests/e2e/helpers/landing-fixture.ts` |
 
 ---

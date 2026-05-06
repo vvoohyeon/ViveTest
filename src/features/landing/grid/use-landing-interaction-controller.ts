@@ -34,7 +34,7 @@ import {
   resolveCardTabIndex,
   type LandingInteractionState
 } from '@/features/landing/model/interaction-state';
-import {LANDING_TRANSITION_CLEANUP_EVENT} from '@/features/landing/transition/store';
+import {LANDING_TRANSITION_CLEANUP_EVENT} from '@/features/transition/store';
 import {
   useDesktopMotionController,
   type DesktopMotionState

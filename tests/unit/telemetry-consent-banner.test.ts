@@ -14,7 +14,7 @@ import {
   setTelemetryConsentState,
   syncTelemetryConsentSource,
   TELEMETRY_CONSENT_STORAGE_KEY
-} from '../../src/features/landing/telemetry/consent-source';
+} from '../../src/features/telemetry/consent-source';
 
 let root: Root | null = null;
 const testMessagesByLocale = {

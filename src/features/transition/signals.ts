@@ -1,6 +1,6 @@
 'use client';
 
-import type {LandingTransitionResultReason} from '@/features/landing/transition/store';
+import type {LandingTransitionResultReason} from '@/features/transition/store';
 
 export const LANDING_TRANSITION_SIGNAL_EVENT = 'landing:transition-signal';
 

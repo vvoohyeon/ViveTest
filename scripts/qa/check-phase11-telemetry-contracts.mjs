@@ -85,9 +85,9 @@ function assertExactSnapshotSet({label, actualFiles, expectedFiles}) {
 }
 
 const requiredFiles = [
-  'src/features/landing/lib/correlation-id.ts',
-  'src/features/landing/telemetry/runtime.ts',
-  'src/features/landing/telemetry/validation.ts',
+  'src/lib/correlation-id.ts',
+  'src/features/telemetry/runtime.ts',
+  'src/features/telemetry/validation.ts',
   'src/app/api/telemetry/route.ts',
   'playwright.config.ts',
   'tests/unit/landing-telemetry-validation.test.ts',
@@ -116,10 +116,10 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/landing/telemetry/runtime.ts')) {
-  const runtimeFile = read('src/features/landing/telemetry/runtime.ts');
-  const correlationIdFile = fileExists('src/features/landing/lib/correlation-id.ts')
-    ? read('src/features/landing/lib/correlation-id.ts')
+if (fileExists('src/features/telemetry/runtime.ts')) {
+  const runtimeFile = read('src/features/telemetry/runtime.ts');
+  const correlationIdFile = fileExists('src/lib/correlation-id.ts')
+    ? read('src/lib/correlation-id.ts')
     : '';
 
   if (!/UNKNOWN/u.test(runtimeFile) || !/OPTED_OUT/u.test(runtimeFile) || !/OPTED_IN/u.test(runtimeFile)) {
@@ -144,8 +144,8 @@ if (fileExists('src/features/landing/telemetry/runtime.ts')) {
   }
 }
 
-if (fileExists('src/features/landing/telemetry/validation.ts')) {
-  const validationFile = read('src/features/landing/telemetry/validation.ts');
+if (fileExists('src/features/telemetry/validation.ts')) {
+  const validationFile = read('src/features/telemetry/validation.ts');
   if (
     !/Forbidden telemetry field/u.test(validationFile) ||
     !/Legacy telemetry field/u.test(validationFile) ||

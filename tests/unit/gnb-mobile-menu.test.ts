@@ -3,8 +3,8 @@ import type {PointerEvent as ReactPointerEvent} from 'react';
 import {act, renderHook} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {MOBILE_MENU_CLOSE_DURATION_MS} from '../../src/features/landing/gnb/behavior';
-import {useGnbMobileMenu} from '../../src/features/landing/gnb/hooks/use-gnb-mobile-menu';
+import {MOBILE_MENU_CLOSE_DURATION_MS} from '../../src/features/gnb/behavior';
+import {useGnbMobileMenu} from '../../src/features/gnb/hooks/use-gnb-mobile-menu';
 
 function pointer(clientX: number, clientY: number) {
   return {clientX, clientY} as ReactPointerEvent<HTMLDivElement>;

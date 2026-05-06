@@ -3,9 +3,9 @@
 import {usePathname} from 'next/navigation';
 import {useEffect} from 'react';
 
-import {LANDING_TRANSITION_TIMEOUT_MS} from '@/features/landing/transition/constants';
-import {terminatePendingLandingTransition} from '@/features/landing/transition/runtime';
-import {usePendingLandingTransition} from '@/features/landing/transition/use-pending-landing-transition';
+import {LANDING_TRANSITION_TIMEOUT_MS} from '@/features/transition/constants';
+import {terminatePendingLandingTransition} from '@/features/transition/runtime';
+import {usePendingLandingTransition} from '@/features/transition/use-pending-landing-transition';
 
 export function TransitionRuntimeMonitor() {
   const pathname = usePathname();

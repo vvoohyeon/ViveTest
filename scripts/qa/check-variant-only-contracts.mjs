@@ -4,7 +4,7 @@ const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'src/lib/routes/route-builder.ts',
-  'src/features/landing/blog/server-model.ts',
+  'src/features/blog/server-model.ts',
   'src/app/[locale]/blog/page.tsx',
   'src/app/[locale]/blog/[variant]/page.tsx',
   'src/features/landing/grid/landing-grid-card.tsx',
@@ -40,11 +40,11 @@ const forbiddenPatterns = [
 ];
 
 const scanFiles = [
-  'src/features/landing/data/adapter.ts',
-  'src/features/landing/data/index.ts',
-  'src/features/landing/data/types.ts',
-  'src/features/landing/blog/server-model.ts',
-  'src/features/landing/blog/blog-destination-client.tsx',
+  'src/features/variant-registry/resolvers.ts',
+  'src/features/variant-registry/index.ts',
+  'src/features/variant-registry/types.ts',
+  'src/features/blog/server-model.ts',
+  'src/features/blog/blog-destination-client.tsx',
   'src/features/landing/grid/landing-grid-card.tsx',
   'tests/unit/landing-data-contract.test.ts',
   'tests/unit/landing-card-contract.test.ts',

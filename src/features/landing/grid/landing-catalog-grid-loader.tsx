@@ -4,7 +4,7 @@ import {useMemo} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {LandingCatalogGrid} from '@/features/landing/grid/landing-catalog-grid';
-import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
+import {useTelemetryConsentSource} from '@/features/telemetry/consent-source';
 import {resolveLandingCatalog} from '@/features/variant-registry';
 
 interface LandingCatalogGridLoaderProps {

@@ -1,7 +1,7 @@
 'use client';
 
 import {Analytics} from '@vercel/analytics/next';
-import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
+import {useTelemetryConsentSource} from '@/features/telemetry/consent-source';
 
 export function VercelAnalyticsGate() {
   const consentSnapshot = useTelemetryConsentSource();

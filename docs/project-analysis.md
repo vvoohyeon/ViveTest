@@ -23,12 +23,12 @@ This repository is a localized Next.js App Router application. Its real technica
 
 - Localized landing page with hero + catalog (`src/app/[locale]/page.tsx`)
 - Landing catalog grid with desktop/mobile expansion behavior (`src/features/landing/grid/`)
-- Global navigation shell (GNB) with theme switching, locale switching, keyboard/focus contract (`src/features/landing/gnb/site-gnb.tsx`)
+- Global navigation shell (GNB) with theme switching, locale switching, keyboard/focus contract (`src/features/gnb/site-gnb.tsx`)
 - Tailwind v4 entry plus component-local utility migration across shared shell, GNB, landing grid/card static surface, test shell, blog/history shells, and not-found pages, with `src/app/globals.css` reduced to tokens/base while landing-grid motion/focus continuity moved into feature-local CSS
-- Landing-to-destination transition handshake with sessionStorage persistence and timeout/cancel semantics (`src/features/landing/transition/`)
-- Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/landing/telemetry/`)
+- Landing-to-destination transition handshake with sessionStorage persistence and timeout/cancel semantics (`src/features/transition/`)
+- Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/telemetry/`)
 - Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
-- Blog index/list route plus route-driven article detail (`src/features/landing/blog/blog-destination-client.tsx`, `src/app/[locale]/blog/[variant]/page.tsx`)
+- Blog index/list route plus route-driven article detail (`src/features/blog/blog-destination-client.tsx`, `src/app/[locale]/blog/[variant]/page.tsx`)
 - Test entry recovery stub route (`src/app/[locale]/test/error/page.tsx`) used by runtime-blocked and lazy-validation-failed variants
 - Fixture-backed variant registry with generated runtime export, source/runtime type separation, `seq` validation + sort/drop, resolver-only preview access, unified landing meta keys, and resolver-backed card lookup (`src/features/variant-registry/`)
 - Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `axisMatchesQuestion`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`). Key interface contracts are frozen by Phase 0–1 ADRs (brand type shapes, `validateVariant()` result union, `BlockingDataErrorReason` enum).
@@ -54,13 +54,18 @@ This repository is a localized Next.js App Router application. Its real technica
 | `src/app/layout.tsx` | Document structure, Tailwind/global CSS entry, theme bootstrap, Vercel analytics gates |
 | `src/app/[locale]/layout.tsx` | Locale validation, `NextIntlClientProvider`, `TransitionRuntimeMonitor` |
 | `src/app/[locale]/**/page.tsx` | Thin server components — load translations, validate params, hand off to `PageShell` + client |
-| `src/features/landing/` | **Shared application runtime** — grid, GNB, transition, telemetry, shared shell, blog destination |
+| `src/features/landing/` | Landing runtime, grid/model/shell/storage orchestration |
+| `src/features/gnb/` | Shared GNB shell, theme preference, locale switching, and route-aware back navigation |
+| `src/features/transition/` | Landing-to-destination transition persistence, signals, monitor, and GNB overlay |
+| `src/features/telemetry/` | Consent source, custom telemetry runtime, payload validation, and Vercel analytics consent bridge |
+| `src/features/blog/` | Blog list/detail destination model and client |
 | `src/features/test/` | Canonical test destination surface — route/runtime shell, instruction entry policy, overlay composition, question bootstrap, and question-bank resolution |
 | `src/features/test/domain/` | Pure domain module — branded ids, question/schema models, variant validation, integrity checks, score derivation, and type-segment parsing/building |
 | `src/config/site.ts` | Locale set definition |
 | `src/lib/routes/route-builder.ts` + `src/i18n/localized-path.ts` | Locale-free route authoring + locale prefix application |
+| `src/lib/correlation-id.ts` | Browser-safe anonymous/correlation ID utilities |
 
-`src/features/landing` remains the de facto platform namespace for shared runtime concerns. The canonical test surface now lives in `src/features/test`, and its user-facing runtime currently composes landing-owned transition, telemetry, shell, and catalog seams alongside the pure test-domain foundation.
+Shared concerns that previously lived under `src/features/landing/*` now have independent feature namespaces. `src/features/landing` owns the landing page runtime and grid/shell/storage orchestration, while GNB, transition, telemetry, and blog destination code are imported from their dedicated namespaces.
 
 ### 3.2 Module Flow
 
@@ -109,14 +114,14 @@ Route tree
 
 Shared page wrapper (all localized routes)
   └─ src/features/landing/shell/page-shell.tsx
-       ├─ TransitionGnbOverlay
-       ├─ SiteGnb
+       ├─ src/features/transition/transition-gnb-overlay.tsx
+       ├─ src/features/gnb/site-gnb.tsx
        ├─ <main>
        └─ TelemetryConsentBanner (unless route disables the default banner)
 
 Telemetry
-  └─ src/features/landing/telemetry/consent-source.ts (single consent gate)
-       ├─ src/features/landing/telemetry/runtime.ts (queue, session, flush)
+  └─ src/features/telemetry/consent-source.ts (single consent gate)
+       ├─ src/features/telemetry/runtime.ts (queue, session, flush)
        ├─ src/app/vercel-analytics-gate.tsx
        └─ src/app/vercel-speed-insights-gate.tsx
 ```
@@ -213,13 +218,13 @@ The core risk is still choreography complexity across hover, keyboard, mobile, d
 
 ### 5.2 GNB
 
-`src/features/landing/gnb/site-gnb.tsx` — **~587 lines** — keeps the rendered GNB shell: JSX, class constants, keyboard routing, Escape priority, cleanup coordination, locale switching, theme switching, landing-specific keyboard entry order, and focus return semantics. Focused hooks now own desktop settings behavior, mobile menu choreography, and route-aware back navigation; an exported GNB-local keyboard-mode tracker is reserved for future wiring.
+`src/features/gnb/site-gnb.tsx` — **~587 lines** — keeps the rendered GNB shell: JSX, class constants, keyboard routing, Escape priority, cleanup coordination, locale switching, theme switching, landing-specific keyboard entry order, and focus return semantics. Focused hooks now own desktop settings behavior, mobile menu choreography, and route-aware back navigation; an exported GNB-local keyboard-mode tracker is reserved for future wiring.
 
-Key supporting files: `src/features/landing/gnb/behavior.ts`, `src/features/landing/gnb/types.ts` (defines `GnbContext` per route: landing/blog/history/test), `src/features/landing/gnb/hooks/use-gnb-desktop-settings.ts`, `src/features/landing/gnb/hooks/use-gnb-mobile-menu.ts`, `src/features/landing/gnb/hooks/use-gnb-back-navigation.ts`, `src/features/landing/gnb/hooks/use-keyboard-mode-tracker.ts`.
+Key supporting files: `src/features/gnb/behavior.ts`, `src/features/gnb/types.ts` (defines `GnbContext` per route: landing/blog/history/test), `src/features/gnb/hooks/use-gnb-desktop-settings.ts`, `src/features/gnb/hooks/use-gnb-mobile-menu.ts`, `src/features/gnb/hooks/use-gnb-back-navigation.ts`, `src/features/gnb/hooks/use-keyboard-mode-tracker.ts`.
 
 2026-05-05 GNB cleanup note: `behavior.ts` centralizes shared GNB timing constants including mobile test-back fallback timing; `useGnbDesktopSettings()`, `useGnbMobileMenu()`, and `useGnbBackNavigation()` now have focused unit coverage. `useGnbKeyboardModeTracker()` is exported for future GNB wiring but is not yet connected in `site-gnb.tsx`.
 
-Theme subsystem: `public/theme-bootstrap.js` (sets before hydration from `localStorage`), `src/features/landing/gnb/hooks/use-theme-preference.ts` (persists manual overrides), `src/features/landing/gnb/hooks/theme-transition.ts` (2500ms blur-circle View Transition API, with reduced-motion fallback).
+Theme subsystem: `public/theme-bootstrap.js` (sets before hydration from `localStorage`), `src/features/gnb/hooks/use-theme-preference.ts` (persists manual overrides), `src/features/gnb/hooks/theme-transition.ts` (2500ms blur-circle View Transition API, with reduced-motion fallback).
 
 `src/features/landing/shell/page-shell.tsx` mounts the GNB for every localized route — it is a shared runtime controller, not a page-local header.
 
@@ -265,19 +270,19 @@ The dev/test fixture registry state is intentionally cached at module scope so r
 
 `src/features/variant-registry/registry-serializer.ts` is the pure generated-file serialization boundary. `serializeRegistryToFile(registry)` returns the TypeScript file contents for an object-literal `variantRegistryGenerated` export using the existing generated header, `import type {VariantRegistry} from './types'`, and deterministic alphabetic object-key ordering. `tests/unit/registry-serializer.test.ts` checks parseability, deterministic output, key-order normalization, and structural equivalence against the currently importable generated registry data. This utility does not read Sheets, write files, or run Git; `scripts/sync/sync.ts` owns that orchestration.
 
-`src/features/test/question-source-parser.ts` is the pure Questions parser boundary: `parseSeqToQuestionType()` (`q.*` → profile, numeric → scoring), `buildCanonicalQuestions()` (source-order 1-based canonical indexes), and `findFirstScoringRow()`. Group D preview migration is complete: `src/features/test/question-bank.ts` exposes live `buildVariantQuestionBank()` runtime wiring and `resolveVariantPreviewQ1()` for direct Questions-backed `scoring1` projection helpers, while landing UI preview consumption stays behind the variant-registry resolver. The deprecated inline-bridge compatibility export has been removed, so live question-bank coverage now stays on `tests/unit/variant-question-bank.test.ts`, where the live APIs cover locale fallback and profile-row skipping for `scoring1`. `src/features/landing/data/` now re-exports resolver-backed variant-registry surfaces only; the raw fixture compatibility export/file is removed.
+`src/features/test/question-source-parser.ts` is the pure Questions parser boundary: `parseSeqToQuestionType()` (`q.*` → profile, numeric → scoring), `buildCanonicalQuestions()` (source-order 1-based canonical indexes), and `findFirstScoringRow()`. Group D preview migration is complete: `src/features/test/question-bank.ts` exposes live `buildVariantQuestionBank()` runtime wiring and `resolveVariantPreviewQ1()` for direct Questions-backed `scoring1` projection helpers, while landing UI preview consumption stays behind the variant-registry resolver. The deprecated inline-bridge compatibility export has been removed, so live question-bank coverage now stays on `tests/unit/variant-question-bank.test.ts`, where the live APIs cover locale fallback and profile-row skipping for `scoring1`. The obsolete `src/features/landing/data/` compatibility directory has been removed; consumers use `src/features/variant-registry` directly.
 
 ### 5.4 Transition Runtime
 
-Landing-to-destination handshake: `src/features/landing/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/landing/transition/runtime.ts` records return scroll position plus source variant, writes `PendingLandingTransition` to `sessionStorage`, and, for valid test-card transitions, writes a landing ingress record (`variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`). Duplicate-locale target routes return `null` before this persistence path and emit no transition signal or telemetry.
+Landing-to-destination handshake: `src/features/transition/use-landing-transition.ts` converts CTA clicks into localized route pushes. Before navigation, `src/features/transition/runtime.ts` records return scroll position plus source variant, writes `PendingLandingTransition` to `sessionStorage`, and, for valid test-card transitions, writes a landing ingress record (`variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`). Duplicate-locale target routes return `null` before this persistence path and emit no transition signal or telemetry.
 
-On the destination side, `src/features/landing/transition/transition-runtime-monitor.tsx` enforces a **1600ms timeout**. `TransitionGnbOverlay` keeps a landing-context GNB visible during pending transition. `LandingRuntime` restores scroll on return and cancels stale transitions with `USER_CANCEL`.
+On the destination side, `src/features/transition/transition-runtime-monitor.tsx` enforces a **1600ms timeout**. `TransitionGnbOverlay` keeps a landing-context GNB visible during pending transition. `LandingRuntime` restores scroll on return and cancels stale transitions with `USER_CANCEL`.
 
 Result reasons: `USER_CANCEL`, `DUPLICATE_LOCALE`, `DESTINATION_TIMEOUT`, `DESTINATION_LOAD_ERROR`, `UNKNOWN`. Cleanup is centralized in `rollbackLandingTransition()`, which removes pending, return-scroll, and ingress storage directly before dispatching one pending-store event and one cleanup event. All persistence is session-scoped and client-only.
 
 ### 5.5 Destination Bootstrap
 
-**Blog** (`src/features/landing/blog/server-model.ts`, `src/features/landing/blog/blog-destination-client.tsx`): `variant` is the only article identifier. Invalid or non-enterable variants redirect to the localized blog index. Pending transition is an overlay/completion signal only. The detail route exports `generateMetadata()`.
+**Blog** (`src/features/blog/server-model.ts`, `src/features/blog/blog-destination-client.tsx`): `variant` is the only article identifier. Invalid or non-enterable variants redirect to the localized blog index. Pending transition is an overlay/completion signal only. The detail route exports `generateMetadata()`.
 
 **Test** (`src/features/test/test-question-client.tsx`): policy-driven instruction gating, variant Questions fixture runtime wiring through `buildVariantQuestionBank()`, landing-ingress seeding of `scoring1`, direct-entry start at canonical question 1, dwell time tracking, and `attempt_start` / `final_submit` telemetry. Ingress entries keep the landing `scoring1` pre-answer, then start at the first current-fixture question that is not the first scoring question: `qmbti` starts at canonical index 2, while profile-first `egtt` starts at canonical index 1 (`q.1`). The live question panel uses all resolved fixture rows, displays main progress as answered scoring count / total scoring count via progressbar + percent, requires explicit Next/Previous clicks, and renders a placeholder result panel after Submit. It does not yet run score derivation, result URL construction, answer projection into domain tokens, tail reset, active-run resume, or history persistence. `final_submit.final_responses` uses canonical question index string keys (`"1"`, `"2"`, ...) mapped to semantic `A` / `B` codes. `src/features/test/entry-policy.ts` separates content, CTA configuration, and action effects; `src/features/test/instruction-overlay.tsx` renders the composed instruction surface. `src/app/[locale]/test/[variant]/page.tsx` regex-validates the URL segment, redirects runtime-blocked variants to `/test/error?variant=...`, resolves via `resolveLandingTestEntryCardByVariant(locale, variant)`, fails closed with `notFound()` on true miss, and runs `getLazyValidatedVariant()` before mounting the runtime.
 
@@ -367,13 +372,13 @@ buildTypeSegment(derivedType: string, responses: Map<QuestionIndex, string>, sch
 
 ### 5.6 Telemetry
 
-`src/features/landing/telemetry/consent-source.ts` — single consent gate for both custom telemetry and Vercel analytics, synchronized to `localStorage`, bridges cross-tab changes via browser `storage` event.
+`src/features/telemetry/consent-source.ts` — single consent gate for both custom telemetry and Vercel analytics, synchronized to `localStorage`, bridges cross-tab changes via browser `storage` event.
 
-`src/features/landing/telemetry/runtime.ts` — event queueing, anonymous session ID generation, `landing_view` deduplication by `locale:route`, consent-aware flush. Only session ID is persisted; event queue is in memory.
+`src/features/telemetry/runtime.ts` — event queueing, anonymous session ID generation, `landing_view` deduplication by `locale:route`, consent-aware flush. Only session ID is persisted; event queue is in memory.
 
-`src/features/landing/telemetry/validation.ts` — rejects PII-shaped keys and legacy fields (`transition_id`, `result_reason`, `final_q1_response`).
+`src/features/telemetry/validation.ts` — rejects PII-shaped keys and legacy fields (`transition_id`, `result_reason`, `final_q1_response`).
 
-There are currently four custom telemetry event types in `src/features/landing/telemetry/types.ts`: `landing_view`, `card_answered`, `attempt_start`, and `final_submit`. `question_answered`, `result_viewed`, and user-visible error events are described in `docs/req-test.md` as future hooks but are not implemented in the live telemetry type union.
+There are currently four custom telemetry event types in `src/features/telemetry/types.ts`: `landing_view`, `card_answered`, `attempt_start`, and `final_submit`. `question_answered`, `result_viewed`, and user-visible error events are described in `docs/req-test.md` as future hooks but are not implemented in the live telemetry type union.
 
 **Active event surface:**
 
@@ -532,13 +537,13 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 `src/features/landing/grid/use-landing-interaction-controller.ts` · `src/features/landing/grid/interaction-dom.ts` · `src/features/landing/grid/use-hover-intent-controller.ts` · `src/features/landing/grid/use-desktop-motion-controller.ts` · `src/features/landing/grid/use-mobile-card-lifecycle.ts` · `src/features/landing/grid/use-keyboard-handoff.ts` · `src/features/landing/grid/use-keyboard-mode-tracker.ts` · `src/features/landing/grid/use-landing-keyboard-entry.ts` · `src/features/landing/grid/use-card-keyboard-handler.ts` · `src/features/landing/grid/use-grid-geometry-controller.ts` · `src/features/landing/grid/baseline-manager.ts` · `src/features/landing/grid/landing-catalog-grid.tsx` · `src/features/landing/model/interaction-state.ts` · `src/features/landing/grid/layout-plan.ts` · `src/features/landing/grid/spacing-plan.ts` · `tests/unit/landing-interaction-dom.test.ts` · `tests/unit/landing-hover-intent.test.ts` · `tests/unit/landing-mobile-lifecycle.test.ts` · `tests/unit/landing-desktop-shell-phase.test.ts` · `tests/unit/landing-grid-plan.test.ts` · `tests/unit/landing-baseline-manager.test.ts` · `tests/e2e/grid-smoke.spec.ts` · `tests/e2e/state-smoke.spec.ts`
 
 ### GNB / theme / shared shell
-`src/features/landing/gnb/site-gnb.tsx` · `src/features/landing/gnb/hooks/use-gnb-desktop-settings.ts` · `src/features/landing/gnb/hooks/use-gnb-mobile-menu.ts` · `src/features/landing/gnb/hooks/use-gnb-back-navigation.ts` · `src/features/landing/gnb/hooks/use-keyboard-mode-tracker.ts` · `src/features/landing/gnb/hooks/use-theme-preference.ts` · `src/features/landing/gnb/hooks/theme-transition.ts` · `public/theme-bootstrap.js` · `src/features/landing/shell/page-shell.tsx` · `tests/e2e/gnb-smoke.spec.ts` · `tests/unit/gnb-behavior.test.ts` · `tests/unit/gnb-desktop-settings.test.ts` · `tests/unit/gnb-mobile-menu.test.ts` · `tests/unit/gnb-back-navigation.test.ts` · `tests/unit/gnb-theme-transition.test.ts` · `tests/unit/gnb-message-labels.test.ts`
+`src/features/gnb/site-gnb.tsx` · `src/features/gnb/hooks/use-gnb-desktop-settings.ts` · `src/features/gnb/hooks/use-gnb-mobile-menu.ts` · `src/features/gnb/hooks/use-gnb-back-navigation.ts` · `src/features/gnb/hooks/use-keyboard-mode-tracker.ts` · `src/features/gnb/hooks/use-theme-preference.ts` · `src/features/gnb/hooks/theme-transition.ts` · `public/theme-bootstrap.js` · `src/features/landing/shell/page-shell.tsx` · `tests/e2e/gnb-smoke.spec.ts` · `tests/unit/gnb-behavior.test.ts` · `tests/unit/gnb-desktop-settings.test.ts` · `tests/unit/gnb-mobile-menu.test.ts` · `tests/unit/gnb-back-navigation.test.ts` · `tests/unit/gnb-theme-transition.test.ts` · `tests/unit/gnb-message-labels.test.ts`
 
 ### Transition / destination continuity / return-restore
-`src/features/landing/transition/runtime.ts` · `src/features/landing/transition/store.ts` · `src/features/landing/transition/signals.ts` · `src/features/landing/transition/transition-runtime-monitor.tsx` · `src/features/landing/transition/use-pending-landing-transition.ts` · `src/features/landing/landing-runtime.tsx` · `tests/unit/landing-transition-runtime.test.ts` · `tests/unit/landing-transition-store.test.ts` · `tests/e2e/transition-telemetry-smoke.spec.ts`
+`src/features/transition/runtime.ts` · `src/features/transition/store.ts` · `src/features/transition/signals.ts` · `src/features/transition/transition-runtime-monitor.tsx` · `src/features/transition/use-pending-landing-transition.ts` · `src/features/landing/landing-runtime.tsx` · `tests/unit/landing-transition-runtime.test.ts` · `tests/unit/landing-transition-store.test.ts` · `tests/e2e/transition-telemetry-smoke.spec.ts`
 
 ### Telemetry / consent
-`src/features/landing/telemetry/runtime.ts` · `src/features/landing/telemetry/validation.ts` · `src/features/landing/telemetry/consent-source.ts` · `src/app/api/telemetry/route.ts` · `src/app/vercel-analytics-gate.tsx` · `scripts/qa/check-phase11-telemetry-contracts.mjs` · `tests/e2e/consent-smoke.spec.ts` · `docs/req-landing.md §12` · `docs/req-test.md §9`
+`src/features/telemetry/runtime.ts` · `src/features/telemetry/validation.ts` · `src/features/telemetry/consent-source.ts` · `src/app/api/telemetry/route.ts` · `src/app/vercel-analytics-gate.tsx` · `scripts/qa/check-phase11-telemetry-contracts.mjs` · `tests/e2e/consent-smoke.spec.ts` · `docs/req-landing.md §12` · `docs/req-test.md §9`
 
 ### Screenshot baseline / representative fixture
 `tests/e2e/theme-matrix-manifest.json` · `tests/e2e/theme-matrix-smoke.spec.ts` · `tests/e2e/helpers/landing-fixture.ts` · `tests/e2e/safari-hover-ghosting.spec.ts` · `tests/e2e/README.md`
@@ -560,7 +565,7 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 
 **Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is 548 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
 
-**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Current pressure points are `site-gnb.tsx` (587 lines), `use-landing-interaction-controller.ts` (548 lines), `use-card-keyboard-handler.ts` (302 lines), and `use-grid-geometry-controller.ts` (348 lines). `use-keyboard-handoff.ts` is now an 88-line composition layer rather than a pressure point. GNB behavior pressure is now split across focused desktop settings, mobile menu, and back-navigation hooks; keyboard-mode tracking has an exported hook reserved for future wiring. `use-mobile-card-lifecycle.ts` is now 281 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (115), and `use-mobile-transient-shell.ts` (86).
+**Shared runtime namespaces are now split by concern.** GNB, telemetry, transition, and blog destination code live under `src/features/gnb`, `src/features/telemetry`, `src/features/transition`, and `src/features/blog`, leaving `src/features/landing` focused on the landing runtime, grid, shell, and storage. Current pressure points are `src/features/gnb/site-gnb.tsx` (587 lines), `src/features/landing/grid/use-landing-interaction-controller.ts` (548 lines), `src/features/landing/grid/use-card-keyboard-handler.ts` (302 lines), and `src/features/landing/grid/use-grid-geometry-controller.ts` (348 lines). `use-keyboard-handoff.ts` is now an 88-line composition layer rather than a pressure point. GNB behavior pressure is split across focused desktop settings, mobile menu, and back-navigation hooks; keyboard-mode tracking has an exported hook reserved for future wiring. `use-mobile-card-lifecycle.ts` is now 281 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (115), and `use-mobile-transient-shell.ts` (86).
 
 **Screenshot-driven QA remains concentrated in the instruction surface and visual matrix.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions. The 2026-05-03 R-01 follow-up confirmed theme-matrix baseline provenance, not code output, as the blocker source; future local baseline regeneration should use the preview command in `tests/e2e/README.md` and update the tracked provenance record at `tests/e2e/theme-matrix-baseline-provenance.md`.
 

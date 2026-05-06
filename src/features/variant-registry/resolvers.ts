@@ -1,5 +1,5 @@
 import type {AppLocale} from '@/config/site';
-import type {TelemetryConsentState} from '@/features/landing/telemetry/types';
+import type {TelemetryConsentState} from '@/features/telemetry/types';
 import {questionSourceFixture} from '@/features/test/fixtures/questions';
 import {resolveResultsVariantIds} from '@/features/test/fixtures/results';
 import {

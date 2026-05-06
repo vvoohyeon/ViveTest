@@ -13,7 +13,7 @@ vi.mock('@vercel/analytics/next', () => ({
 }));
 
 import {VercelAnalyticsGate} from '../../src/app/vercel-analytics-gate';
-import {resetTelemetryConsentSourceForTests, setTelemetryConsentState} from '../../src/features/landing/telemetry/consent-source';
+import {resetTelemetryConsentSourceForTests, setTelemetryConsentState} from '../../src/features/telemetry/consent-source';
 
 let root: Root | null = null;
 

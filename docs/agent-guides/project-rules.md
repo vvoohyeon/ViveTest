@@ -11,7 +11,11 @@
 | Path | Role |
 |:---|:---|
 | `src/app/[locale]/**` | Thin route / server entry only |
-| `src/features/landing/**` | Grid, GNB, transition, telemetry, shell, blog destination |
+| `src/features/landing/**` | Landing runtime, grid/model/shell/storage orchestration |
+| `src/features/gnb/**` | Global navigation shell, theme preference, locale switching, route-aware back navigation |
+| `src/features/telemetry/**` | Consent source, custom telemetry runtime, payload validation, Vercel analytics consent bridge |
+| `src/features/transition/**` | Landing-to-destination transition persistence, signals, monitor, GNB overlay |
+| `src/features/blog/**` | Blog list/detail destination model and client |
 | `src/features/test/**` | Canonical test surface |
 | `src/features/test/domain/**` | Pure domain module — `index.ts` is the only public surface |
 | `src/features/test/schema-registry.ts` | Owns variant → ScoringLogicType → ScoringSchema mapping |
@@ -20,6 +24,7 @@
 | `scripts/sync/**` | Sheets loading (`sheets-loader.ts`), sync (`sync.ts`), dry-run (`sync-dry-run.ts`), serialization (`registry-serializer.ts`). Contract: `docs/req-test.md §2` |
 | `src/i18n/**` | Locale resolution, request policy, SSR `html lang` sync |
 | `src/lib/routes/**` | Locale-free typed route authoring |
+| `src/lib/correlation-id.ts` | Browser-safe anonymous/correlation ID utilities |
 | `src/i18n/localized-path.ts` | Locale prefix application |
 | `src/messages/*.json` | Shared UI copy — namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent` |
 | `public/theme-bootstrap.js` | Pre-hydration theme bootstrap |
@@ -95,7 +100,8 @@
   index — no fallback to another article.
 - Telemetry API: object payload with `event_type` required.
   Returns `400` on validation failure, `204` on success. No persistence layer.
-- Telemetry and Vercel analytics must share a single consent source (`consent-source.ts`).
+- Telemetry and Vercel analytics must share a single consent source
+  (`src/features/telemetry/consent-source.ts`).
 - Preferences button in consent banner is currently a visible no-op.
   Do not add behavior before requirements change.
 - Representative anchors: available test `qmbti` · opt-out test `energy-check` · primary blog `ops-handbook`.

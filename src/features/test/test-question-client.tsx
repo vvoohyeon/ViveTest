@@ -6,12 +6,12 @@ import {useTranslations} from 'next-intl';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {setTelemetryConsentState, useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
-import {trackAttemptStart, trackFinalSubmit} from '@/features/landing/telemetry/runtime';
+import {setTelemetryConsentState, useTelemetryConsentSource} from '@/features/telemetry/consent-source';
+import {trackAttemptStart, trackFinalSubmit} from '@/features/telemetry/runtime';
 import {
   completePendingLandingTransition,
   terminatePendingLandingTransition
-} from '@/features/landing/transition/runtime';
+} from '@/features/transition/runtime';
 import {
   clearLandingIngress,
   consumeLandingIngress,
@@ -21,7 +21,7 @@ import {
   readLandingIngress,
   readPendingLandingTransition,
   type PendingLandingTransition
-} from '@/features/landing/transition/store';
+} from '@/features/transition/store';
 import {resolveTestEntryPolicy, type TestInstructionAction} from '@/features/test/entry-policy';
 import {InstructionOverlay} from '@/features/test/instruction-overlay';
 import {buildVariantQuestionBank, type ResolvedQuestion} from '@/features/test/question-bank';

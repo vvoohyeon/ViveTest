@@ -1,9 +1,9 @@
 import type {ReactNode} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {SiteGnb, type GnbContext} from '@/features/landing/gnb';
+import {SiteGnb, type GnbContext} from '@/features/gnb';
 import {TelemetryConsentBanner} from '@/features/landing/shell/telemetry-consent-banner';
-import {TransitionGnbOverlay} from '@/features/landing/transition/transition-gnb-overlay';
+import {TransitionGnbOverlay} from '@/features/transition/transition-gnb-overlay';
 import type {LocaleFreeRoute} from '@/lib/routes/route-builder';
 
 interface PageShellProps {

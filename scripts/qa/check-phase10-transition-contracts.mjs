@@ -3,12 +3,12 @@ import {createChecker, fileExists, read} from './_utils.mjs';
 const {fail, finish} = createChecker();
 
 const requiredFiles = [
-  'src/features/landing/transition/runtime.ts',
-  'src/features/landing/transition/signals.ts',
-  'src/features/landing/transition/use-landing-transition.ts',
+  'src/features/transition/runtime.ts',
+  'src/features/transition/signals.ts',
+  'src/features/transition/use-landing-transition.ts',
   'src/features/landing/landing-runtime.tsx',
   'src/features/test/test-question-client.tsx',
-  'src/features/landing/blog/blog-destination-client.tsx',
+  'src/features/blog/blog-destination-client.tsx',
   'src/features/landing/grid/use-mobile-card-lifecycle.ts',
   'src/features/landing/grid/landing-grid-card.module.css',
   'tests/e2e/transition-telemetry-smoke.spec.ts'
@@ -20,8 +20,8 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/landing/transition/runtime.ts')) {
-  const runtimeFile = read('src/features/landing/transition/runtime.ts');
+if (fileExists('src/features/transition/runtime.ts')) {
+  const runtimeFile = read('src/features/transition/runtime.ts');
 
   if (!/writePendingLandingTransition/u.test(runtimeFile) || !/saveLandingReturnScrollY/u.test(runtimeFile)) {
     fail('Transition runtime must persist pending transition state and return scrollY.');
@@ -56,8 +56,8 @@ if (fileExists('src/features/test/test-question-client.tsx')) {
   }
 }
 
-if (fileExists('src/features/landing/blog/blog-destination-client.tsx')) {
-  const blogClient = read('src/features/landing/blog/blog-destination-client.tsx');
+if (fileExists('src/features/blog/blog-destination-client.tsx')) {
+  const blogClient = read('src/features/blog/blog-destination-client.tsx');
   if (
     !/completePendingLandingTransition/u.test(blogClient) ||
     !/terminatePendingLandingTransition/u.test(blogClient) ||

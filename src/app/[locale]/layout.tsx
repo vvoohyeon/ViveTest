@@ -4,7 +4,7 @@ import {notFound} from 'next/navigation';
 import type {ReactNode} from 'react';
 
 import {isLocale, locales} from '@/config/site';
-import {TransitionRuntimeMonitor} from '@/features/landing/transition/transition-runtime-monitor';
+import {TransitionRuntimeMonitor} from '@/features/transition/transition-runtime-monitor';
 import {LocaleHtmlLangSync} from '@/i18n/locale-html-lang-sync';
 import {messagesByLocale} from '@/i18n/messages';
 

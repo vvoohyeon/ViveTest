@@ -1,7 +1,7 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 
 import {localeOptions, type AppLocale} from '@/config/site';
-import {ThemeModeIcon} from '@/features/landing/gnb/components/theme-mode-icon';
+import {ThemeModeIcon} from '@/features/gnb/components/theme-mode-icon';
 
 const settingsControlsBaseClassName = 'gnb-settings-controls grid gap-3';
 const settingsControlsDesktopClassName =

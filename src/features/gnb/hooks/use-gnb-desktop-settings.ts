@@ -2,7 +2,7 @@
 
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-import {DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS} from '@/features/landing/gnb/behavior';
+import {DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS} from '@/features/gnb/behavior';
 
 /**
  * @future-move R-06

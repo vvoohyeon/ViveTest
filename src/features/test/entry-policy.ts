@@ -1,5 +1,5 @@
 import type {LandingCardAttribute} from '@/features/variant-registry';
-import type {TelemetryConsentState} from '@/features/landing/telemetry/types';
+import type {TelemetryConsentState} from '@/features/telemetry/types';
 
 export type TestIngressType = 'landing' | 'direct';
 export type TestInstructionAction =

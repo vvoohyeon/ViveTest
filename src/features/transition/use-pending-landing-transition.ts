@@ -6,7 +6,7 @@ import {
   LANDING_TRANSITION_STORE_EVENT,
   readPendingLandingTransition,
   type PendingLandingTransition
-} from '@/features/landing/transition/store';
+} from '@/features/transition/store';
 
 export function usePendingLandingTransition(): PendingLandingTransition | null {
   const [pendingTransition, setPendingTransition] = useState<PendingLandingTransition | null>(

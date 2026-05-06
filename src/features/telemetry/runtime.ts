@@ -5,7 +5,7 @@ import {
   createCorrelationId,
   createOpaqueId,
   resetCorrelationIdCounterForTests
-} from '@/features/landing/lib/correlation-id';
+} from '@/lib/correlation-id';
 import {
   ensureTelemetryConsentSourceSync,
   getTelemetryConsentSnapshot,
@@ -15,7 +15,7 @@ import {
   TELEMETRY_CONSENT_STORAGE_KEY,
   type TelemetryConsentSnapshot,
   useTelemetryConsentSource
-} from '@/features/landing/telemetry/consent-source';
+} from '@/features/telemetry/consent-source';
 import {LOCAL_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
 import type {
   AttemptStartTelemetryEvent,
@@ -24,8 +24,8 @@ import type {
   TelemetryBaseEvent,
   TelemetryConsentState,
   TelemetryEvent
-} from '@/features/landing/telemetry/types';
-import {patchTelemetryEventForTransport, validateTelemetryEvent} from '@/features/landing/telemetry/validation';
+} from '@/features/telemetry/types';
+import {patchTelemetryEventForTransport, validateTelemetryEvent} from '@/features/telemetry/validation';
 
 const TELEMETRY_ENDPOINT = '/api/telemetry';
 

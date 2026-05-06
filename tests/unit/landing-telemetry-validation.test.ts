@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {patchTelemetryEventForTransport, validateTelemetryEvent} from '../../src/features/landing/telemetry/validation';
+import {patchTelemetryEventForTransport, validateTelemetryEvent} from '../../src/features/telemetry/validation';
 
 describe('landing telemetry validation', () => {
   it('assertion:B18-final-submit-validation accepts final_submit payloads keyed by canonical question indexes', () => {

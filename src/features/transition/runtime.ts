@@ -1,9 +1,9 @@
 'use client';
 
 import {localeSegmentPatternSource, type AppLocale} from '@/config/site';
-import {createCorrelationId} from '@/features/landing/lib/correlation-id';
-import {trackCardAnswered} from '@/features/landing/telemetry/runtime';
-import {emitLandingTransitionSignal} from '@/features/landing/transition/signals';
+import {createCorrelationId} from '@/lib/correlation-id';
+import {trackCardAnswered} from '@/features/telemetry/runtime';
+import {emitLandingTransitionSignal} from '@/features/transition/signals';
 import {
   clearPendingLandingTransition,
   readPendingLandingTransition,
@@ -13,7 +13,7 @@ import {
   type PendingLandingTransition,
   writeLandingIngress,
   writePendingLandingTransition
-} from '@/features/landing/transition/store';
+} from '@/features/transition/store';
 
 const DUPLICATE_LOCALE_PATH_PATTERN = new RegExp(
   `/(${localeSegmentPatternSource})/(${localeSegmentPatternSource})(/|$)`,

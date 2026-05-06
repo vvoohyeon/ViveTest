@@ -9,7 +9,7 @@ const requiredFiles = [
   'src/features/landing/grid/landing-catalog-grid.tsx',
   'src/features/landing/grid/landing-grid-card.module.css',
   'src/features/landing/grid/use-landing-interaction-controller.ts',
-  'src/features/landing/gnb/hooks/use-gnb-capability.ts',
+  'src/features/gnb/hooks/use-gnb-capability.ts',
   'src/app/globals.css',
   'tests/e2e/routing-smoke.spec.ts',
   'tests/e2e/state-smoke.spec.ts',
@@ -74,8 +74,8 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
   }
 }
 
-if (fileExists('src/features/landing/gnb/hooks/use-gnb-capability.ts')) {
-  const gnbCapabilityFile = read('src/features/landing/gnb/hooks/use-gnb-capability.ts');
+if (fileExists('src/features/gnb/hooks/use-gnb-capability.ts')) {
+  const gnbCapabilityFile = read('src/features/gnb/hooks/use-gnb-capability.ts');
 
   if (!/useLayoutEffect/u.test(gnbCapabilityFile)) {
     fail('GNB capability hook must initialize viewport/hover capability before first paint.');
