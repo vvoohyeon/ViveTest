@@ -332,8 +332,9 @@
 - Expanded 종료 직후 same-row non-target 카드의 높이 잔류 변화는 `0px`여야 하며 row 2+에서도 동일해야 한다.
 - same-row non-target 카드의 높이 복귀가 완료되기 전에는 Normal settled 판정을 허용하면 안 된다.
 
-4) Baseline Freeze/Restore State Model (Desktop/Tablet)
-- Expanded lifecycle에는 baseline freeze/restore 상태모델을 필수 적용한다. 상태 전이는 `BASELINE_READY -> BASELINE_FROZEN -> BASELINE_RESTORE_PENDING -> BASELINE_READY` 순서를 벗어나면 안 된다.
+4) Baseline Freeze/Release State Model (Desktop/Tablet)
+- Expanded lifecycle에는 baseline freeze/release 상태모델을 필수 적용한다. 상태 전이는 `BASELINE_READY -> BASELINE_FROZEN -> BASELINE_READY` 순서를 벗어나면 안 된다.
+- 종료 직후 freeze 해제 지연은 별도 DOM phase가 아니라 release timer lock으로만 표현해야 한다.
 - Expanded/handoff 시작 시 same-row baseline snapshot은 즉시 freeze되어야 하며, 종료 정착 전까지 freeze 해제/재측정을 금지한다.
 - snapshot 해제는 Expanded 종료 직후 1회만 허용한다.
 - baseline 재측정은 레이아웃 안정 구간에서만 허용한다.
@@ -354,7 +355,7 @@
 7. Automated: non-comp 카드에서 auto-spacer 패턴(`margin-top:auto`, `space-between`, filler flex, pseudo spacer) 활성 `0건`을 검증한다.
 8. Automated: Expanded/handoff 활성 중 same-row non-target row track size 변화 `0px` 및 top/bottom/outer height 오차 `0px`를 검증한다.
 9. Automated: Expanded 종료 직후 same-row non-target 카드 높이 잔류 변화 `0px`(row 1/row 2+)를 검증한다.
-10. Automated: baseline 상태 전이가 `BASELINE_READY -> BASELINE_FROZEN -> BASELINE_RESTORE_PENDING -> BASELINE_READY` 순서를 위반하지 않는지 검증한다.
+10. Automated: baseline 상태 전이가 `BASELINE_READY -> BASELINE_FROZEN -> BASELINE_READY` 순서를 위반하지 않는지 검증한다.
 11. Automated: Expanded 활성 중 폭 변경 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다.
 12. Automated: handoff(row A→B)에서 row A snapshot 해제가 row B settled 이후에만 발생하는지, Expanded 전환 중 dual-visibility `0건`을 검증한다.
 13. Automated: 반복 handoff/open-close(최소 100회) 후 same-row non-target 누적 높이 오차 `0px`를 검증한다.

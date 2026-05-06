@@ -1,24 +1,6 @@
-import {readFileSync, statSync} from 'node:fs';
-import path from 'node:path';
+import {createChecker, fileExists, read} from './_utils.mjs';
 
-const rootDir = process.cwd();
-const errors = [];
-
-function fail(message) {
-  errors.push(message);
-}
-
-function fileExists(relativePath) {
-  try {
-    return statSync(path.join(rootDir, relativePath)).isFile();
-  } catch {
-    return false;
-  }
-}
-
-function read(relativePath) {
-  return readFileSync(path.join(rootDir, relativePath), 'utf8');
-}
+const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'src/features/landing/transition/runtime.ts',
@@ -148,12 +130,4 @@ if (fileExists('src/features/landing/grid/landing-grid-card.module.css')) {
   }
 }
 
-if (errors.length > 0) {
-  console.error('Phase 10 transition contract checks failed:');
-  for (const issue of errors) {
-    console.error(`- ${issue}`);
-  }
-  process.exit(1);
-}
-
-console.log('Phase 10 transition contract checks passed.');
+finish('Phase 10 transition');

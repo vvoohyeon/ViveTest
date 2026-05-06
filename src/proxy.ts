@@ -2,7 +2,6 @@ import type {NextRequest} from 'next/server';
 import {NextResponse} from 'next/server';
 
 import {localeCookieName} from '@/config/site';
-import {getRequestLocaleHeaderValueFromPathname, REQUEST_LOCALE_HEADER_NAME} from '@/i18n/request-locale-header';
 import {resolveProxyDecision} from '@/i18n/proxy-policy';
 
 export default function proxy(request: NextRequest) {
@@ -13,11 +12,9 @@ export default function proxy(request: NextRequest) {
   });
 
   if (decision.action === 'next') {
-    const localeHeaderValue = getRequestLocaleHeaderValueFromPathname(request.nextUrl.pathname);
-
-    if (localeHeaderValue) {
+    if (decision.locale) {
       const requestHeaders = new Headers(request.headers);
-      requestHeaders.set(REQUEST_LOCALE_HEADER_NAME, localeHeaderValue);
+      requestHeaders.set('X-NEXT-INTL-LOCALE', decision.locale);
       return NextResponse.next({
         request: {
           headers: requestHeaders
@@ -46,5 +43,5 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   // Next는 matcher를 정적 리터럴로만 인식하므로 bypass 경계도 여기서 함께 고정한다.
-  matcher: ['/((?!_next|api|_vercel|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)']
+  matcher: ['/((?!_next|api|_vercel|_not-found|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)']
 };

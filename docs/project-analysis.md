@@ -7,7 +7,7 @@ This repository is a localized Next.js App Router application. Its real technica
 **Workspace verification:**
 
 - Current local Done gate for this document sync: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
-- `npm run qa:rules` (2026-04-25): passes
+- `npm run qa:rules` (2026-05-05): passes all 12 checks through the buffered parallel runner in `scripts/qa/run-all.mjs`
 - Representative Playwright smoke coverage is organized around routing, grid, state, GNB, accessibility, consent, theme matrix, Safari hover ghosting, and transition telemetry specs. Exact expanded test counts are intentionally not repeated here because they vary with browser/project matrix expansion.
 - Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required; regeneration and local provenance fields are documented in `tests/e2e/README.md`.
 
@@ -161,7 +161,8 @@ All 12 locale files in `src/messages/` are complete with the same 6 namespaces: 
 - Locale-less allowlisted app-owned paths → 307 redirect to localized equivalent
 - Locale-less non-allowlisted, non-bypass paths → rewrite to `/_not-found`
 - Duplicate locale prefix (e.g. `/en/en/...`) → rewrite to `/_not-found`
-- `/_next`, `/api`, `/_vercel`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by `src/i18n/locale-resolution.ts` and the static `proxy.ts` matcher
+- `/_next`, `/api`, `/_vercel`, `/_not-found`, file-like assets, `/favicon.ico`, `/robots.txt`, `/sitemap.xml` → bypassed by the static `src/proxy.ts` matcher
+- Route ownership decisions live in private helpers in `src/i18n/proxy-policy.ts`; locale token/family normalization lives in `src/i18n/locale-resolution.ts`
 - Locale family normalization: `ko* → kr`, Simplified Chinese → `zs`, Traditional Chinese → `zt`
 
 ### 4.4 SSR Locale Correctness
@@ -198,19 +199,19 @@ Runtime ownership after the 2026-04-30 split:
 - `src/features/landing/grid/mobile-card-lifecycle-dom.ts` — **48 lines**, owns mobile snapshot capture and restore measurement helpers.
 - `src/features/landing/grid/use-mobile-restore-polling.ts` — **115 lines**, owns the restore-ready marker timer and RAF polling.
 - `src/features/landing/grid/use-mobile-transient-shell.ts` — **86 lines**, owns transient shell state and timer.
-- `src/features/landing/grid/use-keyboard-handoff.ts` — global keyboard-mode entry/exit listeners, pointer/mouse/wheel keyboard-mode exit, first forward-Tab landing entry, Escape collapse, trigger focus/key handlers, and expanded-body key handling.
-- `src/features/landing/grid/use-grid-geometry-controller.ts` — spacing model, row baseline snapshots, baseline freeze/restore/release timers, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
+- `src/features/landing/grid/use-keyboard-handoff.ts` — grid keyboard-mode handoff, first forward-Tab landing entry, Escape collapse, trigger focus/key handlers, and expanded-body key handling.
+- `src/features/landing/grid/use-grid-geometry-controller.ts` — spacing model, row baseline snapshots, baseline freeze/release timer lock, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
 - `src/features/landing/grid/landing-catalog-grid.tsx` — **270 lines**, keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, `LandingGridPlan` calculation, render assembly, and data attributes.
 
 The core risk is still choreography complexity across hover, keyboard, mobile, desktop shell phases, and geometry timing, but ownership is now explicit and testable at narrower seams. Styling ownership is hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` remaps raw runtime state into semantic style classes consumed by `landing-grid-card.module.css` for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors but no longer participate in the CSS contract.
 
 ### 5.2 GNB
 
-`src/features/landing/gnb/site-gnb.tsx` — **~587 lines** — keeps the rendered GNB shell: JSX, class constants, keyboard routing, Escape priority, cleanup coordination, locale switching, theme switching, landing-specific keyboard entry order, and focus return semantics. Focused hooks now own desktop settings behavior, mobile menu choreography, and route-aware back navigation.
+`src/features/landing/gnb/site-gnb.tsx` — **~587 lines** — keeps the rendered GNB shell: JSX, class constants, keyboard routing, Escape priority, cleanup coordination, locale switching, theme switching, landing-specific keyboard entry order, and focus return semantics. Focused hooks now own desktop settings behavior, mobile menu choreography, and route-aware back navigation; an exported GNB-local keyboard-mode tracker is reserved for future wiring.
 
-Key supporting files: `src/features/landing/gnb/behavior.ts`, `src/features/landing/gnb/types.ts` (defines `GnbContext` per route: landing/blog/history/test), `src/features/landing/gnb/hooks/use-gnb-desktop-settings.ts`, `src/features/landing/gnb/hooks/use-gnb-mobile-menu.ts`, `src/features/landing/gnb/hooks/use-gnb-back-navigation.ts`.
+Key supporting files: `src/features/landing/gnb/behavior.ts`, `src/features/landing/gnb/types.ts` (defines `GnbContext` per route: landing/blog/history/test), `src/features/landing/gnb/hooks/use-gnb-desktop-settings.ts`, `src/features/landing/gnb/hooks/use-gnb-mobile-menu.ts`, `src/features/landing/gnb/hooks/use-gnb-back-navigation.ts`, `src/features/landing/gnb/hooks/use-keyboard-mode-tracker.ts`.
 
-2026-05-03 GNB cleanup note: `behavior.ts` centralizes shared GNB timing constants including mobile test-back fallback timing; `useGnbDesktopSettings()` now accepts only render-current `hoverOpenEnabled`, and `useGnbMobileMenu()` keeps an explicit local `OutsideGesture` type with fresh pointer-down object assignment for future hook-level tests.
+2026-05-05 GNB cleanup note: `behavior.ts` centralizes shared GNB timing constants including mobile test-back fallback timing; `useGnbDesktopSettings()`, `useGnbMobileMenu()`, and `useGnbBackNavigation()` now have focused unit coverage. `useGnbKeyboardModeTracker()` is exported for future GNB wiring but is not yet connected in `site-gnb.tsx`.
 
 Theme subsystem: `public/theme-bootstrap.js` (sets before hydration from `localStorage`), `src/features/landing/gnb/hooks/use-theme-preference.ts` (persists manual overrides), `src/features/landing/gnb/hooks/theme-transition.ts` (2500ms blur-circle View Transition API, with reduced-motion fallback).
 
@@ -455,7 +456,7 @@ The key lists below describe the live prototype plus the Phase 3 test storage co
 
 ### 7.1 Unit Tests (Vitest)
 
-Scoped to `tests/unit/`. Current file inventory: 45 `*.test.ts` files. Coverage spans route helpers, localization helpers, proxy policy, telemetry validation, transition storage, card/data contracts, GNB behavior, landing interaction DOM helpers, hover intent, desktop shell phase hooks, mobile lifecycle hooks, grid geometry, pure test-domain modules, cross-sheet integrity, Sheets loader normalization, sync orchestration failure/no-op/write paths, runtime integrity fallback, dev/test registry cache reset behavior, lazy validation, live question-bank APIs, and the schema registry. The legacy landing question-bank test file was removed during the 2026-04-24 question-bank refactor because its meaningful assertions now exercise `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()` directly.
+Scoped to `tests/unit/`. Current file inventory: 53 `*.test.ts` files. Coverage spans route helpers, localization helpers, proxy policy, telemetry validation, transition storage, card/data contracts, GNB behavior and focused GNB hooks, landing interaction DOM helpers, hover intent, desktop shell phase hooks, mobile lifecycle hooks, grid geometry, pure test-domain modules, cross-sheet integrity, Sheets loader normalization, sync orchestration failure/no-op/write paths, runtime integrity fallback, dev/test registry cache reset behavior, lazy validation, live question-bank APIs, and the schema registry. The legacy landing question-bank test file was removed during the 2026-04-24 question-bank refactor because its meaningful assertions now exercise `buildVariantQuestionBank()` / `resolveVariantPreviewQ1()` directly.
 
 ### 7.2 E2E Tests (Playwright)
 
@@ -473,7 +474,7 @@ Scoped to `tests/unit/`. Current file inventory: 45 `*.test.ts` files. Coverage 
 | `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (6 baselines) |
 | `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
 
-Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
+Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; ingress storage-key constants are constructed through `buildIngressStorageKey(variant)` so representative key values stay centralized; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
 
 The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
 
@@ -481,7 +482,7 @@ Local full-smoke reproduction requires Playwright Chromium and WebKit installati
 
 ### 7.3 Custom QA Scripts (`scripts/qa/`)
 
-`qa:rules` runs 12 checks:
+`qa:rules` delegates to `scripts/qa/run-all.mjs`, which runs the same 12 checks in parallel and prints each child script's buffered output after completion:
 
 | Script | Contract enforced |
 |---|---|
@@ -502,7 +503,9 @@ Local full-smoke reproduction requires Playwright Chromium and WebKit installati
 
 Consent-specific blockers 20~23 anchor in `tests/e2e/consent-smoke.spec.ts`; remaining test-flow blockers 24~30 mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence. Blockers 27, 28, 29, and 30 now carry automated evidence, including the 3-source cross-sheet unit coverage and route-level runtime guard assertions.
 
-As of 2026-04-25, `npm run qa:rules` passes all 12 checks. The landing-controller split expanded the relevant script read scopes without weakening required-file checks: Phase 6 now reads `landing-catalog-grid.tsx` plus `use-grid-geometry-controller.ts`, Phase 7 reads the controller plus `interaction-dom.ts`, hover, desktop motion, and keyboard hooks, and Phase 10 includes the mobile lifecycle hook while keeping existing CSS/e2e contract anchors.
+Shared local QA plumbing lives in `scripts/qa/_utils.mjs`, and the Phase 1 duplicate-locale regex source lives in `scripts/qa/_locale-list.mjs`. Phase-specific helper functions remain inside their original scripts.
+
+As of 2026-05-05, `npm run qa:rules` passes all 12 checks through the runner. The landing-controller split expanded the relevant script read scopes without weakening required-file checks: Phase 6 now reads `landing-catalog-grid.tsx` plus `use-grid-geometry-controller.ts`, Phase 7 reads the controller plus `interaction-dom.ts`, hover, desktop motion, and keyboard hooks, and Phase 10 includes the mobile lifecycle hook while keeping existing CSS/e2e contract anchors.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 
@@ -523,7 +526,7 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 `src/features/landing/grid/use-landing-interaction-controller.ts` · `src/features/landing/grid/interaction-dom.ts` · `src/features/landing/grid/use-hover-intent-controller.ts` · `src/features/landing/grid/use-desktop-motion-controller.ts` · `src/features/landing/grid/use-mobile-card-lifecycle.ts` · `src/features/landing/grid/use-keyboard-handoff.ts` · `src/features/landing/grid/use-grid-geometry-controller.ts` · `src/features/landing/grid/landing-catalog-grid.tsx` · `src/features/landing/model/interaction-state.ts` · `src/features/landing/grid/layout-plan.ts` · `src/features/landing/grid/spacing-plan.ts` · `tests/unit/landing-interaction-dom.test.ts` · `tests/unit/landing-hover-intent.test.ts` · `tests/unit/landing-mobile-lifecycle.test.ts` · `tests/unit/landing-desktop-shell-phase.test.ts` · `tests/unit/landing-grid-plan.test.ts` · `tests/e2e/grid-smoke.spec.ts` · `tests/e2e/state-smoke.spec.ts`
 
 ### GNB / theme / shared shell
-`src/features/landing/gnb/site-gnb.tsx` · `src/features/landing/gnb/hooks/use-gnb-desktop-settings.ts` · `src/features/landing/gnb/hooks/use-gnb-mobile-menu.ts` · `src/features/landing/gnb/hooks/use-gnb-back-navigation.ts` · `src/features/landing/gnb/hooks/use-theme-preference.ts` · `src/features/landing/gnb/hooks/theme-transition.ts` · `public/theme-bootstrap.js` · `src/features/landing/shell/page-shell.tsx` · `tests/e2e/gnb-smoke.spec.ts` · `tests/unit/gnb-message-labels.test.ts`
+`src/features/landing/gnb/site-gnb.tsx` · `src/features/landing/gnb/hooks/use-gnb-desktop-settings.ts` · `src/features/landing/gnb/hooks/use-gnb-mobile-menu.ts` · `src/features/landing/gnb/hooks/use-gnb-back-navigation.ts` · `src/features/landing/gnb/hooks/use-keyboard-mode-tracker.ts` · `src/features/landing/gnb/hooks/use-theme-preference.ts` · `src/features/landing/gnb/hooks/theme-transition.ts` · `public/theme-bootstrap.js` · `src/features/landing/shell/page-shell.tsx` · `tests/e2e/gnb-smoke.spec.ts` · `tests/unit/gnb-behavior.test.ts` · `tests/unit/gnb-desktop-settings.test.ts` · `tests/unit/gnb-mobile-menu.test.ts` · `tests/unit/gnb-back-navigation.test.ts` · `tests/unit/gnb-message-labels.test.ts`
 
 ### Transition / destination continuity / return-restore
 `src/features/landing/transition/runtime.ts` · `src/features/landing/transition/store.ts` · `src/features/landing/transition/signals.ts` · `src/features/landing/transition/transition-runtime-monitor.tsx` · `src/features/landing/transition/use-pending-landing-transition.ts` · `src/features/landing/landing-runtime.tsx` · `tests/e2e/transition-telemetry-smoke.spec.ts`
@@ -551,7 +554,7 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 
 **Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is down to 486 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
 
-**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Current pressure points are `site-gnb.tsx` (587 lines), `use-landing-interaction-controller.ts` (486 lines), `use-keyboard-handoff.ts` (367 lines), and `use-grid-geometry-controller.ts` (330 lines). GNB behavior pressure is now split across focused desktop settings, mobile menu, and back-navigation hooks. `use-mobile-card-lifecycle.ts` is now 281 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (115), and `use-mobile-transient-shell.ts` (86).
+**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Current pressure points are `site-gnb.tsx` (587 lines), `use-landing-interaction-controller.ts` (486 lines), `use-keyboard-handoff.ts` (367 lines), and `use-grid-geometry-controller.ts` (330 lines). GNB behavior pressure is now split across focused desktop settings, mobile menu, and back-navigation hooks; keyboard-mode tracking has an exported hook reserved for future wiring. `use-mobile-card-lifecycle.ts` is now 281 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (115), and `use-mobile-transient-shell.ts` (86).
 
 **Screenshot-driven QA remains concentrated in the instruction surface and visual matrix.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions. The 2026-05-03 R-01 follow-up confirmed theme-matrix baseline provenance, not code output, as the blocker source; future local baseline regeneration should use the preview command and provenance checklist in `tests/e2e/README.md`.
 

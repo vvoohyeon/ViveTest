@@ -1,7 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
 import {
-  getRequestLocaleHeaderValueFromPathname,
   REQUEST_LOCALE_HEADER_NAME,
   resolveRequestLocaleFromHeaderBag,
   resolveRequestLocaleHeaderValue
@@ -10,18 +9,6 @@ import {
 describe('request locale header contract', () => {
   it('uses the expected request header name', () => {
     expect(REQUEST_LOCALE_HEADER_NAME).toBe('X-NEXT-INTL-LOCALE');
-  });
-
-  it('resolves only localized pathnames into request header values', () => {
-    expect(getRequestLocaleHeaderValueFromPathname('/en')).toBe('en');
-    expect(getRequestLocaleHeaderValueFromPathname('/kr/blog')).toBe('kr');
-    expect(getRequestLocaleHeaderValueFromPathname('/zs')).toBe('zs');
-    expect(getRequestLocaleHeaderValueFromPathname('/zt/history')).toBe('zt');
-    expect(getRequestLocaleHeaderValueFromPathname('/ja/history')).toBe('ja');
-    expect(getRequestLocaleHeaderValueFromPathname('/ru/blog')).toBe('ru');
-    expect(getRequestLocaleHeaderValueFromPathname('/ru/blog/ops-handbook')).toBe('ru');
-    expect(getRequestLocaleHeaderValueFromPathname('/blog')).toBeNull();
-    expect(getRequestLocaleHeaderValueFromPathname('/_not-found')).toBeNull();
   });
 
   it('falls back to the default locale for missing or invalid header values', () => {

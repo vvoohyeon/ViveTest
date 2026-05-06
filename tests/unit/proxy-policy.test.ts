@@ -77,41 +77,29 @@ describe('proxy policy', () => {
     });
   });
 
-  it('passes through already localized and bypass paths', () => {
+  it('passes through already localized paths with resolved locale', () => {
     expect(
       resolveProxyDecision({
         pathname: '/kr'
       })
-    ).toEqual({action: 'next'});
+    ).toEqual({action: 'next', locale: 'kr'});
 
     expect(
       resolveProxyDecision({
         pathname: '/zs/blog'
       })
-    ).toEqual({action: 'next'});
+    ).toEqual({action: 'next', locale: 'zs'});
 
     expect(
       resolveProxyDecision({
         pathname: '/zs/blog/ops-handbook'
       })
-    ).toEqual({action: 'next'});
+    ).toEqual({action: 'next', locale: 'zs'});
 
     expect(
       resolveProxyDecision({
         pathname: '/ru'
       })
-    ).toEqual({action: 'next'});
-
-    expect(
-      resolveProxyDecision({
-        pathname: '/_next/static/chunk.js'
-      })
-    ).toEqual({action: 'next'});
-
-    expect(
-      resolveProxyDecision({
-        pathname: '/_not-found'
-      })
-    ).toEqual({action: 'next'});
+    ).toEqual({action: 'next', locale: 'ru'});
   });
 });

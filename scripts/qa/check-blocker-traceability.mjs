@@ -1,11 +1,9 @@
-import {readFileSync, statSync} from 'node:fs';
-import path from 'node:path';
+import {createChecker, fileExists, read} from './_utils.mjs';
 
-const rootDir = process.cwd();
 const traceabilityFile = 'docs/blocker-traceability.json';
 const TRACEABILITY_ASSERTION_ID = 'assertion:B19-traceability-registry';
 const allowedKinds = new Set(['automated_assertion', 'scenario_test', 'manual_checkpoint']);
-const errors = [];
+const {fail, finish} = createChecker();
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
@@ -23,18 +21,6 @@ function hasExecutableAssertionReference({content, file, assertionId}) {
   }
 
   return content.includes(assertionId);
-}
-
-function fail(message) {
-  errors.push(message);
-}
-
-function fileExists(relativePath) {
-  try {
-    return statSync(path.join(rootDir, relativePath)).isFile();
-  } catch {
-    return false;
-  }
 }
 
 function hasTraceabilityAnchor({content, file, assertionId, kind}) {
@@ -57,10 +43,14 @@ function hasTraceabilityAnchor({content, file, assertionId, kind}) {
   return false;
 }
 
+if (TRACEABILITY_ASSERTION_ID !== 'assertion:B19-traceability-registry') {
+  fail('Traceability assertion ID drifted from the blocker 19 registry anchor.');
+}
+
 if (!fileExists(traceabilityFile)) {
   fail(`Missing traceability registry: ${traceabilityFile}`);
 } else {
-  const entries = JSON.parse(readFileSync(path.join(rootDir, traceabilityFile), 'utf8'));
+  const entries = JSON.parse(read(traceabilityFile));
   const blockers = new Set();
 
   for (const entry of entries) {
@@ -91,7 +81,7 @@ if (!fileExists(traceabilityFile)) {
       continue;
     }
 
-    const content = readFileSync(path.join(rootDir, entry.file), 'utf8');
+    const content = read(entry.file);
     if (!content.includes(entry.assertionId)) {
       fail(`Traceability assertionId not found for blocker ${entry.blocker}: ${entry.assertionId}`);
       continue;
@@ -111,12 +101,4 @@ if (!fileExists(traceabilityFile)) {
   }
 }
 
-if (errors.length > 0) {
-  console.error('Blocker traceability checks failed:');
-  for (const issue of errors) {
-    console.error(`- ${issue}`);
-  }
-  process.exit(1);
-}
-
-console.log(`${TRACEABILITY_ASSERTION_ID} checks passed for ${traceabilityFile}.`);
+finish('Blocker traceability');

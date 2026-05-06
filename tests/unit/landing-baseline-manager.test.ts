@@ -3,7 +3,6 @@ import {describe, expect, it} from 'vitest';
 import {
   freezeBaselineRows,
   initialLandingBaselineState,
-  markBaselineRestorePending,
   releaseBaselineRows
 } from '../../src/features/landing/grid/baseline-manager';
 
@@ -24,12 +23,12 @@ describe('landing baseline manager', () => {
 
     expect(frozen.phase).toBe('BASELINE_FROZEN');
     expect(frozen.activeCardVariant).toBe('qmbti');
-    expect(frozen.frozenRows).toEqual(['row-0']);
+    expect([...frozen.snapshots.keys()]).toEqual(['row-0']);
     expect(frozen.snapshots.get('row-0')?.height).toBe(200);
   });
 
-  it('marks frozen baselines as restore-pending and releases them back to ready', () => {
-    const frozen = freezeBaselineRows({
+  it('releases frozen baselines back to ready', () => {
+    freezeBaselineRows({
       state: initialLandingBaselineState,
       activeCardVariant: 'qmbti',
       snapshots: [
@@ -41,9 +40,7 @@ describe('landing baseline manager', () => {
         }
       ]
     });
-    const restorePending = markBaselineRestorePending(frozen);
 
-    expect(restorePending.phase).toBe('BASELINE_RESTORE_PENDING');
     expect(releaseBaselineRows()).toEqual(initialLandingBaselineState);
   });
 });

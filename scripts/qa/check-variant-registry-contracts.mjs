@@ -1,15 +1,12 @@
-import {readdirSync, readFileSync, statSync} from 'node:fs';
+import {readdirSync} from 'node:fs';
 import path from 'node:path';
 
-const rootDir = process.cwd();
-const errors = [];
+import {createChecker, fileExists, read} from './_utils.mjs';
 
-function fail(message) {
-  errors.push(message);
-}
+const {fail, finish} = createChecker();
 
 function walk(relativeDir, results = []) {
-  const absoluteDir = path.join(rootDir, relativeDir);
+  const absoluteDir = path.join(process.cwd(), relativeDir);
 
   for (const entry of readdirSync(absoluteDir, {withFileTypes: true})) {
     const relativePath = path.join(relativeDir, entry.name);
@@ -31,18 +28,6 @@ function walk(relativeDir, results = []) {
   }
 
   return results;
-}
-
-function read(relativePath) {
-  return readFileSync(path.join(rootDir, relativePath), 'utf8');
-}
-
-function exists(relativePath) {
-  try {
-    return statSync(path.join(rootDir, relativePath)).isFile();
-  } catch {
-    return false;
-  }
 }
 
 const scanRoots = ['src', 'tests', 'scripts', 'docs'];
@@ -111,7 +96,7 @@ const consumerPreviewLeakFiles = [
 ];
 
 for (const relativePath of consumerPreviewLeakFiles) {
-  if (!exists(relativePath)) {
+  if (!fileExists(relativePath)) {
     continue;
   }
 
@@ -126,7 +111,7 @@ for (const relativePath of consumerPreviewLeakFiles) {
   }
 }
 
-if (exists('src/features/landing/grid/landing-grid-card.tsx')) {
+if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
 
   if (!/data-card-attribute=\{card\.attribute\}/u.test(cardFile)) {
@@ -178,7 +163,7 @@ const attributeOnlyRegistryChecks = [
 ];
 
 for (const check of attributeOnlyRegistryChecks) {
-  if (!exists(check.path)) {
+  if (!fileExists(check.path)) {
     continue;
   }
 
@@ -189,7 +174,7 @@ for (const check of attributeOnlyRegistryChecks) {
 }
 
 for (const relativePath of activeDocs) {
-  if (!exists(relativePath)) {
+  if (!fileExists(relativePath)) {
     fail(`Missing active contract doc: ${relativePath}.`);
     continue;
   }
@@ -200,12 +185,4 @@ for (const relativePath of activeDocs) {
   }
 }
 
-if (errors.length > 0) {
-  console.error('Variant registry contract checks failed:');
-  for (const issue of errors) {
-    console.error(`- ${issue}`);
-  }
-  process.exit(1);
-}
-
-console.log('Variant registry contract checks passed.');
+finish('Variant registry');

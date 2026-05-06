@@ -1,13 +1,13 @@
 import type {MutableRefObject, RefObject} from 'react';
-import {useEffect, useLayoutEffect, useState} from 'react';
+import {useEffect, useLayoutEffect, useReducer, useRef, useState} from 'react';
 
 import type {LandingCard} from '@/features/variant-registry';
 import type {LandingCardSpacingContract} from '@/features/landing/grid/landing-grid-card';
 import {
   freezeBaselineRows,
   initialLandingBaselineState,
-  markBaselineRestorePending,
   releaseBaselineRows,
+  type BaselineSnapshot,
   type LandingBaselineState
 } from '@/features/landing/grid/baseline-manager';
 import type {
@@ -22,12 +22,14 @@ import {
 
 export const LANDING_GRID_PLAN_CHANGED_EVENT = 'landing:grid-plan-changed';
 
+// allow closing animation frame to settle before releasing frozen rows
+const BASELINE_RELEASE_DELAY_MS = 32;
+
 type CardSpacingMap = Record<string, LandingCardSpacingContract>;
 
 interface UseGridGeometryControllerInput {
   cards: LandingCard[];
   shellRef: RefObject<HTMLElement | null>;
-  containerRef: RefObject<HTMLDivElement | null>;
   previousPlanKeyRef: MutableRefObject<string | null>;
   previousColumnModeRef: MutableRefObject<LandingGridColumnMode | null>;
   plan: LandingGridPlan;
@@ -41,7 +43,30 @@ interface UseGridGeometryControllerOutput {
   baselineState: LandingBaselineState;
 }
 
-function captureBaselineSnapshots(shellElement: HTMLElement, rowIndexes: readonly number[]) {
+type BaselineAction =
+  | {type: 'FREEZE'; activeCardVariant: string; snapshots: readonly BaselineSnapshot[]}
+  | {type: 'RELEASE'};
+
+function baselineReducer(state: LandingBaselineState, action: BaselineAction): LandingBaselineState {
+  switch (action.type) {
+    case 'FREEZE':
+      if (state.phase === 'BASELINE_READY') {
+        return freezeBaselineRows({
+          state,
+          activeCardVariant: action.activeCardVariant,
+          snapshots: action.snapshots
+        });
+      }
+      if (state.activeCardVariant === action.activeCardVariant) return state;
+      return {...state, activeCardVariant: action.activeCardVariant};
+    case 'RELEASE':
+      return releaseBaselineRows();
+    default:
+      return state;
+  }
+}
+
+function captureBaselineSnapshots(shellElement: HTMLElement, rowIndexes: readonly number[]): BaselineSnapshot[] {
   return rowIndexes.flatMap((rowIndex) => {
     const rowElement = shellElement.querySelector<HTMLElement>(`[data-row-index="${rowIndex}"]`);
     if (!rowElement) {
@@ -93,6 +118,16 @@ function isSameSpacingModel(a: CardSpacingMap, b: CardSpacingMap): boolean {
   return true;
 }
 
+function serializePlanKey(plan: LandingGridPlan): string {
+  return [
+    plan.tier,
+    plan.columnMode,
+    plan.row1Columns,
+    plan.rowNColumns,
+    plan.rows.map((row) => `${row.columns}-${row.cardCount}`).join('|')
+  ].join(':');
+}
+
 export function useGridGeometryController(input: UseGridGeometryControllerInput): UseGridGeometryControllerOutput {
   const {
     cards,
@@ -105,13 +140,12 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
     collapseExpandedCard
   } = input;
   const [spacingModel, setSpacingModel] = useState<CardSpacingMap>({});
-  const [baselineState, setBaselineState] = useState(initialLandingBaselineState);
+  const [baselineState, dispatchBaseline] = useReducer(baselineReducer, initialLandingBaselineState);
+  const baselineReleaseTimerRef = useRef<number>(0);
 
   useLayoutEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
+    // Skip spacing remeasurement while a card is expanded on desktop;
+    // the expanded overlay does not change row compensation values.
     if (plan.tier !== 'mobile' && activeVisualCardVariant) {
       return;
     }
@@ -206,91 +240,75 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [activeVisualCardVariant, cards, plan, shellRef, viewportWidth]);
+  }, [
+    activeVisualCardVariant,
+    cards,
+    plan,
+    shellRef,
+    viewportWidth // viewportWidth is intentionally listed as a deps re-trigger signal even though it is not read in the effect body.
+  ]);
 
   useEffect(() => {
-    let frame = 0;
-    let baselineReleaseTimer = 0;
-    const clearBaselineReleaseTimer = () => {
-      if (baselineReleaseTimer !== 0) {
-        window.clearTimeout(baselineReleaseTimer);
-        baselineReleaseTimer = 0;
+    let frameId = 0;
+    const clearTimer = () => {
+      if (baselineReleaseTimerRef.current !== 0) {
+        window.clearTimeout(baselineReleaseTimerRef.current);
+        baselineReleaseTimerRef.current = 0;
       }
     };
-    const scheduleBaselineState = (
-      updater: LandingBaselineState | ((previous: LandingBaselineState) => LandingBaselineState)
-    ) => {
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        setBaselineState(updater);
+    const dispatchViaRaf = (action: BaselineAction) => {
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
+      }
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0;
+        dispatchBaseline(action);
       });
     };
     const cleanup = () => {
-      clearBaselineReleaseTimer();
-      if (frame !== 0) {
-        window.cancelAnimationFrame(frame);
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
       }
+      clearTimer();
     };
 
-    if (typeof window === 'undefined') {
-      return;
-    }
-
     if (plan.tier === 'mobile') {
-      clearBaselineReleaseTimer();
-      scheduleBaselineState((previous) => (previous.phase === 'BASELINE_READY' ? previous : releaseBaselineRows()));
+      clearTimer();
+      dispatchViaRaf({type: 'RELEASE'});
       return cleanup;
     }
 
     if (activeVisualCardVariant) {
-      clearBaselineReleaseTimer();
+      clearTimer();
       const shell = shellRef.current;
       if (!shell) {
-        return;
+        return cleanup;
       }
 
       const snapshots = captureBaselineSnapshots(
         shell,
         plan.rows.map((row) => row.rowIndex)
       );
-      scheduleBaselineState((previous) =>
-        previous.phase === 'BASELINE_READY'
-          ? freezeBaselineRows({
-              state: previous,
-              activeCardVariant: activeVisualCardVariant,
-              snapshots
-            })
-          : previous.activeCardVariant === activeVisualCardVariant
-            ? previous
-            : {
-                ...previous,
-                activeCardVariant: activeVisualCardVariant
-              }
-      );
+      dispatchViaRaf({
+        type: 'FREEZE',
+        activeCardVariant: activeVisualCardVariant,
+        snapshots
+      });
       return cleanup;
     }
 
-    if (baselineState.phase === 'BASELINE_READY') {
-      clearBaselineReleaseTimer();
-      return;
+    if (baselineReleaseTimerRef.current === 0) {
+      baselineReleaseTimerRef.current = window.setTimeout(() => {
+        baselineReleaseTimerRef.current = 0;
+        dispatchBaseline({type: 'RELEASE'});
+      }, BASELINE_RELEASE_DELAY_MS);
     }
-
-    if (baselineState.phase === 'BASELINE_FROZEN') {
-      scheduleBaselineState((previous) => markBaselineRestorePending(previous));
-    }
-
-    baselineReleaseTimer = window.setTimeout(() => {
-      baselineReleaseTimer = 0;
-      setBaselineState(releaseBaselineRows());
-    }, 32);
 
     return cleanup;
-  }, [activeVisualCardVariant, baselineState.phase, plan.rows, plan.tier, shellRef]);
+  }, [activeVisualCardVariant, plan.rows, plan.tier, shellRef]);
 
   useEffect(() => {
-    const nextPlanKey = `${plan.tier}:${plan.columnMode}:${plan.row1Columns}:${plan.rowNColumns}:${plan.rows
-      .map((row) => `${row.columns}-${row.cardCount}`)
-      .join('|')}`;
+    const nextPlanKey = serializePlanKey(plan);
 
     if (
       previousPlanKeyRef.current &&

@@ -64,7 +64,11 @@ npm test -- \
   tests/unit/landing-hover-intent.test.ts \
   tests/unit/landing-mobile-lifecycle.test.ts \
   tests/unit/landing-desktop-shell-phase.test.ts \
-  tests/unit/landing-grid-plan.test.ts
+  tests/unit/landing-grid-plan.test.ts \
+  tests/unit/gnb-behavior.test.ts \
+  tests/unit/gnb-desktop-settings.test.ts \
+  tests/unit/gnb-mobile-menu.test.ts \
+  tests/unit/gnb-back-navigation.test.ts
 npx playwright test \
   tests/e2e/grid-smoke.spec.ts \
   tests/e2e/state-smoke.spec.ts \

@@ -1,28 +1,6 @@
-import {readFileSync, statSync} from 'node:fs';
-import path from 'node:path';
+import {createChecker, fileExists, read, readExisting} from './_utils.mjs';
 
-const rootDir = process.cwd();
-const errors = [];
-
-function fail(message) {
-  errors.push(message);
-}
-
-function fileExists(relativePath) {
-  try {
-    return statSync(path.join(rootDir, relativePath)).isFile();
-  } catch {
-    return false;
-  }
-}
-
-function read(relativePath) {
-  return readFileSync(path.join(rootDir, relativePath), 'utf8');
-}
-
-function readExisting(relativePaths) {
-  return relativePaths.filter(fileExists).map(read).join('\n');
-}
+const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'package.json',
@@ -110,12 +88,4 @@ if (fileExists('tests/e2e/gnb-smoke.spec.ts')) {
   }
 }
 
-if (errors.length > 0) {
-  console.error('Phase 8 accessibility contract checks failed:');
-  for (const issue of errors) {
-    console.error(`- ${issue}`);
-  }
-  process.exit(1);
-}
-
-console.log('Phase 8 accessibility contract checks passed.');
+finish('Phase 8 accessibility');
