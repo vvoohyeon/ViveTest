@@ -1,4 +1,5 @@
 import {createChecker, fileExists, read, readExisting} from './_utils.mjs';
+import {e2e, landing, styles} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
@@ -9,10 +10,10 @@ function readCssBlock(css, selector) {
 }
 
 const requiredFiles = [
-  'src/features/landing/grid/spacing-plan.ts',
-  'src/features/landing/grid/use-grid-geometry-controller.ts',
+  landing.grid.spacingPlan,
+  landing.grid.geometryController,
   'tests/unit/landing-spacing-plan.test.ts',
-  'tests/e2e/grid-smoke.spec.ts'
+  e2e.gridSmoke
 ];
 
 for (const relativePath of requiredFiles) {
@@ -23,8 +24,8 @@ for (const relativePath of requiredFiles) {
 
 {
   const gridFiles = readExisting([
-    'src/features/landing/grid/landing-catalog-grid.tsx',
-    'src/features/landing/grid/use-grid-geometry-controller.ts'
+    landing.grid.catalogGrid,
+    landing.grid.geometryController
   ]);
   if (!/buildRowCompensationModel/u.test(gridFiles)) {
     fail('LandingCatalogGrid must use row-local compensation model in Phase 6.');
@@ -41,8 +42,8 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
-  const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
+if (fileExists(landing.grid.gridCard)) {
+  const cardFile = read(landing.grid.gridCard);
   if (!/data-base-gap/u.test(cardFile) || !/data-comp-gap/u.test(cardFile) || !/data-needs-comp/u.test(cardFile)) {
     fail('LandingGridCard must expose spacing contract metrics in data attributes.');
   }
@@ -58,8 +59,8 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
 
 {
   const css = readExisting([
-    'src/app/globals.css',
-    'src/features/landing/grid/landing-grid-card.module.css'
+    styles.globals,
+    landing.grid.gridCardCss
   ]);
   const cardBlock = readCssBlock(css, '.landing-grid-card');
   const contentBlock = readCssBlock(css, '.landing-grid-card-content');
@@ -93,8 +94,8 @@ if (fileExists('tests/unit/landing-spacing-plan.test.ts')) {
   }
 }
 
-if (fileExists('tests/e2e/grid-smoke.spec.ts')) {
-  const e2eSpec = read('tests/e2e/grid-smoke.spec.ts');
+if (fileExists(e2e.gridSmoke)) {
+  const e2eSpec = read(e2e.gridSmoke);
   if (!/base-gap and comp-gap follow row-local compensation rule for row1 and row2\+/u.test(e2eSpec)) {
     fail('Grid smoke must verify row-local base_gap + comp_gap contract in Phase 6.');
   }

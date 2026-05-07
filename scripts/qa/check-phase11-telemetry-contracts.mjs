@@ -2,6 +2,7 @@ import {readdirSync, statSync} from 'node:fs';
 import path from 'node:path';
 
 import {createChecker, fileExists, read} from './_utils.mjs';
+import {e2e, telemetry} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 const THEME_MATRIX_SNAPSHOT_SUFFIX = '-chromium-darwin.png';
@@ -86,15 +87,15 @@ function assertExactSnapshotSet({label, actualFiles, expectedFiles}) {
 
 const requiredFiles = [
   'src/lib/correlation-id.ts',
-  'src/features/telemetry/runtime.ts',
-  'src/features/telemetry/validation.ts',
+  telemetry.runtime,
+  telemetry.validation,
   'src/app/api/telemetry/route.ts',
   'playwright.config.ts',
   'tests/unit/landing-telemetry-validation.test.ts',
   'tests/e2e/helpers/landing-fixture.ts',
-  'tests/e2e/theme-matrix-smoke.spec.ts',
+  e2e.themeMatrixSmoke,
   'tests/e2e/theme-matrix-manifest.json',
-  'tests/e2e/safari-hover-ghosting.spec.ts'
+  e2e.safariHoverGhosting
 ];
 
 const allowedSettleRecipes = new Set([
@@ -116,8 +117,8 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/telemetry/runtime.ts')) {
-  const runtimeFile = read('src/features/telemetry/runtime.ts');
+if (fileExists(telemetry.runtime)) {
+  const runtimeFile = read(telemetry.runtime);
   const correlationIdFile = fileExists('src/lib/correlation-id.ts')
     ? read('src/lib/correlation-id.ts')
     : '';
@@ -144,8 +145,8 @@ if (fileExists('src/features/telemetry/runtime.ts')) {
   }
 }
 
-if (fileExists('src/features/telemetry/validation.ts')) {
-  const validationFile = read('src/features/telemetry/validation.ts');
+if (fileExists(telemetry.validation)) {
+  const validationFile = read(telemetry.validation);
   if (
     !/Forbidden telemetry field/u.test(validationFile) ||
     !/Legacy telemetry field/u.test(validationFile) ||
@@ -293,8 +294,8 @@ if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
   }
 }
 
-if (fileExists('tests/e2e/theme-matrix-smoke.spec.ts')) {
-  const e2eSpec = read('tests/e2e/theme-matrix-smoke.spec.ts');
+if (fileExists(e2e.themeMatrixSmoke)) {
+  const e2eSpec = read(e2e.themeMatrixSmoke);
   if (!/toHaveScreenshot/u.test(e2eSpec)) {
     fail('Theme matrix smoke must capture screenshot baselines.');
   }
@@ -326,8 +327,8 @@ if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
   }
 }
 
-if (fileExists('tests/e2e/safari-hover-ghosting.spec.ts')) {
-  const safariSpec = read('tests/e2e/safari-hover-ghosting.spec.ts');
+if (fileExists(e2e.safariHoverGhosting)) {
+  const safariSpec = read(e2e.safariHoverGhosting);
   if (!/toMatchSnapshot/u.test(safariSpec)) {
     fail('Safari ghosting smoke must capture screenshot baselines.');
   }

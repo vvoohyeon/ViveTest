@@ -1,13 +1,14 @@
 import {createChecker, fileExists, read} from './_utils.mjs';
+import {e2e, landing} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'src/features/landing/grid/layout-plan.ts',
-  'src/features/landing/grid/landing-catalog-grid.tsx',
-  'src/features/landing/grid/use-grid-geometry-controller.ts',
+  landing.grid.catalogGrid,
+  landing.grid.geometryController,
   'tests/unit/landing-grid-plan.test.ts',
-  'tests/e2e/grid-smoke.spec.ts'
+  e2e.gridSmoke
 ];
 
 for (const relativePath of requiredFiles) {
@@ -36,8 +37,8 @@ if (fileExists('tests/unit/landing-grid-plan.test.ts')) {
   }
 }
 
-if (fileExists('tests/e2e/grid-smoke.spec.ts')) {
-  const e2eSpec = read('tests/e2e/grid-smoke.spec.ts');
+if (fileExists(e2e.gridSmoke)) {
+  const e2eSpec = read(e2e.gridSmoke);
   if (!/@smoke/u.test(e2eSpec)) {
     fail('Grid smoke spec must be tagged with @smoke.');
   }

@@ -1,19 +1,20 @@
 import {createChecker, fileExists, read, readExisting} from './_utils.mjs';
+import {e2e, gnb, landing, styles} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'src/app/layout.tsx',
   'public/theme-bootstrap.js',
-  'src/features/landing/grid/landing-catalog-grid-loader.tsx',
-  'src/features/landing/grid/landing-catalog-grid.tsx',
-  'src/features/landing/grid/landing-grid-card.module.css',
-  'src/features/landing/grid/use-landing-interaction-controller.ts',
-  'src/features/gnb/hooks/use-gnb-capability.ts',
-  'src/app/globals.css',
-  'tests/e2e/routing-smoke.spec.ts',
-  'tests/e2e/state-smoke.spec.ts',
-  'tests/e2e/gnb-smoke.spec.ts'
+  landing.grid.catalogGridLoader,
+  landing.grid.catalogGrid,
+  landing.grid.gridCardCss,
+  landing.grid.interactionController,
+  gnb.capabilityHook,
+  styles.globals,
+  e2e.routingSmoke,
+  e2e.stateSmoke,
+  e2e.gnbSmoke
 ];
 
 for (const relativePath of requiredFiles) {
@@ -22,8 +23,8 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-catalog-grid-loader.tsx')) {
-  const loaderFile = read('src/features/landing/grid/landing-catalog-grid-loader.tsx');
+if (fileExists(landing.grid.catalogGridLoader)) {
+  const loaderFile = read(landing.grid.catalogGridLoader);
 
   if (/next\/dynamic/u.test(loaderFile) || /ssr:\s*false/u.test(loaderFile)) {
     fail('LandingCatalogGridLoader must not regress to dynamic ssr:false loading.');
@@ -34,8 +35,8 @@ if (fileExists('src/features/landing/grid/landing-catalog-grid-loader.tsx')) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
-  const gridFile = read('src/features/landing/grid/landing-catalog-grid.tsx');
+if (fileExists(landing.grid.catalogGrid)) {
+  const gridFile = read(landing.grid.catalogGrid);
 
   if (!/INITIAL_VIEWPORT_WIDTH/u.test(gridFile) || !/useState<number>\(INITIAL_VIEWPORT_WIDTH\)/u.test(gridFile)) {
     fail('LandingCatalogGrid must keep an SSR-neutral viewport initializer.');
@@ -46,8 +47,8 @@ if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
-  const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
+if (fileExists(landing.grid.gridCard)) {
+  const cardFile = read(landing.grid.gridCard);
 
   if (
     !/LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME[\s\S]*cursor-pointer/u.test(cardFile) ||
@@ -62,8 +63,8 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   }
 }
 
-if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts')) {
-  const controllerFile = read('src/features/landing/grid/use-landing-interaction-controller.ts');
+if (fileExists(landing.grid.interactionController)) {
+  const controllerFile = read(landing.grid.interactionController);
 
   if (!/prefers-reduced-motion/u.test(controllerFile)) {
     fail('Interaction controller must continue syncing prefers-reduced-motion.');
@@ -74,8 +75,8 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
   }
 }
 
-if (fileExists('src/features/gnb/hooks/use-gnb-capability.ts')) {
-  const gnbCapabilityFile = read('src/features/gnb/hooks/use-gnb-capability.ts');
+if (fileExists(gnb.capabilityHook)) {
+  const gnbCapabilityFile = read(gnb.capabilityHook);
 
   if (!/useLayoutEffect/u.test(gnbCapabilityFile)) {
     fail('GNB capability hook must initialize viewport/hover capability before first paint.');
@@ -106,10 +107,10 @@ if (fileExists('public/theme-bootstrap.js')) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-grid-card.module.css')) {
+if (fileExists(landing.grid.gridCardCss)) {
   const css = readExisting([
-    'src/features/landing/grid/landing-grid-card.module.css',
-    'src/app/globals.css'
+    landing.grid.gridCardCss,
+    styles.globals
   ]);
 
   if (!/reducedMotion/u.test(css) || !/prefers-reduced-motion:\s*reduce/u.test(css)) {
@@ -128,8 +129,8 @@ if (fileExists('src/features/landing/grid/landing-grid-card.module.css')) {
   }
 }
 
-if (fileExists('tests/e2e/routing-smoke.spec.ts')) {
-  const routingSpec = read('tests/e2e/routing-smoke.spec.ts');
+if (fileExists(e2e.routingSmoke)) {
+  const routingSpec = read(e2e.routingSmoke);
   if (!/assertion:B1-hydration/u.test(routingSpec)) {
     fail('Routing smoke must keep hydration warning coverage.');
   }
@@ -158,8 +159,8 @@ if (fileExists('playwright.config.ts')) {
   }
 }
 
-if (fileExists('tests/e2e/state-smoke.spec.ts')) {
-  const stateSpec = read('tests/e2e/state-smoke.spec.ts');
+if (fileExists(e2e.stateSmoke)) {
+  const stateSpec = read(e2e.stateSmoke);
   if (!/reduced-motion \/ low-spec fallback shrinks desktop motion/u.test(stateSpec)) {
     fail('State smoke must cover reduced-motion / V1 low-spec fallback runtime safety.');
   }
@@ -169,8 +170,8 @@ if (fileExists('tests/e2e/state-smoke.spec.ts')) {
   }
 }
 
-if (fileExists('tests/e2e/gnb-smoke.spec.ts')) {
-  const gnbSpec = read('tests/e2e/gnb-smoke.spec.ts');
+if (fileExists(e2e.gnbSmoke)) {
+  const gnbSpec = read(e2e.gnbSmoke);
   if (!/assertion:B3-desktop-settings/u.test(gnbSpec)) {
     fail('GNB smoke must keep desktop settings hover-open coverage.');
   }

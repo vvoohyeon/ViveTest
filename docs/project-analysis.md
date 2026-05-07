@@ -514,9 +514,11 @@ Local full-smoke reproduction requires Playwright Chromium and WebKit installati
 
 Consent-specific blockers 20~23 anchor in `tests/e2e/consent-smoke.spec.ts`; remaining test-flow blockers 24~30 mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence. Blockers 27, 28, 29, and 30 now carry automated evidence, including the 3-source cross-sheet unit coverage and route-level runtime guard assertions.
 
-Shared local QA plumbing lives in `scripts/qa/_utils.mjs`, and the Phase 1 duplicate-locale regex source lives in `scripts/qa/_locale-list.mjs`. Phase-specific helper functions remain inside their original scripts.
+Shared local QA plumbing lives in `scripts/qa/_utils.mjs`; shared QA path groups live in `scripts/qa/_path-config.mjs`; and the Phase 1 duplicate-locale regex source lives in `scripts/qa/_locale-list.mjs`. Phase-specific helper functions remain inside their original scripts.
 
 As of 2026-05-05, `npm run qa:rules` passes all 12 checks through the runner. The landing-controller split expanded the relevant script read scopes without weakening required-file checks: Phase 6 now reads `landing-catalog-grid.tsx` plus `use-grid-geometry-controller.ts`, Phase 7 reads the controller plus `interaction-dom.ts`, hover, desktop motion, and keyboard hooks, and Phase 10 includes the mobile lifecycle hook while keeping existing CSS/e2e contract anchors.
+
+As of 2026-05-07, the T-02 QA path-config refactor centralizes shared landing, GNB, telemetry, transition, blog, style, and e2e file paths in `scripts/qa/_path-config.mjs`. The affected Phase 4-11 scripts and `check-variant-only-contracts.mjs` import only the path groups they scan, while single-source contract paths remain inline. Post-refactor verification: `npm run qa:rules`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` passed.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and the Playwright `@gate` subset. `qa:gate` repeats that pipeline three times for flake detection.
 

@@ -1,17 +1,18 @@
 import {createChecker, fileExists, read} from './_utils.mjs';
+import {blog, e2e, landing, transition} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
 const requiredFiles = [
-  'src/features/transition/runtime.ts',
-  'src/features/transition/signals.ts',
-  'src/features/transition/use-landing-transition.ts',
+  transition.runtime,
+  transition.signals,
+  transition.hook,
   'src/features/landing/landing-runtime.tsx',
   'src/features/test/test-question-client.tsx',
-  'src/features/blog/blog-destination-client.tsx',
-  'src/features/landing/grid/use-mobile-card-lifecycle.ts',
-  'src/features/landing/grid/landing-grid-card.module.css',
-  'tests/e2e/transition-telemetry-smoke.spec.ts'
+  blog.destinationClient,
+  landing.grid.mobileCardLifecycle,
+  landing.grid.gridCardCss,
+  e2e.transitionTelemetrySmoke
 ];
 
 for (const relativePath of requiredFiles) {
@@ -20,8 +21,8 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/transition/runtime.ts')) {
-  const runtimeFile = read('src/features/transition/runtime.ts');
+if (fileExists(transition.runtime)) {
+  const runtimeFile = read(transition.runtime);
 
   if (!/writePendingLandingTransition/u.test(runtimeFile) || !/saveLandingReturnScrollY/u.test(runtimeFile)) {
     fail('Transition runtime must persist pending transition state and return scrollY.');
@@ -56,8 +57,8 @@ if (fileExists('src/features/test/test-question-client.tsx')) {
   }
 }
 
-if (fileExists('src/features/blog/blog-destination-client.tsx')) {
-  const blogClient = read('src/features/blog/blog-destination-client.tsx');
+if (fileExists(blog.destinationClient)) {
+  const blogClient = read(blog.destinationClient);
   if (
     !/completePendingLandingTransition/u.test(blogClient) ||
     !/terminatePendingLandingTransition/u.test(blogClient) ||
@@ -72,8 +73,8 @@ if (fileExists('src/features/blog/blog-destination-client.tsx')) {
   }
 }
 
-if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
-  const e2eSpec = read('tests/e2e/transition-telemetry-smoke.spec.ts');
+if (fileExists(e2e.transitionTelemetrySmoke)) {
+  const e2eSpec = read(e2e.transitionTelemetrySmoke);
   if (
     !/card_answered/u.test(e2eSpec) ||
     !/attempt_start/u.test(e2eSpec) ||
@@ -113,8 +114,8 @@ if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-grid-card.module.css')) {
-  const css = read('src/features/landing/grid/landing-grid-card.module.css');
+if (fileExists(landing.grid.gridCardCss)) {
+  const css = read(landing.grid.gridCardCss);
 
   if (!/landing-card-mobile-open-shell/u.test(css) || !/landing-card-detail-quiet-exit/u.test(css)) {
     fail('Landing grid styles must keep explicit mobile open/close choreography keyframes.');

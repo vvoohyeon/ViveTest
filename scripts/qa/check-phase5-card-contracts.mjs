@@ -1,11 +1,12 @@
 import {createChecker, fileExists, read} from './_utils.mjs';
+import {e2e, landing} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
 const requiredFiles = [
-  'src/features/landing/grid/landing-grid-card.tsx',
+  landing.grid.gridCard,
   'tests/unit/landing-card-contract.test.ts',
-  'tests/e2e/grid-smoke.spec.ts'
+  e2e.gridSmoke
 ];
 
 for (const relativePath of requiredFiles) {
@@ -14,15 +15,15 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
-  const gridFile = read('src/features/landing/grid/landing-catalog-grid.tsx');
+if (fileExists(landing.grid.catalogGrid)) {
+  const gridFile = read(landing.grid.catalogGrid);
   if (!/LandingGridCard/u.test(gridFile)) {
     fail('LandingCatalogGrid must render LandingGridCard in Phase 5.');
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
-  const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
+if (fileExists(landing.grid.gridCard)) {
+  const cardFile = read(landing.grid.gridCard);
 
   if (!/data-slot=(["'])cardTitle\1/u.test(cardFile) || !/cardThumbnail/u.test(cardFile)) {
     fail('LandingGridCard must define normal slot markers.');
@@ -53,8 +54,8 @@ if (fileExists('tests/unit/landing-card-contract.test.ts')) {
   }
 }
 
-if (fileExists('tests/e2e/grid-smoke.spec.ts')) {
-  const e2eSpec = read('tests/e2e/grid-smoke.spec.ts');
+if (fileExists(e2e.gridSmoke)) {
+  const e2eSpec = read(e2e.gridSmoke);
 
   if (!/normal card slot order and unavailable overlay contract/u.test(e2eSpec)) {
     fail('Grid smoke spec must include normal slot + unavailable overlay contract assertion.');

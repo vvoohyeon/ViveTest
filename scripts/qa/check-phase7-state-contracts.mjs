@@ -1,21 +1,22 @@
 import {createChecker, fileExists, read, readExisting} from './_utils.mjs';
+import {e2e, landing} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
 const requiredFiles = [
-  'src/features/landing/model/interaction-state.ts',
-  'src/features/landing/grid/use-landing-interaction-controller.ts',
-  'src/features/landing/grid/use-hover-intent-controller.ts',
-  'src/features/landing/grid/use-desktop-motion-controller.ts',
-  'src/features/landing/grid/use-keyboard-handoff.ts',
-  'src/features/landing/grid/use-keyboard-mode-tracker.ts',
-  'src/features/landing/grid/use-landing-keyboard-entry.ts',
-  'src/features/landing/grid/use-card-keyboard-handler.ts',
-  'src/features/landing/grid/interaction-dom.ts',
-  'src/features/landing/grid/landing-catalog-grid.tsx',
-  'src/features/landing/grid/landing-grid-card.tsx',
+  landing.model.interactionState,
+  landing.grid.interactionController,
+  landing.grid.hoverIntentController,
+  landing.grid.desktopMotionController,
+  landing.grid.keyboardHandoff,
+  landing.grid.keyboardModeTracker,
+  landing.grid.landingKeyboardEntry,
+  landing.grid.cardKeyboardHandler,
+  landing.grid.interactionDom,
+  landing.grid.catalogGrid,
+  landing.grid.gridCard,
   'tests/unit/landing-interaction-state.test.ts',
-  'tests/e2e/state-smoke.spec.ts'
+  e2e.stateSmoke
 ];
 
 for (const relativePath of requiredFiles) {
@@ -24,8 +25,8 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/landing/model/interaction-state.ts')) {
-  const stateMachineFile = read('src/features/landing/model/interaction-state.ts');
+if (fileExists(landing.model.interactionState)) {
+  const stateMachineFile = read(landing.model.interactionState);
 
   if (!/ACTIVE_RAMP_UP_MS/u.test(stateMachineFile) || !/reduceLandingInteractionState/u.test(stateMachineFile)) {
     fail('Phase 7 requires ACTIVE ramp-up constant and reducer implementation.');
@@ -52,17 +53,17 @@ if (fileExists('src/features/landing/model/interaction-state.ts')) {
   }
 }
 
-if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts')) {
-  const controllerFile = read('src/features/landing/grid/use-landing-interaction-controller.ts');
+if (fileExists(landing.grid.interactionController)) {
+  const controllerFile = read(landing.grid.interactionController);
   const controllerAndDomFiles = readExisting([
-    'src/features/landing/grid/use-landing-interaction-controller.ts',
-    'src/features/landing/grid/use-hover-intent-controller.ts',
-    'src/features/landing/grid/use-desktop-motion-controller.ts',
-    'src/features/landing/grid/use-keyboard-handoff.ts',
-    'src/features/landing/grid/use-keyboard-mode-tracker.ts',
-    'src/features/landing/grid/use-landing-keyboard-entry.ts',
-    'src/features/landing/grid/use-card-keyboard-handler.ts',
-    'src/features/landing/grid/interaction-dom.ts'
+    landing.grid.interactionController,
+    landing.grid.hoverIntentController,
+    landing.grid.desktopMotionController,
+    landing.grid.keyboardHandoff,
+    landing.grid.keyboardModeTracker,
+    landing.grid.landingKeyboardEntry,
+    landing.grid.cardKeyboardHandler,
+    landing.grid.interactionDom
   ]);
 
   if (!/useReducer/u.test(controllerFile) || !/reduceLandingInteractionState/u.test(controllerFile)) {
@@ -82,10 +83,10 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
   }
 
   const keyboardHandoffFile = readExisting([
-    'src/features/landing/grid/use-keyboard-handoff.ts',
-    'src/features/landing/grid/use-keyboard-mode-tracker.ts',
-    'src/features/landing/grid/use-landing-keyboard-entry.ts',
-    'src/features/landing/grid/use-card-keyboard-handler.ts'
+    landing.grid.keyboardHandoff,
+    landing.grid.keyboardModeTracker,
+    landing.grid.landingKeyboardEntry,
+    landing.grid.cardKeyboardHandler
   ]);
   if (!/pointermove/u.test(controllerAndDomFiles) || !/mousedown/u.test(controllerAndDomFiles)) {
     fail('Interaction controller must track pointermove and exit keyboard mode on mousedown in Phase 7.');
@@ -104,8 +105,8 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
-  const gridFile = read('src/features/landing/grid/landing-catalog-grid.tsx');
+if (fileExists(landing.grid.catalogGrid)) {
+  const gridFile = read(landing.grid.catalogGrid);
 
   if (!/useLandingInteractionController/u.test(gridFile)) {
     fail('LandingCatalogGrid must consume interaction controller in Phase 7.');
@@ -120,8 +121,8 @@ if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
-  const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
+if (fileExists(landing.grid.gridCard)) {
+  const cardFile = read(landing.grid.gridCard);
 
   if (!/tabIndex=/u.test(cardFile) || !/aria-disabled/u.test(cardFile)) {
     fail('LandingGridCard must expose tabIndex and aria-disabled controls in Phase 7.');
@@ -148,8 +149,8 @@ if (fileExists('tests/unit/landing-interaction-state.test.ts')) {
   }
 }
 
-if (fileExists('tests/e2e/state-smoke.spec.ts')) {
-  const e2eSpec = read('tests/e2e/state-smoke.spec.ts');
+if (fileExists(e2e.stateSmoke)) {
+  const e2eSpec = read(e2e.stateSmoke);
 
   if (!/@smoke/u.test(e2eSpec)) {
     fail('Phase 7 state smoke tests must include @smoke tag.');

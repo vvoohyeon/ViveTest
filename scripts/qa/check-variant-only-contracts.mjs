@@ -1,4 +1,5 @@
 import {createChecker, fileExists, read} from './_utils.mjs';
+import {e2e} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
@@ -49,9 +50,9 @@ const scanFiles = [
   'tests/unit/landing-data-contract.test.ts',
   'tests/unit/landing-card-contract.test.ts',
   'tests/unit/blog-server-model.test.ts',
-  'tests/e2e/routing-smoke.spec.ts',
-  'tests/e2e/grid-smoke.spec.ts',
-  'tests/e2e/transition-telemetry-smoke.spec.ts',
+  e2e.routingSmoke,
+  e2e.gridSmoke,
+  e2e.transitionTelemetrySmoke,
   'scripts/qa/check-phase5-card-contracts.mjs',
   'scripts/qa/check-phase10-transition-contracts.mjs',
   'docs/req-landing.md',

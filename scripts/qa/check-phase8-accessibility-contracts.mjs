@@ -1,15 +1,16 @@
 import {createChecker, fileExists, read, readExisting} from './_utils.mjs';
+import {e2e, gnb, landing, styles} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'package.json',
-  'src/features/landing/grid/landing-grid-card.tsx',
-  'src/features/landing/grid/landing-grid-card.module.css',
-  'src/features/gnb/site-gnb.tsx',
-  'tests/e2e/a11y-smoke.spec.ts',
-  'tests/e2e/state-smoke.spec.ts',
-  'tests/e2e/gnb-smoke.spec.ts'
+  landing.grid.gridCard,
+  landing.grid.gridCardCss,
+  gnb.siteGnb,
+  e2e.a11ySmoke,
+  e2e.stateSmoke,
+  e2e.gnbSmoke
 ];
 
 for (const relativePath of requiredFiles) {
@@ -18,8 +19,8 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
-  const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
+if (fileExists(landing.grid.gridCard)) {
+  const cardFile = read(landing.grid.gridCard);
 
   if (
     !/type="button"/u.test(cardFile) ||
@@ -38,8 +39,8 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   }
 }
 
-if (fileExists('src/features/gnb/site-gnb.tsx')) {
-  const gnbFile = read('src/features/gnb/site-gnb.tsx');
+if (fileExists(gnb.siteGnb)) {
+  const gnbFile = read(gnb.siteGnb);
 
   if (!/aria-label=\{t\('settings'\)\}/u.test(gnbFile)) {
     fail('Desktop settings trigger must expose an aria-label.');
@@ -52,8 +53,8 @@ if (fileExists('src/features/gnb/site-gnb.tsx')) {
 
 {
   const css = readExisting([
-    'src/app/globals.css',
-    'src/features/landing/grid/landing-grid-card.module.css'
+    styles.globals,
+    landing.grid.gridCardCss
   ]);
   if (!/:has\(:focus-visible\)/u.test(css)) {
     fail('Card shell focus-visible contract must remain in landing-grid style sources.');
@@ -67,22 +68,22 @@ if (fileExists('package.json')) {
   }
 }
 
-if (fileExists('tests/e2e/state-smoke.spec.ts')) {
-  const e2eSpec = read('tests/e2e/state-smoke.spec.ts');
+if (fileExists(e2e.stateSmoke)) {
+  const e2eSpec = read(e2e.stateSmoke);
   if (!/landing-grid-card-trigger/u.test(e2eSpec)) {
     fail('State smoke spec must assert focus movement against the semantic trigger.');
   }
 }
 
-if (fileExists('tests/e2e/a11y-smoke.spec.ts')) {
-  const a11ySpec = read('tests/e2e/a11y-smoke.spec.ts');
+if (fileExists(e2e.a11ySmoke)) {
+  const a11ySpec = read(e2e.a11ySmoke);
   if (!/assertion:B5-axe-canonical/u.test(a11ySpec) || !/assertion:B7-axe-canonical/u.test(a11ySpec)) {
     fail('Accessibility smoke spec must keep canonical axe coverage for landing and GNB states.');
   }
 }
 
-if (fileExists('tests/e2e/gnb-smoke.spec.ts')) {
-  const gnbSpec = read('tests/e2e/gnb-smoke.spec.ts');
+if (fileExists(e2e.gnbSmoke)) {
+  const gnbSpec = read(e2e.gnbSmoke);
   if (!/assertion:B3-gnb-keyboard-matrix/u.test(gnbSpec) || !/assertion:B7-gnb-keyboard-matrix/u.test(gnbSpec)) {
     fail('GNB smoke spec must cover the keyboard matrix for desktop settings and mobile menu contexts.');
   }
