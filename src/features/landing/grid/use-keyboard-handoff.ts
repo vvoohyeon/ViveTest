@@ -27,6 +27,7 @@ interface UseKeyboardHandoffInput {
   shellRef: RefObject<HTMLElement | null>;
   cardVariants: readonly string[];
   firstEnterableCardVariant: string | null;
+  isCardEnterableByVariant: (cardVariant: string) => boolean;
   mobileLifecycleState: LandingMobileLifecycleState;
   beginMobileOpen: (cardVariant: string, syncInteraction?: boolean) => void;
   beginMobileKeyboardHandoff: (sourceVariant: string, nextCardVariant: string | null, nowMs: number) => void;
@@ -37,7 +38,7 @@ interface UseKeyboardHandoffInput {
 interface UseKeyboardHandoffOutput {
   resolveKeyboardHandlers: (
     card: LandingCard,
-    input: {cardEnterable: boolean; keyboardAriaDisabled: boolean}
+    input: {cardEnterable: boolean; keyboardActivationBlocked: boolean}
   ) => {
     onFocus: (event: ReactFocusEvent<HTMLElement>) => void;
     onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
@@ -53,6 +54,7 @@ export function useKeyboardHandoff({
   shellRef,
   cardVariants,
   firstEnterableCardVariant,
+  isCardEnterableByVariant,
   mobileLifecycleState,
   beginMobileOpen,
   beginMobileKeyboardHandoff,
@@ -76,6 +78,7 @@ export function useKeyboardHandoff({
     isMobileViewport,
     shellRef,
     cardVariants,
+    isCardEnterableByVariant,
     mobileLifecycleState,
     beginMobileOpen,
     beginMobileKeyboardHandoff,

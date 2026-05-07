@@ -239,7 +239,7 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(secondCard).toHaveAttribute('data-hover-lock-blocked', 'true');
-    await expect(secondCard).toHaveAttribute('aria-disabled', 'true');
+    await expect(secondCard).toHaveAttribute('inert', '');
 
     await page.keyboard.press('Tab');
     await expect(page.locator('[data-slot="answerChoiceA"]:focus')).toHaveCount(1);

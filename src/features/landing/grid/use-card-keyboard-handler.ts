@@ -13,6 +13,7 @@ import {
   focusCardByVariant,
   getCardRootElement,
   getExpandedFocusableElements,
+  queueFocusCardByVariant,
   resolveAdjacentCardVariant
 } from '@/features/landing/grid/interaction-dom';
 import type {
@@ -30,6 +31,7 @@ interface UseCardKeyboardHandlerInput {
   isMobileViewport: boolean;
   shellRef: RefObject<HTMLElement | null>;
   cardVariants: readonly string[];
+  isCardEnterableByVariant: (cardVariant: string) => boolean;
   mobileLifecycleState: LandingMobileLifecycleState;
   beginMobileOpen: (cardVariant: string, syncInteraction?: boolean) => void;
   beginMobileKeyboardHandoff: (sourceVariant: string, nextCardVariant: string | null, nowMs: number) => void;
@@ -41,7 +43,7 @@ interface UseCardKeyboardHandlerInput {
 interface UseCardKeyboardHandlerOutput {
   resolveKeyboardHandlers: (
     card: LandingCard,
-    input: {cardEnterable: boolean; keyboardAriaDisabled: boolean}
+    input: {cardEnterable: boolean; keyboardActivationBlocked: boolean}
   ) => {
     onFocus: (event: ReactFocusEvent<HTMLElement>) => void;
     onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
@@ -68,6 +70,7 @@ export function useCardKeyboardHandler({
   isMobileViewport,
   shellRef,
   cardVariants,
+  isCardEnterableByVariant,
   mobileLifecycleState,
   beginMobileOpen,
   beginMobileKeyboardHandoff,
@@ -75,9 +78,36 @@ export function useCardKeyboardHandler({
   queueLandingReverseGnbTargetFocus,
   onFocusTransitionIntent
 }: UseCardKeyboardHandlerInput): UseCardKeyboardHandlerOutput {
+  const queueCardHandoff = useCallback(
+    (targetCardVariant: string | null, nowMs: number): boolean => {
+      if (!targetCardVariant) {
+        return false;
+      }
+
+      const targetCardEnterable = isCardEnterableByVariant(targetCardVariant);
+      onFocusTransitionIntent(targetCardEnterable ? 'handoff' : 'collapse');
+      dispatch({
+        type: 'CARD_FOCUS',
+        nowMs,
+        interactionMode,
+        cardVariant: targetCardVariant,
+        available: targetCardEnterable
+      });
+      queueFocusCardByVariant(shellRef.current, targetCardVariant);
+      return true;
+    },
+    [
+      dispatch,
+      interactionMode,
+      isCardEnterableByVariant,
+      onFocusTransitionIntent,
+      shellRef
+    ]
+  );
+
   const resolveKeyboardHandlers = useCallback(
-    (card: LandingCard, input: {cardEnterable: boolean; keyboardAriaDisabled: boolean}) => {
-      const {cardEnterable, keyboardAriaDisabled} = input;
+    (card: LandingCard, input: {cardEnterable: boolean; keyboardActivationBlocked: boolean}) => {
+      const {cardEnterable, keyboardActivationBlocked} = input;
 
       const handleExpandedBodyKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
         if (event.key !== 'Tab' || !cardEnterable) {
@@ -134,8 +164,7 @@ export function useCardKeyboardHandler({
           return;
         }
 
-        onFocusTransitionIntent('handoff');
-        if (focusCardByVariant(shellRef.current, nextCardVariant)) {
+        if (queueCardHandoff(nextCardVariant, event.timeStamp)) {
           event.preventDefault();
         }
       };
@@ -178,8 +207,7 @@ export function useCardKeyboardHandler({
 
             if (!event.shiftKey && lastFocusable && target === lastFocusable) {
               const nextCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, 1);
-              onFocusTransitionIntent('handoff');
-              if (focusCardByVariant(shellRef.current, nextCardVariant)) {
+              if (queueCardHandoff(nextCardVariant, event.timeStamp)) {
                 event.preventDefault();
               }
 
@@ -198,8 +226,7 @@ export function useCardKeyboardHandler({
               }
 
               const previousCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, -1);
-              onFocusTransitionIntent('handoff');
-              if (focusCardByVariant(shellRef.current, previousCardVariant)) {
+              if (queueCardHandoff(previousCardVariant, event.timeStamp)) {
                 event.preventDefault();
               }
 
@@ -220,9 +247,7 @@ export function useCardKeyboardHandler({
                 return;
               }
 
-              onFocusTransitionIntent('handoff');
-
-              if (focusCardByVariant(shellRef.current, previousCardVariant)) {
+              if (queueCardHandoff(previousCardVariant, event.timeStamp)) {
                 event.preventDefault();
                 return;
               }
@@ -241,7 +266,7 @@ export function useCardKeyboardHandler({
             return;
           }
 
-          if ((event.key === 'Enter' || event.key === ' ') && keyboardAriaDisabled) {
+          if ((event.key === 'Enter' || event.key === ' ') && keyboardActivationBlocked) {
             event.preventDefault();
             event.stopPropagation();
             return;
@@ -292,6 +317,7 @@ export function useCardKeyboardHandler({
       mobileLifecycleState.cardVariant,
       mobileLifecycleState.phase,
       onFocusTransitionIntent,
+      queueCardHandoff,
       queueLandingReverseGnbTargetFocus,
       shellRef,
       state.expandedCardVariant

@@ -172,6 +172,26 @@ async function collapseDesktopExpandedCard(page: Page, card: Locator) {
   await expect(card).toHaveAttribute('data-card-state', 'normal');
 }
 
+async function expectDesktopClosingSnapshot(card: Locator) {
+  await expect
+    .poll(() =>
+      card.evaluate((element) => ({
+        cardState: element.getAttribute('data-card-state'),
+        motionRole: element.getAttribute('data-desktop-motion-role'),
+        shellPhase: element.getAttribute('data-desktop-shell-phase'),
+        thumbnailCount: element.querySelectorAll('[data-slot="cardThumbnail"]').length,
+        expandedLayerCount: element.querySelectorAll('[data-slot="expandedLayer"]').length
+      }))
+    )
+    .toEqual({
+      cardState: 'expanded',
+      motionRole: 'closing',
+      shellPhase: 'closing',
+      thumbnailCount: 0,
+      expandedLayerCount: 1
+    });
+}
+
 async function readExpandedWidthContract(card: Locator) {
   return card.evaluate((element) => {
     const surface = element.querySelector<HTMLElement>('[data-slot="expandedSurface"]');
@@ -956,11 +976,7 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
 
     await page.mouse.move(8, 8);
-    await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'closing');
-    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'closing');
-    await expect(firstCard.locator('[data-slot="cardThumbnail"]')).toHaveCount(0);
-    await expect(firstCard.locator('[data-slot="expandedLayer"]')).toHaveCount(1);
-    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+    await expectDesktopClosingSnapshot(firstCard);
     await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
     await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
     await expect(firstCard.locator('[data-slot="cardThumbnail"]')).toHaveCount(1);

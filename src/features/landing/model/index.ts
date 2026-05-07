@@ -13,8 +13,7 @@ export {
   PAGE_STATE_PRIORITY,
   initialLandingInteractionState,
   isAllowedPageTransition,
-  isCardKeyboardAriaDisabled,
-  isCardPointerInteractionBlocked,
+  isKeyboardModeBlocked,
   reduceLandingInteractionState,
   resolveCardStateForVariant,
   resolveCardTabIndex

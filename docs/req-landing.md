@@ -428,7 +428,8 @@
 - 비대상 카드: NORMAL 강제, dim/backdrop 금지, opacity `1.0` 고정.
 - 비대상 카드: 마우스 입력 기반 반응(`hover/click/pointer`)을 차단한다.
 - 키보드 모드 아님: 비대상 카드 `tabIndex=-1`.
-- 키보드 모드: Tab 포커스 허용, `Enter/Space` 활성화 차단, `aria-disabled=true`.
+- 키보드 모드: 비대상 카드에는 `inert`를 부여해 포커스/접근성 트리/활성화를 차단한다.
+- 키보드 모드 카드 간 handoff: 다음/이전 대상 카드로 이동하기 전에 대상 `CARD_FOCUS` 상태를 먼저 반영하고, React가 대상 카드의 `inert`를 제거한 뒤 포커스를 queue 처리한다.
 - handoff: 직전 카드 이탈 전이는 `0ms` 즉시 종료를 허용하고 최종 대상만 전이를 유지한다.
 - handoff 외 종료는 일반 복귀 모션 규칙을 따른다.
 - 키보드 모드 진입: `Tab/Shift+Tab` 입력 감지.
@@ -439,7 +440,7 @@
 - hover enter/leave 이벤트 도착 순서 역전/지연이 있어도 최종 상태는 결정적으로 동일해야 한다.
 
 **Verification**:
-1. Automated: `tabIndex`, `aria-disabled`, keydown 차단 규칙을 검증한다.
+1. Automated: 키보드 모드 비대상 카드의 `inert`, `data-hover-lock-blocked`, queued focus handoff 규칙을 검증한다.
 2. Automated: `mousedown` 입력은 키보드 모드를 즉시 해제하고, `pointermove`/`wheel` 입력은 키보드 모드를 유지하는지 검증한다.
 3. Automated: rapid hover sweep에서 uncaught runtime error `0건`을 검증한다.
 
@@ -642,7 +643,7 @@
 - `<button>` 기반 진입 컨트롤은 `disabled`를 우선 사용한다.
 - 포커스는 허용하되 활성만 차단해야 하는 경우에만 `aria-disabled="true"`를 사용한다.
 - `aria-disabled="true"` 대상은 click/keydown(`Enter/Space`)에서 기본 동작을 차단해야 한다.
-- HOVER_LOCK 키보드 모드 비대상 카드의 활성 차단은 위 `aria-disabled` 규칙을 따른다.
+- HOVER_LOCK 키보드 모드 비대상 카드는 `aria-disabled`가 아니라 `inert`로 포커스/접근성 트리/활성화를 차단한다.
 - `role="button"` 대체 구현은 금지하며, 불가피한 경우 Section 15 Exception Registry 등록 후에만 허용한다.
 
 ### 9.3 Overlay Readability

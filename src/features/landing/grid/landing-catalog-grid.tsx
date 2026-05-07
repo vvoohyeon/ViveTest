@@ -246,6 +246,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     hoverLockEnabled={interactionBindings.hoverLockEnabled}
                     keyboardMode={interactionBindings.keyboardMode}
                     interactionBlocked={interactionBindings.interactionBlocked}
+                    keyboardModeBlocked={interactionBindings.keyboardModeBlocked}
                     ariaDisabled={interactionBindings.ariaDisabled}
                     tabIndex={interactionBindings.tabIndex}
                     onFocus={interactionBindings.onFocus}

@@ -5,8 +5,7 @@ import {
   ACTIVE_RAMP_UP_MS,
   initialLandingInteractionState,
   isAllowedPageTransition,
-  isCardKeyboardAriaDisabled,
-  isCardPointerInteractionBlocked,
+  isKeyboardModeBlocked,
   reduceLandingInteractionState,
   resolveCardStateForVariant,
   resolveCardTabIndex,
@@ -78,9 +77,8 @@ describe('landing interaction state machine', () => {
     expect(hoverLocked.hoverLock.enabled).toBe(true);
     expect(hoverLocked.hoverLock.cardVariant).toBe('qmbti');
     expect(hoverLocked.hoverLock.keyboardMode).toBe(true);
-    expect(isCardKeyboardAriaDisabled(hoverLocked, 'rhythm-b')).toBe(true);
+    expect(isKeyboardModeBlocked(hoverLocked, 'rhythm-b')).toBe(true);
     expect(resolveCardTabIndex(hoverLocked, 'rhythm-b')).toBe(0);
-    expect(isCardPointerInteractionBlocked(hoverLocked, 'rhythm-b')).toBe(true);
   });
 
   it('collapses hover-lock state when keyboard focus moves onto an unavailable card', () => {
@@ -114,9 +112,8 @@ describe('landing interaction state machine', () => {
     ]);
 
     expect(state.hoverLock.keyboardMode).toBe(false);
-    expect(isCardKeyboardAriaDisabled(state, 'rhythm-b')).toBe(false);
+    expect(isKeyboardModeBlocked(state, 'rhythm-b')).toBe(false);
     expect(resolveCardTabIndex(state, 'rhythm-b')).toBe(-1);
-    expect(isCardPointerInteractionBlocked(state, 'rhythm-b')).toBe(false);
   });
 
   it('keeps non-target cards pointer-reachable during pointer hover lock for desktop handoff', () => {
@@ -132,7 +129,7 @@ describe('landing interaction state machine', () => {
 
     expect(state.hoverLock.enabled).toBe(true);
     expect(state.hoverLock.keyboardMode).toBe(false);
-    expect(isCardPointerInteractionBlocked(state, 'rhythm-b')).toBe(false);
+    expect(isKeyboardModeBlocked(state, 'rhythm-b')).toBe(false);
   });
 
   it('resolves card state with deterministic priority over page lock states', () => {
