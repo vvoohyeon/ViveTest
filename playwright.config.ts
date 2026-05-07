@@ -20,9 +20,9 @@ export default defineConfig({
       maxDiffPixels: 20
     }
   },
-  fullyParallel: false,
+  fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
-  reporter: 'list',
+  reporter: process.env.CI ? [['github'], ['list']] : 'list',
   use: {
     baseURL,
     trace: 'retain-on-failure'
@@ -49,6 +49,7 @@ export default defineConfig({
         command: serverMode === 'preview' ? previewCommand : 'npm run dev -- --port 4173',
         url: baseURL,
         timeout: 120_000,
+        // 원인 미확인: NO_COLOR/FORCE_COLOR env override 후에도 Playwright workers 경고가 유지되어 env 블록은 두지 않는다.
         reuseExistingServer: serverMode === 'preview' ? false : !process.env.CI
       }
 });

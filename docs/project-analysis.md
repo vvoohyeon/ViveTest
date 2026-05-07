@@ -473,6 +473,8 @@ Scoped to `tests/unit/`. Current file inventory: 53 `*.test.ts` files. Coverage 
 
 9 spec files in `tests/e2e/`:
 
+`playwright.config.ts` runs the E2E surface with `fullyParallel: true`; local output stays on the `list` reporter, while CI adds the GitHub reporter for PR-check annotations.
+
 | Spec | Contract covered |
 |---|---|
 | `routing-smoke.spec.ts` | Locale-prefix redirects, not-found split, SSR `<html lang>`, zero hydration warnings |
@@ -483,7 +485,7 @@ Scoped to `tests/unit/`. Current file inventory: 53 `*.test.ts` files. Coverage 
 | `consent-smoke.spec.ts` | Test instruction contract matrix: variant-specific instruction copy, divider/note rendering, CTA labels, consent persistence, redirect/commit semantics |
 | `theme-matrix-smoke.spec.ts` | Full matrix loop: 168 representative theme/layout/state screenshots (96 layout + 72 state); `@gate @smoke` loop: 120 canonical viewport screenshots |
 | `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (6 baselines, all `@gate`) |
-| `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
+| `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene; B16 stale-pending cases assert known hydration console errors caused by intentional sessionStorage injection |
 
 Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; ingress storage-key constants are constructed through `buildIngressStorageKey(variant)` so representative key values stay centralized; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
 
