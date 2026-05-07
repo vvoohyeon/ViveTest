@@ -32,29 +32,57 @@
   --interactive-accent-outline: color-mix(in srgb, var(--accent-solid) 36%, transparent);
   --interactive-accent-shadow: 0 10px 24px color-mix(in srgb, var(--accent-solid) 14%, transparent);
   --interactive-accent-shadow-hover: 0 14px 30px color-mix(in srgb, var(--accent-solid) 18%, transparent);
+  --interactive-disabled-bg: color-mix(in srgb, var(--chip-bg) 58%, var(--panel-solid));
+  --interactive-disabled-border: color-mix(in srgb, var(--surface-divider) 72%, transparent);
+  --interactive-disabled-ink: color-mix(in srgb, var(--muted-ink) 62%, transparent);
   --theme-preview-light-bg: #ffffff;
   --theme-preview-light-border: rgb(22 26 32 / 16%);
   --theme-preview-light-ink: #161a20;
-  --theme-preview-light-hover-bg: color-mix(in srgb, var(--accent-solid) 10%, #ffffff);
-  --theme-preview-light-hover-border: color-mix(in srgb, var(--accent-solid) 34%, rgb(22 26 32 / 16%));
+  --theme-preview-light-chip-bg: rgb(22 26 32 / 6%);
+  --theme-preview-light-divider: rgb(22 26 32 / 14%);
+  --theme-preview-light-neutral-hover: color-mix(
+    in srgb,
+    var(--theme-preview-light-chip-bg) 78%,
+    var(--theme-preview-light-bg)
+  );
+  --theme-preview-light-hover-bg: color-mix(
+    in srgb,
+    var(--theme-preview-light-neutral-hover) 70%,
+    var(--theme-preview-light-bg)
+  );
+  --theme-preview-light-hover-border: color-mix(
+    in srgb,
+    var(--theme-preview-light-divider) 84%,
+    var(--accent-solid) 16%
+  );
   --theme-preview-light-hover-shadow:
-    0 10px 22px color-mix(in srgb, var(--accent-solid) 12%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 16%, transparent);
+    0 10px 22px rgb(11 15 22 / 10%),
+    inset 0 0 0 1px color-mix(in srgb, var(--theme-preview-light-divider) 58%, transparent);
   --theme-preview-dark-bg: #121821;
   --theme-preview-dark-border: rgb(238 244 255 / 26%);
   --theme-preview-dark-ink: #eff2f8;
-  --theme-preview-dark-hover-bg: color-mix(in srgb, var(--accent-solid) 18%, #121821);
-  --theme-preview-dark-hover-border: color-mix(in srgb, var(--accent-solid) 42%, rgb(238 244 255 / 26%));
+  --theme-preview-dark-chip-bg: rgb(238 244 255 / 14%);
+  --theme-preview-dark-divider: rgb(233 238 247 / 18%);
+  --theme-preview-dark-hover-bg: color-mix(
+    in srgb,
+    var(--theme-preview-dark-chip-bg) 92%,
+    var(--theme-preview-dark-bg)
+  );
+  --theme-preview-dark-hover-border: color-mix(
+    in srgb,
+    var(--theme-preview-dark-divider) 80%,
+    var(--accent-solid) 20%
+  );
   --theme-preview-dark-hover-shadow:
-    0 12px 28px rgb(0 0 0 / 28%),
-    inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 24%, transparent);
-  --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
-  --landing-answer-bg-hover: color-mix(in srgb, var(--accent-solid) 10%, var(--panel-solid));
+    0 12px 28px rgb(0 0 0 / 34%),
+    inset 0 0 0 1px color-mix(in srgb, var(--theme-preview-dark-divider) 72%, transparent);
+  --landing-answer-bg-rest: color-mix(in srgb, var(--chip-bg) 54%, var(--panel-solid));
+  --landing-answer-bg-hover: color-mix(in srgb, var(--interactive-neutral-bg-hover) 70%, var(--panel-solid));
   --landing-answer-bg-pressed: var(--interactive-accent-bg);
-  --landing-answer-border-hover: color-mix(in srgb, var(--accent-solid) 34%, var(--chip-border));
+  --landing-answer-border-hover: color-mix(in srgb, var(--surface-divider) 84%, var(--accent-solid) 16%);
   --landing-answer-shadow-hover:
-    0 10px 22px color-mix(in srgb, var(--accent-solid) 12%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 16%, transparent);
+    0 10px 22px rgb(11 15 22 / 10%),
+    inset 0 0 0 1px color-mix(in srgb, var(--surface-divider) 58%, transparent);
   --focus-ring-outer: color-mix(in srgb, var(--accent-solid) 72%, transparent);
   --focus-ring-inner: rgb(255 255 255 / 78%);
   --card-shadow: 0 14px 30px rgb(11 15 22 / 10%);
@@ -89,13 +117,22 @@ html[data-theme='dark'] {
   --link-ink: #f2f6ff;
   --muted-ink: rgb(239 242 248 / 80%);
   --interactive-accent-shadow-hover: 0 16px 34px color-mix(in srgb, var(--accent-solid) 26%, transparent);
-  --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
-  --landing-answer-bg-hover: color-mix(in srgb, var(--accent-solid) 18%, var(--panel-solid));
+  --interactive-disabled-bg: color-mix(in srgb, var(--chip-bg) 42%, transparent);
+  --interactive-disabled-border: color-mix(in srgb, var(--surface-divider) 64%, transparent);
+  --interactive-disabled-ink: color-mix(in srgb, var(--muted-ink) 58%, transparent);
+  --landing-answer-bg-rest: color-mix(in srgb, var(--chip-bg) 70%, transparent);
+  --landing-answer-bg-hover: color-mix(in srgb, var(--chip-bg) 92%, var(--panel-solid));
   --landing-answer-bg-pressed: var(--interactive-accent-bg);
-  --landing-answer-border-hover: color-mix(in srgb, var(--accent-solid) 42%, var(--chip-border));
+  --landing-answer-border-hover: color-mix(in srgb, var(--surface-divider) 80%, var(--accent-solid) 20%);
   --landing-answer-shadow-hover:
-    0 12px 28px rgb(0 0 0 / 28%),
-    inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 24%, transparent);
+    0 12px 28px rgb(0 0 0 / 34%),
+    inset 0 0 0 1px color-mix(in srgb, var(--surface-divider) 72%, transparent);
+  --unavailable-overlay-gradient:
+    linear-gradient(180deg, rgb(3 5 9 / 10%) 0 30%, rgb(3 5 9 / 36%) 70%, rgb(3 5 9 / 54%) 100%),
+    linear-gradient(145deg, rgb(3 5 9 / 20%), rgb(3 5 9 / 34%));
+  --unavailable-badge-border: rgb(238 244 255 / 42%);
+  --unavailable-badge-bg: color-mix(in srgb, var(--panel-solid) 62%, black);
+  --unavailable-badge-ink: rgb(255 255 255 / 98%);
   --card-shadow: 0 16px 34px rgb(0 0 0 / 30%);
   --card-shadow-elevated: 0 20px 40px rgb(0 0 0 / 36%);
   --card-shadow-expanded-contact: 0 12px 20px rgb(0 0 0 / 26%);

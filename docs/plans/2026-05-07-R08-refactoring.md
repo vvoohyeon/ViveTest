@@ -1,36 +1,178 @@
-You are implementing R-08: replace the three-layer keyboard-mode blocking mechanism
-(aria-disabled + tabIndex=-1 + pointerEvents:none) with the HTML `inert` attribute.
+# R-08 Keyboard HoverLock Inert Refactor Plan
 
-This is a scoped simplification. Do not touch hover-mode blocking, transition state
-blocking, or mobile interaction locking — only the keyboard-mode hoverLock path.
+> Status: planning update only. Do not implement until the user explicitly approves execution.
 
-Read the current state of all files before making changes.
+## Goal
 
----
+Replace the keyboard-mode `hoverLock` non-target blocking path with the HTML `inert`
+attribute while preserving keyboard sequential handoff, hover-mode blocking,
+transition blocking, and mobile interaction locking contracts.
 
-## Background
+This remains a scoped simplification, but the original plan's focus assumption is
+invalid: explicit JavaScript `.focus()` does not bypass `inert`. Keyboard handoff
+must therefore update state first, let React remove `inert` from the next target,
+and only then queue focus to that next card.
 
-Currently, when `hoverLock.keyboardMode` is true and a card is not the focused card,
-three separate mechanisms block it:
+## Relevant SSOT Contract
 
-1. `aria-disabled="true"` (from `isCardKeyboardAriaDisabled()`)
-2. `tabIndex` stays at 0 (from `resolveCardTabIndex()` — keyboard mode keeps 0, not -1)
-3. `pointerEvents: none` via `style` prop (from `isCardPointerInteractionBlocked()`)
+- `docs/req-landing.md §7.5 HOVER_LOCK Contract`
+- `docs/req-landing.md §7.6 Keyboard Sequential Expansion Override`
+- `docs/req-landing.md §9 Accessibility Requirements`
+- `docs/project-analysis.md §5.1 Landing Interaction Runtime`
+- `docs/agent-guides/verification-commands.md §landing`
 
-The `inert` HTML attribute handles all three at once: it excludes the element from
-the accessibility tree, prevents all keyboard focus, and blocks all pointer events.
+## Impact Assessment
 
-Card-to-card Tab navigation is handled explicitly by JavaScript in
-`use-card-keyboard-handler.ts`, so removing these cards from the natural tab order
-via `inert` does not break keyboard navigation flow.
+- Shared components: landing grid/card interaction bindings only. GNB behavior must
+  remain unchanged except for existing keyboard entry/return flows.
+- Localization: no message or locale data changes expected.
+- A11y: keyboard-mode non-target cards move from `aria-disabled` active-blocking to
+  `inert` focus/accessibility-tree blocking. `aria-disabled` remains for unavailable
+  cards, transition state, and mobile lock paths where applicable.
+- State contracts: `hoverLock.keyboardMode` remains the source of keyboard-mode
+  non-target blocking. `resolveCardTabIndex()` remains for hover-mode
+  `keyboardMode=false` non-target `tabIndex=-1`.
+- Core user flow: card-to-card Tab/Shift+Tab traversal must still move through
+  expanded internals, collapse the previous card, expand the target card, and focus
+  the target trigger after `inert` has been removed.
+- High-risk dimension: usability and a11y. The implementation must include
+  Playwright regression coverage for keyboard handoff and axe-clean landing states.
 
----
+## Files To Modify
 
-## Step 1 — Add `isKeyboardModeBlocked` to interaction-state.ts
+- `src/features/landing/model/interaction-state.ts`
+  - Add `isKeyboardModeBlocked()`.
+  - Remove `isCardKeyboardAriaDisabled()` and `isCardPointerInteractionBlocked()`
+    after controller/test bindings are migrated.
+  - Keep reducer cases unchanged.
+  - Keep `resolveCardTabIndex()`.
+- `src/features/landing/model/index.ts`
+  - Export `isKeyboardModeBlocked`.
+  - Remove exports for removed helper functions.
+- `tests/unit/landing-interaction-state.test.ts`
+  - Add/update test coverage for `isKeyboardModeBlocked()`.
+  - Remove imports/assertions for removed helper functions.
+  - Keep coverage for keyboard-mode tab policy and hover-mode `tabIndex=-1`.
+- `src/features/landing/grid/use-landing-interaction-controller.ts`
+  - Import and compute `keyboardModeBlocked`.
+  - Add `keyboardModeBlocked` to `LandingCardInteractionBindings`.
+  - Simplify `ariaDisabled` to:
 
-File: `src/features/landing/model/interaction-state.ts`
+    ```ts
+    ariaDisabled: isTransitioning ? true : !cardEnterable || mobileInteractionLocked,
+    ```
 
-Add the following exported function after `isCardKeyboardAriaDisabled`:
+  - Remove keyboard-mode pointer blocking from `interactionBlocked`:
+
+    ```ts
+    interactionBlocked: isTransitioning ? true : mobileInteractionLocked,
+    ```
+
+  - Pass enough enterability information into keyboard handoff so a target card can
+    be made current before queued focus.
+- `src/features/landing/grid/landing-grid-card.tsx`
+  - Add `keyboardModeBlocked?: boolean`.
+  - Apply React's boolean inert prop on the root card:
+
+    ```tsx
+    inert={keyboardModeBlocked}
+    ```
+
+  - Preserve the QA/debug marker for keyboard hoverLock blocking:
+
+    ```tsx
+    data-hover-lock-blocked={interactionBlocked || keyboardModeBlocked ? 'true' : 'false'}
+    ```
+
+  - Keep pointer-events style controlled only by `interactionBlocked`:
+
+    ```ts
+    pointerEvents: interactionBlocked ? 'none' : 'auto'
+    ```
+
+- `src/features/landing/grid/landing-catalog-grid.tsx`
+  - Pass `keyboardModeBlocked={interactionBindings.keyboardModeBlocked}` to
+    `LandingGridCard`.
+- `src/features/landing/grid/use-card-keyboard-handler.ts`
+  - Narrowly adjust card-to-card keyboard handoff so next/previous card focus is
+    state-first and queued, not immediate focus into an inert subtree.
+  - Do not broadly redesign the keyboard module.
+- `src/features/landing/grid/use-keyboard-handoff.ts`
+  - Only update type plumbing needed by `use-card-keyboard-handler.ts`.
+  - Keep this file a thin composition layer.
+- `src/features/landing/grid/interaction-dom.ts`
+  - Only adjust focus helpers if needed for inert-compatible queued focus.
+  - Prefer using the existing queued focus pattern over introducing a new runtime.
+- `tests/e2e/state-smoke.spec.ts`
+  - Update the keyboard sequential assertion from `aria-disabled="true"` to
+    `inert=""` for the blocked non-target card.
+  - Keep the `data-hover-lock-blocked="true"` assertion.
+  - Existing focus progression assertions must continue to prove the queued handoff.
+- `docs/req-landing.md`
+  - Synchronize §7.5 and §9.2 so keyboard-mode non-target blocking is documented as
+    `inert`, not `aria-disabled`.
+  - Document the state-first, queued-focus handoff contract.
+- `docs/project-analysis.md`
+  - Inspect after implementation. Update only if the runtime ownership or structure
+    description becomes stale.
+
+## Files Not To Modify
+
+- Do not modify hover-mode blocking behavior.
+- Do not modify transition state blocking behavior.
+- Do not modify mobile interaction locking behavior.
+- Do not modify reducer cases in `interaction-state.ts`.
+- Do not add packages.
+- Do not broadly refactor the R-03 keyboard modules.
+
+## Approved Scope Clarification
+
+Narrow changes to `use-card-keyboard-handler.ts`, `use-keyboard-handoff.ts`, and
+`interaction-dom.ts` are approved only when needed to make keyboard handoff
+compatible with `inert`.
+
+Do not stop merely because those files need narrow changes. Stop only if the fix
+requires broad R-03 redesign, hover-mode blocking changes, transition/mobile
+locking changes, new packages, or unrelated behavior changes.
+
+## Implementation Plan
+
+### Step 1 - Write/update the failing unit contract first
+
+File: `tests/unit/landing-interaction-state.test.ts`
+
+- Replace imports of `isCardKeyboardAriaDisabled` and
+  `isCardPointerInteractionBlocked` with `isKeyboardModeBlocked`.
+- In the keyboard-mode non-target test, assert:
+
+  ```ts
+  expect(isKeyboardModeBlocked(hoverLocked, 'rhythm-b')).toBe(true);
+  expect(resolveCardTabIndex(hoverLocked, 'rhythm-b')).toBe(0);
+  ```
+
+- In the keyboard-mode exit test, assert:
+
+  ```ts
+  expect(isKeyboardModeBlocked(state, 'rhythm-b')).toBe(false);
+  expect(resolveCardTabIndex(state, 'rhythm-b')).toBe(-1);
+  ```
+
+- In the pointer hover-lock test, assert:
+
+  ```ts
+  expect(isKeyboardModeBlocked(state, 'rhythm-b')).toBe(false);
+  ```
+
+Expected before implementation: targeted unit run fails because
+`isKeyboardModeBlocked` does not exist.
+
+### Step 2 - Add the model helper and export update
+
+Files:
+- `src/features/landing/model/interaction-state.ts`
+- `src/features/landing/model/index.ts`
+
+Add to `interaction-state.ts`:
 
 ```ts
 export function isKeyboardModeBlocked(
@@ -45,205 +187,273 @@ export function isKeyboardModeBlocked(
 }
 ```
 
-Do not remove `isCardKeyboardAriaDisabled`, `isCardPointerInteractionBlocked`,
-or `resolveCardTabIndex` yet — they will be removed in Step 4 after the bindings
-are updated.
+Keep `isCardKeyboardAriaDisabled()` and `isCardPointerInteractionBlocked()` until
+the controller migration is complete, then remove them and their public exports.
+Do not remove `resolveCardTabIndex()`.
 
----
-
-## Step 2 — Update LandingCardInteractionBindings
+### Step 3 - Migrate controller bindings
 
 File: `src/features/landing/grid/use-landing-interaction-controller.ts`
 
-### 2-a. Add import
+- Import `isKeyboardModeBlocked`.
+- Add `keyboardModeBlocked: boolean` to `LandingCardInteractionBindings`.
+- Compute:
 
-Add `isKeyboardModeBlocked` to the import from
-`@/features/landing/model/interaction-state`.
+  ```ts
+  const keyboardModeBlocked = isKeyboardModeBlocked(interactionState, card.variant);
+  ```
 
-### 2-b. Add `keyboardModeBlocked` to the return type
+- Return `keyboardModeBlocked`.
+- Replace `ariaDisabled` with:
 
-In the `LandingCardInteractionBindings` interface, add:
+  ```ts
+  ariaDisabled: isTransitioning ? true : !cardEnterable || mobileInteractionLocked,
+  ```
 
-```ts
-keyboardModeBlocked: boolean;
-```
+- Replace `interactionBlocked` with:
 
-Keep the existing `ariaDisabled`, `tabIndex`, `interactionBlocked`, and `keyboardMode`
-fields — they serve non-keyboard-mode purposes (transition state, mobile locking).
+  ```ts
+  interactionBlocked: isTransitioning ? true : mobileInteractionLocked,
+  ```
 
-### 2-c. Compute and return the new field
+- Remove `pointerBlocked` and the removed helper imports once no longer used.
+- Keep click/key activation guards for unavailable cards. Do not recreate the
+  keyboard-mode `aria-disabled` path.
+- Provide keyboard handoff with a narrow way to determine whether an adjacent card
+  variant is enterable, so the target `CARD_FOCUS` event can be dispatched before
+  queued focus.
 
-Inside `resolveCardInteractionBindings`, add:
+### Step 4 - Make keyboard handoff inert-compatible
 
-```ts
-const keyboardModeBlocked = isKeyboardModeBlocked(interactionState, card.variant);
-```
+Files, only as needed:
+- `src/features/landing/grid/use-card-keyboard-handler.ts`
+- `src/features/landing/grid/use-keyboard-handoff.ts`
+- `src/features/landing/grid/interaction-dom.ts`
 
-And include it in the returned bindings object:
+Required behavior:
 
-```ts
-keyboardModeBlocked,
-```
+1. When Tab/Shift+Tab handoff targets another card, do not call `.focus()` on that
+   target immediately while it may still be inert.
+2. Dispatch the target card focus state first:
 
-### 2-d. Update ariaDisabled and interactionBlocked to exclude the keyboard-mode path
+   ```ts
+   dispatch({
+     type: 'CARD_FOCUS',
+     nowMs: event.timeStamp,
+     interactionMode,
+     cardVariant: targetCardVariant,
+     available: isTargetCardEnterable
+   });
+   ```
 
-The existing `ariaDisabled` computation:
-```ts
-ariaDisabled: isTransitioning ? true : keyboardAriaDisabled || mobileInteractionLocked,
-```
+3. Queue focus after React can render the updated `hoverLock.cardVariant` and remove
+   `inert` from the target:
 
-Change to:
-```ts
-ariaDisabled: isTransitioning ? true : (!cardEnterable && !mobileInteractionLocked ? true : mobileInteractionLocked),
-```
+   ```ts
+   queueFocusCardByVariant(shellRef.current, targetCardVariant);
+   ```
 
-Explanation: `isCardKeyboardAriaDisabled` (which contributed `keyboardAriaDisabled`)
-is now handled by `inert`. The `!cardEnterable` case (unavailable cards) still needs
-`aria-disabled` because those cards are always visible in the DOM and not inert.
+4. Keep immediate focus only for elements that are already inside the current,
+   non-inert active card.
+5. Preserve mobile keyboard handoff behavior and reverse GNB focus behavior.
 
-The existing `interactionBlocked` computation:
-```ts
-interactionBlocked: isTransitioning ? true : pointerBlocked || mobileInteractionLocked,
-```
+Do not turn this into a broad R-03 keyboard module redesign. If this requires more
+than narrow type plumbing plus state-first queued focus, stop and report the exact
+reason.
 
-Change to:
-```ts
-interactionBlocked: isTransitioning ? true : mobileInteractionLocked,
-```
+### Step 5 - Apply inert and separate marker from pointer blocking
 
-Explanation: `isCardPointerInteractionBlocked` (which contributed `pointerBlocked`)
-is now handled by `inert`. The `style.pointerEvents` override is no longer needed
-for the keyboard-mode case.
+Files:
+- `src/features/landing/grid/landing-grid-card.tsx`
+- `src/features/landing/grid/landing-catalog-grid.tsx`
 
----
+In `LandingGridCard`:
 
-## Step 3 — Apply `inert` in LandingGridCard
+- Add `keyboardModeBlocked?: boolean`.
+- Default it to `false`.
+- On the root card element, use:
 
-File: `src/features/landing/grid/landing-grid-card.tsx`
+  ```tsx
+  inert={keyboardModeBlocked}
+  ```
 
-### 3-a. Add `keyboardModeBlocked` to props
+- Keep rendered tests asserting the HTML attribute as `inert=""`.
+- Compute the QA/debug marker from both blocking channels:
 
-In `LandingGridCardProps`, add:
+  ```tsx
+  data-hover-lock-blocked={interactionBlocked || keyboardModeBlocked ? 'true' : 'false'}
+  ```
 
-```ts
-keyboardModeBlocked?: boolean;
-```
+- Keep pointer events tied only to non-keyboard interaction blocking:
 
-In the destructured parameters of `LandingGridCard`, add:
+  ```ts
+  pointerEvents: interactionBlocked ? 'none' : 'auto'
+  ```
 
-```ts
-keyboardModeBlocked = false,
-```
-
-### 3-b. Apply `inert` to the card root div
-
-On the outermost `<div>` element (the one with `data-testid="landing-grid-card"`),
-add the following attribute:
+In `LandingCatalogGrid`, pass:
 
 ```tsx
-inert={keyboardModeBlocked ? '' : undefined}
+keyboardModeBlocked={interactionBindings.keyboardModeBlocked}
 ```
 
-TypeScript note: `inert` is a standard HTML attribute in React 19. If the TypeScript
-compiler raises an error, add `inert?: string` to the JSX intrinsic elements
-declaration or cast as needed. Do not use `{...({inert: ''} as object)}` — prefer
-the direct prop.
+### Step 6 - Remove replaced helpers
 
-### 3-c. Pass the prop from the catalog grid
+Files:
+- `src/features/landing/model/interaction-state.ts`
+- `src/features/landing/model/index.ts`
+- `src/features/landing/grid/use-landing-interaction-controller.ts`
+- `tests/unit/landing-interaction-state.test.ts`
 
-File: `src/features/landing/grid/landing-catalog-grid.tsx`
+Remove:
 
-In the place where `LandingGridCard` is rendered and bindings are spread,
-pass `keyboardModeBlocked={bindings.keyboardModeBlocked}`.
-
-If bindings are spread with `{...bindings}`, verify that `keyboardModeBlocked`
-is included in the spread. If the card receives props individually, add the prop
-explicitly.
-
----
-
-## Step 4 — Remove now-unused exports from interaction-state.ts
-
-File: `src/features/landing/model/interaction-state.ts`
-
-Remove the following exported functions entirely (they are replaced by
-`isKeyboardModeBlocked`):
 - `isCardKeyboardAriaDisabled`
 - `isCardPointerInteractionBlocked`
 
-Do NOT remove `resolveCardTabIndex` — it is still used for the hover-mode
-(non-keyboard) tabIndex=-1 case.
+Keep:
 
-Remove the corresponding imports of these functions from
-`use-landing-interaction-controller.ts`.
+- `isKeyboardModeBlocked`
+- `resolveCardTabIndex`
 
----
+Search the repo for removed helper names and ensure no references remain.
 
-## Step 5 — Update state-smoke.spec.ts
+### Step 7 - Update E2E assertions
 
 File: `tests/e2e/state-smoke.spec.ts`
 
-Locate the test named:
-`@smoke assertion:B5-keyboard-sequential keyboard sequential override expands...`
+In the test named:
 
-Find the assertion:
+```ts
+@smoke assertion:B5-keyboard-sequential keyboard sequential override expands...
+```
+
+Replace:
+
 ```ts
 await expect(secondCard).toHaveAttribute('aria-disabled', 'true');
 ```
 
-Replace with:
+With:
+
 ```ts
 await expect(secondCard).toHaveAttribute('inert', '');
 ```
 
-The `data-hover-lock-blocked` assertion on the line above it remains unchanged.
+Keep:
 
-No other test file assertions need updating. `aria-disabled` in other contexts
-(unavailable cards, transitioning state) is separate and remains.
+```ts
+await expect(secondCard).toHaveAttribute('data-hover-lock-blocked', 'true');
+```
 
----
+The later focus assertions must remain. They prove that state-first queued focus
+removed `inert` from the next target before focusing it.
 
-## Step 6 — Run verification suite
+### Step 8 - Synchronize docs
 
-Run in order:
+Files:
+- `docs/req-landing.md`
+- `docs/project-analysis.md` only if needed
 
-1. `npm run typecheck`
-2. `npm test`
-3. `npx playwright test tests/e2e/state-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts`
+Update `docs/req-landing.md`:
 
-Report pass/fail for each. If `a11y-smoke.spec.ts` passes without axe violations
-in all states (including the keyboard-expanded state), R-08 is confirmed safe.
+- §7.5: replace the keyboard-mode rule that says non-target cards allow Tab focus
+  with `aria-disabled=true`. The new rule must say keyboard-mode non-target cards
+  are blocked with `inert`, and card-to-card keyboard handoff must update
+  hoverLock/focused-card state first, then queue focus after React removes `inert`
+  from the target.
+- §7.5 verification: replace `aria-disabled` verification with `inert` plus queued
+  handoff verification.
+- §9.2: keep `aria-disabled` rules for cases that still use it, but remove
+  HOVER_LOCK keyboard-mode non-target cards from the `aria-disabled` contract.
 
-If `state-smoke.spec.ts` fails on any assertion other than the one updated in
-Step 5, report the exact failure — do not auto-fix.
+Inspect `docs/project-analysis.md` after implementation. Update only if the
+runtime structure or ownership description becomes stale.
 
----
+## Verification Plan
 
-## Constraints
+Do not run these during planning. During implementation, run in this order.
 
-- Do not modify `use-keyboard-handoff.ts` or any of the three R-03 modules.
-- Do not modify `interaction-state.ts` reducer cases — only add/remove exported
-  helper functions.
-- Do not add `aria-disabled` to unavailable card overlays — those already render
-  with `pointer-events: none` via their own CSS class and are visually inert.
-- Do not apply `inert` to transitioning state or mobile-locked state — those
-  remain under the existing `ariaDisabled`/`tabIndex` path.
-- `resolveCardTabIndex` must remain and continue to handle the hover-mode
-  (keyboardMode=false) tabIndex=-1 case.
-- The `inert` attribute value must be the empty string `''` (not `true` or `"true"`).
-  HTML boolean attributes require an empty string value in React.
+### Focused red/green checks
 
----
+```bash
+npm test -- tests/unit/landing-interaction-state.test.ts
+npx playwright test tests/e2e/state-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts
+```
 
-## Verification checklist
+### Basic gates
 
-After all changes, confirm:
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-1. `isKeyboardModeBlocked` is exported from `interaction-state.ts`.
-2. `isCardKeyboardAriaDisabled` and `isCardPointerInteractionBlocked` no longer exist.
-3. `LandingGridCard` root div receives `inert=''` when `keyboardModeBlocked` is true.
-4. `state-smoke.spec.ts` asserts `inert=''` (not `aria-disabled`) on the blocked card.
-5. `npm run typecheck` passes.
-6. `npm test` passes.
-7. `tests/e2e/state-smoke.spec.ts` passes all tests.
-8. `tests/e2e/a11y-smoke.spec.ts` passes all axe-clean assertions.
+### Landing scope checks
+
+```bash
+node scripts/qa/check-phase4-grid-contracts.mjs
+node scripts/qa/check-phase5-card-contracts.mjs
+node scripts/qa/check-phase6-spacing-contracts.mjs
+node scripts/qa/check-phase7-state-contracts.mjs
+node scripts/qa/check-phase8-accessibility-contracts.mjs
+node scripts/qa/check-phase9-performance-contracts.mjs
+node scripts/qa/check-phase10-transition-contracts.mjs
+npm test -- \
+  tests/unit/landing-interaction-state.test.ts \
+  tests/unit/landing-interaction-dom.test.ts \
+  tests/unit/landing-hover-intent.test.ts \
+  tests/unit/landing-mobile-lifecycle.test.ts \
+  tests/unit/landing-desktop-shell-phase.test.ts \
+  tests/unit/landing-grid-plan.test.ts \
+  tests/unit/landing-baseline-manager.test.ts \
+  tests/unit/gnb-behavior.test.ts \
+  tests/unit/gnb-desktop-settings.test.ts \
+  tests/unit/gnb-mobile-menu.test.ts \
+  tests/unit/gnb-back-navigation.test.ts \
+  tests/unit/gnb-theme-transition.test.ts
+npx playwright test \
+  tests/e2e/grid-smoke.spec.ts \
+  tests/e2e/state-smoke.spec.ts \
+  tests/e2e/gnb-smoke.spec.ts \
+  tests/e2e/a11y-smoke.spec.ts
+```
+
+Report pass/fail per command. If Playwright fails outside the expected changed
+assertion path, report the exact failure before fixing.
+
+## Stop Conditions
+
+Stop and ask before continuing if implementation requires any of the following:
+
+- Broad R-03 keyboard module redesign beyond narrow inert-compatible handoff
+  changes.
+- Changes to hover-mode blocking behavior.
+- Changes to transition state blocking behavior.
+- Changes to mobile interaction locking behavior.
+- New packages or external dependencies.
+- Unrelated behavior changes or adjacent refactors.
+- Modifying files outside the affected file list above, except for a directly
+  required documentation sync already listed in this plan.
+
+Do not stop merely because `use-card-keyboard-handler.ts`,
+`use-keyboard-handoff.ts`, or `interaction-dom.ts` need narrow changes for the
+state-first queued-focus handoff. That is approved R-08 scope.
+
+## Completion Checklist
+
+- [ ] `isKeyboardModeBlocked` exists and is exported through the model barrel.
+- [ ] `isCardKeyboardAriaDisabled` and `isCardPointerInteractionBlocked` no
+      longer exist.
+- [ ] Unit tests cover `isKeyboardModeBlocked`.
+- [ ] Controller returns `keyboardModeBlocked`.
+- [ ] `ariaDisabled` is `isTransitioning ? true : !cardEnterable || mobileInteractionLocked`.
+- [ ] `interactionBlocked` no longer includes keyboard-mode hoverLock blocking.
+- [ ] `LandingGridCard` uses `inert={keyboardModeBlocked}`.
+- [ ] `data-hover-lock-blocked` remains true for keyboard-mode blocked cards.
+- [ ] `pointerEvents` style uses `interactionBlocked` only.
+- [ ] Keyboard handoff dispatches target focus state before queued target focus.
+- [ ] `state-smoke.spec.ts` asserts `inert=""` and still proves card-to-card focus.
+- [ ] `docs/req-landing.md` reflects the new keyboard-mode inert contract.
+- [ ] `docs/project-analysis.md` was inspected and updated only if stale.
+- [ ] Basic gates pass.
+- [ ] Landing scope checks pass.

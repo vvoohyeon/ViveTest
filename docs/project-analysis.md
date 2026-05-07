@@ -393,7 +393,7 @@ There are currently four custom telemetry event types in `src/features/telemetry
 
 ### 5.7 Styling Runtime
 
-Tailwind v4 is active via `src/app/globals.css` `@import "tailwindcss"` plus `postcss.config.mjs`. `src/app/globals.css` is down to 112 lines and intentionally limited to theme tokens and the shared anchor base. `src/features/landing/grid/landing-grid-card.module.css` owns landing-grid motion, focus continuity, reduced-motion branches, and transient choreography. Component-local utility/class constants now own all other surface styling.
+Tailwind v4 is active via `src/app/globals.css` `@import "tailwindcss"` plus `postcss.config.mjs`. As of the 2026-05-07 theme-matrix visual follow-up, `src/app/globals.css` is 149 lines and intentionally limited to theme tokens, visual state tokens, and the shared anchor base. `src/features/landing/grid/landing-grid-card.module.css` owns landing-grid motion, focus continuity, reduced-motion branches, and transient choreography. Component-local utility/class constants now own all other surface styling.
 
 ### 5.7.1 Tailwind v4 Migration — Completion Record
 
@@ -401,10 +401,10 @@ Tailwind v4 is active via `src/app/globals.css` `@import "tailwindcss"` plus `po
 
 **Locked decisions:**
 
-- `src/app/globals.css` reduced from 1,240 lines to **112 lines**; retains only token/theme definitions plus the shared anchor base.
+- `src/app/globals.css` was reduced from 1,240 lines to **112 lines** in the migration checkpoint; as of the 2026-05-07 theme-matrix visual follow-up, it is **149 lines** after token-only visual QA additions and still retains only token/theme definitions plus the shared anchor base.
 - Landing grid/card motion, focus continuity, reduced-motion branches owned by `landing-grid-card.module.css` (371 lines).
 - `data-*` anchors remain on the DOM as QA/debug/Playwright surface. Only visual CSS ownership moved.
-- Global CSS surface intentionally limited to three essentials: `:root`, `html[data-theme='dark']`, and `a { color: var(--link-ink) }`.
+- Global CSS selector surface intentionally limited to `:root`, `html[data-theme='dark']`, and `a { color: var(--link-ink) }`.
 - Do not introduce `tailwind.config.*` until content scanning or theme extension is actually needed.
 - The original migration-plan stub was absorbed into this section; use git history for batch-level provenance.
 
@@ -489,7 +489,7 @@ Scoped to `tests/unit/`. Current file inventory: 53 `*.test.ts` files. Coverage 
 
 Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; ingress storage-key constants are constructed through `buildIngressStorageKey(variant)` so representative key values stay centralized; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
 
-The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk. Full local regeneration remains available through `npm run qa:visual:full`; `qa:gate` uses the reduced `@gate` tier with 120 Chromium theme-matrix screenshots plus 6 WebKit ghosting cases.
+The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk. Full local regeneration remains available through `npm run qa:visual:full`; that command runs both theme-matrix loops and currently reports 288 Chromium tests. The `@gate` E2E tier uses the reduced 120 Chromium theme-matrix screenshots plus 6 WebKit ghosting cases.
 
 Local full-smoke reproduction requires Playwright Chromium and WebKit installation. WebKit ghosting coverage was verified with `webkit-2227` on 2026-05-03; install with `npx playwright install chromium webkit`.
 

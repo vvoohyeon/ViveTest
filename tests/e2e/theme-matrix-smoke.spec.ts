@@ -281,7 +281,6 @@ async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
       return;
     case 'test-question':
       await startTestAttempt(page);
-      await answerCurrentQuestion(page, 'A');
       return;
     case 'test-result':
       await completeTestAttempt(page);
