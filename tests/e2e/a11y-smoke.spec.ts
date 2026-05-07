@@ -10,7 +10,7 @@ import {
   SECONDARY_BLOG_VARIANT
 } from './helpers/landing-fixture';
 
-const TRANSITION_OVERLAY_READY_DELAY_MS = 300;
+const TRANSITION_OVERLAY_READY_DELAY_MS = 900;
 
 async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   await page.addInitScript((timeoutMs) => {
@@ -75,6 +75,13 @@ async function focusMobileMenuByKeyboard(page: Page) {
   await expect(page.getByTestId('gnb-mobile-menu-trigger')).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('gnb-mobile-menu-panel')).toBeVisible();
+}
+
+async function expectSourceGnbOverlay(page: Page, destinationContext: 'blog' | 'test' | 'history') {
+  const overlay = page.getByTestId('landing-transition-source-gnb');
+  await expect(overlay).toBeVisible();
+  await expect(overlay.locator('.gnb-shell')).toHaveAttribute('data-gnb-context', 'landing');
+  await expect(page.locator('.page-shell > .gnb-shell')).toHaveAttribute('data-gnb-context', destinationContext);
 }
 
 async function tabUntilCardFocused(page: Page, cardVariant: string): Promise<void> {
@@ -159,7 +166,8 @@ test.describe('Canonical accessibility smoke', () => {
     await blogCard.locator('[data-slot="primaryCTA"]').click();
 
     await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
-    await expect(page.getByTestId('landing-transition-source-gnb')).toBeVisible();
+    await expect(page).toHaveTitle(/Build Metrics That Actually Matter/u);
+    await expectSourceGnbOverlay(page, 'blog');
     await expectPageToBeAxeClean(page);
   });
 

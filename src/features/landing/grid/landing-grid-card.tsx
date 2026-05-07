@@ -98,6 +98,7 @@ interface LandingGridCardProps {
   tabIndex?: number;
   ariaDisabled?: boolean;
   interactionBlocked?: boolean;
+  keyboardModeBlocked?: boolean;
   hoverLockEnabled?: boolean;
   keyboardMode?: boolean;
   onFocus?: FocusEventHandler<HTMLElement>;
@@ -581,6 +582,7 @@ export function LandingGridCard({
   tabIndex = 0,
   ariaDisabled = false,
   interactionBlocked = false,
+  keyboardModeBlocked = false,
   hoverLockEnabled = false,
   keyboardMode = false,
   onFocus,
@@ -706,7 +708,7 @@ export function LandingGridCard({
       data-interaction-mode={interactionMode}
       data-hover-lock={hoverLockEnabled ? 'true' : 'false'}
       data-keyboard-mode={keyboardMode ? 'true' : 'false'}
-      data-hover-lock-blocked={interactionBlocked ? 'true' : 'false'}
+      data-hover-lock-blocked={interactionBlocked || keyboardModeBlocked ? 'true' : 'false'}
       data-base-gap={resolvedSpacing.baseGapPx}
       data-comp-gap={resolvedSpacing.compGapPx}
       data-needs-comp={resolvedSpacing.needsComp ? 'true' : 'false'}
@@ -737,6 +739,7 @@ export function LandingGridCard({
                 : 'none'
       }
       aria-disabled={ariaDisabled ? 'true' : undefined}
+      inert={keyboardModeBlocked}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onPointerMove={onPointerMove}

@@ -27,8 +27,7 @@ import {
 import type {CardState} from '@/features/landing/model/state-types';
 import {
   initialLandingInteractionState,
-  isCardKeyboardAriaDisabled,
-  isCardPointerInteractionBlocked,
+  isKeyboardModeBlocked,
   reduceLandingInteractionState,
   resolveCardStateForVariant,
   resolveCardTabIndex,
@@ -53,6 +52,7 @@ export interface LandingCardInteractionBindings {
   tabIndex: number;
   ariaDisabled: boolean;
   interactionBlocked: boolean;
+  keyboardModeBlocked: boolean;
   hoverLockEnabled: boolean;
   keyboardMode: boolean;
   mobilePhase: LandingCardMobilePhase;
@@ -193,6 +193,14 @@ export function useLandingInteractionController({
   const firstEnterableCardVariant = useMemo(
     () => cards.find((card) => isEnterableCard(card))?.variant ?? null,
     [cards]
+  );
+  const enterableCardVariantSet = useMemo(
+    () => new Set(cards.filter((card) => isEnterableCard(card)).map((card) => card.variant)),
+    [cards]
+  );
+  const isCardEnterableByVariant = useCallback(
+    (cardVariant: string) => enterableCardVariantSet.has(cardVariant),
+    [enterableCardVariantSet]
   );
   const isMobileViewport = viewportTier === 'mobile';
   const prefersReducedMotion = interactionState.pageState === 'REDUCED_MOTION';
@@ -362,6 +370,7 @@ export function useLandingInteractionController({
     shellRef,
     cardVariants,
     firstEnterableCardVariant,
+    isCardEnterableByVariant,
     mobileLifecycleState,
     beginMobileOpen,
     beginMobileKeyboardHandoff,
@@ -392,8 +401,7 @@ export function useLandingInteractionController({
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
     const isTransitioning = interactionState.pageState === 'TRANSITIONING';
     const cardEnterable = isEnterableCard(card);
-    const pointerBlocked = isCardPointerInteractionBlocked(interactionState, card.variant);
-    const keyboardAriaDisabled = isCardKeyboardAriaDisabled(interactionState, card.variant) || !cardEnterable;
+    const keyboardModeBlocked = isKeyboardModeBlocked(interactionState, card.variant);
     const cardState = resolveCardStateForVariant(interactionState, card.variant);
     const transitionExpanded =
       isTransitioning &&
@@ -452,9 +460,10 @@ export function useLandingInteractionController({
         }
       : null;
     const hoverHandlers = resolveHoverHandlers(card);
+    const activationBlocked = isTransitioning || !cardEnterable || mobileInteractionLocked;
     const keyboardHandlers = resolveKeyboardHandlers(card, {
       cardEnterable,
-      keyboardAriaDisabled
+      keyboardActivationBlocked: activationBlocked
     });
 
     return {
@@ -463,8 +472,9 @@ export function useLandingInteractionController({
       desktopShellPhase,
       hoverLockEnabled: interactionState.hoverLock.enabled,
       keyboardMode: interactionState.hoverLock.keyboardMode,
-      interactionBlocked: isTransitioning ? true : pointerBlocked || mobileInteractionLocked,
-      ariaDisabled: isTransitioning ? true : keyboardAriaDisabled || mobileInteractionLocked,
+      keyboardModeBlocked,
+      interactionBlocked: isTransitioning ? true : mobileInteractionLocked,
+      ariaDisabled: isTransitioning ? true : !cardEnterable || mobileInteractionLocked,
       tabIndex: isTransitioning || mobileInteractionLocked ? -1 : resolveCardTabIndex(interactionState, card.variant),
       mobilePhase,
       mobileTransientMode,
@@ -473,7 +483,7 @@ export function useLandingInteractionController({
       onFocus: keyboardHandlers.onFocus,
       onKeyDown: keyboardHandlers.onKeyDown,
       onClick: (event) => {
-        if (keyboardAriaDisabled) {
+        if (activationBlocked) {
           event.preventDefault();
           event.stopPropagation();
           return;

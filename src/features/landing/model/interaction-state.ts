@@ -441,18 +441,7 @@ export function resolveCardStateForVariant(
   return 'NORMAL';
 }
 
-export function isCardPointerInteractionBlocked(
-  state: LandingInteractionState,
-  cardVariant: string
-): boolean {
-  if (!state.hoverLock.enabled || state.hoverLock.cardVariant === cardVariant) {
-    return false;
-  }
-
-  return state.hoverLock.keyboardMode;
-}
-
-export function isCardKeyboardAriaDisabled(
+export function isKeyboardModeBlocked(
   state: LandingInteractionState,
   cardVariant: string
 ): boolean {

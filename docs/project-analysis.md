@@ -197,7 +197,7 @@ Pure or model-focused modules:
 
 Runtime ownership after the 2026-04-30 split:
 
-- `src/features/landing/grid/use-landing-interaction-controller.ts` — **548 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, per-card binding composition, active visual state derivation, and transition-start callback composition.
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — **558 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, per-card binding composition, active visual state derivation, and transition-start callback composition.
 - `src/features/landing/grid/interaction-dom.ts` — DOM/focus helpers: card-root lookup, expanded focusable selection, adjacent-card resolution, queued focus callbacks, mobile-card detection, and card-boundary resolution.
 - `src/features/landing/grid/use-hover-intent-controller.ts` — hover timers/tokens, last pointer position, card-boundary containment checks, and trigger `onMouseEnter` / `onMouseLeave` handlers.
 - `src/features/landing/grid/use-desktop-motion-controller.ts` — desktop opening/closing/handoff visual state, transition reason ref, cleanup timers, and double-RAF cleanup.
@@ -207,14 +207,16 @@ Runtime ownership after the 2026-04-30 split:
 - `src/features/landing/grid/mobile-card-lifecycle-dom.ts` — **48 lines**, owns mobile snapshot capture and restore measurement helpers.
 - `src/features/landing/grid/use-mobile-restore-polling.ts` — **115 lines**, owns the restore-ready marker timer and RAF polling.
 - `src/features/landing/grid/use-mobile-transient-shell.ts` — **86 lines**, owns transient shell state and timer.
-- `src/features/landing/grid/use-keyboard-handoff.ts` — **88 lines**, composition layer for keyboard-mode tracking, first landing entry, and per-card keyboard handlers.
+- `src/features/landing/grid/use-keyboard-handoff.ts` — **91 lines**, composition layer for keyboard-mode tracking, first landing entry, and per-card keyboard handlers.
 - `src/features/landing/grid/use-keyboard-mode-tracker.ts` — global Tab/Escape keyboard-mode entry and mousedown exit listener wiring.
 - `src/features/landing/grid/use-landing-keyboard-entry.ts` — reverse Shift+Tab focus return from the first landing card toward the GNB target.
-- `src/features/landing/grid/use-card-keyboard-handler.ts` — **302 lines**, per-card focus/key handlers, expanded-body traversal, mobile keyboard handoff, and desktop transition intent handoff.
+- `src/features/landing/grid/use-card-keyboard-handler.ts` — **328 lines**, per-card focus/key handlers, expanded-body traversal, mobile keyboard handoff, and desktop transition intent handoff.
 - `src/features/landing/grid/use-grid-geometry-controller.ts` — **348 lines**, spacing model, row baseline snapshots, reducer-owned `BASELINE_READY`/`BASELINE_FROZEN` freeze/release, 32ms release timer lock, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
 - `src/features/landing/grid/landing-catalog-grid.tsx` — **270 lines**, keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, `LandingGridPlan` calculation, render assembly, and data attributes.
 
 The core risk is still choreography complexity across hover, keyboard, mobile, desktop shell phases, and geometry timing, but ownership is now explicit and testable at narrower seams. Styling ownership is hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` remaps raw runtime state into semantic style classes consumed by `landing-grid-card.module.css` for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors but no longer participate in the CSS contract.
+
+2026-05-07 R-08 note: keyboard-mode HOVER_LOCK non-target cards now use root `inert` while keeping `data-hover-lock-blocked` as the QA marker; card-to-card keyboard handoff dispatches the target focus state before queued DOM focus so the target is no longer inert when focused.
 
 ### 5.2 GNB
 
@@ -475,6 +477,8 @@ Scoped to `tests/unit/`. Current file inventory: 53 `*.test.ts` files. Coverage 
 
 `playwright.config.ts` runs the E2E surface with `fullyParallel: true`; local output stays on the `list` reporter, while CI adds the GitHub reporter for PR-check annotations.
 
+2026-05-07 R-08 follow-up: the default-parallel landing E2E bundle was hardened test-side only. `a11y-smoke.spec.ts` now waits for destination title/source-GNB readiness before axe, and `grid-smoke.spec.ts` samples the desktop closing frame atomically.
+
 | Spec | Contract covered |
 |---|---|
 | `routing-smoke.spec.ts` | Locale-prefix redirects, not-found split, SSR `<html lang>`, zero hydration warnings |
@@ -567,9 +571,9 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 
 **Instruction copy ownership is intentionally split.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. Future editors need to keep both sources in sync.
 
-**Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is 548 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
+**Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is 558 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
 
-**Shared runtime namespaces are now split by concern.** GNB, telemetry, transition, and blog destination code live under `src/features/gnb`, `src/features/telemetry`, `src/features/transition`, and `src/features/blog`, leaving `src/features/landing` focused on the landing runtime, grid, shell, and storage. Current pressure points are `src/features/gnb/site-gnb.tsx` (587 lines), `src/features/landing/grid/use-landing-interaction-controller.ts` (548 lines), `src/features/landing/grid/use-card-keyboard-handler.ts` (302 lines), and `src/features/landing/grid/use-grid-geometry-controller.ts` (348 lines). `use-keyboard-handoff.ts` is now an 88-line composition layer rather than a pressure point. GNB behavior pressure is split across focused desktop settings, mobile menu, and back-navigation hooks; keyboard-mode tracking has an exported hook reserved for future wiring. `use-mobile-card-lifecycle.ts` is now 281 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (115), and `use-mobile-transient-shell.ts` (86).
+**Shared runtime namespaces are now split by concern.** GNB, telemetry, transition, and blog destination code live under `src/features/gnb`, `src/features/telemetry`, `src/features/transition`, and `src/features/blog`, leaving `src/features/landing` focused on the landing runtime, grid, shell, and storage. Current pressure points are `src/features/gnb/site-gnb.tsx` (587 lines), `src/features/landing/grid/use-landing-interaction-controller.ts` (558 lines), `src/features/landing/grid/use-card-keyboard-handler.ts` (328 lines), and `src/features/landing/grid/use-grid-geometry-controller.ts` (348 lines). `use-keyboard-handoff.ts` is now a 91-line composition layer rather than a pressure point. GNB behavior pressure is split across focused desktop settings, mobile menu, and back-navigation hooks; keyboard-mode tracking has an exported hook reserved for future wiring. `use-mobile-card-lifecycle.ts` is now 281 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (115), and `use-mobile-transient-shell.ts` (86).
 
 **Screenshot-driven QA remains concentrated in the instruction surface and visual matrix.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions. The 2026-05-03 R-01 follow-up confirmed theme-matrix baseline provenance, not code output, as the blocker source; future local baseline regeneration should use the preview command in `tests/e2e/README.md` and update the tracked provenance record at `tests/e2e/theme-matrix-baseline-provenance.md`.
 
