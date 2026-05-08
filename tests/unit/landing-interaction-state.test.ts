@@ -8,6 +8,7 @@ import {
   isKeyboardModeBlocked,
   reduceLandingInteractionState,
   resolveCardStateForVariant,
+  resolveVisualState,
   resolveCardTabIndex,
   type LandingInteractionEvent
 } from '../../src/features/landing/model/interaction-state';
@@ -236,5 +237,77 @@ describe('landing interaction state machine', () => {
     const second = replay(eventSequence);
 
     expect(second).toEqual(first);
+  });
+
+  it('resolves card visual state from expanded overrides and card state', () => {
+    expect(
+      resolveVisualState({
+        cardEnterable: true,
+        cardState: 'NORMAL',
+        desktopCleanupPending: false,
+        desktopClosingVisible: false,
+        transitionExpanded: true
+      })
+    ).toBe('expanded');
+
+    expect(
+      resolveVisualState({
+        cardEnterable: false,
+        cardState: 'NORMAL',
+        desktopCleanupPending: false,
+        desktopClosingVisible: true,
+        transitionExpanded: false
+      })
+    ).toBe('expanded');
+
+    expect(
+      resolveVisualState({
+        cardEnterable: false,
+        cardState: 'NORMAL',
+        desktopCleanupPending: true,
+        desktopClosingVisible: false,
+        transitionExpanded: false
+      })
+    ).toBe('expanded');
+
+    expect(
+      resolveVisualState({
+        cardEnterable: true,
+        cardState: 'EXPANDED',
+        desktopCleanupPending: false,
+        desktopClosingVisible: false,
+        transitionExpanded: false
+      })
+    ).toBe('expanded');
+
+    expect(
+      resolveVisualState({
+        cardEnterable: false,
+        cardState: 'EXPANDED',
+        desktopCleanupPending: false,
+        desktopClosingVisible: false,
+        transitionExpanded: false
+      })
+    ).toBe('normal');
+
+    expect(
+      resolveVisualState({
+        cardEnterable: true,
+        cardState: 'FOCUSED',
+        desktopCleanupPending: false,
+        desktopClosingVisible: false,
+        transitionExpanded: false
+      })
+    ).toBe('focused');
+
+    expect(
+      resolveVisualState({
+        cardEnterable: true,
+        cardState: 'NORMAL',
+        desktopCleanupPending: false,
+        desktopClosingVisible: false,
+        transitionExpanded: false
+      })
+    ).toBe('normal');
   });
 });

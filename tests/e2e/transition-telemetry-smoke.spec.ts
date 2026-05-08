@@ -666,17 +666,31 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(Math.abs((afterClose?.width ?? 0) - (before?.width ?? 0))).toBeLessThanOrEqual(2);
     expect(Math.abs((afterClose?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(2);
 
-    await page.waitForTimeout(140);
+    // Atomic snapshot avoids racing the 280ms transient shell cleanup under parallel E2E load.
+    await expect
+      .poll(
+        () =>
+          card.evaluate((element) => {
+            const rootTitle = element.querySelector<HTMLElement>('.landing-grid-card-content > [data-slot="cardTitle"]');
+            const transientTitle = element.querySelector<HTMLElement>(
+              '[data-slot="mobileTransientShell"] [data-slot="cardTitleTransient"]'
+            );
+            const rootTitleOpacity = rootTitle ? Number.parseFloat(getComputedStyle(rootTitle).opacity) : Number.NaN;
+            const transientTitleOpacity = transientTitle
+              ? Number.parseFloat(getComputedStyle(transientTitle).opacity)
+              : Number.NaN;
 
-    const rootTitleOpacity = await card
-      .locator('.landing-grid-card-content > [data-slot="cardTitle"]')
-      .evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity));
-    const transientTitleOpacity = await card
-      .locator('[data-slot="mobileTransientShell"] [data-slot="cardTitleTransient"]')
-      .evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity));
-
-    expect(rootTitleOpacity).toBe(0);
-    expect(transientTitleOpacity).toBeGreaterThanOrEqual(0.95);
+            return {
+              rootTitleHidden: rootTitleOpacity === 0,
+              transientTitleVisible: transientTitleOpacity >= 0.95
+            };
+          }),
+        {timeout: 4000, intervals: [100, 200, 500]}
+      )
+      .toEqual({
+        rootTitleHidden: true,
+        transientTitleVisible: true
+      });
 
     const zOrder = await page.evaluate(() => {
       const transient = document.querySelector<HTMLElement>('[data-slot="mobileTransientShell"]');

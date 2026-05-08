@@ -1,74 +1,39 @@
-import type {
-  FocusEvent as ReactFocusEvent,
-  KeyboardEvent as ReactKeyboardEvent,
-  MouseEvent as ReactMouseEvent,
-  RefObject
-} from 'react';
+import type {MouseEvent as ReactMouseEvent, RefObject} from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useState} from 'react';
 
 import {isEnterableCard, type LandingCard} from '@/features/variant-registry';
 import {
-  resolveDesktopShellPhase,
-  type LandingCardDesktopMotionRole,
-  type LandingCardDesktopShellPhase
+  resolveDesktopMotionRole,
+  resolveDesktopShellPhase
 } from '@/features/landing/grid/desktop-shell-phase';
 import type {
   LandingCardMobilePhase,
   LandingCardMobileTransientMode,
-  LandingCardViewportTier,
-  LandingCardVisualState,
-  LandingMobileSnapshotView
+  LandingCardViewportTier
 } from '@/features/landing/grid/landing-grid-card';
 import {
   initialLandingMobileLifecycleState,
   reduceLandingMobileLifecycleState,
   type LandingMobileLifecycleState
 } from '@/features/landing/grid/mobile-lifecycle';
-import type {CardState} from '@/features/landing/model/state-types';
+import type {LandingCardInteractionBindings} from '@/features/landing/grid/landing-card-interaction-bindings';
 import {
   initialLandingInteractionState,
   isKeyboardModeBlocked,
   reduceLandingInteractionState,
   resolveCardStateForVariant,
   resolveCardTabIndex,
+  resolveVisualState,
   type LandingInteractionState
 } from '@/features/landing/model/interaction-state';
 import {LANDING_TRANSITION_CLEANUP_EVENT} from '@/features/transition/store';
-import {
-  useDesktopMotionController,
-  type DesktopMotionState
-} from '@/features/landing/grid/use-desktop-motion-controller';
+import {useDesktopMotionController} from '@/features/landing/grid/use-desktop-motion-controller';
 import {useHoverIntentController} from '@/features/landing/grid/use-hover-intent-controller';
 import {
   useMobileCardLifecycle,
   type MobileBackdropBindings
 } from '@/features/landing/grid/use-mobile-card-lifecycle';
 import {useKeyboardHandoff} from '@/features/landing/grid/use-keyboard-handoff';
-
-export interface LandingCardInteractionBindings {
-  state: LandingCardVisualState;
-  desktopMotionRole: LandingCardDesktopMotionRole;
-  desktopShellPhase: LandingCardDesktopShellPhase;
-  tabIndex: number;
-  ariaDisabled: boolean;
-  interactionBlocked: boolean;
-  keyboardModeBlocked: boolean;
-  hoverLockEnabled: boolean;
-  keyboardMode: boolean;
-  mobilePhase: LandingCardMobilePhase;
-  mobileTransientMode: LandingCardMobileTransientMode;
-  mobileRestoreReady: boolean;
-  mobileSnapshot: LandingMobileSnapshotView | null;
-  onFocus: (event: ReactFocusEvent<HTMLElement>) => void;
-  onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
-  onClick: (event: ReactMouseEvent<HTMLElement>) => void;
-  onMouseEnter: (event: ReactMouseEvent<HTMLElement>) => void;
-  onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => void;
-  onExpandedBodyKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
-  onAnswerChoiceSelect: (choice: 'A' | 'B', event: ReactMouseEvent<HTMLButtonElement>) => void;
-  onPrimaryCtaClick: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
-  onMobileClose: (event: ReactMouseEvent<HTMLButtonElement>) => void;
-}
 
 interface UseLandingInteractionControllerInput {
   cards: LandingCard[];
@@ -99,71 +64,25 @@ export function resolveInteractionMode(viewportWidth: number, hoverCapability: b
   return hoverCapability ? 'hover' : 'tap';
 }
 
-function resolveDesktopMotionRole(input: {
-  cardEnterable: boolean;
-  cardState: CardState;
-  cardVariant: string;
-  desktopMotionState: DesktopMotionState;
-  isMobileViewport: boolean;
-  transitionExpanded: boolean;
-}): LandingCardDesktopMotionRole {
-  const {
-    cardEnterable,
-    cardState,
-    cardVariant,
-    desktopMotionState,
-    isMobileViewport,
-    transitionExpanded
-  } = input;
-
-  if (desktopMotionState.handoffSourceCardVariant === cardVariant) {
-    return 'handoff-source';
+function resolveInteractionCard(
+  target: EventTarget | null,
+  cardByVariant: ReadonlyMap<string, LandingCard>
+): LandingCard | null {
+  if (!(target instanceof Element)) {
+    return null;
   }
 
-  if (desktopMotionState.handoffTargetCardVariant === cardVariant) {
-    return 'handoff-target';
+  const root = target.closest('[data-card-variant]');
+  if (!(root instanceof HTMLElement)) {
+    return null;
   }
 
-  if (desktopMotionState.openingCardVariant === cardVariant) {
-    return 'opening';
+  const variant = root.dataset.cardVariant;
+  if (!variant) {
+    return null;
   }
 
-  if (desktopMotionState.closingCardVariant === cardVariant) {
-    return 'closing';
-  }
-
-  if (!isMobileViewport && (transitionExpanded || (cardState === 'EXPANDED' && cardEnterable))) {
-    return 'steady';
-  }
-
-  return 'idle';
-}
-
-function resolveVisualState(input: {
-  cardEnterable: boolean;
-  cardState: CardState;
-  desktopCleanupPending: boolean;
-  desktopClosingVisible: boolean;
-  transitionExpanded: boolean;
-}): LandingCardVisualState {
-  const {
-    cardEnterable,
-    cardState,
-    desktopCleanupPending,
-    desktopClosingVisible,
-    transitionExpanded
-  } = input;
-
-  if (
-    transitionExpanded ||
-    desktopClosingVisible ||
-    desktopCleanupPending ||
-    (cardState === 'EXPANDED' && cardEnterable)
-  ) {
-    return 'expanded';
-  }
-
-  return cardState === 'FOCUSED' ? 'focused' : 'normal';
+  return cardByVariant.get(variant) ?? null;
 }
 
 export function useLandingInteractionController({
@@ -190,6 +109,10 @@ export function useLandingInteractionController({
     [hoverCapability, viewportWidth]
   );
   const cardVariants = useMemo(() => cards.map((card) => card.variant), [cards]);
+  const cardByVariant = useMemo<ReadonlyMap<string, LandingCard>>(
+    () => new Map(cards.map((card) => [card.variant, card])),
+    [cards]
+  );
   const firstEnterableCardVariant = useMemo(
     () => cards.find((card) => isEnterableCard(card))?.variant ?? null,
     [cards]
@@ -398,6 +321,96 @@ export function useLandingInteractionController({
     };
   }, [recordPointerInput]);
 
+  const handleMobileClose = useCallback(
+    (event: ReactMouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      beginMobileClose();
+    },
+    [beginMobileClose]
+  );
+
+  const handleCardClick = useCallback(
+    (event: ReactMouseEvent<HTMLElement>) => {
+      const card = resolveInteractionCard(event.currentTarget, cardByVariant);
+      if (!card) {
+        return;
+      }
+
+      const cardEnterable = isEnterableCard(card);
+      const isTransitioning = interactionState.pageState === 'TRANSITIONING';
+      const mobileInteractionLocked =
+        isMobileViewport &&
+        mobileLifecycleState.phase !== 'NORMAL' &&
+        (mobileLifecycleState.cardVariant !== card.variant || mobileLifecycleState.phase !== 'OPEN');
+      const activationBlocked = isTransitioning || !cardEnterable || mobileInteractionLocked;
+
+      if (activationBlocked) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      if (isMobileViewport) {
+        if (mobileLifecycleState.phase === 'NORMAL' && mobileLifecycleState.cardVariant !== card.variant) {
+          beginMobileOpen(card.variant);
+        }
+        return;
+      }
+
+      desktopTransitionReasonRef.current = 'expand';
+      dispatchInteraction({
+        type: 'CARD_EXPAND',
+        nowMs: event.timeStamp,
+        interactionMode,
+        cardVariant: card.variant,
+        available: cardEnterable
+      });
+    },
+    [
+      beginMobileOpen,
+      cardByVariant,
+      desktopTransitionReasonRef,
+      dispatchInteraction,
+      interactionMode,
+      interactionState.pageState,
+      isMobileViewport,
+      mobileLifecycleState.cardVariant,
+      mobileLifecycleState.phase
+    ]
+  );
+
+  const handleAnswerChoiceSelect = useCallback(
+    (choice: 'A' | 'B', event: ReactMouseEvent<HTMLButtonElement>) => {
+      const card = resolveInteractionCard(event.currentTarget, cardByVariant);
+      if (!card || card.type !== 'test') {
+        return;
+      }
+
+      const shouldBeginTransition = onAnswerChoiceSelect?.(card, choice) !== false;
+      if (shouldBeginTransition) {
+        beginTransition(card.variant);
+      }
+      event.preventDefault();
+    },
+    [beginTransition, cardByVariant, onAnswerChoiceSelect]
+  );
+
+  const handlePrimaryCtaClick = useCallback(
+    (event: ReactMouseEvent<HTMLAnchorElement>) => {
+      const card = resolveInteractionCard(event.currentTarget, cardByVariant);
+      if (!card || card.type !== 'blog') {
+        return;
+      }
+
+      const shouldBeginTransition = onPrimaryCtaSelect?.(card) !== false;
+      if (shouldBeginTransition) {
+        beginTransition(card.variant);
+      }
+      event.preventDefault();
+    },
+    [beginTransition, cardByVariant, onPrimaryCtaSelect]
+  );
+
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
     const isTransitioning = interactionState.pageState === 'TRANSITIONING';
     const cardEnterable = isEnterableCard(card);
@@ -482,58 +495,13 @@ export function useLandingInteractionController({
       mobileSnapshot,
       onFocus: keyboardHandlers.onFocus,
       onKeyDown: keyboardHandlers.onKeyDown,
-      onClick: (event) => {
-        if (activationBlocked) {
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-
-        if (isMobileViewport) {
-          if (mobileLifecycleState.phase === 'NORMAL' && mobileLifecycleState.cardVariant !== card.variant) {
-            beginMobileOpen(card.variant);
-          }
-          return;
-        }
-
-        desktopTransitionReasonRef.current = 'expand';
-        dispatchInteraction({
-          type: 'CARD_EXPAND',
-          nowMs: event.timeStamp,
-          interactionMode,
-          cardVariant: card.variant,
-          available: cardEnterable
-        });
-      },
+      onClick: handleCardClick,
       onMouseEnter: hoverHandlers.onMouseEnter,
       onMouseLeave: hoverHandlers.onMouseLeave,
       onExpandedBodyKeyDown: keyboardHandlers.onExpandedBodyKeyDown,
-      onAnswerChoiceSelect: (choice, event) => {
-        if (card.type !== 'test') {
-          return;
-        }
-
-        const shouldBeginTransition = onAnswerChoiceSelect?.(card, choice) !== false;
-        if (shouldBeginTransition) {
-          beginTransition(card.variant);
-        }
-        event.preventDefault();
-      },
-      onPrimaryCtaClick: (event) => {
-        if (card.type !== 'blog') {
-          return;
-        }
-
-        const shouldBeginTransition = onPrimaryCtaSelect?.(card) !== false;
-        if (shouldBeginTransition) {
-          beginTransition(card.variant);
-        }
-        event.preventDefault();
-      },
-      onMobileClose: (event) => {
-        event.preventDefault();
-        beginMobileClose();
-      }
+      onAnswerChoiceSelect: handleAnswerChoiceSelect,
+      onPrimaryCtaClick: handlePrimaryCtaClick,
+      onMobileClose: handleMobileClose
     };
   };
 

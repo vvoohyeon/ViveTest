@@ -1,5 +1,7 @@
 import type {CardState, PageState} from '@/features/landing/model/state-types';
 
+export type LandingCardVisualState = 'normal' | 'expanded' | 'focused';
+
 export const ACTIVE_RAMP_UP_MS = 140;
 export const PAGE_STATE_PRIORITY: Record<PageState, number> = {
   INACTIVE: 5,
@@ -439,6 +441,33 @@ export function resolveCardStateForVariant(
   }
 
   return 'NORMAL';
+}
+
+export function resolveVisualState(input: {
+  cardEnterable: boolean;
+  cardState: CardState;
+  desktopCleanupPending: boolean;
+  desktopClosingVisible: boolean;
+  transitionExpanded: boolean;
+}): LandingCardVisualState {
+  const {
+    cardEnterable,
+    cardState,
+    desktopCleanupPending,
+    desktopClosingVisible,
+    transitionExpanded
+  } = input;
+
+  if (
+    transitionExpanded ||
+    desktopClosingVisible ||
+    desktopCleanupPending ||
+    (cardState === 'EXPANDED' && cardEnterable)
+  ) {
+    return 'expanded';
+  }
+
+  return cardState === 'FOCUSED' ? 'focused' : 'normal';
 }
 
 export function isKeyboardModeBlocked(

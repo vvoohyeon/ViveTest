@@ -1,10 +1,19 @@
 import {describe, expect, it} from 'vitest';
 
 import {
+  resolveDesktopMotionRole,
   resolveDesktopShellPhase,
   shouldRenderDesktopStageShell
 } from '../../src/features/landing/grid/desktop-shell-phase';
 import {useDesktopMotionController} from '../../src/features/landing/grid/use-desktop-motion-controller';
+
+const idleDesktopMotionState = {
+  openingCardVariant: null,
+  closingCardVariant: null,
+  cleanupPendingCardVariant: null,
+  handoffSourceCardVariant: null,
+  handoffTargetCardVariant: null
+};
 
 describe('landing desktop shell phase', () => {
   it('keeps same-card hover-out collapse in closing and cleanup-pending phases until cleanup finishes', () => {
@@ -55,5 +64,110 @@ describe('landing desktop shell phase', () => {
 
   it('exposes the controller-owned desktop motion hook entrypoint', () => {
     expect(typeof useDesktopMotionController).toBe('function');
+  });
+
+  it('resolves desktop motion role priority without changing shell phase semantics', () => {
+    expect(
+      resolveDesktopMotionRole({
+        cardEnterable: true,
+        cardState: 'NORMAL',
+        cardVariant: 'qmbti',
+        desktopMotionState: {
+          ...idleDesktopMotionState,
+          handoffSourceCardVariant: 'qmbti',
+          handoffTargetCardVariant: 'rhythm-b',
+          openingCardVariant: 'qmbti'
+        },
+        isMobileViewport: false,
+        transitionExpanded: false
+      })
+    ).toBe('handoff-source');
+
+    expect(
+      resolveDesktopMotionRole({
+        cardEnterable: true,
+        cardState: 'NORMAL',
+        cardVariant: 'rhythm-b',
+        desktopMotionState: {
+          ...idleDesktopMotionState,
+          handoffTargetCardVariant: 'rhythm-b',
+          openingCardVariant: 'rhythm-b'
+        },
+        isMobileViewport: false,
+        transitionExpanded: false
+      })
+    ).toBe('handoff-target');
+
+    expect(
+      resolveDesktopMotionRole({
+        cardEnterable: true,
+        cardState: 'NORMAL',
+        cardVariant: 'qmbti',
+        desktopMotionState: {
+          ...idleDesktopMotionState,
+          openingCardVariant: 'qmbti'
+        },
+        isMobileViewport: false,
+        transitionExpanded: false
+      })
+    ).toBe('opening');
+
+    expect(
+      resolveDesktopMotionRole({
+        cardEnterable: true,
+        cardState: 'NORMAL',
+        cardVariant: 'qmbti',
+        desktopMotionState: {
+          ...idleDesktopMotionState,
+          closingCardVariant: 'qmbti'
+        },
+        isMobileViewport: false,
+        transitionExpanded: false
+      })
+    ).toBe('closing');
+
+    expect(
+      resolveDesktopMotionRole({
+        cardEnterable: true,
+        cardState: 'NORMAL',
+        cardVariant: 'qmbti',
+        desktopMotionState: idleDesktopMotionState,
+        isMobileViewport: false,
+        transitionExpanded: true
+      })
+    ).toBe('steady');
+
+    expect(
+      resolveDesktopMotionRole({
+        cardEnterable: true,
+        cardState: 'EXPANDED',
+        cardVariant: 'qmbti',
+        desktopMotionState: idleDesktopMotionState,
+        isMobileViewport: false,
+        transitionExpanded: false
+      })
+    ).toBe('steady');
+
+    expect(
+      resolveDesktopMotionRole({
+        cardEnterable: true,
+        cardState: 'EXPANDED',
+        cardVariant: 'qmbti',
+        desktopMotionState: idleDesktopMotionState,
+        isMobileViewport: true,
+        transitionExpanded: false
+      })
+    ).toBe('idle');
+
+    expect(
+      resolveDesktopMotionRole({
+        cardEnterable: false,
+        cardState: 'EXPANDED',
+        cardVariant: 'qmbti',
+        desktopMotionState: idleDesktopMotionState,
+        isMobileViewport: false,
+        transitionExpanded: false
+      })
+    ).toBe('idle');
   });
 });

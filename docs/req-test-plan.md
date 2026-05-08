@@ -21,8 +21,8 @@ Phase 0 착수 이전에 요구되었던 랜딩 측 선행 구현은 완료되�
 | **2** | Data Source & Sync Layer | variant-registry 인터페이스, cross-source 검증, lazy validation + 캐싱 | 1 |
 | **3** | Storage · Session Lifecycle · Data Volatility | storage 추상 레이어, active run 판정, 5개 상태 플래그, 3가지 휘발 트리거 | 1, 2 |
 | **4** | Entry Path · Staged Entry · Invalid Variant Recovery | 3-경로 분류기, staged entry lifecycle, 에러 복구 페이지 | 1, 2, 3 |
-| **5** | Instruction Gate · Runtime Entry Commit | instruction overlay (비-라우트), `instructionSeen` lifecycle, commit 도메인 이벤트 | 1, 2, 3, 4 |
-| **6** | Question Runtime Core | 응답 루프, tail reset, result-entry eligibility 즉시 반영 | 1, 2, 3, 4, 5 |
+| **5** | Instruction Gate · Runtime Entry Commit | instruction overlay (비-라우트), `instructionSeen` lifecycle, commit 도메인 이벤트. **Phase 5/6 사전 설계 결정 섹션 참조**: entry phase 상태(`instructionSeen`, `entryCommitted`)를 Phase 통합 reducer로 흡수하는 작업이 이 Phase에서 착수된다. | 1, 2, 3, 4 |
+| **6** | Question Runtime Core | 응답 루프, tail reset, result-entry eligibility 즉시 반영. **Phase 5/6 사전 설계 결정 섹션 참조**: active-run resume 로드 경로(`resolveQuestionBootstrapState` 확장)가 이 Phase에서 착수된다. | 1, 2, 3, 4, 5 |
 | **7** | Derivation · Loading Screen | scoreStats/derivedType 계산, 5초 최소 로딩 AND 조건, back-from-loading | 1, 2, 3, 6 |
 | **8** | Result URL Payload · Validation | URL 구조, base64 인코딩, payload 검증 실패 경로 | 1 |
 | **9** | Result Page · Content Fallback | 케이스 매트릭스(1/2/4), mandatory/optional 섹션, content fallback | 7, 8 |
@@ -211,6 +211,109 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 | 공유 픽스처 파일 경로 | `tests/` 하위 landing fixture 경로 또는 신규 shared fixture 경로 중 하나로 확정 |
 | 소유 모듈 | landing fixture가 blocker #15 단언을 포함하면 Phase 4에서 import. 없으면 Phase 4에서 공유 픽스처 생성 후 blocker #15 단언도 함께 포함 |
 | 픽스처 공유 확정 시점 | Phase 4 첫 번째 커밋 이전 |
+
+---
+
+### Phase 5/6 사전 설계 결정 (현재 구조 개선 이후 확장)
+
+> **구현 착수 강제 조건**: Phase 5 첫 커밋 이전에 SD-1을 구현해야 한다. Phase 5 또는 6 첫 커밋 이전에 SD-2를 구현해야 한다. 이 섹션을 "나중에 하기"로 미루고 기존 client 구조 위에 instruction gate 또는 resume 경로를 추가하는 것은 금지한다.
+> 이 섹션은 현재 진행 중인 test-flow 구조 개선(run controller 추출, canonical index 전환, tail reset 확정)에서 **의도적으로 제외한 두 가지 설계 결정**을 기록한다. Phase 5/6 착수 전에 이 섹션을 확인하고 구현에 반영해야 한다. 현재 구조 개선 단계에서 이미 마련된 기반(run reducer 분리, canonical index keyed responses write) 위에 아래 두 확장을 얹는다.
+
+#### SD-1. Phase 통합 Reducer (Phase 5 착수 시점 적용)
+
+> **Phase 5 착수 blocking 조건**: 이 설계를 적용하지 않고 Phase 5 Instruction Gate 구현을 진행하면 안 된다. Phase 5 첫 커밋 전에 Phase 통합 Reducer를 도입하고 기존 `entryCommitted`/`instructionSeen` `useState`를 제거한다.
+
+**현재 구조 (구조 개선 완료 후 상태):**
+- `useTestRunController` (또는 동등한 run controller hook)가 `currentIndex`, `answers`, `submitted` 등 순수 question runtime 상태만 소유한다.
+- entry phase 상태(`instructionSeen`, `entryCommitted`, `redirecting`)는 `test-question-client.tsx`의 `useState`로 분리 유지된다.
+- 이 분리는 현재 구조 개선 단계의 안전한 관찰 가능 동작 유지 원칙에 따른 의도적 결정이다.
+
+**Phase 5에서 적용할 Phase 통합 Reducer 설계:**
+
+run reducer의 최상위 discriminant로 `phase` 필드를 도입해 전체 흐름을 단일 reducer에서 추적 가능하게 만든다.
+
+```typescript
+type TestRunPhase =
+  | 'booting'       // consent 동기화 미완료, bootstrap 미완료
+  | 'instruction'   // instruction overlay 표시 중 (entry committed 아님)
+  | 'active'        // entry committed, question 흐름 진행 중
+  | 'submitted'     // 최종 제출 완료, result 표시 중
+  | 'redirecting';  // 홈으로 이동 중 (deny_and_abandon / keep_current_preference)
+
+interface TestRunState {
+  phase: TestRunPhase;
+  landingIngressFlag: boolean;
+  currentIndex: number;                         // canonical index (1-based)
+  answers: Record<string, 'A' | 'B'>;          // key: String(canonicalIndex)
+  instructionSeen: boolean;
+}
+```
+
+도입할 action 목록:
+
+| Action | 전환 | 비고 |
+|---|---|---|
+| `BOOTSTRAP_COMPLETE` | `booting → instruction \| active` | `instructionSeen && canAutoCommit` → `active`, 아니면 `instruction` |
+| `COMMIT_ENTRY` | `instruction → active` | 기존 `executeInstructionAction` 결과를 단일 action으로 표현 |
+| `REDIRECT_HOME` | `instruction → redirecting` | deny_and_abandon / keep_current_preference 효과 |
+| `SELECT_ANSWER` | `active` (내부) | canonical index key에 'A'\|'B' 기록. 150ms 타이머는 client effect에서 처리 |
+| `NAVIGATE_PREVIOUS` | `active` (내부) | currentIndex - 1, answers를 index - 1 이하로 슬라이스 (tail reset) |
+| `SUBMIT` | `active → submitted` | `allAnswered` 전제 조건 검사는 reducer 내부에서 guard |
+
+**Side effect 조율 원칙 (Phase 5 구현 시 준수):**
+- reducer는 순수 함수다. `markInstructionSeen(variant)`, `trackAttemptStart(...)`, `consumeLandingIngress(variant)`, `volatilizeRunData(...)` 등 모든 side effect는 phase 전환 action dispatch 이후 client의 `useEffect`에서 실행한다.
+- `phase` 필드를 dependency로 사용해 각 side effect가 정확히 한 번 실행되도록 보장한다. `useRef` flag(예: `attemptStartedRef`) 패턴은 이 구조로 자연스럽게 대체된다.
+- consent 상태(`consentSnapshot`)는 reducer 외부에서 `BOOTSTRAP_COMPLETE` action payload로 주입한다. reducer가 `useTelemetryConsentSource()`를 직접 소비하지 않는다.
+
+**테스트 전략 (Phase 5):**
+- reducer를 순수 함수로 추출했으므로 action 시퀀스 단위 unit test가 가능하다.
+- `BOOTSTRAP_COMPLETE → COMMIT_ENTRY → SELECT_ANSWER(×n) → NAVIGATE_PREVIOUS → SELECT_ANSWER → SUBMIT` 전체 흐름을 단일 reducer test로 단언한다.
+- phase 전환 guard(예: `submitted` phase에서 `SELECT_ANSWER` 무시)를 각 action별로 unit test한다.
+
+#### SD-2. Active-Run Resume 로드 경로 (Phase 5 또는 6 착수 시점 적용)
+
+> **Phase 5 또는 6 착수 blocking 조건**: active-run resume 로드 경로는 `resolveQuestionBootstrapState()` 확장으로 구현한다. Phase 6 Question Runtime Core 착수 전에 이 경로가 없으면 `getActiveRun()` write/read 계약이 불완전한 상태로 Phase 6이 진행된다.
+
+**현재 구조 (구조 개선 완료 후 상태):**
+- `test:{variant}:responses`에 canonical index keyed answers를 run 도중 write하는 경로는 현재 구조 개선에서 확립된다.
+- `test:{variant}:activeRun` write 구조도 이번에 함께 확립된다.
+- `resolveQuestionBootstrapState()`는 현재 구조 개선에서 수정하지 않는다. resume 로드 경로(read)는 이 함수에서 처리되지 않는 상태로 남는다.
+
+**Phase 5/6에서 적용할 Resume 로드 경로 설계:**
+
+`resolveQuestionBootstrapState()`를 확장하거나 대체해 active-run resume를 지원한다.
+
+```typescript
+// Phase 5/6 확장 후 bootstrap 입력 추가 항목
+interface QuestionBootstrapInput {
+  // 기존 항목 유지
+  instructionSeen: boolean;
+  landingIngress: LandingIngressRecord | null;
+  pendingTransition: PendingLandingTransition | null;
+  questions: ReadonlyArray<ResolvedQuestion>;
+  variant: string;
+  // Phase 5/6 신규 항목
+  activeRun: ActiveRunRecord | null; // getActiveRun(variant) 결과. null = timeout 또는 없음
+}
+```
+
+진입 경로 우선순위 (bootstrap 시 결정):
+
+1. **Landing Ingress 진입** (`landingIngress !== null`): 기존 로직 유지. `scoring1` seed + skip 첫 scoring question.
+2. **Active-Run Resume** (`activeRun !== null && landingIngress === null`): `activeRun.responses`를 초기 answers로 로드. `currentIndex`는 마지막으로 응답한 문항의 다음 index(또는 마지막 문항 index). `instructionSeen` 기반 instruction 표시 여부는 기존 로직 유지.
+3. **Direct Cold Start** (둘 다 null): 기존 로직 유지. index 1, 빈 answers.
+
+**Phase 3 `getActiveRun()` 계약과의 연결:**
+- Phase 3 `getActiveRun(variantId)` 반환값이 null이면(timeout 또는 미존재) resume 경로는 실행하지 않는다.
+- `getActiveRun()`은 30분 timeout 판정 후 §6.8 휘발까지 책임진다. bootstrap 시점에 이미 cleanup이 완료된 상태이므로 bootstrap 코드는 판정 결과만 소비한다.
+- `activeRun.responses`의 key는 canonical index string(`"1"`, `"2"`)이므로 현재 구조 개선에서 확립한 answers key 체계와 동일하다. 변환 레이어 불필요.
+
+**테스트 전략 (Phase 5/6):**
+- `resolveQuestionBootstrapState()` 단위 테스트에 resume 경로 케이스 추가:
+  - `activeRun` 존재 + `landingIngress` 없음 → resume index + 저장된 answers 로드
+  - `activeRun` 존재 + `landingIngress` 존재 → landing ingress 우선(activeRun 무시)
+  - `activeRun` null (timeout) → cold start
+- E2E: 문항 일부 응답 후 페이지 새로고침 → 마지막 문항부터 재개 시나리오.
 
 ---
 
