@@ -8,6 +8,7 @@ import {useEffect, useState} from 'react';
  * ownership move is explicitly approved.
  */
 export function useGnbKeyboardModeTracker(): {isKeyboardMode: boolean} {
+  // TODO: wire after §7.5 compliance review — wheel listener must be removed first
   const [isKeyboardMode, setIsKeyboardMode] = useState(false);
 
   useEffect(() => {

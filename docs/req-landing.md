@@ -644,6 +644,7 @@
 - 포커스는 허용하되 활성만 차단해야 하는 경우에만 `aria-disabled="true"`를 사용한다.
 - `aria-disabled="true"` 대상은 click/keydown(`Enter/Space`)에서 기본 동작을 차단해야 한다.
 - HOVER_LOCK 키보드 모드 비대상 카드는 `aria-disabled`가 아니라 `inert`로 포커스/접근성 트리/활성화를 차단한다.
+- GNB-to-landing keyboard focus transfer must skip card triggers with `aria-disabled="true"` and any card triggers whose ancestor card root carries the `inert` attribute.
 - `role="button"` 대체 구현은 금지하며, 불가피한 경우 Section 15 Exception Registry 등록 후에만 허용한다.
 
 ### 9.3 Overlay Readability

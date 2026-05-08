@@ -3,24 +3,20 @@
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {
-  type KeyboardEvent as ReactKeyboardEvent,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState
-} from 'react';
+import {useCallback, useEffect, useId, useMemo, useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {SettingsControls} from '@/features/gnb/components/settings-controls';
 import {ThemeModeIcon} from '@/features/gnb/components/theme-mode-icon';
 import {shouldOpenDesktopSettingsByHover} from '@/features/gnb/behavior';
+import {focusFirstLandingCardTrigger} from '@/features/gnb/gnb-keyboard-dom';
 import {useGnbBackNavigation} from '@/features/gnb/hooks/use-gnb-back-navigation';
 import {useGnbCapability} from '@/features/gnb/hooks/use-gnb-capability';
 import {useGnbDesktopSettings} from '@/features/gnb/hooks/use-gnb-desktop-settings';
+import {useGnbKeyboardTargets} from '@/features/gnb/hooks/use-gnb-keyboard-targets';
+import {useGnbTabRouting} from '@/features/gnb/hooks/use-gnb-tab-routing';
 import {useGnbMobileMenu} from '@/features/gnb/hooks/use-gnb-mobile-menu';
+import {useLandingGnbEntryMode} from '@/features/gnb/hooks/use-landing-gnb-entry-mode';
 import {getTransitionOrigin} from '@/features/gnb/hooks/theme-transition';
 import {useThemePreference} from '@/features/gnb/hooks/use-theme-preference';
 import type {GnbContext} from '@/features/gnb/types';
@@ -32,8 +28,6 @@ interface SiteGnbProps {
   context: GnbContext;
   currentRoute: LocaleFreeRoute;
 }
-
-type LandingKeyboardEntryMode = 'card-first' | 'gnb';
 
 const gnbShellClassName =
   'gnb-shell sticky top-0 z-[1100] bg-[var(--surface)] [backdrop-filter:blur(12px)] [-webkit-backdrop-filter:blur(12px)] data-[elevated=true]:shadow-[var(--surface-shadow)] data-[elevated=false]:border-b data-[elevated=false]:border-[var(--surface-divider)]';
@@ -70,19 +64,6 @@ const gnbMobileLinksClassName = 'gnb-mobile-links grid gap-[14px]';
 const gnbMobileLinkClassName = 'text-base font-semibold';
 const gnbMobileSettingsClassName = 'gnb-mobile-settings mt-auto grid gap-3';
 
-function isVisibleFocusableElement(element: HTMLElement | null): element is HTMLElement {
-  if (!element || element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') {
-    return false;
-  }
-
-  if ('disabled' in element && (element as HTMLButtonElement).disabled) {
-    return false;
-  }
-
-  const style = window.getComputedStyle(element);
-  return style.display !== 'none' && style.visibility !== 'hidden';
-}
-
 export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const t = useTranslations('gnb');
   const router = useRouter();
@@ -91,10 +72,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const {resolvedTheme, applyTheme} = useThemePreference();
   const settingsPanelId = useId();
   const mobileMenuPanelId = useId();
-
-  const [landingKeyboardEntryMode, setLandingKeyboardEntryMode] = useState<LandingKeyboardEntryMode>(
-    context === 'landing' ? 'card-first' : 'gnb'
-  );
 
   const gnbShellRef = useRef<HTMLElement | null>(null);
 
@@ -139,136 +116,38 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     router
   });
 
-  const shouldDeferLandingGnbEntry = isLandingContext && !settingsOpen && mobileMenuState === 'closed';
-  const desktopLandingTabIndex =
-    shouldDeferLandingGnbEntry && landingKeyboardEntryMode === 'card-first' ? -1 : undefined;
-  const mobileLandingTabIndex =
-    shouldDeferLandingGnbEntry && landingKeyboardEntryMode === 'card-first' ? -1 : undefined;
+  const {
+    landingKeyboardEntryMode,
+    shouldDeferLandingGnbEntry,
+    desktopLandingTabIndex,
+    mobileLandingTabIndex
+  } = useLandingGnbEntryMode({
+    isLandingContext,
+    gnbShellRef,
+    mobileMenuPanelId,
+    settingsOpen,
+    mobileMenuState
+  });
 
-  const isWithinInteractiveGnb = useCallback(
-    (target: EventTarget | null) => {
-      if (!(target instanceof Element)) {
-        return false;
-      }
+  const {getOrderedKeyboardTargets} = useGnbKeyboardTargets({
+    settingsPanelId,
+    mobileMenuPanelId,
+    settingsOpen,
+    mobileMenuState,
+    mobileMenuTriggerRef
+  });
 
-      const mobilePanel = document.getElementById(mobileMenuPanelId);
-      const interactiveTarget = target.closest<HTMLElement>(
-        'a[href], button, [data-testid="gnb-settings-panel"], [data-testid="gnb-mobile-menu-panel"]'
-      );
-      if (!interactiveTarget) {
-        return false;
-      }
+  const boundFocusFirstLandingCard = useCallback(() => focusFirstLandingCardTrigger(), []);
 
-      return !!gnbShellRef.current?.contains(interactiveTarget) || !!mobilePanel?.contains(interactiveTarget);
-    },
-    [mobileMenuPanelId]
-  );
-
-  const getOrderedKeyboardTargets = useCallback((): HTMLElement[] => {
-    if (typeof document === 'undefined') {
-      return [];
-    }
-
-    const desktopContainer = document.querySelector<HTMLElement>('.gnb-desktop');
-    const mobileContainer = document.querySelector<HTMLElement>('.gnb-mobile');
-    const settingsPanel = document.getElementById(settingsPanelId);
-    const mobilePanel = document.getElementById(mobileMenuPanelId);
-
-    const getTopLevelTargets = (container: HTMLElement | null, excludedRoot: HTMLElement | null) => {
-      if (!isVisibleFocusableElement(container)) {
-        return [];
-      }
-
-      return Array.from(container.querySelectorAll<HTMLElement>('a[href], button')).filter((element) => {
-        if (!isVisibleFocusableElement(element)) {
-          return false;
-        }
-
-        return !excludedRoot || !excludedRoot.contains(element);
-      });
-    };
-
-    const getPanelTargets = (panel: HTMLElement | null) => {
-      if (!isVisibleFocusableElement(panel)) {
-        return [];
-      }
-
-      return Array.from(panel.querySelectorAll<HTMLElement>('a[href], button')).filter((element) =>
-        isVisibleFocusableElement(element)
-      );
-    };
-
-    const desktopTargets = getTopLevelTargets(desktopContainer, settingsPanel);
-    if (desktopTargets.length > 0) {
-      return settingsOpen ? [...desktopTargets, ...getPanelTargets(settingsPanel)] : desktopTargets;
-    }
-
-    const mobileTargets = getTopLevelTargets(mobileContainer, mobilePanel);
-    if (mobileTargets.length === 0) {
-      return [];
-    }
-
-    if (mobileMenuState !== 'closed') {
-      const trigger = mobileMenuTriggerRef.current;
-      const orderedTargets = [
-        ...(isVisibleFocusableElement(trigger) ? [trigger] : []),
-        ...getPanelTargets(mobilePanel)
-      ];
-      return orderedTargets;
-    }
-
-    return mobileTargets;
-  }, [mobileMenuPanelId, mobileMenuState, mobileMenuTriggerRef, settingsOpen, settingsPanelId]);
-
-  const focusFirstLandingCardTrigger = useCallback(() => {
-    if (typeof document === 'undefined') {
-      return false;
-    }
-
-    const trigger = document.querySelector<HTMLElement>(
-      '[data-testid="landing-grid-card-trigger"]:not([aria-disabled="true"])'
-    );
-    if (!isVisibleFocusableElement(trigger)) {
-      return false;
-    }
-
-    trigger.focus();
-    return true;
-  }, []);
-
-  const routeKeyboardWithinGnb = useCallback(
-    (event: Pick<KeyboardEvent, 'key' | 'shiftKey' | 'altKey' | 'ctrlKey' | 'metaKey' | 'preventDefault'>) => {
-      if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) {
-        return;
-      }
-
-      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const targets = getOrderedKeyboardTargets();
-      if (targets.length === 0 || !activeElement) {
-        return;
-      }
-
-      const currentIndex = targets.indexOf(activeElement);
-      if (currentIndex === -1) {
-        return;
-      }
-
-      const nextIndex = currentIndex + (event.shiftKey ? -1 : 1);
-      if (nextIndex >= 0 && nextIndex < targets.length) {
-        event.preventDefault();
-        targets[nextIndex]?.focus();
-        return;
-      }
-
-      if (!event.shiftKey && isLandingContext && focusFirstLandingCardTrigger()) {
-        if (settingsOpen) {
-          closeSettingsImmediate();
-        }
-        event.preventDefault();
-      }
-    },
-    [closeSettingsImmediate, focusFirstLandingCardTrigger, getOrderedKeyboardTargets, isLandingContext, settingsOpen]
-  );
+  const {handleGnbKeyDownCapture} = useGnbTabRouting({
+    getOrderedKeyboardTargets,
+    isLandingContext,
+    shouldDeferLandingGnbEntry,
+    landingKeyboardEntryMode,
+    settingsOpen,
+    closeSettingsImmediate,
+    focusFirstLandingCardTrigger: boundFocusFirstLandingCard
+  });
 
   const handleLocaleChange = useCallback(
     (nextLocale: AppLocale) => {
@@ -304,71 +183,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [closeSettingsImmediate, mobileMenuState, requestMobileMenuClose, settingsOpen]);
-
-  useEffect(() => {
-    if (!isLandingContext) {
-      return;
-    }
-
-    const handleFocusIn = (event: FocusEvent) => {
-      setLandingKeyboardEntryMode(isWithinInteractiveGnb(event.target) ? 'gnb' : 'card-first');
-    };
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!isWithinInteractiveGnb(event.target)) {
-        setLandingKeyboardEntryMode('card-first');
-      }
-    };
-
-    document.addEventListener('focusin', handleFocusIn);
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => {
-      document.removeEventListener('focusin', handleFocusIn);
-      document.removeEventListener('pointerdown', handlePointerDown);
-    };
-  }, [isLandingContext, isWithinInteractiveGnb]);
-
-  useEffect(() => {
-    const handleKeyboardTabRouting = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) {
-        return;
-      }
-
-      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const targets = getOrderedKeyboardTargets();
-      if (targets.length === 0) {
-        return;
-      }
-
-      const isDocumentLevelTarget =
-        activeElement === document.body || activeElement === document.documentElement || activeElement === null;
-
-      if (isDocumentLevelTarget) {
-        if (event.shiftKey) {
-          return;
-        }
-
-        if (isLandingContext && shouldDeferLandingGnbEntry && landingKeyboardEntryMode === 'card-first') {
-          return;
-        }
-
-        event.preventDefault();
-        targets[0]?.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyboardTabRouting, true);
-    return () => {
-      document.removeEventListener('keydown', handleKeyboardTabRouting, true);
-    };
-  }, [getOrderedKeyboardTargets, isLandingContext, landingKeyboardEntryMode, shouldDeferLandingGnbEntry]);
-
-  const handleGnbKeyDownCapture = useCallback(
-    (event: ReactKeyboardEvent<HTMLElement>) => {
-      routeKeyboardWithinGnb(event);
-    },
-    [routeKeyboardWithinGnb]
-  );
 
   useEffect(() => {
     return () => {

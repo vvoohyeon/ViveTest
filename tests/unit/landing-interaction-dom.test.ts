@@ -69,10 +69,14 @@ describe('landing interaction DOM helpers', () => {
     const shell = mountShell();
     const mobileTrigger = shell.querySelector<HTMLElement>('[data-card-variant="energy-check"] button')!;
     const hidden = document.createElement('button');
+    const disabled = document.createElement('button');
     hidden.hidden = true;
+    disabled.disabled = true;
 
     expect(isVisibleFocusableElement(mobileTrigger)).toBe(true);
     expect(isVisibleFocusableElement(hidden)).toBe(false);
+    expect(isVisibleFocusableElement(disabled)).toBe(true);
+    expect(isVisibleFocusableElement(disabled, {excludeDisabled: true})).toBe(false);
     expect(isMobileCardElement(mobileTrigger)).toBe(true);
   });
 

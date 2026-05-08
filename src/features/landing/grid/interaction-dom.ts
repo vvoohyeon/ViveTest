@@ -54,13 +54,28 @@ export function isDocumentLevelFocusTarget(target: EventTarget | null): boolean 
   return target === document.body || target === document.documentElement;
 }
 
-export function isVisibleFocusableElement(element: HTMLElement | null): element is HTMLElement {
+interface IsVisibleFocusableElementOptions {
+  excludeDisabled?: boolean;
+}
+
+export function isVisibleFocusableElement(
+  element: HTMLElement | null,
+  options: IsVisibleFocusableElementOptions = {}
+): element is HTMLElement {
   if (!element || element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') {
     return false;
   }
 
   const style = window.getComputedStyle(element);
-  return style.display !== 'none' && style.visibility !== 'hidden';
+  if (style.display === 'none' || style.visibility === 'hidden') {
+    return false;
+  }
+
+  if (options.excludeDisabled === true) {
+    return !element.hasAttribute('disabled') && element.getAttribute('aria-disabled') !== 'true';
+  }
+
+  return true;
 }
 
 export function queueFocusCardByVariant(shellElement: HTMLElement | null, cardVariant: string | null) {
