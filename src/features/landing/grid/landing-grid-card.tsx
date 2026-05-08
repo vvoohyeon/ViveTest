@@ -28,6 +28,7 @@ import {
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 import {LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
+import type {LandingCardVisualState} from '@/features/landing/model/interaction-state';
 import {
   isUnavailablePresentation,
   resolveTestPreviewPayload,
@@ -41,7 +42,7 @@ const metaValueFormatter = new Intl.NumberFormat('en-US', {
 const thumbnailDataUriCache = new Map<string, string>();
 const SPACING_PRECISION_SCALE = 10000;
 
-export type LandingCardVisualState = 'normal' | 'expanded' | 'focused';
+export type {LandingCardVisualState} from '@/features/landing/model/interaction-state';
 export type LandingCardInteractionMode = 'hover' | 'tap';
 export type LandingCardViewportTier = 'mobile' | 'tablet' | 'desktop';
 export type LandingCardMobilePhase = 'NORMAL' | 'OPENING' | 'OPEN' | 'CLOSING';

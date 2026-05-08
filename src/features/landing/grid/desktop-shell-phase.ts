@@ -1,3 +1,6 @@
+import type {DesktopMotionState} from '@/features/landing/grid/use-desktop-motion-controller';
+import type {CardState} from '@/features/landing/model/state-types';
+
 export type LandingCardDesktopMotionRole =
   | 'idle'
   | 'opening'
@@ -21,6 +24,46 @@ export interface DesktopShellPhaseInput {
   motionRole: LandingCardDesktopMotionRole;
   visuallyExpanded: boolean;
   cleanupPending: boolean;
+}
+
+export function resolveDesktopMotionRole(input: {
+  cardEnterable: boolean;
+  cardState: CardState;
+  cardVariant: string;
+  desktopMotionState: DesktopMotionState;
+  isMobileViewport: boolean;
+  transitionExpanded: boolean;
+}): LandingCardDesktopMotionRole {
+  const {
+    cardEnterable,
+    cardState,
+    cardVariant,
+    desktopMotionState,
+    isMobileViewport,
+    transitionExpanded
+  } = input;
+
+  if (desktopMotionState.handoffSourceCardVariant === cardVariant) {
+    return 'handoff-source';
+  }
+
+  if (desktopMotionState.handoffTargetCardVariant === cardVariant) {
+    return 'handoff-target';
+  }
+
+  if (desktopMotionState.openingCardVariant === cardVariant) {
+    return 'opening';
+  }
+
+  if (desktopMotionState.closingCardVariant === cardVariant) {
+    return 'closing';
+  }
+
+  if (!isMobileViewport && (transitionExpanded || (cardState === 'EXPANDED' && cardEnterable))) {
+    return 'steady';
+  }
+
+  return 'idle';
 }
 
 export function resolveDesktopShellPhase(input: DesktopShellPhaseInput): LandingCardDesktopShellPhase {
