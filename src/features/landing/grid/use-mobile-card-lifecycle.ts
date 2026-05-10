@@ -3,7 +3,7 @@ import {useCallback, useEffect, useRef} from 'react';
 
 import type {LandingCardInteractionMode} from '@/features/landing/grid/landing-grid-card';
 import {MOBILE_EXPANDED_DURATION_MS, type LandingMobileLifecycleEvent, type LandingMobileLifecycleState} from '@/features/landing/grid/mobile-lifecycle';
-import {captureMobileSnapshot} from '@/features/landing/grid/mobile-card-lifecycle-dom';
+import {captureMobileSnapshot, isMobileSnapshotRestoreSettled} from '@/features/landing/grid/mobile-card-lifecycle-dom';
 import {type MobileBackdropBindings, useMobileBackdropGesture} from '@/features/landing/grid/use-mobile-backdrop-gesture';
 import {useMobileRestorePolling} from '@/features/landing/grid/use-mobile-restore-polling';
 import {useMobileScrollLock} from '@/features/landing/grid/use-mobile-scroll-lock';
@@ -56,7 +56,11 @@ export function useMobileCardLifecycle({
     resetMobileRestoreReadyVariant,
     markMobileRestoreReady,
     settleMobileCloseAfterRestore
-  } = useMobileRestorePolling({shellRef, dispatchMobileLifecycle});
+  } = useMobileRestorePolling({
+    shellRef,
+    dispatchMobileLifecycle,
+    isRestoreSettled: isMobileSnapshotRestoreSettled
+  });
   const {
     mobileTransientShellState,
     clearMobileTransientShellTimer,

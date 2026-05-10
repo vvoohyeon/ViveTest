@@ -1,11 +1,69 @@
-import {describe, expect, it} from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
+import {act, cleanup, renderHook} from '@testing-library/react';
+import {createRef} from 'react';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {
   initialLandingMobileLifecycleState,
   MOBILE_EXPANDED_DURATION_MS,
-  reduceLandingMobileLifecycleState
+  reduceLandingMobileLifecycleState,
+  type LandingMobileSnapshot
 } from '../../src/features/landing/grid/mobile-lifecycle';
 import {useMobileCardLifecycle} from '../../src/features/landing/grid/use-mobile-card-lifecycle';
+import {useMobileRestorePolling} from '../../src/features/landing/grid/use-mobile-restore-polling';
+
+type RafCallback = FrameRequestCallback;
+
+let rafCallbacks: Map<number, RafCallback>;
+let nextRafId: number;
+
+function createMobileSnapshot(): LandingMobileSnapshot {
+  return {
+    cardHeightPx: 200,
+    anchorTopPx: 32,
+    cardLeftPx: 16,
+    cardWidthPx: 358,
+    titleTopPx: 32
+  };
+}
+
+function installRafStubs() {
+  rafCallbacks = new Map();
+  nextRafId = 1;
+  vi.stubGlobal('requestAnimationFrame', (callback: RafCallback) => {
+    const id = nextRafId;
+    nextRafId += 1;
+    rafCallbacks.set(id, callback);
+    return id;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+    rafCallbacks.delete(id);
+  });
+}
+
+function flushNextRaf() {
+  const [id, callback] = rafCallbacks.entries().next().value ?? [];
+  if (id === undefined || callback === undefined) {
+    return false;
+  }
+  rafCallbacks.delete(id);
+  callback(window.performance.now());
+  return true;
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  installRafStubs();
+});
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe('landing mobile lifecycle reducer', () => {
   it('uses the fixed mobile duration contract', () => {
@@ -98,5 +156,94 @@ describe('landing mobile lifecycle reducer', () => {
 
   it('exposes the controller-owned mobile card lifecycle hook entrypoint', () => {
     expect(typeof useMobileCardLifecycle).toBe('function');
+  });
+});
+
+describe('useMobileRestorePolling - predicate injection', () => {
+  it('settled predicate returning true ends polling immediately', () => {
+    const shellElement = document.createElement('section');
+    const shellRef = createRef<HTMLElement | null>();
+    shellRef.current = shellElement;
+    const dispatchMobileLifecycle = vi.fn();
+    const isRestoreSettled = vi.fn(() => true);
+    const snapshot = createMobileSnapshot();
+    const {result} = renderHook(() =>
+      useMobileRestorePolling({
+        shellRef,
+        dispatchMobileLifecycle,
+        isRestoreSettled
+      })
+    );
+
+    act(() => {
+      result.current.settleMobileCloseAfterRestore('qmbti', snapshot);
+    });
+    act(() => {
+      expect(flushNextRaf()).toBe(true);
+    });
+
+    expect(isRestoreSettled).toHaveBeenCalledOnce();
+    expect(isRestoreSettled).toHaveBeenCalledWith(shellElement, 'qmbti', snapshot);
+    expect(result.current.mobileRestoreReadyVariant).toBe('qmbti');
+    expect(rafCallbacks.size).toBe(1);
+  });
+
+  it('settled predicate returning false for N attempts ends at max attempts', () => {
+    const shellElement = document.createElement('section');
+    const shellRef = createRef<HTMLElement | null>();
+    shellRef.current = shellElement;
+    const dispatchMobileLifecycle = vi.fn();
+    const isRestoreSettled = vi.fn(() => false);
+    const snapshot = createMobileSnapshot();
+    const expectedAttemptCount = 30;
+    const {result} = renderHook(() =>
+      useMobileRestorePolling({
+        shellRef,
+        dispatchMobileLifecycle,
+        isRestoreSettled
+      })
+    );
+
+    act(() => {
+      result.current.settleMobileCloseAfterRestore('qmbti', snapshot);
+    });
+    for (let attempt = 0; attempt < expectedAttemptCount; attempt += 1) {
+      act(() => {
+        expect(flushNextRaf()).toBe(true);
+      });
+    }
+
+    expect(isRestoreSettled).toHaveBeenCalledTimes(expectedAttemptCount);
+    expect(result.current.mobileRestoreReadyVariant).toBe('qmbti');
+    expect(rafCallbacks.size).toBe(1);
+  });
+
+  it('cleanup cancels pending RAF', () => {
+    const shellElement = document.createElement('section');
+    const shellRef = createRef<HTMLElement | null>();
+    shellRef.current = shellElement;
+    const dispatchMobileLifecycle = vi.fn();
+    const isRestoreSettled = vi.fn(() => true);
+    const snapshot = createMobileSnapshot();
+    const {result} = renderHook(() =>
+      useMobileRestorePolling({
+        shellRef,
+        dispatchMobileLifecycle,
+        isRestoreSettled
+      })
+    );
+    let cancelRestore: (() => void) | undefined;
+
+    act(() => {
+      cancelRestore = result.current.settleMobileCloseAfterRestore('qmbti', snapshot);
+    });
+    act(() => {
+      cancelRestore?.();
+    });
+    act(() => {
+      expect(flushNextRaf()).toBe(false);
+    });
+
+    expect(isRestoreSettled).not.toHaveBeenCalled();
   });
 });

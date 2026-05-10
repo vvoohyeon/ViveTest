@@ -65,6 +65,8 @@ Confirm the relevant contract document and test anchor before touching any path 
 - `src/proxy.ts`
 - `src/app/layout.tsx`
 - `src/app/[locale]/layout.tsx`
+- `src/app/globals.css`
+  → Tailwind v4 tokens/base SSOT. During Tailwind cleanup, do not split this file into multiple CSS files. Reduce, reorganize, or migrate static styling in place unless the user explicitly changes this policy.
 - `public/theme-bootstrap.js`
 - `src/lib/routes/route-builder.ts`
 - `src/i18n/localized-path.ts`
