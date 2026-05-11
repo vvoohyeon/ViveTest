@@ -1,7 +1,6 @@
 import type {Dispatch, RefObject} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-import {isMobileSnapshotRestoreSettled} from '@/features/landing/grid/mobile-card-lifecycle-dom';
 import type {
   LandingMobileLifecycleEvent,
   LandingMobileSnapshot
@@ -13,6 +12,11 @@ const MOBILE_RESTORE_POLLING_MAX_ATTEMPTS = 30;
 interface UseMobileRestorePollingInput {
   shellRef: RefObject<HTMLElement | null>;
   dispatchMobileLifecycle: Dispatch<LandingMobileLifecycleEvent>;
+  isRestoreSettled: (
+    shellElement: HTMLElement | null,
+    cardVariant: string,
+    snapshot: LandingMobileSnapshot
+  ) => boolean;
 }
 
 interface UseMobileRestorePollingOutput {
@@ -25,7 +29,8 @@ interface UseMobileRestorePollingOutput {
 
 export function useMobileRestorePolling({
   shellRef,
-  dispatchMobileLifecycle
+  dispatchMobileLifecycle,
+  isRestoreSettled
 }: UseMobileRestorePollingInput): UseMobileRestorePollingOutput {
   const [mobileRestoreReadyVariant, setMobileRestoreReadyVariant] = useState<string | null>(null);
   const mobileRestoreReadyTimerRef = useRef<number | null>(null);
@@ -81,7 +86,7 @@ export function useMobileRestorePolling({
         restoreFrameRef.current = null;
         attempts += 1;
         if (
-          isMobileSnapshotRestoreSettled(shellRef.current, cardVariant, snapshot) ||
+          isRestoreSettled(shellRef.current, cardVariant, snapshot) ||
           attempts >= MOBILE_RESTORE_POLLING_MAX_ATTEMPTS
         ) {
           markMobileRestoreReady(cardVariant);
@@ -95,7 +100,7 @@ export function useMobileRestorePolling({
 
       return clearRestoreFrame;
     },
-    [clearRestoreFrame, markMobileRestoreReady, shellRef]
+    [clearRestoreFrame, isRestoreSettled, markMobileRestoreReady, shellRef]
   );
 
   useEffect(() => {

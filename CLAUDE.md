@@ -1,52 +1,31 @@
 # CLAUDE.md
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 역할
+## Role
+- This file is not the source of local rules — it is a thin shared adapter that causes a session to re-read `AGENTS.md` in the correct order.
+- The SSOT for all project facts, commands, paths, templates, gold standards, and Done criteria is always `AGENTS.md`.
+- This file does not replace, summarize, or duplicate `AGENTS.md`.
+- When explaining repository rules or providing rationale, cite the relevant `AGENTS.md` — not this file.
 
-- 이 파일은 로컬 규칙의 출처가 아니라, 세션이 `AGENTS.md`를 올바른 순서로 다시 읽게 만드는 얇은 공용 어댑터다.
-- 프로젝트 사실, 명령어, 경로, 템플릿, 골드 스탠다드, Done 기준의 SSOT는 항상 `AGENTS.md`다.
-- 이 파일은 `AGENTS.md`를 대체·요약·복제하지 않는다.
-- 저장소 규칙을 설명하거나 판단 근거를 제시할 때는 이 파일이 아니라 해당 `AGENTS.md`를 인용한다.
+## Reading Strategy
+- Always read the root `AGENTS.md` first and treat it as the base.
+- Once the task topic is identified at session start, open the **"Task-Type Entry Map"** section in `AGENTS.md` first to pinpoint the relevant contract documents, files, and QA commands.
+- Only read `AGENTS.md` top-to-bottom in full when the current task type is not covered by the Entry Map.
+- When work scope moves into a subdirectory, additionally read the nearest child `AGENTS.md`.
+- Treat a child `AGENTS.md` as a delta that applies only to its own subtree.
+- Use `AGENTS.md` as a table of contents for reopening the contract documents and anchors needed for the current task — do not re-narrate it like an encyclopedia.
+- If a file path, command name, or contract document reference in a child `AGENTS.md` differs from the same item in the root, do not self-adjust. Instead, list each conflicting item with its source file and halt, reporting it as a documentation conflict.
 
-## 읽기 전략
+## Re-read Triggers
+- When work scope moves into a new subdirectory.
+- When the task topic switches to a different subsystem.
+- When files listed under **"UX High-Risk Zones"** in `AGENTS.md` are included in the change set.
+- Immediately before explaining any repository rule or its rationale.
+- When the session has grown long enough that in-memory state may have drifted from the current file state.
+- In any of the above cases, reopen the relevant `AGENTS.md`, verify, then proceed.
+- When entering a **"UX High-Risk Zone"**, reopen that section, fill in the UX-related fields of Template A or B (covering whichever of usability, accessibility, responsiveness, performance, and design consistency apply), and obtain approval before continuing.
 
-- 항상 루트 `AGENTS.md`를 먼저 읽고 베이스로 삼는다.
-- 세션 시작 후 작업 주제가 확인되면 먼저 `AGENTS.md`의 **'작업 유형별 진입 맵'** 을 열어 관련 계약 문서, 파일, QA 명령어를 특정한다.
-- 진입 맵에 해당 유형이 없을 때만 `AGENTS.md` 전체를 순서대로 다시 읽는다.
-- 작업 범위가 하위 디렉토리로 내려가면 가장 가까운 하위 `AGENTS.md`를 추가로 읽는다.
-- 하위 `AGENTS.md`는 그 하위 경로에만 적용되는 delta로만 해석한다.
-- `AGENTS.md`는 백과사전처럼 재서술하지 말고, 현재 작업에 필요한 계약 문서와 앵커를 다시 여는 목차처럼 사용한다.
-- 하위 `AGENTS.md`의 파일 경로, 명령어 이름, 계약 문서 참조 경로가 루트의 동일 항목과 다르면 스스로 조정하지 말고, 불일치 항목과 각각의 출처 파일을 함께 적어 문서 불일치로 보고 멈춘다.
-
-## 재확인 트리거
-
-- 새 하위 디렉토리로 작업 범위가 이동할 때
-- 다른 서브시스템으로 작업 주제가 바뀔 때
-- 수정 대상에 `AGENTS.md`의 **'UX 위험 집중 구역'** 파일이 포함될 때
-- 저장소 규칙이나 판단 근거를 설명하기 직전
-- 세션이 길어져 기억과 현재 파일 상태가 어긋날 수 있을 때
-- 위 경우에는 관련 `AGENTS.md`를 다시 열어 확인한 뒤 진행한다.
-- **'UX 위험 집중 구역'** 에 들어갈 때는 해당 섹션을 다시 열고, Template A 또는 B의 UX 관련 필드에 사용성·접근성·반응성·성능·디자인 일관성 중 해당 항목을 적은 뒤 승인을 받는다.
-
-## Anti-drift
-
-- 여러 도구 파일에 공통으로 필요해 보이는 규칙은 여기 복제하지 말고 `AGENTS.md`로 승격한다.
-- 이 파일은 공통 규칙의 저장소가 아니라, 공통 규칙을 `AGENTS.md`로 밀어 올리는 필터다.
-- 이 파일에는 진입 순서, 재확인 타이밍, 근거 인용 위치처럼 반복적으로 틀리기 쉬운 참조 습관만 남긴다.
-- `AGENTS.md`를 읽는 중 `[임시]`, `[추가 필요]`, `[확인 필요]` 마커가 있는 항목에 작업이 의존하면 그 항목을 근거로 쓰지 말고, 마커 내용과 함께 사용자 확인을 요청하고 멈춘다.
-- 모델이 쉽게 유추할 수 있는 자명한 사실이나 선언적 슬로건은 넣지 않는다.
-
-## 넣지 않는 것
-
-- 프로젝트 사실, 명령어, 경로, 템플릿, 골드 스탠다드, DoD
-- 구조 설명, 아키텍처 계약, 로컬 실행 명령어 목록
-- 승인 절차, Quality Gate, 보안 일반론, 톤, 위임 규칙
-- 도구명 의존 문구, 일반론적 코딩 철학, 행동 차이가 없는 선언문
-
-## 유지 기준
-
-- 이 파일은 가능하면 한 화면, 실무 기준으로 약 200줄 안팎을 넘기지 않도록 유지한다.
-- 길이를 늘리기 전에 중복 문장을 제거하거나 더 적절한 상위 문서로 이관한다.
-- 같은 종류의 실수가 2회 이상 반복되거나, 인간 리뷰·운영 중 실제 충돌을 만든 패턴이 확인될 때만 규칙을 추가한다.
-- 새 규칙은 왜 `AGENTS.md`가 아닌지, 왜 Custom Instructions가 아닌지, 어떤 실제 오동작을 막는지 설명할 수 있어야 한다.
-- 그 설명이 안 되거나 행동 차이가 없는 문장은 넣지 않는다.
-- `AGENTS.md`를 요약·복제하거나 선언문에 그치는 문장은 삭제한다.
+## Anti-Drift
+- Do not duplicate rules that appear to be needed across multiple tool files here — promote them to `AGENTS.md` instead.
+- Keep in this file only the referencing habits that are repeatedly easy to get wrong: entry order, re-read timing, and where to cite rationale.
+- If a task depends on an item in `AGENTS.md` that is marked `[TEMP]`, `[NEEDS ADDITION]`, or `[NEEDS VERIFICATION]`, do not use that item as a basis. Instead, surface the marker along with its content, request user confirmation, and halt.
