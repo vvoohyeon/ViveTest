@@ -10,10 +10,14 @@ import {
   initialLandingMobileLifecycleState,
   MOBILE_EXPANDED_DURATION_MS,
   reduceLandingMobileLifecycleState,
+  type LandingMobileLifecycleState,
   type LandingMobileSnapshot
 } from '../../src/features/landing/grid/mobile-lifecycle';
 import {useMobileCardLifecycle} from '../../src/features/landing/grid/use-mobile-card-lifecycle';
 import {useMobileRestorePolling} from '../../src/features/landing/grid/use-mobile-restore-polling';
+import {useMobileTransientShell} from '../../src/features/landing/grid/use-mobile-transient-shell';
+import type {LandingCardInteractionMode} from '../../src/features/landing/grid/landing-grid-card';
+import type {LandingInteractionState} from '../../src/features/landing/model/interaction-state';
 
 type RafCallback = FrameRequestCallback;
 
@@ -245,5 +249,107 @@ describe('useMobileRestorePolling - predicate injection', () => {
     });
 
     expect(isRestoreSettled).not.toHaveBeenCalled();
+  });
+});
+
+describe('transient shell timer consolidation', () => {
+  function buildLifecycleProps(
+    mobileLifecycleState: LandingMobileLifecycleState,
+    shellRef: ReturnType<typeof createRef<HTMLElement | null>>
+  ) {
+    return {
+      interactionMode: 'tap' as LandingCardInteractionMode,
+      interactionState: {
+        pageState: 'ACTIVE',
+        activeRampUntilMs: null,
+        focusedCardVariant: null,
+        expandedCardVariant: mobileLifecycleState.cardVariant,
+        hoverLock: {enabled: false, cardVariant: null, keyboardMode: false}
+      } as LandingInteractionState,
+      dispatchInteraction: vi.fn(),
+      mobileLifecycleState,
+      dispatchMobileLifecycle: vi.fn(),
+      isMobileViewport: true,
+      shellRef,
+      clearHoverTimer: vi.fn()
+    };
+  }
+
+  it('transient shell teardown occurs after the orchestrator close lifecycle timer', () => {
+    const shellEl = document.createElement('section');
+    const cardEl = document.createElement('div');
+    cardEl.setAttribute('data-testid', 'landing-grid-card');
+    cardEl.setAttribute('data-card-variant', 'qmbti');
+    shellEl.appendChild(cardEl);
+    const shellRef = createRef<HTMLElement | null>();
+    shellRef.current = shellEl;
+
+    const snapshot = createMobileSnapshot();
+    const openState: LandingMobileLifecycleState = {
+      phase: 'OPEN',
+      cardVariant: 'qmbti',
+      snapshot,
+      queuedClose: false,
+      snapshotWriteCount: 1,
+      restoreReady: false
+    };
+
+    const {result, rerender} = renderHook(
+      (props: ReturnType<typeof buildLifecycleProps>) => useMobileCardLifecycle(props),
+      {initialProps: buildLifecycleProps(openState, shellRef)}
+    );
+
+    act(() => {
+      result.current.beginMobileClose();
+    });
+
+    const closingState: LandingMobileLifecycleState = {
+      ...openState,
+      phase: 'CLOSING'
+    };
+    rerender(buildLifecycleProps(closingState, shellRef));
+
+    expect(result.current.mobileTransientShellState.mode).not.toBe('NONE');
+
+    act(() => {
+      vi.advanceTimersByTime(MOBILE_EXPANDED_DURATION_MS - 1);
+    });
+    expect(result.current.mobileTransientShellState.mode).not.toBe('NONE');
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    act(() => {
+      flushNextRaf();
+    });
+
+    expect(result.current.mobileTransientShellState.mode).toBe('NONE');
+  });
+
+  it('manual resetMobileRuntime clears transient shell synchronously without timers', () => {
+    const shellEl = document.createElement('section');
+    const shellRef = createRef<HTMLElement | null>();
+    shellRef.current = shellEl;
+
+    const {result} = renderHook(() =>
+      useMobileCardLifecycle(buildLifecycleProps(initialLandingMobileLifecycleState, shellRef))
+    );
+
+    act(() => {
+      result.current.beginMobileOpen('qmbti', false);
+    });
+    expect(result.current.mobileTransientShellState.mode).not.toBe('NONE');
+
+    act(() => {
+      result.current.resetMobileRuntime();
+    });
+    expect(result.current.mobileTransientShellState.mode).toBe('NONE');
+  });
+
+  it('clearMobileTransientShellTimer is not part of the hook output type', () => {
+    type Output = ReturnType<typeof useMobileTransientShell>;
+    type HasTimer = 'clearMobileTransientShellTimer' extends keyof Output ? true : false;
+    const check: HasTimer = false;
+    expect(check).toBe(false);
   });
 });

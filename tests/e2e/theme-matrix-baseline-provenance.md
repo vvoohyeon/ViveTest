@@ -19,6 +19,18 @@ and verification result. The PNG baselines themselves remain local-only under
   affordance. Implementation notes are recorded in
   `docs/plans/2026-05-07-theme-matrix-visual-improvement-followup.md`.
 
+## Theme Matrix Baseline Regeneration 2026-05-11
+
+- Date generated: 2026-05-11 KST
+- Git commit SHA: 4a2cf8b4a84620deca8e948e7bfbcc81a86b3947
+- Working tree note: Phase A predicate injection refactor committed (commit 90bfaee); 34 pre-existing theme-matrix diffs confirmed — Phase A is structural-only (no DOM/CSS output change) and cannot cause visual regressions.
+- OS: macOS Darwin 25.4.0
+- Node version: v22.18.0
+- Playwright version: 1.57.0
+- Regeneration command: `npm run qa:visual:full`
+- Regeneration result: `288 passed`
+- Reason for regeneration: 34 pre-existing local theme-matrix baseline drifts resolved; Phase A predicate injection refactor confirmed as structural-only with no visual change. Baselines were stale since 2026-05-07 (SHA 9b5e62e).
+
 ## State Smoke Local Baseline Adjudication
 
 - Date generated: 2026-05-10 10:10:20 KST

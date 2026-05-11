@@ -63,7 +63,6 @@ export function useMobileCardLifecycle({
   });
   const {
     mobileTransientShellState,
-    clearMobileTransientShellTimer,
     resetMobileTransientShell,
     startMobileTransientShell
   } = useMobileTransientShell();
@@ -86,8 +85,7 @@ export function useMobileCardLifecycle({
     clearMobileOpenTimer();
     clearMobileCloseTimer();
     clearMobileRestoreReadyTimer();
-    clearMobileTransientShellTimer();
-  }, [clearMobileCloseTimer, clearMobileOpenTimer, clearMobileRestoreReadyTimer, clearMobileTransientShellTimer]);
+  }, [clearMobileCloseTimer, clearMobileOpenTimer, clearMobileRestoreReadyTimer]);
 
   const resetMobileRuntime = useCallback(() => {
     clearHoverTimer();
@@ -122,10 +120,12 @@ export function useMobileCardLifecycle({
 
     mobileOpenTimerRef.current = window.setTimeout(() => {
       dispatchMobileLifecycle({type: 'OPEN_SETTLED'});
+      resetMobileTransientShell();
     }, MOBILE_EXPANDED_DURATION_MS);
   }, [
     clearMobileCloseTimer, clearMobileOpenTimer, clearMobileRestoreReadyTimer, dispatchInteraction,
-    dispatchMobileLifecycle, interactionMode, resetMobileRestoreReadyVariant, shellRef, startMobileTransientShell
+    dispatchMobileLifecycle, interactionMode, resetMobileRestoreReadyVariant, resetMobileTransientShell, shellRef,
+    startMobileTransientShell
   ]);
 
   const beginMobileClose = useCallback(() => {
@@ -249,10 +249,12 @@ export function useMobileCardLifecycle({
       mobileCloseTimerRef.current = null;
       if (cardVariant && snapshot) {
         cancelRestore = settleMobileCloseAfterRestore(cardVariant, snapshot);
+        resetMobileTransientShell();
         return;
       }
 
       markMobileRestoreReady(cardVariant);
+      resetMobileTransientShell();
     }, MOBILE_EXPANDED_DURATION_MS);
 
     return () => {
@@ -262,7 +264,7 @@ export function useMobileCardLifecycle({
   }, [
     clearMobileCloseTimer, dispatchInteraction, interactionMode, interactionState.expandedCardVariant,
     markMobileRestoreReady, mobileLifecycleState.cardVariant, mobileLifecycleState.phase,
-    mobileLifecycleState.snapshot, settleMobileCloseAfterRestore
+    mobileLifecycleState.snapshot, resetMobileTransientShell, settleMobileCloseAfterRestore
   ]);
 
   const mobileBackdropBindings = useMobileBackdropGesture({
