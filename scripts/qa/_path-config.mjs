@@ -55,3 +55,8 @@ export const e2e = {
   themeMatrixSmoke: 'tests/e2e/theme-matrix-smoke.spec.ts',
   safariHoverGhosting: 'tests/e2e/safari-hover-ghosting.spec.ts'
 };
+
+export const test = {
+  questionClient: 'src/features/test/test-question-client.tsx',
+  runController: 'src/features/test/use-test-run-controller.ts'
+};

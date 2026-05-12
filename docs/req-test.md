@@ -458,6 +458,12 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - tail reset 즉시: 이전 derivation attempt residue 전체를 폐기한다 (§8.3 cleanup 참조).
 - **마지막 문항의 응답 변경은 tail reset을 발생시키지 않는다.** 이전 derivation residue만 무효화하며, 마지막 문항의 새 응답이 유효하면 result-entry eligibility는 유지된다 (§3.10 참조).
 
+**구현 계약 (backward navigation)**:
+- 이전 문항으로 이동(`moveQuestion(-1)`)하면, 목적지 index로 전환하는 동시에 tail 응답을 원자적으로 제거한다.
+- 제거 predicate: `Number(key) < nextIndex` — canonical index가 목적지 index보다 **엄격히 작은** 응답만 보존한다. 목적지 문항(index == nextIndex)과 현재 문항(index > nextIndex)의 응답 모두 제거된다.
+- 예: Q3(answers `{'1':'A','2':'B','3':'A'}`)에서 이전 이동 시 `nextIndex=2`, 보존 조건 `Number(key) < 2` → 결과: `{'1':'A'}` (`'2'`, `'3'` 제거).
+- §6.1에 별도 navigation behavior 섹션이 없는 경우, 이 구현 계약이 backward navigation tail-reset의 SSOT다.
+
 ### 3.10 Result-entry Eligibility Contract
 
 result-entry eligible은 위치 기반이 아닌 자격 기반 상태다.

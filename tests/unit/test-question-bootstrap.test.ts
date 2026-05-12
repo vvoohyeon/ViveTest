@@ -2,10 +2,9 @@ import {describe, expect, it} from 'vitest';
 
 import {buildVariantQuestionBank} from '../../src/features/test/question-bank';
 import {
-  buildCanonicalFinalResponses,
   resolveQuestionBootstrapState,
   resolveScoringProgress
-} from '../../src/features/test/test-question-client';
+} from '../../src/features/test/question-runtime-utils';
 
 describe('test question bootstrap state', () => {
   it('starts at Q2 whenever landing ingress exists, even after pending transition is gone', () => {
@@ -27,7 +26,7 @@ describe('test question bootstrap state', () => {
     expect(bootstrap.instructionSeen).toBe(false);
     expect(bootstrap.runtimeState.landingIngressFlag).toBe(true);
     expect(bootstrap.runtimeState.currentQuestionIndex).toBe(2);
-    expect(bootstrap.runtimeState.answers).toEqual({q1: 'A'});
+    expect(bootstrap.runtimeState.answers).toEqual({'1': 'A'});
   });
 
   it('keeps matching pending transition completion separate from ingress-derived start-question state', () => {
@@ -57,7 +56,7 @@ describe('test question bootstrap state', () => {
     expect(bootstrap.instructionSeen).toBe(false);
     expect(bootstrap.runtimeState.landingIngressFlag).toBe(true);
     expect(bootstrap.runtimeState.currentQuestionIndex).toBe(2);
-    expect(bootstrap.runtimeState.answers).toEqual({q1: 'B'});
+    expect(bootstrap.runtimeState.answers).toEqual({'1': 'B'});
   });
 
   it('starts at profile Q1 while preserving a scoring1 pre-answer when the variant has a profile row', () => {
@@ -77,7 +76,7 @@ describe('test question bootstrap state', () => {
 
     expect(bootstrap.runtimeState.landingIngressFlag).toBe(true);
     expect(bootstrap.runtimeState.currentQuestionIndex).toBe(1);
-    expect(bootstrap.runtimeState.answers).toEqual({q2: 'A'});
+    expect(bootstrap.runtimeState.answers).toEqual({'2': 'A'});
   });
 
   it('falls back to Q1 when ingress is absent on re-entry', () => {
@@ -137,27 +136,6 @@ describe('test question bootstrap state', () => {
     expect(qmbtiQuestions[landingIngressQmbti.runtimeState.currentQuestionIndex - 1]?.canonicalIndex).toBe(2);
   });
 
-  it('builds final_submit responses keyed by canonical question index instead of UI ids', () => {
-    const questions = buildVariantQuestionBank('egtt', 'en');
-
-    expect(
-      buildCanonicalFinalResponses({
-        questions,
-        answers: {
-          q1: 'B',
-          q2: 'A',
-          q3: 'B',
-          q4: 'A'
-        }
-      })
-    ).toEqual({
-      '1': 'B',
-      '2': 'A',
-      '3': 'B',
-      '4': 'A'
-    });
-  });
-
   it('calculates main progress from answered scoring questions while ignoring profile answers', () => {
     const questions = buildVariantQuestionBank('egtt', 'en');
 
@@ -167,13 +145,13 @@ describe('test question bootstrap state', () => {
       percent: 0
     });
 
-    expect(resolveScoringProgress({questions, answers: {q1: 'A'}})).toEqual({
+    expect(resolveScoringProgress({questions, answers: {'1': 'A'}})).toEqual({
       answered: 0,
       total: 3,
       percent: 0
     });
 
-    expect(resolveScoringProgress({questions, answers: {q2: 'A'}})).toEqual({
+    expect(resolveScoringProgress({questions, answers: {'2': 'A'}})).toEqual({
       answered: 1,
       total: 3,
       percent: 33
@@ -183,10 +161,10 @@ describe('test question bootstrap state', () => {
       resolveScoringProgress({
         questions,
         answers: {
-          q1: 'A',
-          q2: 'A',
-          q3: 'B',
-          q4: 'A'
+          '1': 'A',
+          '2': 'A',
+          '3': 'B',
+          '4': 'A'
         }
       })
     ).toEqual({

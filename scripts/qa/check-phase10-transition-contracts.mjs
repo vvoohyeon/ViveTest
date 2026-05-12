@@ -1,5 +1,5 @@
 import {createChecker, fileExists, read} from './_utils.mjs';
-import {blog, e2e, landing, transition} from './_path-config.mjs';
+import {blog, e2e, landing, test, transition} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
@@ -8,7 +8,7 @@ const requiredFiles = [
   transition.signals,
   transition.hook,
   'src/features/landing/landing-runtime.tsx',
-  'src/features/test/test-question-client.tsx',
+  test.questionClient,
   blog.destinationClient,
   landing.grid.mobileCardLifecycle,
   landing.grid.gridCardCss,
@@ -41,19 +41,29 @@ if (fileExists(transition.runtime)) {
   }
 }
 
-if (fileExists('src/features/test/test-question-client.tsx')) {
-  const questionClient = read('src/features/test/test-question-client.tsx');
+// Block 1 — checks test-question-client.tsx (entry-phase contracts stay in client)
+if (fileExists(test.questionClient)) {
+  const questionClient = read(test.questionClient);
 
-  if (!/consumeLandingIngress/u.test(questionClient) || !/markInstructionSeen/u.test(questionClient)) {
-    fail('Test question client must separate ingress read/consume and persist instructionSeen.');
-  }
-
-  if (!/trackAttemptStart/u.test(questionClient) || !/trackFinalSubmit/u.test(questionClient)) {
-    fail('Test question client must emit attempt_start and final_submit.');
+  if (!/markInstructionSeen/u.test(questionClient)) {
+    fail('Test question client must persist instructionSeen on instruction action.');
   }
 
   if (/fallbackTransitionId/u.test(questionClient) || /runtimeState\.transitionId/u.test(questionClient)) {
     fail('Test question client must not depend on fallback/runtime transitionId state.');
+  }
+}
+
+// Block 2 — checks use-test-run-controller.ts (telemetry and ingress moved here)
+if (fileExists(test.runController)) {
+  const runController = read(test.runController);
+
+  if (!/consumeLandingIngress/u.test(runController)) {
+    fail('Test run controller must consume landing ingress on attempt start.');
+  }
+
+  if (!/trackAttemptStart/u.test(runController) || !/trackFinalSubmit/u.test(runController)) {
+    fail('Test run controller must emit attempt_start and final_submit.');
   }
 }
 

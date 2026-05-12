@@ -3,54 +3,27 @@
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {setTelemetryConsentState, useTelemetryConsentSource} from '@/features/telemetry/consent-source';
-import {trackAttemptStart, trackFinalSubmit} from '@/features/telemetry/runtime';
-import {
-  completePendingLandingTransition,
-  terminatePendingLandingTransition
-} from '@/features/transition/runtime';
+import {completePendingLandingTransition} from '@/features/transition/runtime';
 import {
   clearLandingIngress,
-  consumeLandingIngress,
   hasSeenInstruction,
-  markInstructionSeen,
-  type LandingIngressRecord,
-  readLandingIngress,
-  readPendingLandingTransition,
-  type PendingLandingTransition
+  markInstructionSeen
 } from '@/features/transition/store';
 import {resolveTestEntryPolicy, type TestInstructionAction} from '@/features/test/entry-policy';
 import {InstructionOverlay} from '@/features/test/instruction-overlay';
-import {buildVariantQuestionBank, type ResolvedQuestion} from '@/features/test/question-bank';
+import {buildVariantQuestionBank} from '@/features/test/question-bank';
 import type {LandingTestCard} from '@/features/variant-registry';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
+import {useTestRunController} from '@/features/test/use-test-run-controller';
 
 interface TestQuestionClientProps {
   locale: AppLocale;
   card: LandingTestCard;
-}
-
-interface QuestionRuntimeState {
-  ready: boolean;
-  landingIngressFlag: boolean;
-  currentQuestionIndex: number;
-  answers: Record<string, 'A' | 'B'>;
-}
-
-interface QuestionBootstrapState {
-  runtimeState: QuestionRuntimeState;
-  pendingTransitionToComplete: string | null;
-  instructionSeen: boolean;
-}
-
-interface ScoringProgress {
-  answered: number;
-  total: number;
-  percent: number;
 }
 
 const testPanelSurfaceClassName =
@@ -79,115 +52,6 @@ const testResultRowClassName = 'test-result-row flex justify-between gap-3';
 const testResultActionButtonClassName = `${testPrimaryButtonClassName} min-w-[132px]`;
 const testResultSecondaryActionButtonClassName = `${testSecondaryButtonClassName} min-w-[132px]`;
 
-function buildInitialRuntimeState(): QuestionRuntimeState {
-  return {
-    ready: false,
-    landingIngressFlag: false,
-    currentQuestionIndex: 1,
-    answers: {}
-  };
-}
-
-function findFirstScoringQuestion(questions: ReadonlyArray<ResolvedQuestion>): ResolvedQuestion | null {
-  return questions.find((question) => question.questionType === 'scoring') ?? null;
-}
-
-function resolveInitialQuestionIndex(input: {
-  landingIngressFlag: boolean;
-  questions: ReadonlyArray<ResolvedQuestion>;
-}): number {
-  if (!input.landingIngressFlag) {
-    return 1;
-  }
-
-  const firstScoringQuestion = findFirstScoringQuestion(input.questions);
-  if (!firstScoringQuestion) {
-    return 1;
-  }
-
-  return (
-    input.questions.find((question) => question.canonicalIndex !== firstScoringQuestion.canonicalIndex)
-      ?.canonicalIndex ?? firstScoringQuestion.canonicalIndex
-  );
-}
-
-function resolveInitialAnswers(input: {
-  landingIngress: LandingIngressRecord | null;
-  questions: ReadonlyArray<ResolvedQuestion>;
-}): Record<string, 'A' | 'B'> {
-  if (!input.landingIngress) {
-    return {};
-  }
-
-  const firstScoringQuestion = findFirstScoringQuestion(input.questions);
-  return firstScoringQuestion ? {[firstScoringQuestion.id]: input.landingIngress.preAnswerChoice} : {};
-}
-
-function hasSemanticAnswer(answer: 'A' | 'B' | undefined): answer is 'A' | 'B' {
-  return answer === 'A' || answer === 'B';
-}
-
-export function buildCanonicalFinalResponses(input: {
-  questions: ReadonlyArray<ResolvedQuestion>;
-  answers: Record<string, 'A' | 'B'>;
-}): Record<string, 'A' | 'B'> {
-  return input.questions.reduce<Record<string, 'A' | 'B'>>((accumulator, question) => {
-    const answer = input.answers[question.id];
-    if (hasSemanticAnswer(answer)) {
-      accumulator[String(question.canonicalIndex)] = answer;
-    }
-    return accumulator;
-  }, {});
-}
-
-export function resolveScoringProgress(input: {
-  questions: ReadonlyArray<ResolvedQuestion>;
-  answers: Record<string, 'A' | 'B'>;
-}): ScoringProgress {
-  const scoringQuestions = input.questions.filter((question) => question.questionType === 'scoring');
-  const answered = scoringQuestions.filter((question) => hasSemanticAnswer(input.answers[question.id])).length;
-  const total = scoringQuestions.length;
-
-  return {
-    answered,
-    total,
-    percent: total === 0 ? 0 : Math.round((answered / total) * 100)
-  };
-}
-
-export function resolveQuestionBootstrapState(input: {
-  instructionSeen: boolean;
-  landingIngress: LandingIngressRecord | null;
-  pendingTransition: PendingLandingTransition | null;
-  questions: ReadonlyArray<ResolvedQuestion>;
-  variant: string;
-}): QuestionBootstrapState {
-  const matchingPendingTransition =
-    input.pendingTransition &&
-    input.pendingTransition.targetType === 'test' &&
-    input.pendingTransition.variant === input.variant
-      ? input.pendingTransition
-      : null;
-  const landingIngressFlag = input.landingIngress !== null;
-
-  return {
-    runtimeState: {
-      ready: true,
-      landingIngressFlag,
-      currentQuestionIndex: resolveInitialQuestionIndex({
-        landingIngressFlag,
-        questions: input.questions
-      }),
-      answers: resolveInitialAnswers({
-        landingIngress: input.landingIngress,
-        questions: input.questions
-      })
-    },
-    pendingTransitionToComplete: matchingPendingTransition?.transitionId ?? null,
-    instructionSeen: input.instructionSeen
-  };
-}
-
 export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const t = useTranslations('test');
   const pathname = usePathname();
@@ -196,75 +60,46 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const variant = card.variant;
   const landingPath = useMemo(() => buildLocalizedPath(RouteBuilder.landing(), locale), [locale]);
   const questions = useMemo(() => buildVariantQuestionBank(variant, locale), [locale, variant]);
-  const [runtimeState, setRuntimeState] = useState<QuestionRuntimeState>(buildInitialRuntimeState);
-  const [instructionSeen, setInstructionSeen] = useState(false);
+  const [instructionSeen, setInstructionSeen] = useState(() => hasSeenInstruction(variant));
   const [entryCommitted, setEntryCommitted] = useState(false);
-  const [started, setStarted] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
-  const dwellStartRef = useRef<number | null>(null);
-  const dwellByQuestionRef = useRef<Record<string, number>>({});
-  const attemptStartedRef = useRef(false);
-  const bootstrapRuntimeStateRef = useRef<QuestionRuntimeState | null>(null);
-  const pendingTransitionToCompleteRef = useRef<string | null>(null);
-  const runtimeEntryCommittedRef = useRef(false);
+  const {
+    runtimeReady,
+    landingIngressFlag,
+    currentQuestionIndex,
+    started,
+    submitted,
+    currentQuestion,
+    currentAnswer,
+    allAnswered,
+    scoringProgress,
+    totalQuestions,
+    answers,
+    pendingTransitionId,
+    clearPendingTransitionId,
+    updateAnswer,
+    moveQuestion,
+    handleSubmit
+  } = useTestRunController({variant, locale, pathname, questions, entryCommitted});
 
   useEffect(() => {
-    if (bootstrapRuntimeStateRef.current) {
-      queueMicrotask(() => {
-        setRuntimeState(bootstrapRuntimeStateRef.current ?? buildInitialRuntimeState());
-      });
+    if (!runtimeReady || pendingTransitionId === null) {
       return;
     }
 
-    const pendingTransition = readPendingLandingTransition();
-    if (pendingTransition && (pendingTransition.targetType !== 'test' || pendingTransition.variant !== variant)) {
-      terminatePendingLandingTransition({
-        signal: 'transition_fail',
-        resultReason: 'DESTINATION_LOAD_ERROR'
-      });
-    }
-
-    const nextPendingTransition = readPendingLandingTransition();
-    const landingIngress = readLandingIngress(variant);
-    const nextInstructionSeen = hasSeenInstruction(variant);
-    const bootstrapState = resolveQuestionBootstrapState({
-      instructionSeen: nextInstructionSeen,
-      landingIngress,
-      pendingTransition: nextPendingTransition,
-      questions,
-      variant
-    });
-
-    pendingTransitionToCompleteRef.current = bootstrapState.pendingTransitionToComplete;
-    bootstrapRuntimeStateRef.current = bootstrapState.runtimeState;
-    queueMicrotask(() => {
-      setInstructionSeen(bootstrapState.instructionSeen);
-      setRuntimeState(bootstrapState.runtimeState);
-    });
-  }, [locale, pathname, questions, variant]);
-
-  useEffect(() => {
-    if (!runtimeState.ready || pendingTransitionToCompleteRef.current === null) {
-      return;
-    }
-
-    const expectedTransitionId = pendingTransitionToCompleteRef.current;
+    const expectedTransitionId = pendingTransitionId;
     const frame = window.requestAnimationFrame(() => {
-      const completed = completePendingLandingTransition({
-        targetType: 'test'
-      });
-
+      const completed = completePendingLandingTransition({targetType: 'test'});
       if (completed?.transitionId === expectedTransitionId) {
-        pendingTransitionToCompleteRef.current = null;
+        clearPendingTransitionId();
       }
     });
 
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [runtimeState.ready]);
+  }, [runtimeReady, pendingTransitionId, clearPendingTransitionId]);
 
   const consentState = consentSnapshot.synced ? consentSnapshot.consentState : 'UNKNOWN';
   const entryPolicy = useMemo(
@@ -273,12 +108,12 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
         instructionText: card.test.instruction,
         attribute: card.attribute,
         consentState,
-        landingIngressFlag: runtimeState.landingIngressFlag
+        landingIngressFlag
       }),
-    [card.attribute, card.test.instruction, consentState, runtimeState.landingIngressFlag]
+    [card.attribute, card.test.instruction, consentState, landingIngressFlag]
   );
 
-  const isBooting = !runtimeState.ready || !consentSnapshot.synced;
+  const isBooting = !runtimeReady || !consentSnapshot.synced;
   const instructionVisible =
     !isBooting &&
     !entryCommitted &&
@@ -288,7 +123,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const executeInstructionAction = useCallback(
     (action: TestInstructionAction) => {
       const effect = entryPolicy.effects[action];
-      if (!runtimeState.ready || redirecting) {
+      if (!runtimeReady || redirecting) {
         return;
       }
 
@@ -302,7 +137,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
       }
 
       if (effect.redirectHome) {
-        if (runtimeState.landingIngressFlag) {
+        if (landingIngressFlag) {
           clearLandingIngress(variant);
         }
 
@@ -311,14 +146,13 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
         return;
       }
 
-      if (!effect.commitsRuntimeEntry || runtimeEntryCommittedRef.current) {
+      if (!effect.commitsRuntimeEntry || entryCommitted) {
         return;
       }
 
-      runtimeEntryCommittedRef.current = true;
       setEntryCommitted(true);
     },
-    [entryPolicy.effects, instructionSeen, landingPath, redirecting, router, runtimeState.landingIngressFlag, runtimeState.ready, variant]
+    [entryCommitted, entryPolicy.effects, instructionSeen, landingIngressFlag, landingPath, redirecting, router, runtimeReady, variant]
   );
 
   useEffect(() => {
@@ -343,98 +177,6 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     isBooting,
     redirecting
   ]);
-
-  useEffect(() => {
-    if (!runtimeState.ready || !entryCommitted || attemptStartedRef.current) {
-      return;
-    }
-
-    attemptStartedRef.current = true;
-    trackAttemptStart({
-      locale,
-      route: pathname,
-      variant,
-      questionIndex: runtimeState.currentQuestionIndex,
-      dwellMsAccumulated: 0,
-      landingIngressFlag: runtimeState.landingIngressFlag
-    });
-    queueMicrotask(() => {
-      setStarted(true);
-    });
-    dwellStartRef.current = Date.now();
-
-    if (runtimeState.landingIngressFlag) {
-      consumeLandingIngress(variant);
-    }
-  }, [entryCommitted, locale, pathname, runtimeState.currentQuestionIndex, runtimeState.landingIngressFlag, runtimeState.ready, variant]);
-
-  const currentQuestion = questions[runtimeState.currentQuestionIndex - 1] ?? questions[0];
-  const totalQuestions = questions.length;
-  const scoringProgress = resolveScoringProgress({
-    questions,
-    answers: runtimeState.answers
-  });
-  const currentAnswer = currentQuestion ? runtimeState.answers[currentQuestion.id] : undefined;
-  const allAnswered = questions.every((question) => runtimeState.answers[question.id] === 'A' || runtimeState.answers[question.id] === 'B');
-
-  const settleCurrentQuestionDwell = () => {
-    if (!currentQuestion || dwellStartRef.current === null) {
-      return;
-    }
-
-    const delta = Math.max(0, Date.now() - dwellStartRef.current);
-    dwellByQuestionRef.current[currentQuestion.id] = (dwellByQuestionRef.current[currentQuestion.id] ?? 0) + delta;
-    dwellStartRef.current = Date.now();
-  };
-
-  const updateAnswer = (choice: 'A' | 'B') => {
-    if (!currentQuestion || submitted) {
-      return;
-    }
-
-    setRuntimeState((previous) => ({
-      ...previous,
-      answers: {
-        ...previous.answers,
-        [currentQuestion.id]: choice
-      }
-    }));
-  };
-
-  const moveQuestion = (direction: -1 | 1) => {
-    if (!started || !currentQuestion) {
-      return;
-    }
-
-    settleCurrentQuestionDwell();
-    setRuntimeState((previous) => ({
-      ...previous,
-      currentQuestionIndex: Math.min(totalQuestions, Math.max(1, previous.currentQuestionIndex + direction))
-    }));
-  };
-
-  const handleSubmit = () => {
-    if (!started || !allAnswered) {
-      return;
-    }
-
-    settleCurrentQuestionDwell();
-    const dwellMsAccumulated = Object.values(dwellByQuestionRef.current).reduce((sum, value) => sum + value, 0);
-    const finalResponses = buildCanonicalFinalResponses({
-      questions,
-      answers: runtimeState.answers
-    });
-    trackFinalSubmit({
-      locale,
-      route: pathname,
-      variant,
-      questionIndex: totalQuestions,
-      dwellMsAccumulated,
-      landingIngressFlag: runtimeState.landingIngressFlag,
-      finalResponses
-    });
-    setSubmitted(true);
-  };
 
   const primaryButton = entryPolicy.cta.primary;
   const secondaryButton = entryPolicy.cta.secondary;
@@ -481,7 +223,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               {questions.map((question) => (
                 <div key={question.id} className={testResultRowClassName}>
                   <dt className="m-0">{question.id.toUpperCase()}</dt>
-                  <dd className="m-0">{runtimeState.answers[question.id]}</dd>
+                  <dd className="m-0">{answers[String(question.canonicalIndex)]}</dd>
                 </div>
               ))}
             </dl>
@@ -524,7 +266,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               aria-hidden={instructionVisible ? 'true' : undefined}
               data-testid="test-question-panel"
             >
-              <h2 className="m-0">{currentQuestion.question}</h2>
+              <h2 className="m-0">{currentQuestion?.question}</h2>
               <div className={testAnswerGridClassName}>
                 <button
                   type="button"
@@ -535,7 +277,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                   }}
                   data-testid="test-choice-a"
                 >
-                  {currentQuestion.answerA}
+                  {currentQuestion?.answerA}
                 </button>
                 <button
                   type="button"
@@ -546,7 +288,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                   }}
                   data-testid="test-choice-b"
                 >
-                  {currentQuestion.answerB}
+                  {currentQuestion?.answerB}
                 </button>
               </div>
 
@@ -557,13 +299,13 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                   onClick={() => {
                     moveQuestion(-1);
                   }}
-                  disabled={!started || runtimeState.currentQuestionIndex === 1}
+                  disabled={!started || currentQuestionIndex === 1}
                   data-testid="test-prev-button"
                 >
                   {t('prev')}
                 </button>
 
-                {runtimeState.currentQuestionIndex < totalQuestions ? (
+                {currentQuestionIndex < totalQuestions ? (
                   <button
                     type="button"
                     className={testPrimaryButtonClassName}
