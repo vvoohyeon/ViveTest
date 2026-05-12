@@ -1,7 +1,7 @@
 # AGENTS.md
 
 > **Role**: Project-specific facts, runtime constraints, and routing index for ViveTest.
-> Skill routing, orchestration rules, and agent workflow → Codex Custom Instructions.
+> Skill routing, orchestration rules, and agent workflow → your active CI document (Codex Custom Instructions or CLAUDE.md).
 > Rules present here are project-specific deviations or constraints — not restatements of CI defaults.
 
 ---
@@ -170,9 +170,9 @@ Consult before referencing external patterns. Replicate the following exactly.
 
 ## 7. Plan Document Requirements
 
-A `docs/plans/YYYY-MM-DD-feature.md` is required when Plan mode is triggered (Codex Custom
-Instructions §3): tasks touching an **Ask First** path, a **High-Risk Area**, or an SSOT
-contract document. Trivial tasks: commit message is sufficient.
+A `docs/plans/YYYY-MM-DD-feature.md` is required when Plan mode is triggered: tasks touching
+an **Ask First** path, a **High-Risk Area**, or an SSOT contract document.
+Trivial tasks: commit message is sufficient.
 
 Required fields before approval and before implementation begins:
 - [ ] All files to be modified
@@ -214,8 +214,8 @@ Update AGENTS.md when any of the following change:
 
 `docs/plans/` — create or update after any non-trivial task touching an Ask First, High-Risk,
 or SSOT file. Must reflect actual outcome, not original intent. See §7 for required fields.  
-`.planning/STATE.md` — write when trigger is met (Codex Custom Instructions §7).  
-Skill routing, orchestration, and clarification rules → Codex Custom Instructions only.
+`.planning/STATE.md` — write when the long-session trigger is met (see your active CI document).
+Skill routing, orchestration, and clarification rules → your active CI document only.
 
 ---
 

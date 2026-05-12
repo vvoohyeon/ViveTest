@@ -1,31 +1,168 @@
 # CLAUDE.md
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Role
-- This file is not the source of local rules — it is a thin shared adapter that causes a session to re-read `AGENTS.md` in the correct order.
-- The SSOT for all project facts, commands, paths, templates, gold standards, and Done criteria is always `AGENTS.md`.
-- This file does not replace, summarize, or duplicate `AGENTS.md`.
-- When explaining repository rules or providing rationale, cite the relevant `AGENTS.md` — not this file.
+> **Role**: Claude Code adapter for ViveTest.
+> `AGENTS.md` is the single source of truth for all project facts, commands, boundaries, and templates.
+> This file mirrors essential orchestration rules and adds Claude Code-specific guardrails.
+> It does not duplicate, summarize, or replace `AGENTS.md`. Cite `AGENTS.md` — not this file — when explaining rules.
 
-## Reading Strategy
-- Always read the root `AGENTS.md` first and treat it as the base.
-- Once the task topic is identified at session start, open the **"Task-Type Entry Map"** section in `AGENTS.md` first to pinpoint the relevant contract documents, files, and QA commands.
-- Only read `AGENTS.md` top-to-bottom in full when the current task type is not covered by the Entry Map.
-- When work scope moves into a subdirectory, additionally read the nearest child `AGENTS.md`.
-- Treat a child `AGENTS.md` as a delta that applies only to its own subtree.
-- Use `AGENTS.md` as a table of contents for reopening the contract documents and anchors needed for the current task — do not re-narrate it like an encyclopedia.
-- If a file path, command name, or contract document reference in a child `AGENTS.md` differs from the same item in the root, do not self-adjust. Instead, list each conflicting item with its source file and halt, reporting it as a documentation conflict.
+---
 
-## Re-read Triggers
-- When work scope moves into a new subdirectory.
-- When the task topic switches to a different subsystem.
-- When files listed under **"UX High-Risk Zones"** in `AGENTS.md` are included in the change set.
-- Immediately before explaining any repository rule or its rationale.
-- When the session has grown long enough that in-memory state may have drifted from the current file state.
-- In any of the above cases, reopen the relevant `AGENTS.md`, verify, then proceed.
-- When entering a **"UX High-Risk Zone"**, reopen that section, fill in the UX-related fields of Template A or B (covering whichever of usability, accessibility, responsiveness, performance, and design consistency apply), and obtain approval before continuing.
+## Session Startup
 
-## Anti-Drift
-- Do not duplicate rules that appear to be needed across multiple tool files here — promote them to `AGENTS.md` instead.
-- Keep in this file only the referencing habits that are repeatedly easy to get wrong: entry order, re-read timing, and where to cite rationale.
-- If a task depends on an item in `AGENTS.md` that is marked `[TEMP]`, `[NEEDS ADDITION]`, or `[NEEDS VERIFICATION]`, do not use that item as a basis. Instead, surface the marker along with its content, request user confirmation, and halt.
+At the start of every session:
+1. Read root `AGENTS.md`. Internalize critical boundaries (§4), build commands (§5), and the Task Routing Table (§2).
+2. If `.planning/STATE.md` exists, read it and restore task state before proceeding.
+3. Using the Task Routing Table (§2), identify which contract documents and sub-guides apply to the current task. Load only those — do not read all documents upfront.
+4. When scope narrows to a subdirectory, read the nearest child `AGENTS.md` as a delta.
+
+Re-read `AGENTS.md` when: scope shifts to a new subsystem · High-Risk files enter the change set · session context may have drifted from current file state.
+
+**Plan before code. Get approval before execution.**
+
+---
+
+## Core Behavior
+
+**Think Before Coding** — State your interpretation explicitly. Surface multiple valid implementations before choosing. Stop and ask when unclear — never code on silent assumptions.
+
+**Simplicity First** — Write the minimum code that solves the problem. No speculative abstractions, unrequested features, or error handling for impossible scenarios. If 200 lines could be 50, rewrite it.
+
+**Comments** — Write only for non-obvious contracts, timing constraints, exception reasons, or browser/state race conditions. Do not describe self-evident code. Korean-language comments are permitted.
+
+**Surgical Changes** — Touch only what the request requires. Every changed line must trace directly to the request. Remove orphaned imports/variables your changes created; do not touch pre-existing dead code unless asked.
+
+---
+
+## Clarification
+
+Do not begin implementation if any of the following apply:
+- The request is ambiguous or has multiple valid interpretations
+- The approach conflicts with an `AGENTS.md` architecture constraint
+- Acceptance criteria, SSOT document, or impact scope is unclear or contradictory
+- A product, UX, or architecture decision is required that the user has not yet made
+- The change scope or post-implementation documentation target is unclear
+
+If resolvable in ≤5 questions, ask them and wait for answers before proceeding. If not → output: `"Requirements need to be much more clarified."` and stop.
+
+Minor ambiguity with an obvious safe default: state the assumption in one sentence and continue.
+**Do not draft a plan until all decision points are resolved.**
+
+---
+
+## Planning Flow
+
+**Plan mode activates when:**
+1. The task touches any file listed under **Ask First** or **High-Risk Areas** in `AGENTS.md §4`
+2. The user explicitly requests a plan
+
+For all other tasks, state assumptions in one sentence and proceed in the smallest executable unit.
+
+**When planning:** The plan must include all fields from `AGENTS.md §7`. Save to `docs/plans/YYYY-MM-DD-feature.md`.
+**Do not begin implementation until the user explicitly approves the plan.**
+Execute one unit at a time. Verify before advancing. If new requirements emerge during execution, stop and re-confirm before continuing.
+
+---
+
+## Implementation
+
+- Execute one approved unit at a time. Verify before advancing.
+- Do not touch files or logic outside the approved scope.
+- Re-read `AGENTS.md` and the approved plan if context drift is detected mid-session.
+- If implementation would push any source code file past **500 lines** or require splitting into **3 or more new source code files**, stop — propose a refactoring plan in markdown and await approval. Documentation files are exempt.
+
+---
+
+## Verification
+
+Run gate commands from `AGENTS.md §5` after every implementation:
+1. **Basic gates (run in order)**: `lint` → `typecheck` → `test` → `build`
+2. **Scope-specific checks**: follow change-type anchors in `docs/agent-guides/verification-commands.md` (via `AGENTS.md §8`)
+
+Do not declare work complete until all gates pass with zero errors in terminal output.
+Bug fix or behavior change: confirm regression test coverage has been added or updated.
+
+---
+
+## STATE.md — Long-Session Continuity
+
+Write `.planning/STATE.md` when either trigger is met (OR logic):
+
+**Trigger 1 — Complex unfinished plan** (all three must be true):
+- Plan has **3 or more stages**
+- At least **1 stage completed and verified** (gate passed) this session
+- At least **1 remaining stage** involves an **Ask First** or **High-Risk** file
+
+**Trigger 2 — Long session**: **2 or more independent plan units** completed and verified this session.
+
+**Timing:**
+- **Base (R):** Write at the unit-completion boundary after the gate passes. Output the session message and wait for instruction before proceeding to the next unit.
+- **Override (P):** If the basic gate runs **3 or more times** within one unit without that unit being marked complete, stop and write STATE.md immediately.
+
+**Required fields**: Current Phase/Milestone · Pending Verifications/Debt · Next Immediate Actionable Steps · Key Decisions · Files to Revisit
+
+**After writing STATE.md**, output exactly:
+> `".planning/STATE.md saved. Context has accumulated significantly. Recommend starting a fresh session to continue cleanly. Awaiting your instruction — continue here or end session?"`
+
+Do not proceed until the user responds. If continuing, resume from the plan without rewriting STATE.md.
+
+**STATE.md is**: documentation only — never executable code, never substitutes for `docs/plans/` specifications, never authorizes autonomous execution or parallel agents.
+
+---
+
+## Context Restore
+
+At the end of every session, report results then output:
+
+```
+### Context Restore
+
+- Current Task: [the task that should continue next session]
+- Last Known State: [final verified state; which gates passed or failed]
+- Key Decisions: [decisions confirmed this session]
+- Open Questions: [questions still needing answers]
+- Deferred Options: [options reviewed but not adopted this session]
+- Files to Revisit: [files or docs to check first next session]
+- Recommended Next Step: [the first action for next session]
+```
+
+---
+
+## Security Baseline
+
+- Never hardcode API keys, tokens, or passwords — use `.env` environment variables
+- Include input validation for all user-supplied values
+- Before modifying any security-sensitive area (auth, permissions, file handling, external integrations), re-read the relevant contract document
+- Do not import unvetted external packages without explicit approval
+
+---
+
+## Prohibited Actions
+
+- Do not output placeholder comments (`// insert logic here`, `// TODO: implement`)
+- Do not add features beyond scope or silently make product decisions not requested
+- Consult **Gold Standards** (`AGENTS.md §6`) before referencing external code patterns; external patterns are acceptable only when they do not conflict
+- Do not perform without explicit prior approval: adding external packages · modifying build or deployment configuration · deleting files · accessing external networks · running destructive commands
+- Do not invoke automated multi-wave execution, parallel agents, or automated implementation pipelines. `.planning/STATE.md` never authorizes autonomous execution
+- Do not create a source code file exceeding **500 lines**. Exceptions: centralized TypeScript global type declarations; self-contained sequential pipeline logic with no reuse potential across the codebase. (Documentation files exempt.)
+- Do not create or extract a source code file under **30 lines** unless reused in multiple places and independently unit-testable; inline single-use code into the caller instead.
+
+---
+
+## Claude Code Guardrails
+
+These address failure modes specific to Claude Code's autonomous editing behavior.
+
+- **Never broaden scope opportunistically.** Note adjacent improvements as suggestions — do not apply them without approval.
+- **Do not rewrite stable modules** for stylistic or structural cleanup unless explicitly requested.
+- **Treat all screenshot diffs and visual baseline changes as regressions** unless provenance is verified in `tests/e2e/theme-matrix-baseline-provenance.md`.
+- **Before modifying multiple files**, state the planned execution order and await confirmation.
+- **When uncertain about behavioral contracts**, inspect existing E2E coverage before making assumptions.
+- **Do not make architectural or design decisions** (directory structure, module boundaries, public API shape) without explicit user approval.
+- **Never cite `AGENTS.md` rules from memory.** Re-read the relevant section before explaining any rule or rationale.
+- **On child/root `AGENTS.md` conflict**: if any file path, command, or contract reference differs between root and child `AGENTS.md`, halt — list each conflicting item with its source file and report as a documentation conflict. Do not self-resolve.
+
+---
+
+## Response Language
+
+Match the language of the user's message automatically. Korean input → Korean response. English input → English response.
