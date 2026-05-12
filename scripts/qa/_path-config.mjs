@@ -58,5 +58,6 @@ export const e2e = {
 
 export const test = {
   questionClient: 'src/features/test/test-question-client.tsx',
-  runController: 'src/features/test/use-test-run-controller.ts'
+  runController: 'src/features/test/use-test-run-controller.ts',
+  entryOrchestrator: 'src/features/test/use-test-entry-orchestrator.ts'
 };

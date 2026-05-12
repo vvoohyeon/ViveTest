@@ -400,4 +400,67 @@ describe('useTestRunController', () => {
       expect(vi.mocked(consumeLandingIngress)).toHaveBeenCalledWith('qmbti');
     });
   });
+
+  describe('T-R-A: submitted flag is true after successful handleSubmit (BC-7 indirect)', () => {
+    it('returns submitted=true after all answers answered and handleSubmit called', async () => {
+      const {result, rerender} = renderHook(
+        (props: {entryCommitted: boolean}) => useTestRunController(makeInput(props)),
+        {initialProps: {entryCommitted: false}}
+      );
+      await flushMicrotasks();
+
+      rerender({entryCommitted: true});
+      await flushMicrotasks();
+
+      for (let i = 0; i < qmbtiQuestions.length; i++) {
+        act(() => { result.current.updateAnswer('A'); });
+        await flushMicrotasks();
+        if (i < qmbtiQuestions.length - 1) {
+          act(() => { result.current.moveQuestion(1); });
+          await flushMicrotasks();
+        }
+      }
+
+      expect(result.current.allAnswered).toBe(true);
+      act(() => { result.current.handleSubmit(); });
+      await flushMicrotasks();
+
+      expect(result.current.submitted).toBe(true);
+    });
+  });
+
+  describe('T-R-B: write-only storage — writeResponseSet called; no read path invoked during bootstrap', () => {
+    it('does not call writeResponseSet during bootstrap before any updateAnswer', async () => {
+      const {rerender} = renderHook(
+        (props: {entryCommitted: boolean}) => useTestRunController(makeInput(props)),
+        {initialProps: {entryCommitted: false}}
+      );
+      await flushMicrotasks();
+
+      rerender({entryCommitted: true});
+      await flushMicrotasks();
+
+      expect(vi.mocked(writeResponseSet)).not.toHaveBeenCalled();
+    });
+
+    it('calls writeResponseSet with canonical-index-keyed payload on updateAnswer', async () => {
+      const {result, rerender} = renderHook(
+        (props: {entryCommitted: boolean}) => useTestRunController(makeInput(props)),
+        {initialProps: {entryCommitted: false}}
+      );
+      await flushMicrotasks();
+
+      rerender({entryCommitted: true});
+      await flushMicrotasks();
+
+      act(() => { result.current.updateAnswer('B'); });
+      await flushMicrotasks();
+
+      expect(vi.mocked(writeResponseSet)).toHaveBeenCalledWith('qmbti', {'1': 'B'});
+      const payload = vi.mocked(writeResponseSet).mock.calls[0]?.[1] ?? {};
+      for (const key of Object.keys(payload)) {
+        expect(key).toMatch(/^\d+$/);
+      }
+    });
+  });
 });

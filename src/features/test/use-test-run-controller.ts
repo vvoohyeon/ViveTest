@@ -155,6 +155,7 @@ export function useTestRunController({
       ...previous,
       answers: {...previous.answers, [canonicalKey]: choice}
     }));
+    // write-only storage: read path (readResponseSet, getActiveRun) is Phase 4/5 scope
     writeResponseSet(variant, newAnswers);
   };
 

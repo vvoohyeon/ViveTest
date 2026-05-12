@@ -3,23 +3,19 @@
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {setTelemetryConsentState, useTelemetryConsentSource} from '@/features/telemetry/consent-source';
+import {useTelemetryConsentSource} from '@/features/telemetry/consent-source';
 import {completePendingLandingTransition} from '@/features/transition/runtime';
-import {
-  clearLandingIngress,
-  hasSeenInstruction,
-  markInstructionSeen
-} from '@/features/transition/store';
-import {resolveTestEntryPolicy, type TestInstructionAction} from '@/features/test/entry-policy';
+import {resolveTestEntryPolicy} from '@/features/test/entry-policy';
 import {InstructionOverlay} from '@/features/test/instruction-overlay';
 import {buildVariantQuestionBank} from '@/features/test/question-bank';
 import type {LandingTestCard} from '@/features/variant-registry';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 import {useTestRunController} from '@/features/test/use-test-run-controller';
+import {useTestEntryOrchestrator} from '@/features/test/use-test-entry-orchestrator';
 
 interface TestQuestionClientProps {
   locale: AppLocale;
@@ -60,9 +56,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const variant = card.variant;
   const landingPath = useMemo(() => buildLocalizedPath(RouteBuilder.landing(), locale), [locale]);
   const questions = useMemo(() => buildVariantQuestionBank(variant, locale), [locale, variant]);
-  const [instructionSeen, setInstructionSeen] = useState(() => hasSeenInstruction(variant));
-  const [entryCommitted, setEntryCommitted] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
+  const entryCommittedForController = useRef(false);
 
   const {
     runtimeReady,
@@ -81,7 +75,8 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     updateAnswer,
     moveQuestion,
     handleSubmit
-  } = useTestRunController({variant, locale, pathname, questions, entryCommitted});
+  // eslint-disable-next-line react-hooks/refs -- D-B: entryCommitted moves only false→true; one-render lag identical to original useState pattern
+  } = useTestRunController({variant, locale, pathname, questions, entryCommitted: entryCommittedForController.current});
 
   useEffect(() => {
     if (!runtimeReady || pendingTransitionId === null) {
@@ -114,69 +109,19 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   );
 
   const isBooting = !runtimeReady || !consentSnapshot.synced;
+
+  const {instructionSeen, entryCommitted, redirecting, executeInstructionAction} =
+    useTestEntryOrchestrator({variant, landingPath, runtimeReady, landingIngressFlag, entryPolicy, router});
+
+  // D-B: ref written during render; value moves only false→true, stale reads cause no tearing.
+  // eslint-disable-next-line react-hooks/refs -- D-B: one-directional false→true write; semantically identical to original useState approach
+  entryCommittedForController.current = entryCommitted;
+
   const instructionVisible =
     !isBooting &&
     !entryCommitted &&
     !redirecting &&
     (!instructionSeen || !entryPolicy.canAutoCommitAfterInstructionSeen);
-
-  const executeInstructionAction = useCallback(
-    (action: TestInstructionAction) => {
-      const effect = entryPolicy.effects[action];
-      if (!runtimeReady || redirecting) {
-        return;
-      }
-
-      if (effect.writesConsent) {
-        setTelemetryConsentState(effect.writesConsent);
-      }
-
-      if (effect.recordsInstructionSeen && !instructionSeen) {
-        markInstructionSeen(variant);
-        setInstructionSeen(true);
-      }
-
-      if (effect.redirectHome) {
-        if (landingIngressFlag) {
-          clearLandingIngress(variant);
-        }
-
-        setRedirecting(true);
-        router.replace(landingPath);
-        return;
-      }
-
-      if (!effect.commitsRuntimeEntry || entryCommitted) {
-        return;
-      }
-
-      setEntryCommitted(true);
-    },
-    [entryCommitted, entryPolicy.effects, instructionSeen, landingIngressFlag, landingPath, redirecting, router, runtimeReady, variant]
-  );
-
-  useEffect(() => {
-    if (
-      isBooting ||
-      redirecting ||
-      entryCommitted ||
-      !instructionSeen ||
-      !entryPolicy.canAutoCommitAfterInstructionSeen
-    ) {
-      return;
-    }
-
-    queueMicrotask(() => {
-      executeInstructionAction('start');
-    });
-  }, [
-    entryCommitted,
-    entryPolicy.canAutoCommitAfterInstructionSeen,
-    executeInstructionAction,
-    instructionSeen,
-    isBooting,
-    redirecting
-  ]);
 
   const primaryButton = entryPolicy.cta.primary;
   const secondaryButton = entryPolicy.cta.secondary;
@@ -186,7 +131,13 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     <section
       className={testShellCardClassName}
       data-testid="test-shell-card"
-      data-entry-status={redirecting ? 'redirecting' : isBooting ? 'booting' : started ? 'started' : 'ready'}
+      data-entry-status={
+        redirecting ? 'redirecting'
+          : isBooting ? 'booting'
+          : submitted ? 'submitted'
+          : started ? 'started'
+          : 'ready'
+      }
     >
       <header className={testShellHeaderClassName}>
         <div>

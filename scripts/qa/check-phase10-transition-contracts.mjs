@@ -41,16 +41,22 @@ if (fileExists(transition.runtime)) {
   }
 }
 
-// Block 1 — checks test-question-client.tsx (entry-phase contracts stay in client)
+// Block 1 — entry-phase contracts: negative guard stays in client; ownership checks in orchestrator
 if (fileExists(test.questionClient)) {
   const questionClient = read(test.questionClient);
 
-  if (!/markInstructionSeen/u.test(questionClient)) {
-    fail('Test question client must persist instructionSeen on instruction action.');
-  }
-
   if (/fallbackTransitionId/u.test(questionClient) || /runtimeState\.transitionId/u.test(questionClient)) {
     fail('Test question client must not depend on fallback/runtime transitionId state.');
+  }
+}
+
+if (fileExists(test.entryOrchestrator)) {
+  const orchestratorFile = read(test.entryOrchestrator);
+  if (!/markInstructionSeen/u.test(orchestratorFile)) {
+    fail('Entry orchestrator must call markInstructionSeen on commit actions.');
+  }
+  if (!/clearLandingIngress/u.test(orchestratorFile)) {
+    fail('Entry orchestrator must call clearLandingIngress on redirect actions.');
   }
 }
 
