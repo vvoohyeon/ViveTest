@@ -153,6 +153,18 @@ describe('useTestRunController', () => {
   });
 
   describe('T-05: moveQuestion(1) — forward navigation', () => {
+    it('does not advance before runtime entry has committed', async () => {
+      const {result} = renderHook(() => useTestRunController(makeInput()));
+      await flushMicrotasks();
+
+      act(() => {
+        result.current.moveQuestion(1);
+      });
+      await flushMicrotasks();
+
+      expect(result.current.currentQuestionIndex).toBe(1);
+    });
+
     it('increments index without touching answers', async () => {
       const {result, rerender} = renderHook(
         (props: {entryCommitted: boolean}) => useTestRunController(makeInput(props)),

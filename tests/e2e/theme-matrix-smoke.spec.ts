@@ -211,14 +211,27 @@ async function startTestAttempt(page: Page) {
   await page.getByTestId('test-start-button').click();
   await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
   await expect(page.getByTestId('test-question-panel')).toBeVisible();
+  await expect(page.getByTestId('test-question-number')).toHaveText(/^Q\d+$/u);
+  await expect(page.getByTestId('test-prev-button')).toBeHidden();
   await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
 async function answerCurrentQuestion(page: Page, choice: 'A' | 'B') {
+  const questionNumber = page.getByTestId('test-question-number');
+  const previousQuestionNumber = await questionNumber.textContent();
   const target = choice === 'A' ? 'test-choice-a' : 'test-choice-b';
   await page.getByTestId(target).click();
-  await expect(page.getByTestId(target)).toHaveAttribute('data-selected', 'true');
-  await page.waitForTimeout(100);
+
+  await page.waitForFunction(
+    (previousText) => {
+      const currentQuestionNumber = document.querySelector('[data-testid="test-question-number"]')?.textContent;
+      const submitButton = document.querySelector('[data-testid="test-submit-button"]');
+      const submitEnabled = submitButton instanceof HTMLButtonElement && !submitButton.disabled;
+      return currentQuestionNumber !== previousText || submitEnabled;
+    },
+    previousQuestionNumber ?? '',
+    {timeout: 800}
+  );
 }
 
 async function completeTestAttempt(page: Page) {
@@ -228,12 +241,10 @@ async function completeTestAttempt(page: Page) {
     const choice = index % 2 === 0 ? 'A' : 'B';
     await answerCurrentQuestion(page, choice);
     const submitButton = page.getByTestId('test-submit-button');
-    if (await submitButton.isVisible()) {
+    if ((await submitButton.count()) > 0 && (await submitButton.isEnabled({timeout: 0}))) {
       await submitButton.click();
       break;
     }
-
-    await page.getByTestId('test-next-button').click();
   }
 
   await expect(page.getByTestId('test-result-panel')).toBeVisible();

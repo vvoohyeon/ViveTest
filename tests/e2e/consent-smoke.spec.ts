@@ -45,6 +45,9 @@ async function beginLandingTestIngress(page: Page, cardVariant: string) {
   const card = page.locator(`[data-card-variant="${cardVariant}"]`);
   await card.getByTestId('landing-grid-card-trigger').click();
   await card.locator('[data-slot="answerChoiceA"]').click();
+  await expect
+    .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), `vivetest-landing-ingress:${cardVariant}`))
+    .not.toBeNull();
 }
 
 async function expectNoLegacyInstructionUi(page: Page) {
@@ -277,4 +280,38 @@ test.describe('Instruction consent contract smoke', () => {
       await expectNoLegacyInstructionUi(page);
     });
   }
+
+  test('shows browser unload warning when test is started and not submitted', async ({browser}) => {
+    const page = await browser.newPage();
+
+    try {
+      await seedTelemetryConsent(page, 'OPTED_IN');
+      await page.setViewportSize({width: 1280, height: 900});
+      await page.goto(buildLocalizedTestRoute('en', PRIMARY_AVAILABLE_TEST_VARIANT));
+
+      await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+      await page.getByTestId('test-start-button').click();
+      await expect(page.getByTestId('test-shell-card')).toHaveAttribute('data-entry-status', 'started');
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) => {
+            window.requestAnimationFrame(() => {
+              window.requestAnimationFrame(() => {
+                resolve();
+              });
+            });
+          })
+      );
+
+      const dialogPromise = page.waitForEvent('dialog');
+      void page.reload().catch(() => undefined);
+      const dialog = await dialogPromise;
+      expect(dialog.type()).toBe('beforeunload');
+      await dialog.dismiss();
+    } finally {
+      if (!page.isClosed()) {
+        await page.close();
+      }
+    }
+  });
 });

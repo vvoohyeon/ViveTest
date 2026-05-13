@@ -31,6 +31,22 @@ and verification result. The PNG baselines themselves remain local-only under
 - Regeneration result: `288 passed`
 - Reason for regeneration: 34 pre-existing local theme-matrix baseline drifts resolved; Phase A predicate injection refactor confirmed as structural-only with no visual change. Baselines were stale since 2026-05-07 (SHA 9b5e62e).
 
+## Theme Matrix Baseline Regeneration 2026-05-13
+
+- Date generated: 2026-05-13 KST
+- Git commit SHA: 0870bbb3a647af185611ccbb9217c79eb8d99859
+- Working tree note: Prompt 2 UX/UI implementation present; unrelated shared-surface diffs were classified as preview/dev-runtime environment drift, with no Prompt 2 regression confirmed.
+- OS: macOS 26.4.1 (25E253), Darwin 25.4.0 arm64
+- Node version: v22.18.0
+- Playwright version: 1.57.0
+- Regeneration command: `npm run qa:visual:full`
+- Regeneration result: `288 passed`
+- Theme-matrix rerun command: `npx playwright test tests/e2e/theme-matrix-smoke.spec.ts` against a preview server on port 4173
+- Theme-matrix rerun result: `288 passed`
+- Gate verification command: `npm run qa:rules`; `npm run lint && npm run typecheck && npm test && npm run build`
+- Gate verification result: `qa:rules` passed; lint passed; typecheck passed; `npm test` passed with 381 tests; build passed.
+- Reason for regeneration: Prompt 2 UX/UI pass — accepted pre-existing drift accumulated since last regeneration; no Prompt 2 regression confirmed.
+
 ## State Smoke Local Baseline Adjudication
 
 - Date generated: 2026-05-10 10:10:20 KST

@@ -1,4 +1,4 @@
-import {expect, test} from '@playwright/test';
+import {expect, test, type Page} from '@playwright/test';
 
 import {
   buildLocalizedBlogDetailRoute,
@@ -133,6 +133,19 @@ async function readTransitionSignals(page: import('@playwright/test').Page) {
   );
 }
 
+async function answerTestQuestion(page: Page, choice: 'A' | 'B', shouldAdvance: boolean) {
+  const questionNumber = page.getByTestId('test-question-number');
+  const previousQuestionNumber = await questionNumber.textContent();
+  await page.getByTestId(choice === 'A' ? 'test-choice-a' : 'test-choice-b').click();
+
+  if (shouldAdvance) {
+    await expect(questionNumber).not.toHaveText(previousQuestionNumber ?? '', {timeout: 800});
+    return;
+  }
+
+  await expect(page.getByTestId('test-submit-button')).toBeEnabled();
+}
+
 test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload assertion:B18-post-attempt-session-id-e2e assertion:B28-cross-phase-event-integrity-ingress landing test transition keeps source GNB until destination-ready and records card_answered, attempt_start, final_submit, and internal transition signals', async ({
     page
@@ -180,11 +193,9 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY))
       .toBeNull();
 
-    for (const [choiceIndex, choice] of (['A', 'B', 'A', 'B', 'A', 'B', 'A'] as const).entries()) {
-      await page.getByTestId(choice === 'A' ? 'test-choice-a' : 'test-choice-b').click();
-      if (choiceIndex < 6) {
-        await page.getByTestId('test-next-button').click();
-      }
+    const choices = ['A', 'B', 'A', 'B', 'A', 'B', 'A'] as const;
+    for (const [choiceIndex, choice] of choices.entries()) {
+      await answerTestQuestion(page, choice, choiceIndex < choices.length - 1);
     }
     await page.getByTestId('test-submit-button').click();
 

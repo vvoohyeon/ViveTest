@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {useEffect, useMemo, useRef} from 'react';
+import {motion, useReducedMotion} from 'motion/react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {useTelemetryConsentSource} from '@/features/telemetry/consent-source';
@@ -21,6 +22,8 @@ interface TestQuestionClientProps {
   locale: AppLocale;
   card: LandingTestCard;
 }
+
+type SlideDirection = 'forward' | 'backward';
 
 const testPanelSurfaceClassName =
   'rounded-[18px] p-5 [background:color-mix(in_srgb,var(--panel-solid)_94%,transparent)] [box-shadow:var(--dialog-shadow)]';
@@ -43,6 +46,7 @@ const testAnswerButtonClassName =
 const testNavRowClassName = 'test-nav-row flex flex-wrap gap-[10px]';
 const testResultActionsClassName = 'test-result-actions flex flex-wrap gap-[10px]';
 const testAnswerGridClassName = 'test-answer-grid grid gap-[10px]';
+const testQuestionNumberClassName = 'test-question-number text-sm font-semibold text-[var(--muted-ink)]';
 const testResultGridClassName = 'test-result-grid m-0 grid gap-2';
 const testResultRowClassName = 'test-result-row flex justify-between gap-3';
 const testResultActionButtonClassName = `${testPrimaryButtonClassName} min-w-[132px]`;
@@ -56,7 +60,11 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const variant = card.variant;
   const landingPath = useMemo(() => buildLocalizedPath(RouteBuilder.landing(), locale), [locale]);
   const questions = useMemo(() => buildVariantQuestionBank(variant, locale), [locale, variant]);
-  const entryCommittedForController = useRef(false);
+  const slideDirectionRef = useRef<SlideDirection>('forward');
+  const autoAdvanceTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const [entryCommittedForController, setEntryCommittedForController] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<SlideDirection>('forward');
+  const prefersReducedMotion = useReducedMotion();
 
   const {
     runtimeReady,
@@ -75,8 +83,46 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     updateAnswer,
     moveQuestion,
     handleSubmit
-  // eslint-disable-next-line react-hooks/refs -- D-B: entryCommitted moves only false→true; one-render lag identical to original useState pattern
-  } = useTestRunController({variant, locale, pathname, questions, entryCommitted: entryCommittedForController.current});
+  } = useTestRunController({variant, locale, pathname, questions, entryCommitted: entryCommittedForController});
+  const submittedRef = useRef(submitted);
+
+  const clearAutoAdvanceTimer = useCallback(() => {
+    if (autoAdvanceTimerRef.current !== null) {
+      window.clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    submittedRef.current = submitted;
+  }, [submitted]);
+
+  useEffect(() => {
+    return () => {
+      clearAutoAdvanceTimer();
+    };
+  }, [clearAutoAdvanceTimer]);
+
+  useEffect(() => {
+    clearAutoAdvanceTimer();
+  }, [clearAutoAdvanceTimer, currentQuestionIndex]);
+
+  useEffect(() => {
+    if (!started || submitted) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [started, submitted]);
 
   useEffect(() => {
     if (!runtimeReady || pendingTransitionId === null) {
@@ -113,9 +159,22 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const {instructionSeen, entryCommitted, redirecting, executeInstructionAction} =
     useTestEntryOrchestrator({variant, landingPath, runtimeReady, landingIngressFlag, entryPolicy, router});
 
-  // D-B: ref written during render; value moves only false→true, stale reads cause no tearing.
-  // eslint-disable-next-line react-hooks/refs -- D-B: one-directional false→true write; semantically identical to original useState approach
-  entryCommittedForController.current = entryCommitted;
+  useEffect(() => {
+    if (!entryCommitted) {
+      return;
+    }
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setEntryCommittedForController(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entryCommitted]);
 
   const instructionVisible =
     !isBooting &&
@@ -126,6 +185,39 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const primaryButton = entryPolicy.cta.primary;
   const secondaryButton = entryPolicy.cta.secondary;
   const instructionNote = entryPolicy.content.consentNoteKey ? t(entryPolicy.content.consentNoteKey) : undefined;
+  const scoringProgressPercentText = t('progressValue', {percent: scoringProgress.percent});
+  const isProgressLabelClamped = scoringProgress.percent >= 85;
+  const isLastQuestion = currentQuestionIndex >= totalQuestions;
+  const answerGridInitialX = prefersReducedMotion ? 0 : slideDirection === 'forward' ? 18 : -18;
+
+  function handleAnswerChoice(choice: 'A' | 'B') {
+    if (!currentQuestion || submitted) {
+      return;
+    }
+
+    updateAnswer(choice);
+
+    if (!started || submitted || isLastQuestion) {
+      clearAutoAdvanceTimer();
+      return;
+    }
+
+    clearAutoAdvanceTimer();
+
+    autoAdvanceTimerRef.current = (
+      window.setTimeout(() => {
+        autoAdvanceTimerRef.current = null;
+
+        if (submittedRef.current) {
+          return;
+        }
+
+        slideDirectionRef.current = 'forward';
+        setSlideDirection('forward');
+        moveQuestion(1);
+      }, 150) as unknown
+    ) as ReturnType<typeof window.setTimeout>;
+  }
 
   return (
     <section
@@ -148,25 +240,34 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               aria-valuemax={scoringProgress.total}
               aria-valuemin={0}
               aria-valuenow={scoringProgress.answered}
-              aria-valuetext={t('progressValue', {percent: scoringProgress.percent})}
-              className="h-2 overflow-hidden rounded-full bg-[var(--interactive-neutral-bg-strong)]"
+              aria-valuetext={scoringProgressPercentText}
+              className="relative h-6 overflow-hidden rounded-full bg-[var(--interactive-neutral-bg-strong)]"
               data-testid="test-progress-bar"
               role="progressbar"
             >
               <div
-                className="h-full rounded-full bg-[var(--interactive-accent-bg)] transition-[width] duration-150 ease-out"
+                className="relative h-full overflow-visible rounded-full bg-[var(--interactive-accent-bg)] transition-[width] duration-150 ease-out"
                 style={{width: `${scoringProgress.percent}%`}}
-              />
+              >
+                <span
+                  className="absolute top-1/2 whitespace-nowrap text-xs font-semibold leading-none text-[var(--text-strong)] -translate-y-1/2"
+                  data-testid="test-progress-percent"
+                  style={
+                    isProgressLabelClamped
+                      ? {minWidth: '2.5rem', right: '0.5rem', textAlign: 'right'}
+                      : {minWidth: '2.5rem', right: '-2.5rem', textAlign: 'left'}
+                  }
+                >
+                  {scoringProgressPercentText}
+                </span>
+              </div>
             </div>
-            <span className="text-sm font-semibold text-[var(--muted-ink)]" data-testid="test-progress-percent">
-              {t('progressValue', {percent: scoringProgress.percent})}
-            </span>
           </div>
         </div>
       </header>
 
-      <div className={testShellStageClassName} data-testid="test-stage">
-        {submitted ? (
+      {submitted ? (
+        <div className={testShellStageClassName} data-testid="test-stage">
           <div className={testResultPanelClassName} data-testid="test-result-panel">
             <h2 className="m-0">{t('resultLabel')}</h2>
             <p className="m-0">{t('resultBody')}</p>
@@ -187,103 +288,106 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               </Link>
             </div>
           </div>
-        ) : (
-          <>
-            {instructionVisible ? (
-              <InstructionOverlay
-                title={t('instructionTitle')}
-                instructionText={entryPolicy.content.instructionText}
-                consentNote={instructionNote}
-                showDivider={entryPolicy.content.showDivider}
-                primaryLabel={t(primaryButton.labelKey)}
-                secondaryLabel={secondaryButton ? t(secondaryButton.labelKey) : undefined}
-                onPrimaryAction={() => {
-                  executeInstructionAction(primaryButton.action);
-                }}
-                onSecondaryAction={
-                  secondaryButton
-                    ? () => {
-                        executeInstructionAction(secondaryButton.action);
-                      }
-                    : undefined
-                }
-                primaryTestId={primaryButton.testId}
-                secondaryTestId={secondaryButton?.testId}
-              />
+        </div>
+      ) : (
+        <>
+          {instructionVisible ? (
+            <InstructionOverlay
+              title={t('instructionTitle')}
+              instructionText={entryPolicy.content.instructionText}
+              consentNote={instructionNote}
+              showDivider={entryPolicy.content.showDivider}
+              primaryLabel={t(primaryButton.labelKey)}
+              secondaryLabel={secondaryButton ? t(secondaryButton.labelKey) : undefined}
+              onPrimaryAction={() => {
+                executeInstructionAction(primaryButton.action);
+              }}
+              onSecondaryAction={
+                secondaryButton
+                  ? () => {
+                      executeInstructionAction(secondaryButton.action);
+                    }
+                  : undefined
+              }
+              primaryTestId={primaryButton.testId}
+              secondaryTestId={secondaryButton?.testId}
+            />
+          ) : null}
+
+          <div
+            className={testQuestionPanelClassName}
+            aria-hidden={instructionVisible ? 'true' : undefined}
+            data-testid="test-question-panel"
+          >
+            {currentQuestion ? (
+              <p className={testQuestionNumberClassName} data-testid="test-question-number">
+                Q{currentQuestion.canonicalIndex}
+              </p>
             ) : null}
-
-            <article
-              className={testQuestionPanelClassName}
-              aria-hidden={instructionVisible ? 'true' : undefined}
-              data-testid="test-question-panel"
+            <h2 className="m-0">{currentQuestion?.question}</h2>
+            <motion.div
+              key={currentQuestionIndex}
+              className={testAnswerGridClassName}
+              initial={{x: answerGridInitialX}}
+              animate={{x: 0}}
+              transition={prefersReducedMotion ? {duration: 0} : {duration: 0.18, ease: 'easeOut'}}
             >
-              <h2 className="m-0">{currentQuestion?.question}</h2>
-              <div className={testAnswerGridClassName}>
-                <button
-                  type="button"
-                  className={testAnswerButtonClassName}
-                  data-selected={currentAnswer === 'A' ? 'true' : 'false'}
-                  onClick={() => {
-                    updateAnswer('A');
-                  }}
-                  data-testid="test-choice-a"
-                >
-                  {currentQuestion?.answerA}
-                </button>
-                <button
-                  type="button"
-                  className={testAnswerButtonClassName}
-                  data-selected={currentAnswer === 'B' ? 'true' : 'false'}
-                  onClick={() => {
-                    updateAnswer('B');
-                  }}
-                  data-testid="test-choice-b"
-                >
-                  {currentQuestion?.answerB}
-                </button>
-              </div>
+              <button
+                type="button"
+                className={testAnswerButtonClassName}
+                data-selected={currentAnswer === 'A' ? 'true' : 'false'}
+                onClick={() => {
+                  handleAnswerChoice('A');
+                }}
+                data-testid="test-choice-a"
+              >
+                {currentQuestion?.answerA}
+              </button>
+              <button
+                type="button"
+                className={testAnswerButtonClassName}
+                data-selected={currentAnswer === 'B' ? 'true' : 'false'}
+                onClick={() => {
+                  handleAnswerChoice('B');
+                }}
+                data-testid="test-choice-b"
+              >
+                {currentQuestion?.answerB}
+              </button>
+            </motion.div>
 
-              <div className={testNavRowClassName}>
+            <div className={testNavRowClassName}>
+              <button
+                type="button"
+                className={testSecondaryButtonClassName}
+                onClick={() => {
+                  clearAutoAdvanceTimer();
+                  slideDirectionRef.current = 'backward';
+                  setSlideDirection('backward');
+                  moveQuestion(-1);
+                }}
+                disabled={!started}
+                style={{visibility: currentQuestionIndex === 1 ? 'hidden' : 'visible'}}
+                data-testid="test-prev-button"
+              >
+                {t('prev')}
+              </button>
+
+              {isLastQuestion ? (
                 <button
                   type="button"
-                  className={testSecondaryButtonClassName}
-                  onClick={() => {
-                    moveQuestion(-1);
-                  }}
-                  disabled={!started || currentQuestionIndex === 1}
-                  data-testid="test-prev-button"
+                  className={testPrimaryButtonClassName}
+                  onClick={handleSubmit}
+                  disabled={!started || !allAnswered}
+                  data-testid="test-submit-button"
                 >
-                  {t('prev')}
+                  {t('submit')}
                 </button>
-
-                {currentQuestionIndex < totalQuestions ? (
-                  <button
-                    type="button"
-                    className={testPrimaryButtonClassName}
-                    onClick={() => {
-                      moveQuestion(1);
-                    }}
-                    disabled={!started || !currentAnswer}
-                    data-testid="test-next-button"
-                  >
-                    {t('next')}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={testPrimaryButtonClassName}
-                    onClick={handleSubmit}
-                    disabled={!started || !allAnswered}
-                    data-testid="test-submit-button"
-                  >
-                    {t('submit')}
-                  </button>
-                )}
-              </div>
-            </article>
-          </>
-        )}
-      </div>
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }
