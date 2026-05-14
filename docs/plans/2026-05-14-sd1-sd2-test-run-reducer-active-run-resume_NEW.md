@@ -642,26 +642,3 @@ Before executing SD-2 Unit F, confirm the resume-index decision:
 - Resume at the **next unanswered** question or last question (`docs/req-test-plan.md SD-2`).
 
 Implementation must stop before Unit F until this ambiguity is resolved.
-
----
-
-## Self-Check: Orchestrator Deletion Audit
-
-Scanning the revised document for any remaining traces of orchestrator-deletion language:
-
-| Check | Result |
-|---|---|
-| §8 Files table lists `use-test-entry-orchestrator.ts` as Modify | ✅ Confirmed |
-| §8 Files table lists `tests/unit/use-test-entry-orchestrator.test.ts` as Modify | ✅ Confirmed |
-| §8 explicitly states "No file in this list is deleted" | ✅ Confirmed |
-| §10.4 title is "Entry Orchestrator Adapter Refactor", not "Removal" | ✅ Confirmed |
-| §10.6 QA direction says "keep `test.entryOrchestrator`" | ✅ Confirmed |
-| §10.6 QA direction says orchestrator must retain `markInstructionSeen` and `clearLandingIngress` ownership check | ✅ Confirmed |
-| §12 Unit C is "Orchestrator Adapter Refactor" and includes orchestrator test in verification command | ✅ Confirmed |
-| §13 Unit C says "Modify `use-test-entry-orchestrator.ts`" explicitly | ✅ Confirmed |
-| §14 failure handling explicitly says "do not delete `use-test-entry-orchestrator.ts` as the escape hatch" | ✅ Confirmed |
-| No "Orchestrator Removal" heading or phrasing anywhere in the document | ✅ Confirmed |
-| No "remove `test.entryOrchestrator`" instruction anywhere | ✅ Confirmed |
-| `executeInstructionAction` is listed as orchestrator output, not controller output | ✅ Confirmed (§10.4) |
-
-**All deletion-type orchestrator instructions have been removed. The document is consistent throughout.**
