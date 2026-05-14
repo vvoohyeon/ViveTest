@@ -21,6 +21,10 @@ const UNKNOWN_OPT_OUT_NOTE =
 const OPTED_OUT_AVAILABLE_WARNING =
   "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test.";
 
+function responseSetStorageKey(variant: string) {
+  return `test:${variant}:responses`;
+}
+
 function getInstructionFixture(variant: string) {
   const fixture = TEST_VARIANT_INSTRUCTION_FIXTURES_EN.find((candidate) => candidate.variant === variant);
   if (!fixture) {
@@ -41,6 +45,10 @@ async function readInstructionSeen(page: Page, variant: string) {
   return page.evaluate((key) => window.sessionStorage.getItem(key), `vivetest-test-instruction-seen:${variant}`);
 }
 
+async function readResponseSet(page: Page, variant: string) {
+  return page.evaluate((key) => window.localStorage.getItem(key), responseSetStorageKey(variant));
+}
+
 async function beginLandingTestIngress(page: Page, cardVariant: string) {
   const card = page.locator(`[data-card-variant="${cardVariant}"]`);
   await card.getByTestId('landing-grid-card-trigger').click();
@@ -55,6 +63,22 @@ async function expectNoLegacyInstructionUi(page: Page) {
   await expect(page.getByTestId('test-instruction-dialog')).toHaveCount(0);
   await expect(page.getByTestId('test-dialog-close-button')).toHaveCount(0);
   await expect(page.getByTestId('test-dialog-confirm-button')).toHaveCount(0);
+}
+
+async function answerCurrentQuestion(page: Page, choice: 'A' | 'B') {
+  const questionNumber = page.getByTestId('test-question-number');
+  const previousQuestionNumber = await questionNumber.textContent();
+
+  await page.getByTestId(choice === 'A' ? 'test-choice-a' : 'test-choice-b').click();
+
+  await expect(questionNumber).not.toHaveText(previousQuestionNumber ?? '', {timeout: 800});
+}
+
+async function acceptNextBeforeUnload(page: Page) {
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('beforeunload');
+    await dialog.accept();
+  });
 }
 
 async function readConsentBannerLayoutMetrics(page: Page) {
@@ -237,6 +261,83 @@ test.describe('Instruction consent contract smoke', () => {
     await expect.poll(() => readInstructionSeen(page, PRIMARY_AVAILABLE_TEST_VARIANT)).toBe('true');
     await expect(page.getByTestId('test-progress')).toHaveText('0%');
     await expectNoLegacyInstructionUi(page);
+  });
+
+  test('@smoke direct active-run reload resumes at the next unanswered question', async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto(buildLocalizedPrimaryTestRoute('en'));
+
+    await page.getByTestId('test-start-button').click();
+    await expect(page.getByTestId('test-shell-card')).toHaveAttribute('data-entry-status', 'started');
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q1');
+
+    await answerCurrentQuestion(page, 'A');
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q2');
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
+
+    await acceptNextBeforeUnload(page);
+    await page.reload();
+
+    await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
+    await expect(page.getByTestId('test-shell-card')).toHaveAttribute('data-entry-status', 'started');
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q2');
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
+  });
+
+  test('@smoke active-run resume with missing EGTT profile returns through instruction and profile prerequisite', async ({page}) => {
+    const variant = 'egtt';
+    await seedTelemetryConsent(page, 'OPTED_IN');
+    await page.addInitScript((targetVariant) => {
+      const now = Date.now();
+      window.localStorage.setItem(
+        `test:${targetVariant}:activeRun`,
+        JSON.stringify({variantId: targetVariant, startedAtMs: now - 1000, lastAnsweredAtMs: now - 1000})
+      );
+      window.localStorage.setItem(`test:${targetVariant}:responses`, JSON.stringify({'2': 'A'}));
+      window.sessionStorage.setItem(`vivetest-test-instruction-seen:${targetVariant}`, 'true');
+    }, variant);
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto(buildLocalizedTestRoute('en', variant));
+
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+    await expect.poll(() => readInstructionSeen(page, variant)).toBeNull();
+
+    await page.getByTestId('test-start-button').click();
+    await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
+    await expect(page.getByRole('heading', {name: 'My sexual identity is'})).toBeVisible();
+    await expect(page.getByTestId('test-question-number')).toHaveCount(0);
+
+    await page.getByTestId('test-choice-b').click();
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q2');
+    await expect(page.getByTestId('test-progress')).toHaveText('33%');
+    await expect.poll(() => readResponseSet(page, variant)).toBe(JSON.stringify({'1': 'B', '2': 'A'}));
+  });
+
+  test('@smoke landing ingress ignores an older active-run response set for the same variant', async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
+    await page.addInitScript((variant) => {
+      const now = Date.now();
+      window.localStorage.setItem(
+        `test:${variant}:activeRun`,
+        JSON.stringify({variantId: variant, startedAtMs: now - 1000, lastAnsweredAtMs: now - 1000})
+      );
+      window.localStorage.setItem(
+        `test:${variant}:responses`,
+        JSON.stringify({'1': 'B', '2': 'B', '3': 'B'})
+      );
+    }, PRIMARY_AVAILABLE_TEST_VARIANT);
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    await beginLandingTestIngress(page, PRIMARY_AVAILABLE_TEST_VARIANT);
+    await page.getByTestId('test-start-button').click();
+
+    await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
+    await expect(page.getByTestId('test-shell-card')).toHaveAttribute('data-entry-status', 'started');
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q2');
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
+    await expect.poll(() => readResponseSet(page, PRIMARY_AVAILABLE_TEST_VARIANT)).toBe(JSON.stringify({'1': 'A'}));
   });
 
   test('@smoke direct opt_out OPTED_OUT keeps plain instruction and Start begins at Q1', async ({page}) => {

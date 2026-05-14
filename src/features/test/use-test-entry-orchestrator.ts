@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, type Dispatch} from 'react';
 import {useRouter} from 'next/navigation';
 
 import {setTelemetryConsentState} from '@/features/telemetry/consent-source';
-import {clearLandingIngress, hasSeenInstruction, markInstructionSeen} from '@/features/transition/store';
+import {clearLandingIngress, markInstructionSeen} from '@/features/transition/store';
 import type {TestEntryPolicy, TestInstructionAction} from '@/features/test/entry-policy';
+import type {TestRunAction, TestRunPhase} from '@/features/test/test-run-reducer';
 import type {LocalizedRoutePath} from '@/i18n/localized-path';
 
 interface UseTestEntryOrchestratorInput {
@@ -11,8 +12,11 @@ interface UseTestEntryOrchestratorInput {
   landingPath: string;
   runtimeReady: boolean;
   landingIngressFlag: boolean;
+  instructionSeen: boolean;
+  runPhase: TestRunPhase;
   entryPolicy: TestEntryPolicy;
   router: ReturnType<typeof useRouter>;
+  dispatchRunAction: Dispatch<TestRunAction>;
 }
 
 interface UseTestEntryOrchestratorOutput {
@@ -27,15 +31,15 @@ export function useTestEntryOrchestrator({
   landingPath,
   runtimeReady,
   landingIngressFlag,
+  instructionSeen,
+  runPhase,
   entryPolicy,
-  router
+  router,
+  dispatchRunAction
 }: UseTestEntryOrchestratorInput): UseTestEntryOrchestratorOutput {
-  const [instructionSeen, setInstructionSeen] = useState(() => hasSeenInstruction(variant));
-  const [entryCommitted, setEntryCommitted] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
-  // Guards commitsRuntimeEntry against double-fire when the auto-commit microtask
-  // runs more than once (e.g. React Strict Mode double-invoke).
-  const entryCommittedRef = useRef(false);
+  const entryCommitted = runPhase === 'active' || runPhase === 'submitted';
+  const redirecting = runPhase === 'redirecting';
+  const autoCommitScheduledRef = useRef(false);
 
   const executeInstructionAction = useCallback(
     (action: TestInstructionAction) => {
@@ -50,26 +54,37 @@ export function useTestEntryOrchestrator({
 
       if (effect.recordsInstructionSeen && !instructionSeen) {
         markInstructionSeen(variant);
-        setInstructionSeen(true);
       }
 
       if (effect.redirectHome) {
+        dispatchRunAction({type: 'REDIRECT_HOME'});
         if (landingIngressFlag) {
           clearLandingIngress(variant);
         }
-        setRedirecting(true);
         router.replace(landingPath as LocalizedRoutePath);
         return;
       }
 
-      if (!effect.commitsRuntimeEntry || entryCommittedRef.current) {
+      if (!effect.commitsRuntimeEntry) {
         return;
       }
 
-      entryCommittedRef.current = true;
-      setEntryCommitted(true);
+      dispatchRunAction({
+        type: 'COMMIT_ENTRY',
+        recordsInstructionSeen: effect.recordsInstructionSeen
+      });
     },
-    [entryPolicy.effects, instructionSeen, landingIngressFlag, landingPath, redirecting, router, runtimeReady, variant]
+    [
+      dispatchRunAction,
+      entryPolicy.effects,
+      instructionSeen,
+      landingIngressFlag,
+      landingPath,
+      redirecting,
+      router,
+      runtimeReady,
+      variant
+    ]
   );
 
   useEffect(() => {
@@ -77,16 +92,16 @@ export function useTestEntryOrchestrator({
       !runtimeReady ||
       redirecting ||
       entryCommitted ||
+      runPhase !== 'instruction' ||
       !instructionSeen ||
-      !entryPolicy.canAutoCommitAfterInstructionSeen
+      !entryPolicy.canAutoCommitAfterInstructionSeen ||
+      autoCommitScheduledRef.current
     ) {
       return;
     }
 
+    autoCommitScheduledRef.current = true;
     queueMicrotask(() => {
-      if (entryCommittedRef.current) {
-        return;
-      }
       executeInstructionAction('start');
     });
   }, [
@@ -95,6 +110,7 @@ export function useTestEntryOrchestrator({
     executeInstructionAction,
     instructionSeen,
     redirecting,
+    runPhase,
     runtimeReady
   ]);
 

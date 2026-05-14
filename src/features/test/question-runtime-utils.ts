@@ -1,5 +1,10 @@
 import type {LandingIngressRecord, PendingLandingTransition} from '@/features/transition/store';
 import type {ResolvedQuestion} from '@/features/test/question-bank';
+import type {ActiveRun} from '@/features/test/storage';
+
+type ResponseSet = Record<string, 'A' | 'B'>;
+
+const CANONICAL_INDEX_KEY_PATTERN = /^[1-9]\d*$/;
 
 export interface QuestionRuntimeState {
   ready: boolean;
@@ -8,10 +13,13 @@ export interface QuestionRuntimeState {
   answers: Record<string, 'A' | 'B'>;
 }
 
+export type QuestionBootstrapEntryMode = 'new' | 'resume';
+
 export interface QuestionBootstrapState {
   runtimeState: QuestionRuntimeState;
   pendingTransitionToComplete: string | null;
   instructionSeen: boolean;
+  entryMode: QuestionBootstrapEntryMode;
 }
 
 export interface ScoringProgress {
@@ -55,13 +63,68 @@ export function resolveInitialQuestionIndex(input: {
 export function resolveInitialAnswers(input: {
   landingIngress: LandingIngressRecord | null;
   questions: ReadonlyArray<ResolvedQuestion>;
-}): Record<string, 'A' | 'B'> {
+}): ResponseSet {
   if (!input.landingIngress) {
     return {};
   }
 
   const firstScoringQuestion = findFirstScoringQuestion(input.questions);
   return firstScoringQuestion ? {[String(firstScoringQuestion.canonicalIndex)]: input.landingIngress.preAnswerChoice} : {};
+}
+
+function filterResponseSetForQuestions(input: {
+  questions: ReadonlyArray<ResolvedQuestion>;
+  responseSet: ResponseSet;
+}): ResponseSet | null {
+  const questionIndexes = new Set(input.questions.map((question) => question.canonicalIndex));
+  const answers: ResponseSet = {};
+
+  for (const [key, answer] of Object.entries(input.responseSet)) {
+    if (!CANONICAL_INDEX_KEY_PATTERN.test(key)) {
+      continue;
+    }
+
+    const canonicalIndex = Number(key);
+    if (!questionIndexes.has(canonicalIndex)) {
+      continue;
+    }
+
+    answers[key] = answer;
+  }
+
+  return Object.keys(answers).length > 0 ? answers : null;
+}
+
+function hasAnswerForQuestion(answers: ResponseSet, question: ResolvedQuestion): boolean {
+  return hasSemanticAnswer(answers[String(question.canonicalIndex)]);
+}
+
+function findFirstUnansweredProfileQuestion(input: {
+  questions: ReadonlyArray<ResolvedQuestion>;
+  responseSet: ResponseSet;
+}): ResolvedQuestion | null {
+  return input.questions.find((question) => question.questionType === 'profile' && !hasAnswerForQuestion(input.responseSet, question)) ?? null;
+}
+
+export function resolveResumeQuestionIndex(input: {
+  questions: ReadonlyArray<ResolvedQuestion>;
+  responseSet: ResponseSet;
+}): number | null {
+  const validAnswers = filterResponseSetForQuestions(input);
+  if (!validAnswers) {
+    return null;
+  }
+
+  const firstUnansweredProfileQuestion = findFirstUnansweredProfileQuestion({
+    questions: input.questions,
+    responseSet: validAnswers
+  });
+  if (firstUnansweredProfileQuestion) {
+    return firstUnansweredProfileQuestion.canonicalIndex;
+  }
+
+  const firstUnansweredQuestion = input.questions.find((question) => !hasAnswerForQuestion(validAnswers, question));
+  return firstUnansweredQuestion?.canonicalIndex ?? input.questions.at(-1)?.canonicalIndex ?? null;
 }
 
 export function hasSemanticAnswer(answer: 'A' | 'B' | undefined): answer is 'A' | 'B' {
@@ -84,10 +147,12 @@ export function resolveScoringProgress(input: {
 }
 
 export function resolveQuestionBootstrapState(input: {
+  activeRun?: ActiveRun | null;
   instructionSeen: boolean;
   landingIngress: LandingIngressRecord | null;
   pendingTransition: PendingLandingTransition | null;
   questions: ReadonlyArray<ResolvedQuestion>;
+  responseSet?: ResponseSet | null;
   variant: string;
 }): QuestionBootstrapState {
   const matchingPendingTransition =
@@ -97,21 +162,48 @@ export function resolveQuestionBootstrapState(input: {
       ? input.pendingTransition
       : null;
   const landingIngressFlag = input.landingIngress !== null;
+  const resumeAnswers =
+    !landingIngressFlag && input.activeRun && input.responseSet
+      ? filterResponseSetForQuestions({
+          questions: input.questions,
+          responseSet: input.responseSet
+        })
+      : null;
+  const resumeQuestionIndex = resumeAnswers
+    ? resolveResumeQuestionIndex({
+        questions: input.questions,
+        responseSet: resumeAnswers
+      })
+    : null;
+  const resumeMissingProfilePrerequisite =
+    resumeAnswers && resumeQuestionIndex !== null
+      ? findFirstUnansweredProfileQuestion({
+          questions: input.questions,
+          responseSet: resumeAnswers
+        }) !== null
+      : false;
+  const answers =
+    resumeAnswers && resumeQuestionIndex !== null
+      ? resumeAnswers
+      : resolveInitialAnswers({
+          landingIngress: input.landingIngress,
+          questions: input.questions
+        });
 
   return {
     runtimeState: {
       ready: true,
       landingIngressFlag,
-      currentQuestionIndex: resolveInitialQuestionIndex({
-        landingIngressFlag,
-        questions: input.questions
-      }),
-      answers: resolveInitialAnswers({
-        landingIngress: input.landingIngress,
-        questions: input.questions
-      })
+      currentQuestionIndex:
+        resumeQuestionIndex ??
+        resolveInitialQuestionIndex({
+          landingIngressFlag,
+          questions: input.questions
+        }),
+      answers
     },
     pendingTransitionToComplete: matchingPendingTransition?.transitionId ?? null,
-    instructionSeen: input.instructionSeen
+    instructionSeen: resumeMissingProfilePrerequisite ? false : input.instructionSeen,
+    entryMode: resumeAnswers && resumeQuestionIndex !== null ? 'resume' : 'new'
   };
 }

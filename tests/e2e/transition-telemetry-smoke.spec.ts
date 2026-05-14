@@ -342,7 +342,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBeNull();
   });
 
-  test('@smoke assertion:B6-transition-ingress test route re-entry without ingress falls back to Q1 after start consumes ingress', async ({
+  test('@smoke assertion:B6-transition-ingress test route re-entry without ingress resumes active run after start consumes ingress', async ({
     page
   }) => {
     await page.addInitScript((storageKey) => {
@@ -367,7 +367,8 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.goto('/en');
     await page.goto(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-progress')).toHaveText('0%');
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q2');
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
   });
 
   test('@smoke assertion:B9-opted-out-no-send missing consent blocks client telemetry network sends', async ({page}) => {

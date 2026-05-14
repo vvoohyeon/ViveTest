@@ -62,13 +62,14 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const questions = useMemo(() => buildVariantQuestionBank(variant, locale), [locale, variant]);
   const slideDirectionRef = useRef<SlideDirection>('forward');
   const autoAdvanceTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const [entryCommittedForController, setEntryCommittedForController] = useState(false);
   const [slideDirection, setSlideDirection] = useState<SlideDirection>('forward');
   const prefersReducedMotion = useReducedMotion();
 
   const {
     runtimeReady,
+    runPhase,
     landingIngressFlag,
+    instructionSeen,
     currentQuestionIndex,
     started,
     submitted,
@@ -79,11 +80,12 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     totalQuestions,
     answers,
     pendingTransitionId,
+    dispatchRunAction,
     clearPendingTransitionId,
     updateAnswer,
     moveQuestion,
     handleSubmit
-  } = useTestRunController({variant, locale, pathname, questions, entryCommitted: entryCommittedForController});
+  } = useTestRunController({variant, locale, pathname, questions});
   const submittedRef = useRef(submitted);
 
   const clearAutoAdvanceTimer = useCallback(() => {
@@ -156,25 +158,18 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
 
   const isBooting = !runtimeReady || !consentSnapshot.synced;
 
-  const {instructionSeen, entryCommitted, redirecting, executeInstructionAction} =
-    useTestEntryOrchestrator({variant, landingPath, runtimeReady, landingIngressFlag, entryPolicy, router});
-
-  useEffect(() => {
-    if (!entryCommitted) {
-      return;
-    }
-
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) {
-        setEntryCommittedForController(true);
-      }
+  const {entryCommitted, redirecting, executeInstructionAction} =
+    useTestEntryOrchestrator({
+      variant,
+      landingPath,
+      runtimeReady,
+      landingIngressFlag,
+      instructionSeen,
+      runPhase,
+      entryPolicy,
+      router,
+      dispatchRunAction
     });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [entryCommitted]);
 
   const instructionVisible =
     !isBooting &&
@@ -188,6 +183,10 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const scoringProgressPercentText = t('progressValue', {percent: scoringProgress.percent});
   const isProgressLabelClamped = scoringProgress.percent >= 85;
   const isLastQuestion = currentQuestionIndex >= totalQuestions;
+  const currentScoringQuestionOrdinal =
+    currentQuestion?.questionType === 'scoring'
+      ? questions.filter((question) => question.questionType === 'scoring' && question.canonicalIndex <= currentQuestion.canonicalIndex).length
+      : null;
   const answerGridInitialX = prefersReducedMotion ? 0 : slideDirection === 'forward' ? 18 : -18;
 
   function handleAnswerChoice(choice: 'A' | 'B') {
@@ -214,7 +213,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
 
         slideDirectionRef.current = 'forward';
         setSlideDirection('forward');
-        moveQuestion(1);
+        moveQuestion(1, choice);
       }, 150) as unknown
     ) as ReturnType<typeof window.setTimeout>;
   }
@@ -319,9 +318,9 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
             aria-hidden={instructionVisible ? 'true' : undefined}
             data-testid="test-question-panel"
           >
-            {currentQuestion ? (
+            {currentQuestion && currentScoringQuestionOrdinal !== null ? (
               <p className={testQuestionNumberClassName} data-testid="test-question-number">
-                Q{currentQuestion.canonicalIndex}
+                Q{currentScoringQuestionOrdinal}
               </p>
             ) : null}
             <h2 className="m-0">{currentQuestion?.question}</h2>

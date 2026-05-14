@@ -3,21 +3,21 @@ import {StrictMode} from 'react';
 import {act, renderHook} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {useTestEntryOrchestrator} from '../../src/features/test/use-test-entry-orchestrator';
 import type {TestEntryPolicy} from '../../src/features/test/entry-policy';
+import type {TestRunAction, TestRunPhase} from '../../src/features/test/test-run-reducer';
+import {useTestEntryOrchestrator} from '../../src/features/test/use-test-entry-orchestrator';
 
 vi.mock('../../src/features/telemetry/consent-source', () => ({
   setTelemetryConsentState: vi.fn()
 }));
 
 vi.mock('../../src/features/transition/store', () => ({
-  hasSeenInstruction: vi.fn(() => false),
   markInstructionSeen: vi.fn(),
   clearLandingIngress: vi.fn()
 }));
 
 import {setTelemetryConsentState} from '../../src/features/telemetry/consent-source';
-import {clearLandingIngress, hasSeenInstruction, markInstructionSeen} from '../../src/features/transition/store';
+import {clearLandingIngress, markInstructionSeen} from '../../src/features/transition/store';
 
 const ACTION_EFFECTS = {
   start: {writesConsent: null, redirectHome: false, commitsRuntimeEntry: true, recordsInstructionSeen: true},
@@ -57,18 +57,20 @@ function makeInput(overrides: Partial<{
   runtimeReady: boolean;
   landingIngressFlag: boolean;
   instructionSeen: boolean;
+  runPhase: TestRunPhase;
   entryPolicy: TestEntryPolicy;
+  dispatchRunAction: (action: TestRunAction) => void;
 }> = {}) {
-  if (overrides.instructionSeen !== undefined) {
-    vi.mocked(hasSeenInstruction).mockReturnValue(overrides.instructionSeen);
-  }
   return {
     variant: 'qmbti',
     landingPath: '/en',
     runtimeReady: overrides.runtimeReady ?? true,
     landingIngressFlag: overrides.landingIngressFlag ?? false,
+    instructionSeen: overrides.instructionSeen ?? false,
+    runPhase: overrides.runPhase ?? 'instruction',
     entryPolicy: overrides.entryPolicy ?? makePlainStartPolicy(),
-    router: mockRouter
+    router: mockRouter,
+    dispatchRunAction: overrides.dispatchRunAction ?? vi.fn()
   };
 }
 
@@ -81,7 +83,6 @@ async function flushMicrotasks() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(hasSeenInstruction).mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -89,165 +90,135 @@ afterEach(() => {
 });
 
 describe('useTestEntryOrchestrator', () => {
-  describe('T-E1: Auto-commit fires when instructionSeen=true and canAutoCommit=true and runtimeReady=true', () => {
-    it('sets entryCommitted=true without manual executeInstructionAction call', async () => {
-      const {result} = renderHook(() =>
-        useTestEntryOrchestrator(makeInput({instructionSeen: true, entryPolicy: makePlainStartPolicy()}))
-      );
-      await flushMicrotasks();
+  it('auto-commits once when instructionSeen=true and policy allows it', async () => {
+    const dispatchRunAction = vi.fn();
+    renderHook(() =>
+      useTestEntryOrchestrator(makeInput({instructionSeen: true, dispatchRunAction}))
+    );
+    await flushMicrotasks();
 
-      expect(result.current.entryCommitted).toBe(true);
-    });
+    expect(dispatchRunAction).toHaveBeenCalledTimes(1);
+    expect(dispatchRunAction).toHaveBeenCalledWith({type: 'COMMIT_ENTRY', recordsInstructionSeen: true});
   });
 
-  describe('T-E2: Auto-commit does NOT fire when canAutoCommitAfterInstructionSeen=false', () => {
-    it('does not set entryCommitted even when instructionSeen=true', async () => {
-      const {result} = renderHook(() =>
-        useTestEntryOrchestrator(makeInput({instructionSeen: true, entryPolicy: makeConsentPolicy()}))
-      );
-      await flushMicrotasks();
+  it('does not auto-commit when the policy disallows it', async () => {
+    const dispatchRunAction = vi.fn();
+    renderHook(() =>
+      useTestEntryOrchestrator(
+        makeInput({instructionSeen: true, entryPolicy: makeConsentPolicy(), dispatchRunAction})
+      )
+    );
+    await flushMicrotasks();
 
-      expect(result.current.entryCommitted).toBe(false);
-    });
+    expect(dispatchRunAction).not.toHaveBeenCalled();
   });
 
-  describe('T-E3: Auto-commit is idempotent under Strict Mode double-invoke', () => {
-    it('sets entryCommitted=true exactly once and does not double-call markInstructionSeen', async () => {
-      const {result} = renderHook(
-        () => useTestEntryOrchestrator(makeInput({instructionSeen: true, entryPolicy: makePlainStartPolicy()})),
-        {wrapper: StrictMode}
-      );
-      await flushMicrotasks();
+  it('keeps auto-commit idempotent under Strict Mode double invoke', async () => {
+    const dispatchRunAction = vi.fn();
+    renderHook(
+      () => useTestEntryOrchestrator(makeInput({instructionSeen: true, dispatchRunAction})),
+      {wrapper: StrictMode}
+    );
+    await flushMicrotasks();
 
-      expect(result.current.entryCommitted).toBe(true);
-      // instructionSeen=true on init means recordsInstructionSeen guard skips markInstructionSeen.
-      // The idempotency ref prevents any double state mutation on the commit path.
-      expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
-    });
+    expect(dispatchRunAction).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
   });
 
-  describe('T-E4: deny_and_abandon action', () => {
-    it('calls clearLandingIngress, navigates home, does not commit entry', async () => {
-      const {result} = renderHook(() =>
-        useTestEntryOrchestrator(makeInput({landingIngressFlag: true}))
-      );
-      await flushMicrotasks();
+  it('redirect action requests redirect phase, clears landing ingress, and navigates home', async () => {
+    const dispatchRunAction = vi.fn();
+    const {result} = renderHook(() =>
+      useTestEntryOrchestrator(makeInput({landingIngressFlag: true, dispatchRunAction}))
+    );
+    await flushMicrotasks();
 
-      act(() => {
-        result.current.executeInstructionAction('deny_and_abandon');
-      });
-
-      expect(vi.mocked(clearLandingIngress)).toHaveBeenCalledWith('qmbti');
-      expect(mockRouter.replace).toHaveBeenCalledWith('/en');
-      expect(result.current.entryCommitted).toBe(false);
-      expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
+    act(() => {
+      result.current.executeInstructionAction('deny_and_abandon');
     });
+
+    expect(dispatchRunAction).toHaveBeenCalledWith({type: 'REDIRECT_HOME'});
+    expect(vi.mocked(clearLandingIngress)).toHaveBeenCalledWith('qmbti');
+    expect(mockRouter.replace).toHaveBeenCalledWith('/en');
+    expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
   });
 
-  describe('T-E5: keep_current_preference action', () => {
-    it('calls router.replace, does not commit entry or call markInstructionSeen', async () => {
-      const {result} = renderHook(() =>
-        useTestEntryOrchestrator(makeInput({landingIngressFlag: false}))
-      );
-      await flushMicrotasks();
+  it('keep_current_preference redirects home without clearing non-ingress state', async () => {
+    const dispatchRunAction = vi.fn();
+    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput({dispatchRunAction})));
+    await flushMicrotasks();
 
-      act(() => {
-        result.current.executeInstructionAction('keep_current_preference');
-      });
-
-      expect(mockRouter.replace).toHaveBeenCalledWith('/en');
-      expect(result.current.entryCommitted).toBe(false);
-      expect(vi.mocked(clearLandingIngress)).not.toHaveBeenCalled();
-      expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
+    act(() => {
+      result.current.executeInstructionAction('keep_current_preference');
     });
+
+    expect(dispatchRunAction).toHaveBeenCalledWith({type: 'REDIRECT_HOME'});
+    expect(mockRouter.replace).toHaveBeenCalledWith('/en');
+    expect(vi.mocked(clearLandingIngress)).not.toHaveBeenCalled();
+    expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
   });
 
-  describe('T-E6: start action', () => {
-    it('calls markInstructionSeen, sets entryCommitted=true, does not navigate', async () => {
-      const {result} = renderHook(() => useTestEntryOrchestrator(makeInput()));
-      await flushMicrotasks();
+  it('start action marks instruction seen and requests commit entry', async () => {
+    const dispatchRunAction = vi.fn();
+    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput({dispatchRunAction})));
+    await flushMicrotasks();
 
-      act(() => {
-        result.current.executeInstructionAction('start');
-      });
-
-      expect(vi.mocked(markInstructionSeen)).toHaveBeenCalledWith('qmbti');
-      expect(result.current.entryCommitted).toBe(true);
-      expect(mockRouter.replace).not.toHaveBeenCalled();
+    act(() => {
+      result.current.executeInstructionAction('start');
     });
+
+    expect(vi.mocked(markInstructionSeen)).toHaveBeenCalledWith('qmbti');
+    expect(dispatchRunAction).toHaveBeenCalledWith({type: 'COMMIT_ENTRY', recordsInstructionSeen: true});
+    expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
-  describe('T-E7: accept_all_and_start action', () => {
-    it('calls setTelemetryConsentState(OPTED_IN), markInstructionSeen, sets entryCommitted=true', async () => {
-      const {result} = renderHook(() => useTestEntryOrchestrator(makeInput()));
-      await flushMicrotasks();
+  it('consent-bearing start actions write consent and request commit entry', async () => {
+    const dispatchRunAction = vi.fn();
+    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput({dispatchRunAction})));
+    await flushMicrotasks();
 
-      act(() => {
-        result.current.executeInstructionAction('accept_all_and_start');
-      });
-
-      expect(vi.mocked(setTelemetryConsentState)).toHaveBeenCalledWith('OPTED_IN');
-      expect(vi.mocked(markInstructionSeen)).toHaveBeenCalledWith('qmbti');
-      expect(result.current.entryCommitted).toBe(true);
+    act(() => {
+      result.current.executeInstructionAction('accept_all_and_start');
     });
+    act(() => {
+      result.current.executeInstructionAction('deny_and_start');
+    });
+
+    expect(vi.mocked(setTelemetryConsentState)).toHaveBeenCalledWith('OPTED_IN');
+    expect(vi.mocked(setTelemetryConsentState)).toHaveBeenCalledWith('OPTED_OUT');
+    expect(vi.mocked(markInstructionSeen)).toHaveBeenCalledTimes(2);
+    expect(dispatchRunAction).toHaveBeenCalledWith({type: 'COMMIT_ENTRY', recordsInstructionSeen: true});
   });
 
-  describe('T-E8: deny_and_start action', () => {
-    it('calls setTelemetryConsentState(OPTED_OUT), markInstructionSeen, sets entryCommitted=true', async () => {
-      const {result} = renderHook(() => useTestEntryOrchestrator(makeInput()));
-      await flushMicrotasks();
+  it('does nothing when runtime is not ready', async () => {
+    const dispatchRunAction = vi.fn();
+    const {result} = renderHook(() =>
+      useTestEntryOrchestrator(makeInput({runtimeReady: false, dispatchRunAction}))
+    );
+    await flushMicrotasks();
 
-      act(() => {
-        result.current.executeInstructionAction('deny_and_start');
-      });
-
-      expect(vi.mocked(setTelemetryConsentState)).toHaveBeenCalledWith('OPTED_OUT');
-      expect(vi.mocked(markInstructionSeen)).toHaveBeenCalledWith('qmbti');
-      expect(result.current.entryCommitted).toBe(true);
+    act(() => {
+      result.current.executeInstructionAction('start');
     });
+
+    expect(dispatchRunAction).not.toHaveBeenCalled();
+    expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
-  describe('T-E9: runtimeReady=false guard', () => {
-    it('does nothing when runtimeReady is false', async () => {
-      const {result} = renderHook(() =>
-        useTestEntryOrchestrator(makeInput({runtimeReady: false}))
-      );
-      await flushMicrotasks();
+  it('does nothing after reducer phase is redirecting', async () => {
+    const dispatchRunAction = vi.fn();
+    const {result} = renderHook(() =>
+      useTestEntryOrchestrator(makeInput({runPhase: 'redirecting', dispatchRunAction}))
+    );
+    await flushMicrotasks();
 
-      act(() => {
-        result.current.executeInstructionAction('start');
-      });
-
-      expect(result.current.entryCommitted).toBe(false);
-      expect(result.current.redirecting).toBe(false);
-      expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
-      expect(mockRouter.replace).not.toHaveBeenCalled();
+    act(() => {
+      result.current.executeInstructionAction('start');
     });
-  });
 
-  describe('T-E10: redirecting=true guard', () => {
-    it('does nothing on any subsequent action once redirecting is true', async () => {
-      const {result} = renderHook(() =>
-        useTestEntryOrchestrator(makeInput({landingIngressFlag: false}))
-      );
-      await flushMicrotasks();
-
-      // First action sets redirecting=true
-      act(() => {
-        result.current.executeInstructionAction('keep_current_preference');
-      });
-      expect(result.current.redirecting).toBe(true);
-
-      vi.clearAllMocks();
-
-      // Subsequent action must be a no-op
-      act(() => {
-        result.current.executeInstructionAction('start');
-      });
-
-      expect(result.current.entryCommitted).toBe(false);
-      expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
-      expect(mockRouter.replace).not.toHaveBeenCalled();
-    });
+    expect(result.current.redirecting).toBe(true);
+    expect(dispatchRunAction).not.toHaveBeenCalled();
+    expect(vi.mocked(markInstructionSeen)).not.toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 });

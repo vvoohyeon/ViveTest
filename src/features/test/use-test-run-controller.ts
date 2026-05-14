@@ -1,35 +1,48 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useReducer, useRef, useState, type Dispatch} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {trackAttemptStart, trackFinalSubmit} from '@/features/telemetry/runtime';
 import {terminatePendingLandingTransition} from '@/features/transition/runtime';
 import {
+  clearInstructionSeen,
   consumeLandingIngress,
   hasSeenInstruction,
   readLandingIngress,
   readPendingLandingTransition
 } from '@/features/transition/store';
+import {asVariantId} from '@/features/test/domain';
 import type {ResolvedQuestion} from '@/features/test/question-bank';
-import {writeResponseSet} from '@/features/test/storage/response-set';
+import {getActiveRun, saveActiveRun, writeLastAnsweredAt} from '@/features/test/storage/active-run';
+import {readResponseSet, writeResponseSet} from '@/features/test/storage/response-set';
 import {
-  buildInitialRuntimeState,
   resolveQuestionBootstrapState,
   resolveScoringProgress,
-  type QuestionRuntimeState,
+  type QuestionBootstrapState,
   type ScoringProgress
 } from '@/features/test/question-runtime-utils';
+import {
+  hasAllRequiredAnswers,
+  isRuntimeActive,
+  isRuntimeSubmitted,
+  testRunReducer,
+  buildInitialTestRunState,
+  type SemanticAnswer,
+  type TestRunAction,
+  type TestRunPhase
+} from '@/features/test/test-run-reducer';
 
 interface TestRunControllerInput {
   variant: string;
   locale: AppLocale;
   pathname: string;
   questions: ReadonlyArray<ResolvedQuestion>;
-  entryCommitted: boolean;
 }
 
 interface TestRunControllerOutput {
   runtimeReady: boolean;
+  runPhase: TestRunPhase;
   landingIngressFlag: boolean;
+  instructionSeen: boolean;
   currentQuestionIndex: number;
   started: boolean;
   submitted: boolean;
@@ -40,9 +53,10 @@ interface TestRunControllerOutput {
   totalQuestions: number;
   answers: Record<string, 'A' | 'B'>;
   pendingTransitionId: string | null;
+  dispatchRunAction: Dispatch<TestRunAction>;
   clearPendingTransitionId: () => void;
-  updateAnswer: (choice: 'A' | 'B') => void;
-  moveQuestion: (direction: -1 | 1) => void;
+  updateAnswer: (choice: SemanticAnswer) => void;
+  moveQuestion: (direction: -1 | 1, choiceOverride?: SemanticAnswer) => void;
   handleSubmit: () => void;
 }
 
@@ -50,24 +64,31 @@ export function useTestRunController({
   variant,
   locale,
   pathname,
-  questions,
-  entryCommitted
+  questions
 }: TestRunControllerInput): TestRunControllerOutput {
-  const [runtimeState, setRuntimeState] = useState<QuestionRuntimeState>(buildInitialRuntimeState);
-  const [started, setStarted] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [runState, dispatchRunAction] = useReducer(testRunReducer, buildInitialTestRunState());
+  const variantId = asVariantId(variant);
 
   const dwellStartRef = useRef<number | null>(null);
   const dwellByQuestionRef = useRef<Record<string, number>>({});
-  const attemptStartedRef = useRef(false);
-  const bootstrapRuntimeStateRef = useRef<QuestionRuntimeState | null>(null);
+  const processedEntrySequenceRef = useRef(0);
+  const bootstrapStateRef = useRef<QuestionBootstrapState | null>(null);
   const pendingTransitionIdRef = useRef<string | null>(null);
   const [pendingTransitionId, setPendingTransitionId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (bootstrapRuntimeStateRef.current) {
+    if (bootstrapStateRef.current) {
+      const cachedBootstrapState = bootstrapStateRef.current;
       queueMicrotask(() => {
-        setRuntimeState(bootstrapRuntimeStateRef.current ?? buildInitialRuntimeState());
+        dispatchRunAction({
+          type: 'BOOTSTRAP_COMPLETE',
+          instructionSeen: cachedBootstrapState.instructionSeen,
+          landingIngressFlag: cachedBootstrapState.runtimeState.landingIngressFlag,
+          currentQuestionIndex: cachedBootstrapState.runtimeState.currentQuestionIndex,
+          answers: cachedBootstrapState.runtimeState.answers,
+          autoCommitEntry: cachedBootstrapState.entryMode === 'resume' && cachedBootstrapState.instructionSeen,
+          entryMode: cachedBootstrapState.entryMode
+        });
         setPendingTransitionId(pendingTransitionIdRef.current);
       });
       return;
@@ -83,56 +104,95 @@ export function useTestRunController({
 
     const nextPendingTransition = readPendingLandingTransition();
     const landingIngress = readLandingIngress(variant);
+    const activeRun = landingIngress ? null : getActiveRun(variantId);
+    const responseSet = activeRun ? readResponseSet(variant) : null;
     const nextInstructionSeen = hasSeenInstruction(variant);
     const bootstrapState = resolveQuestionBootstrapState({
+      activeRun,
       instructionSeen: nextInstructionSeen,
       landingIngress,
       pendingTransition: nextPendingTransition,
       questions,
+      responseSet,
       variant
     });
 
+    if (nextInstructionSeen && !bootstrapState.instructionSeen) {
+      clearInstructionSeen(variant);
+    }
+
     pendingTransitionIdRef.current = bootstrapState.pendingTransitionToComplete;
-    bootstrapRuntimeStateRef.current = bootstrapState.runtimeState;
+    bootstrapStateRef.current = bootstrapState;
     queueMicrotask(() => {
-      setRuntimeState(bootstrapState.runtimeState);
+      dispatchRunAction({
+        type: 'BOOTSTRAP_COMPLETE',
+        instructionSeen: bootstrapState.instructionSeen,
+        landingIngressFlag: bootstrapState.runtimeState.landingIngressFlag,
+        currentQuestionIndex: bootstrapState.runtimeState.currentQuestionIndex,
+        answers: bootstrapState.runtimeState.answers,
+        autoCommitEntry: bootstrapState.entryMode === 'resume' && bootstrapState.instructionSeen,
+        entryMode: bootstrapState.entryMode
+      });
       setPendingTransitionId(bootstrapState.pendingTransitionToComplete);
     });
-  }, [locale, pathname, questions, variant]);
+  }, [locale, pathname, questions, variant, variantId]);
 
   useEffect(() => {
-    if (!runtimeState.ready || !entryCommitted || attemptStartedRef.current) {
+    if (runState.phase !== 'active' || runState.entrySequence <= processedEntrySequenceRef.current) {
       return;
     }
 
-    attemptStartedRef.current = true;
-    trackAttemptStart({
-      locale,
-      route: pathname,
-      variant,
-      questionIndex: runtimeState.currentQuestionIndex,
-      dwellMsAccumulated: 0,
-      landingIngressFlag: runtimeState.landingIngressFlag
-    });
-    queueMicrotask(() => {
-      setStarted(true);
-    });
-    dwellStartRef.current = Date.now();
+    processedEntrySequenceRef.current = runState.entrySequence;
 
-    if (runtimeState.landingIngressFlag) {
-      consumeLandingIngress(variant);
+    if (runState.entryMode === 'new') {
+      trackAttemptStart({
+        locale,
+        route: pathname,
+        variant,
+        questionIndex: runState.currentQuestionIndex,
+        dwellMsAccumulated: 0,
+        landingIngressFlag: runState.landingIngressFlag
+      });
+
+      if (runState.landingIngressFlag) {
+        consumeLandingIngress(variant);
+      }
+
+      const now = Date.now();
+      saveActiveRun(variantId, {
+        variantId,
+        startedAtMs: now,
+        lastAnsweredAtMs: now
+      });
+
+      if (Object.keys(runState.entryAnswersSnapshot).length > 0) {
+        writeResponseSet(variant, runState.entryAnswersSnapshot);
+      } else {
+        writeResponseSet(variant, {});
+      }
     }
-  }, [entryCommitted, locale, pathname, runtimeState.currentQuestionIndex, runtimeState.landingIngressFlag, runtimeState.ready, variant]);
+
+    dwellStartRef.current = Date.now();
+  }, [
+    locale,
+    pathname,
+    runState.currentQuestionIndex,
+    runState.entryMode,
+    runState.entryAnswersSnapshot,
+    runState.entrySequence,
+    runState.landingIngressFlag,
+    runState.phase,
+    variant,
+    variantId
+  ]);
 
   const totalQuestions = questions.length;
-  const currentQuestion = questions[runtimeState.currentQuestionIndex - 1] ?? questions[0] ?? null;
-  const scoringProgress = resolveScoringProgress({questions, answers: runtimeState.answers});
-  const currentAnswer = currentQuestion ? runtimeState.answers[String(currentQuestion.canonicalIndex)] : undefined;
-  const allAnswered = questions.every(
-    (question) =>
-      runtimeState.answers[String(question.canonicalIndex)] === 'A' ||
-      runtimeState.answers[String(question.canonicalIndex)] === 'B'
-  );
+  const currentQuestion = questions[runState.currentQuestionIndex - 1] ?? questions[0] ?? null;
+  const scoringProgress = resolveScoringProgress({questions, answers: runState.answers});
+  const currentAnswer = currentQuestion ? runState.answers[String(currentQuestion.canonicalIndex)] : undefined;
+  const allAnswered = hasAllRequiredAnswers(runState.answers, totalQuestions);
+  const started = isRuntimeActive(runState) || isRuntimeSubmitted(runState);
+  const submitted = isRuntimeSubmitted(runState);
 
   const settleCurrentQuestionDwell = () => {
     if (!currentQuestion || dwellStartRef.current === null) {
@@ -144,64 +204,85 @@ export function useTestRunController({
     dwellStartRef.current = Date.now();
   };
 
-  const updateAnswer = (choice: 'A' | 'B') => {
-    if (!currentQuestion || submitted) {
+  const updateAnswer = (choice: SemanticAnswer) => {
+    if (!currentQuestion || !isRuntimeActive(runState)) {
       return;
     }
 
     const canonicalKey = String(currentQuestion.canonicalIndex);
-    const newAnswers = {...runtimeState.answers, [canonicalKey]: choice};
-    setRuntimeState((previous) => ({
-      ...previous,
-      answers: {...previous.answers, [canonicalKey]: choice}
-    }));
-    // write-only storage: read path (readResponseSet, getActiveRun) is Phase 4/5 scope
+    const newAnswers = {...runState.answers, [canonicalKey]: choice};
+    dispatchRunAction({
+      type: 'SELECT_ANSWER',
+      canonicalIndex: currentQuestion.canonicalIndex,
+      choice,
+      totalQuestions
+    });
     writeResponseSet(variant, newAnswers);
+    writeLastAnsweredAt(variantId);
   };
 
-  const moveQuestion = (direction: -1 | 1) => {
-    if (!started || !currentQuestion) {
+  const moveQuestion = (direction: -1 | 1, choiceOverride?: SemanticAnswer) => {
+    if (!isRuntimeActive(runState) || !currentQuestion) {
       return;
     }
 
     settleCurrentQuestionDwell();
-    setRuntimeState((previous) => {
-      const nextIndex = Math.min(
-        totalQuestions,
-        Math.max(1, previous.currentQuestionIndex + direction)
-      );
 
-      if (direction === -1) {
-        const filteredAnswers = Object.fromEntries(
-          Object.entries(previous.answers).filter(
-            ([key]) => Number(key) < nextIndex
-          )
-        ) as Record<string, 'A' | 'B'>;
-        return {...previous, currentQuestionIndex: nextIndex, answers: filteredAnswers};
-      }
+    if (direction === -1) {
+      const nextIndex = Math.max(1, runState.currentQuestionIndex - 1);
+      const filteredAnswers = Object.fromEntries(
+        Object.entries(runState.answers).filter(([key]) => Number(key) < nextIndex)
+      ) as Record<string, SemanticAnswer>;
+      dispatchRunAction({type: 'NAVIGATE_PREVIOUS'});
+      writeResponseSet(variant, filteredAnswers);
+      return;
+    }
 
-      return {...previous, currentQuestionIndex: nextIndex};
+    const answerToAdvance = choiceOverride ?? currentAnswer;
+
+    if (answerToAdvance !== 'A' && answerToAdvance !== 'B') {
+      return;
+    }
+
+    const answersAfterAdvance = {
+      ...runState.answers,
+      [String(currentQuestion.canonicalIndex)]: answerToAdvance
+    };
+    const nextUnansweredQuestion = questions
+      .slice(runState.currentQuestionIndex)
+      .find((question) => {
+        const answer = answersAfterAdvance[String(question.canonicalIndex)];
+        return answer !== 'A' && answer !== 'B';
+      });
+
+    dispatchRunAction({
+      type: 'SELECT_ANSWER',
+      canonicalIndex: currentQuestion.canonicalIndex,
+      choice: answerToAdvance,
+      totalQuestions,
+      advance: true,
+      nextQuestionIndex: nextUnansweredQuestion?.canonicalIndex
     });
   };
 
   const handleSubmit = () => {
-    if (!started || !allAnswered) {
+    if (!isRuntimeActive(runState) || !allAnswered) {
       return;
     }
 
     settleCurrentQuestionDwell();
     const dwellMsAccumulated = Object.values(dwellByQuestionRef.current).reduce((sum, value) => sum + value, 0);
-    const finalResponses = {...runtimeState.answers};
+    const finalResponses = {...runState.answers};
     trackFinalSubmit({
       locale,
       route: pathname,
       variant,
       questionIndex: totalQuestions,
       dwellMsAccumulated,
-      landingIngressFlag: runtimeState.landingIngressFlag,
+      landingIngressFlag: runState.landingIngressFlag,
       finalResponses
     });
-    setSubmitted(true);
+    dispatchRunAction({type: 'SUBMIT', totalQuestions});
   };
 
   const clearPendingTransitionId = useCallback(() => {
@@ -210,9 +291,11 @@ export function useTestRunController({
   }, []);
 
   return {
-    runtimeReady: runtimeState.ready,
-    landingIngressFlag: runtimeState.landingIngressFlag,
-    currentQuestionIndex: runtimeState.currentQuestionIndex,
+    runtimeReady: runState.phase !== 'booting',
+    runPhase: runState.phase,
+    landingIngressFlag: runState.landingIngressFlag,
+    instructionSeen: runState.instructionSeen,
+    currentQuestionIndex: runState.currentQuestionIndex,
     started,
     submitted,
     currentQuestion,
@@ -220,8 +303,9 @@ export function useTestRunController({
     allAnswered,
     scoringProgress,
     totalQuestions,
-    answers: runtimeState.answers,
+    answers: runState.answers,
     pendingTransitionId,
+    dispatchRunAction,
     clearPendingTransitionId,
     updateAnswer,
     moveQuestion,

@@ -19,10 +19,10 @@ Phase 0 착수 이전에 요구되었던 랜딩 측 선행 구현은 완료되�
 | **0** | 착수 전 ADR 확정 (Phase 1 착수 차단 조건) | ADR-A: `src/features/test` 분리 + `test-question-client.tsx` clean-room ADR 확정. ADR-B: Storage Key 네이밍 + 5개 상태 플래그 계약 + variant-scope 격리 전략. ADR-E: Representative variant 범위 + QA baseline 정비 + `qa:gate:once` GREEN 복구 | — |
 | **1** | Domain Foundation | 타입 정의, schema-driven 도출 모델, pure 함수 | **0** |
 | **2** | Data Source & Sync Layer | variant-registry 인터페이스, cross-source 검증, lazy validation + 캐싱. 현재 code/fixture/generated sync 경계는 구현됨. Results Sheets 실 loader는 Results source 준비 시 확장 | 1 |
-| **3** | Storage · Session Lifecycle · Data Volatility | storage key API, active run timeout 판정, 5개 상태 플래그, 3가지 휘발 트리거 단위 구현 완료. live runtime resume 연결은 Phase 5/6 남은 작업 | 1, 2 |
+| **3** | Storage · Session Lifecycle · Data Volatility | storage key API, active run timeout 판정, 5개 상태 플래그, 3가지 휘발 트리거 단위 구현 완료. live runtime active-run 생성/갱신과 resume read 경로도 Phase 5/6 사전 설계 결정으로 연결됨 | 1, 2 |
 | **4** | Entry Path · Staged Entry · Invalid Variant Recovery | test route entry guard, runtime-blocked redirect, lazy-validation redirect, stub error route는 구현됨. 7분 만료/완성형 recovery UX/공유 픽스처 확장은 남음 | 1, 2, 3 |
-| **5** | Instruction Gate · Runtime Entry Commit | instruction overlay와 `useTestEntryOrchestrator` 기반 commit/redirect/auto-commit 경로는 구현됨. **Phase 5/6 사전 설계 결정 섹션 참조**: entry phase 상태(`instructionSeen`, `entryCommitted`)를 Phase 통합 reducer로 흡수하는 작업은 아직 미완료이며 다음 확장 전 선행 필요 | 1, 2, 3, 4 |
-| **6** | Question Runtime Core | `useTestRunController` 기반 응답 루프, canonical-index keyed write, scoring progress, auto-advance, backward tail reset, placeholder submit/result는 구현됨. result-entry eligibility 저장/derivation 연결과 active-run resume read 경로는 남음 | 1, 2, 3, 4, 5 |
+| **5** | Instruction Gate · Runtime Entry Commit | instruction overlay와 `useTestEntryOrchestrator` 기반 commit/redirect/auto-commit 경로 구현. **Phase 5/6 사전 설계 결정 섹션 참조**: entry/runtime phase 상태는 `test-run-reducer.ts`로 통합되었고 orchestrator는 reducer-aware adapter로 유지됨 | 1, 2, 3, 4 |
+| **6** | Question Runtime Core | `useTestRunController` 기반 응답 루프, canonical-index keyed write/read, active-run resume, scoring progress, auto-advance, backward tail reset, placeholder submit/result는 구현됨. result-entry eligibility 저장/derivation 연결은 남음 | 1, 2, 3, 4, 5 |
 | **7** | Derivation · Loading Screen | scoreStats/derivedType 계산, 5초 최소 로딩 AND 조건, back-from-loading | 1, 2, 3, 6 |
 | **8** | Result URL Payload · Validation | URL 구조, base64 인코딩, payload 검증 실패 경로 | 1 |
 | **9** | Result Page · Content Fallback | 케이스 매트릭스(1/2/4), mandatory/optional 섹션, content fallback | 7, 8 |
@@ -138,7 +138,7 @@ Phase 2는 Phase 1의 `VariantSchema`를 registry 계약의 기반 타입으로 
 
 ## Part 5 — Phase 3 구현 현황 (Storage · Session Lifecycle · Data Volatility)
 
-> Phase 3 storage API와 단위 검증은 구현되어 있다. 다만 live question runtime이 active-run을 생성/갱신하고 bootstrap에서 resume를 읽는 연결은 아직 남아 있다.
+> Phase 3 storage API와 단위 검증은 구현되어 있다. live question runtime active-run 생성/갱신과 bootstrap resume read 연결은 SD-2에서 구현 완료되었다.
 
 ### 목적
 
@@ -159,14 +159,14 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 | 산출물 | 현재 상태 |
 |---|---|
 | `getActiveRun(variantId)` | 구현 완료. `src/features/test/storage/active-run.ts`가 localStorage의 active run metadata를 읽고 30분 경과 시 `volatilizeRunData(variantId, 'inactivity')` 후 `null`을 반환한다. 현재 `ActiveRun`은 `variantId`, `startedAtMs`, `lastAnsweredAtMs`만 가진 metadata record이며, responses는 별도 `test:{variant}:responses` key에 저장된다. |
-| `saveActiveRun()` / `writeLastAnsweredAt()` / `clearActiveRun()` | API 구현 완료. 단, `useTestRunController`가 아직 active run metadata를 생성/갱신하지 않는다. live resume 연결 시점에 호출 경로를 추가해야 한다. |
-| `responseSet` write | `src/features/test/storage/response-set.ts`의 `writeResponseSet()` 구현 완료. `useTestRunController.updateAnswer()`가 canonical index string key(`"1"`, `"2"`)로 write한다. read helper와 bootstrap 소비는 아직 없다. |
+| `saveActiveRun()` / `writeLastAnsweredAt()` / `clearActiveRun()` | API 구현 완료. `useTestRunController`가 새 runtime entry에서 active run metadata를 생성하고, confirmed answer마다 `lastAnsweredAtMs`를 갱신한다. |
+| `responseSet` write/read | `src/features/test/storage/response-set.ts`의 `writeResponseSet()` / `readResponseSet()` 구현 완료. `useTestRunController.updateAnswer()`가 canonical index string key(`"1"`, `"2"`)로 write하고, active-run resume bootstrap은 filtered response set만 소비한다. |
 | `StateFlags` 읽기/쓰기 인터페이스 | 구현 완료. `STATE_FLAG_NAMES` 5종과 `getFlag()` / `setFlag()` / `clearAllFlags()`가 독립 flag 접근을 제공한다. |
 | `volatilizeRunData(variantId, trigger)` | 구현 완료. 세 트리거(`result_entry_committed`, `inactivity`, `restart`) 모두 activeRun, responseSet, 5개 state flag, legacy `instructionSeen` session key를 삭제한다. |
 | timeout fixture 테스트 | 구현 완료. 30분 경과 → timeout + cleanup, 29분 59초 → active run 유지, variant-scoped 보존을 단위 테스트가 검증한다. |
 | cleanup set 원자성 검증 기준 | Phase 3 unit proof는 구현 완료(`assertion:B17-cleanup-set-zero-residue-unit`). Phase 10에서 user-flow E2E로 승격해야 한다. |
 
-**Phase 3 설계 제약 및 Phase 4 전제**: `VariantId` brand type이 storage key prefix로 사용되므로 Phase 1의 타입 정의 강도가 Phase 3 격리 구현을 타입 수준에서 강제한다. 현재 Phase 4는 `validateVariant` 실패 시 session 생성 없이 §6.1 이동 가능한 route guard와 storage API의 단위 계약을 전제할 수 있다. 단, Direct Resume은 아직 live bootstrap에 연결되지 않았으므로 `active run 유무를 runtime에서 신뢰 가능`하다고 해석하면 안 된다. Direct Resume 착수는 SD-2를 먼저 구현해야 한다.
+**Phase 3 설계 제약 및 Phase 4 전제**: `VariantId` brand type이 storage key prefix로 사용되므로 Phase 1의 타입 정의 강도가 Phase 3 격리 구현을 타입 수준에서 강제한다. 현재 Phase 4는 `validateVariant` 실패 시 session 생성 없이 §6.1 이동 가능한 route guard와 storage API의 단위 계약을 전제할 수 있다. Direct Resume은 SD-2 구현 이후 live bootstrap에서 유효 active run과 response set이 함께 있을 때만 적용된다.
 
 ---
 
@@ -184,15 +184,15 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 
 **Migration 계획**:
 - Phase 3에서는 legacy key(`vivetest-test-instruction-seen:{variant}`)를 그대로 사용한다.
-- Phase 5 (Instruction Gate 구현) 시점에 새 key로 직접 구현. migration overhead 없음 (새 key를 처음부터 사용).
-- 현재 코드(2026-05-13)는 Phase 5 instruction overlay/entry orchestrator 일부를 구현했지만, `instructionSeen` storage는 여전히 legacy key를 사용한다. `test:{variant}:instructionSeen` 전환은 Phase 통합 reducer 작업과 함께 재확인한다.
+- Phase 5/SD-1 reducer 적용 후에도 live key는 legacy sessionStorage key로 유지한다.
+- `test:{variant}:instructionSeen` 전환은 별도 storage-key migration 범위로 남긴다. 현재 구현은 `markInstructionSeen()` / `hasSeenInstruction()` / `clearInstructionSeen()`를 통해 legacy key를 일관되게 관리한다.
 
 **instructionSeen 삭제 정책 확인**:
 - `req-test.md §6.8`이 단일 SSOT. 세 트리거 모두 포함 삭제.
 - Phase 3 `volatilizeRunData()` 구현 시 분기 없이 세 트리거 동일 처리.
 
 - [x] `instructionSeen` legacy key가 ADR-B prefix 외부로 명시적 선언됨
-- [x] Phase 3 이후 사용할 new key topology 확정 (`test:{variant}:instructionSeen`)
+- [x] future storage-key migration target 확정 (`test:{variant}:instructionSeen`, 현재 live key는 legacy 유지)
 - [x] `volatilizeRunData()` 구현 기준: §6.8 SSOT, 세 트리거 모두 포함 삭제
 - [x] ADR-B key 그룹핑 구조와 충돌 없음 확인됨 — Phase 4 착수 허용
 
@@ -220,21 +220,20 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 
 ### Phase 5/6 사전 설계 결정 (현재 구조 개선 이후 확장)
 
-> **구현 착수 강제 조건**: 현재 코드가 이미 Phase 5/6 일부를 선행 구현했으므로, 앞으로 남은 Phase 5/6/7 동작을 추가하기 전 SD-1을 먼저 구현해야 한다. Phase 6 Question Runtime Core를 resume까지 확장하기 전에는 SD-2도 먼저 구현해야 한다. 이 섹션을 "나중에 하기"로 미루고 기존 client 구조 위에 instruction gate, resume, derivation 경로를 추가하는 것은 금지한다.
-> 이 섹션은 test-flow 구조 개선(run controller 추출, entry orchestrator 분리, canonical index 전환, tail reset 확정)에서 **의도적으로 제외된 두 가지 설계 결정**을 기록한다. 현재 코드에는 `useTestRunController`와 `useTestEntryOrchestrator`가 들어와 있으나, Phase 통합 reducer와 active-run resume read 경로는 아직 없다. 따라서 Phase 5/6/7의 새 동작을 더 얹기 전에 아래 두 확장을 먼저 처리한다.
+> **구현 상태**: SD-1 Phase 통합 reducer와 SD-2 Active-Run Resume 로드/저장 경로는 2026-05-14 구현 완료. 이 섹션은 test-flow 구조 개선(run controller 추출, entry orchestrator 분리, canonical index 전환, tail reset 확정) 이후 적용된 두 가지 설계 결정을 기록한다.
+> 남은 Phase 7/10 확장(score derivation, result-entry cleanup, terminal cleanup state)은 이 reducer/resume 경계를 전제로 진행한다.
 
 #### SD-1. Phase 통합 Reducer (Phase 5 착수 시점 적용)
 
-> **남은 Phase 5/6/7 확장 blocking 조건**: 이 설계를 적용하지 않고 instruction gate, resume, derivation/loading 경로를 더 확장하면 안 된다. Phase 통합 Reducer를 도입하고 기존 `entryCommitted`/`instructionSeen` 분산 `useState`를 제거한다.
+> **구현 완료**: Phase 통합 Reducer를 도입했고 기존 `entryCommitted`/`instructionSeen` 분산 phase authority를 제거했다. `useTestEntryOrchestrator`는 삭제하지 않고 reducer-aware adapter로 유지한다.
 
-**현재 구조 (구조 개선 완료 후 상태):**
-- `useTestRunController`가 `currentQuestionIndex`, `answers`, `started`, `submitted`, progress, pending transition completion, `attempt_start`/`final_submit` hook을 소유한다.
-- `useTestEntryOrchestrator`가 `instructionSeen`, `entryCommitted`, `redirecting`, CTA action side effect를 소유한다.
-- `test-question-client.tsx`에는 controller bridge state(`entryCommittedForController`)와 answer auto-advance timer가 남아 있다.
-- 이 분리는 현재 구조 개선 단계의 안전한 관찰 가능 동작 유지 원칙에 따른 의도적 결정이다.
-- 아직 Phase 통합 reducer가 아니므로, 새 Phase 동작을 기존 hook state 위에 추가하면 entry/runtime/submitted 상태 전이가 더 분산된다.
+**현재 구조 (SD-1 적용 후 상태):**
+- `src/features/test/test-run-reducer.ts`가 `booting | instruction | active | submitted | redirecting` phase, canonical answers, current index, entry sequence, new/resume entry mode, tail reset, submit guard를 소유한다.
+- `useTestRunController`가 reducer instance, bootstrap, progress, pending transition completion, dwell tracking, response persistence, `attempt_start`/`final_submit` hook을 소유한다.
+- `useTestEntryOrchestrator`가 CTA action 해석, consent write, `markInstructionSeen`, redirect-home side effect, auto-commit scheduling을 소유하되 독립 phase `useState`는 갖지 않는다.
+- `test-question-client.tsx`의 `entryCommittedForController` bridge state는 제거되었다. answer auto-advance timer는 UI wiring으로 남고, 지연 advance는 클릭 시점의 choice를 캡처한다.
 
-**다음 확장에서 적용할 Phase 통합 Reducer 설계:**
+**적용된 Phase 통합 Reducer 설계:**
 
 run reducer의 최상위 discriminant로 `phase` 필드를 도입해 전체 흐름을 단일 reducer에서 추적 가능하게 만든다.
 
@@ -266,31 +265,32 @@ interface TestRunState {
 | `NAVIGATE_PREVIOUS` | `active` (내부) | currentIndex - 1, answers를 index - 1 이하로 슬라이스 (tail reset) |
 | `SUBMIT` | `active → submitted` | `allAnswered` 전제 조건 검사는 reducer 내부에서 guard |
 
-**Side effect 조율 원칙 (다음 확장 시 준수):**
+**Side effect 조율 원칙 (적용 기준):**
 - reducer는 순수 함수다. `markInstructionSeen(variant)`, `trackAttemptStart(...)`, `consumeLandingIngress(variant)`, `volatilizeRunData(...)` 등 모든 side effect는 phase 전환 action dispatch 이후 client의 `useEffect`에서 실행한다.
 - `phase` 필드를 dependency로 사용해 각 side effect가 정확히 한 번 실행되도록 보장한다. `useRef` flag(예: `attemptStartedRef`) 패턴은 이 구조로 자연스럽게 대체된다.
 - consent 상태(`consentSnapshot`)는 reducer 외부에서 `BOOTSTRAP_COMPLETE` action payload로 주입한다. reducer가 `useTelemetryConsentSource()`를 직접 소비하지 않는다.
 
-**테스트 전략 (다음 확장):**
+**검증 전략:**
 - reducer를 순수 함수로 추출했으므로 action 시퀀스 단위 unit test가 가능하다.
 - `BOOTSTRAP_COMPLETE → COMMIT_ENTRY → SELECT_ANSWER(×n) → NAVIGATE_PREVIOUS → SELECT_ANSWER → SUBMIT` 전체 흐름을 단일 reducer test로 단언한다.
 - phase 전환 guard(예: `submitted` phase에서 `SELECT_ANSWER` 무시)를 각 action별로 unit test한다.
 
-#### SD-2. Active-Run Resume 로드 경로 (남은 Phase 6 확장 전 적용)
+#### SD-2. Active-Run Resume 로드 경로 (Phase 6 확장 전 적용 완료)
 
-> **남은 Phase 6 확장 blocking 조건**: active-run resume 로드 경로는 `resolveQuestionBootstrapState()` 확장 또는 동등한 bootstrap boundary에서 구현한다. Phase 6 Question Runtime Core를 resume까지 확장하기 전에 이 경로가 없으면 `getActiveRun()` write/read 계약이 불완전한 상태로 Phase 6이 진행된다.
+> **구현 완료**: active-run resume 로드 경로는 `resolveQuestionBootstrapState()` 확장과 `useTestRunController` bootstrap wiring으로 구현했다.
 
-**현재 구조 (구조 개선 완료 후 상태):**
-- `test:{variant}:responses`에 canonical index keyed answers를 run 도중 write하는 경로는 구현되어 있다.
-- `test:{variant}:activeRun` key와 `saveActiveRun()` / `getActiveRun()` API는 구현되어 있으나 live runtime write 경로는 아직 없다.
-- `resolveQuestionBootstrapState()`는 현재 active-run 입력을 받지 않는다. resume 로드 경로(read)는 이 함수에서 처리되지 않는 상태로 남는다.
+**현재 구조 (SD-2 적용 후 상태):**
+- `test:{variant}:responses`에 canonical index keyed answers를 run 도중 write하고, `readResponseSet()`이 positive integer canonical key와 `A | B` semantic value만 읽는다.
+- `test:{variant}:activeRun` key와 `saveActiveRun()` / `getActiveRun()` / `writeLastAnsweredAt()` API가 live runtime에 연결되었다.
+- `useTestRunController`는 Landing Ingress가 없을 때만 `getActiveRun()`을 읽고, active run이 유효할 때만 `readResponseSet()`을 읽는다. 새 runtime entry는 stale responseSet을 상속하지 않도록 빈 응답이더라도 fresh responseSet을 초기화한다.
+- `resolveQuestionBootstrapState()`는 storage를 직접 읽지 않고 caller가 전달한 `activeRun` / `responseSet` 입력으로 resume 여부를 판정한다.
 
-**다음 확장에서 적용할 Resume 로드 경로 설계:**
+**적용된 Resume 로드 경로 설계:**
 
 `resolveQuestionBootstrapState()`를 확장하거나 대체해 active-run resume를 지원한다.
 
 ```typescript
-// 다음 확장 후 bootstrap 입력 추가 항목
+// 적용 후 bootstrap 입력 추가 항목
 interface QuestionBootstrapInput {
   // 기존 항목 유지
   instructionSeen: boolean;
@@ -300,26 +300,25 @@ interface QuestionBootstrapInput {
   variant: string;
   // 신규 항목
   activeRun: ActiveRunRecord | null; // getActiveRun(variant) 결과. null = timeout 또는 없음
+  responseSet: Record<string, 'A' | 'B'> | null; // readResponseSet(variant) 결과. null = missing/malformed/empty
 }
 ```
 
 진입 경로 우선순위 (bootstrap 시 결정):
 
 1. **Landing Ingress 진입** (`landingIngress !== null`): 기존 로직 유지. `scoring1` seed + skip 첫 scoring question.
-2. **Active-Run Resume** (`activeRun !== null && landingIngress === null`): active run metadata와 canonical response set을 함께 읽어 초기 answers로 로드. `currentIndex`는 마지막으로 응답한 문항의 다음 index(또는 마지막 문항 index). `instructionSeen` 기반 instruction 표시 여부는 기존 로직 유지.
+2. **Active-Run Resume** (`activeRun !== null && landingIngress === null`): active run metadata와 canonical response set을 함께 읽어 초기 answers로 로드. profile/qualifier prerequisite 미응답이 있으면 해당 canonical index로 되돌리고, 저장된 `instructionSeen`이 있더라도 신뢰하지 않고 삭제해 instruction/profile path를 다시 표시한다. prerequisite가 완료된 경우 `currentIndex`는 첫 미응답 canonical index이며 final question으로 cap한다.
 3. **Direct Cold Start** (둘 다 null): 기존 로직 유지. index 1, 빈 answers.
 
 **Phase 3 `getActiveRun()` 계약과의 연결:**
 - Phase 3 `getActiveRun(variantId)` 반환값이 null이면(timeout 또는 미존재) resume 경로는 실행하지 않는다.
 - `getActiveRun()`은 30분 timeout 판정 후 §6.8 휘발까지 책임진다. bootstrap 시점에 이미 cleanup이 완료된 상태이므로 bootstrap 코드는 판정 결과만 소비한다.
-- 현재 `ActiveRun` record에는 responses가 포함되지 않는다. resume 구현 시 `test:{variant}:responses` read helper를 추가하거나 `ActiveRun` record shape를 확장하는 선택이 필요하다. 어떤 선택이든 answers key는 canonical index string(`"1"`, `"2"`) 체계를 유지해야 한다.
+- 현재 `ActiveRun` record에는 responses가 포함되지 않는다. SD-2는 `ActiveRun` shape를 확장하지 않고 별도 `test:{variant}:responses` read/write helper를 사용한다. answers key는 canonical index string(`"1"`, `"2"`) 체계를 유지한다.
 
-**테스트 전략 (다음 확장):**
-- `resolveQuestionBootstrapState()` 단위 테스트에 resume 경로 케이스 추가:
-  - `activeRun` 존재 + `landingIngress` 없음 → resume index + 저장된 answers 로드
-  - `activeRun` 존재 + `landingIngress` 존재 → landing ingress 우선(activeRun 무시)
-  - `activeRun` null (timeout) → cold start
-- E2E: 문항 일부 응답 후 페이지 새로고침 → 마지막 문항부터 재개 시나리오.
+**검증 전략:**
+- `resolveQuestionBootstrapState()` 단위 테스트는 active-run resume, landing ingress 우선순위, sparse gap, profile prerequisite 우선순위, empty/malformed responseSet filtering을 포함한다.
+- `useTestRunController` 단위 테스트는 새 direct entry의 fresh responseSet 초기화와 resume entry의 responseSet 보존을 포함한다.
+- E2E는 active-run reload, landing ingress priority, EGTT missing profile prerequisite recovery를 `consent-smoke.spec.ts`에서 확인한다.
 
 ---
 

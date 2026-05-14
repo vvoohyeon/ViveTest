@@ -1,6 +1,6 @@
 # SD-1/SD-2 Test Run Reducer and Active-Run Resume Plan
 
-> **Status**: Pending implementation approval.
+> **Status**: Implementation completed through Unit H; post-review active-run resume edge-case fixes applied for profile prerequisites and fresh response-set initialization.
 > **Execution model**: Implement sequentially in a fresh session: SD-1 first, verify, then SD-2. Do not use parallel agents, automated multi-wave execution, or source edits outside this plan.
 > **Plan style**: This document avoids exact TypeScript definitions and line-by-line code. It records verified codebase insights, ownership boundaries, implementation direction, risk points, and validation scope so an implementer can start without broad rediscovery while retaining implementation discretion.
 
@@ -56,7 +56,7 @@ The architectural intent is not to collapse every test runtime concern into one 
 1. On new runtime entry commit, active-run metadata (`startedAtMs`, `lastAnsweredAtMs`) is written to `test:{variant}:activeRun`.
 2. On each confirmed answer, `lastAnsweredAtMs` is refreshed.
 3. On previous navigation with tail reset, the truncated response set is persisted. `lastAnsweredAtMs` is not refreshed on backward navigation.
-4. On page reload or direct re-entry with an unexpired active run and a non-null response set, the run resumes at the next unanswered canonical index with the stored answers preloaded. Instruction overlay shows if instruction has not been seen; it does not show if instruction has been seen, regardless of phase.
+4. On page reload or direct re-entry with an unexpired active run and a non-null response set, the run resumes with the stored answers preloaded. Missing profile/qualifier prerequisites take priority and force the instruction/profile path even if stale `instructionSeen` says true; otherwise resume uses the first unanswered canonical index, capped at the final question.
 5. **Landing Ingress takes priority**: if landing ingress is present, skip active-run resume even when an active run and response set both exist.
 6. `getActiveRun()` owns the 30-min timeout and `volatilizeRunData` cleanup. Bootstrap reads its return value only.
 7. Active-run resume does NOT re-emit `attempt_start`.
@@ -220,7 +220,7 @@ No file in this list is deleted. `use-test-entry-orchestrator.ts` and its test f
 | Keep `use-test-entry-orchestrator.ts` | Yes. Refactor into reducer-aware adapter. | No; this revision records the decision. |
 | Reducer placement | `useTestRunController` owns the reducer instance by default. | No, unless implementation discovers a hard hook-order problem. |
 | Auto-commit modeling | Orchestrator-driven: after bootstrap resolves to instruction phase, orchestrator observes `instructionSeen`, `entryPolicy.canAutoCommitAfterInstructionSeen`, and runtime readiness, then dispatches commit-entry. This avoids making the controller depend on consent/entry-policy details. | No, if behavior remains unchanged. |
-| Resume index semantics | `docs/req-test.md §3.3` says resume position is the last answered question; `docs/req-test-plan.md SD-2` says initial index is the next unanswered question or last question. These are not identical. | **Yes before SD-2 Unit F implementation.** |
+| Resume index semantics | **Confirmed 2026-05-14 for Unit F and post-review edge fix:** Active-Run Resume prioritizes missing profile/qualifier prerequisites before scoring resume, then uses the first unanswered canonical index capped at the final question. `docs/req-test.md §3.3` is treated as older/broader wording for this path. | No. |
 | ActiveRun record shape | Prefer preserving metadata-only `ActiveRun` and reading answers from `test:{variant}:responses`. | No, unless implementer wants to expand `ActiveRun` shape. |
 | `instructionSeen` key migration | Out of scope. Keep legacy behavior. | Yes if anyone proposes migration during SD-1/SD-2. |
 
@@ -412,7 +412,7 @@ Extend `resolveQuestionBootstrapState()` or an equivalent pure bootstrap helper.
 Priority order:
 
 1. **Landing Ingress** (`landingIngress !== null`): existing landing-ingress seeding logic wins. `activeRun` and `responseSet` inputs are ignored entirely.
-2. **Active-Run Resume** (`landingIngress === null && activeRun != null && responseSet != null`): restore unfinished progress. Validate stored response keys against the current question bank; stale or unknown keys must not corrupt runtime state. Compute resume index per the confirmed interpretation of the resume-index decision (§9, pending user confirmation before this unit executes).
+2. **Active-Run Resume** (`landingIngress === null && activeRun != null && responseSet != null`): restore unfinished progress. Validate stored response keys against the current question bank; stale or unknown keys must not corrupt runtime state. If any profile/qualifier prerequisite is unanswered, resume to that prerequisite and clear untrustworthy `instructionSeen`. Otherwise resume at the first unanswered canonical index, capped at the final question. If no valid stored answer key remains after filtering, fall back to Direct Cold.
 3. **Direct Cold** (all other cases): existing cold-start logic unchanged.
 
 Bootstrap must preserve current landing behavior: landing ingress seeds the first scoring answer from `preAnswerChoice`, starts at the correct initial position per existing logic, and must not inherit any prior active-run response set.

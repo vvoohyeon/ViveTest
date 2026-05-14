@@ -140,6 +140,11 @@ export function markInstructionSeen(variant: string): void {
   storage?.setItem(variantSessionKeys.instructionSeen(variant), 'true');
 }
 
+export function clearInstructionSeen(variant: string): void {
+  const storage = getSessionStorage();
+  storage?.removeItem(variantSessionKeys.instructionSeen(variant));
+}
+
 export function hasSeenInstruction(variant: string): boolean {
   const storage = getSessionStorage();
   return storage?.getItem(variantSessionKeys.instructionSeen(variant)) === 'true';

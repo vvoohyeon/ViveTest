@@ -9,6 +9,7 @@ const requiredFiles = [
   transition.hook,
   'src/features/landing/landing-runtime.tsx',
   test.questionClient,
+  test.runReducer,
   blog.destinationClient,
   landing.grid.mobileCardLifecycle,
   landing.grid.gridCardCss,
@@ -57,6 +58,24 @@ if (fileExists(test.entryOrchestrator)) {
   }
   if (!/clearLandingIngress/u.test(orchestratorFile)) {
     fail('Entry orchestrator must call clearLandingIngress on redirect actions.');
+  }
+}
+
+if (fileExists(test.runReducer)) {
+  const reducerFile = read(test.runReducer);
+  const requiredActionTypes = [
+    'BOOTSTRAP_COMPLETE',
+    'COMMIT_ENTRY',
+    'REDIRECT_HOME',
+    'SELECT_ANSWER',
+    'NAVIGATE_PREVIOUS',
+    'SUBMIT'
+  ];
+
+  for (const actionType of requiredActionTypes) {
+    if (!reducerFile.includes(actionType)) {
+      fail(`Test run reducer must include ${actionType} action support.`);
+    }
   }
 }
 
