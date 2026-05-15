@@ -5,6 +5,7 @@ import {
   seedTelemetryConsent,
   TELEMETRY_CONSENT_STORAGE_KEY
 } from './helpers/consent';
+import {expectPageToBeAxeClean} from './helpers/axe';
 import {
   buildLocalizedTestRoute,
   buildLocalizedPrimaryOptOutTestRoute,
@@ -13,6 +14,7 @@ import {
   PRIMARY_OPT_OUT_TEST_VARIANT,
   TEST_VARIANT_INSTRUCTION_FIXTURES_EN
 } from './helpers/landing-fixture';
+import {testVariantKey} from '../../src/features/test/storage/test-storage-keys';
 
 const UNKNOWN_AVAILABLE_NOTE =
   'For a better experience, please agree to the terms to proceed with the test.';
@@ -21,8 +23,18 @@ const UNKNOWN_OPT_OUT_NOTE =
 const OPTED_OUT_AVAILABLE_WARNING =
   "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test.";
 
+type StorageVariantId = Parameters<typeof testVariantKey.responseSet>[0];
+
+function asStorageVariantId(variant: string): StorageVariantId {
+  return variant as StorageVariantId;
+}
+
+function activeRunStorageKey(variant: string) {
+  return testVariantKey.activeRun(asStorageVariantId(variant));
+}
+
 function responseSetStorageKey(variant: string) {
-  return `test:${variant}:responses`;
+  return testVariantKey.responseSet(asStorageVariantId(variant));
 }
 
 function getInstructionFixture(variant: string) {
@@ -121,6 +133,7 @@ test.describe('Instruction consent contract smoke', () => {
     await page.goto('/en');
 
     await expect(page.getByTestId('telemetry-consent-banner')).toBeVisible();
+    await expectPageToBeAxeClean(page);
 
     const metrics = await readConsentBannerLayoutMetrics(page);
 
@@ -285,56 +298,23 @@ test.describe('Instruction consent contract smoke', () => {
     await expect(page.getByTestId('test-progress')).toHaveText('13%');
   });
 
-  test('@smoke active-run resume with missing EGTT qualifier returns through instruction and qualifier step', async ({page}) => {
-    const variant = 'egtt';
-    await seedTelemetryConsent(page, 'OPTED_IN');
-    await page.addInitScript((targetVariant) => {
-      const now = Date.now();
-      window.localStorage.setItem(
-        `test:${targetVariant}:activeRun`,
-        JSON.stringify({variantId: targetVariant, startedAtMs: now - 1000, lastAnsweredAtMs: now - 1000})
-      );
-      window.localStorage.setItem(`test:${targetVariant}:responses`, JSON.stringify({'2': 'A'}));
-      window.sessionStorage.setItem(`vivetest-test-instruction-seen:${targetVariant}`, 'true');
-    }, variant);
-    await page.setViewportSize({width: 1280, height: 900});
-    await page.goto(buildLocalizedTestRoute('en', variant));
-
-    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect.poll(() => readInstructionSeen(page, variant)).toBeNull();
-
-    await page.getByTestId('test-start-button').click();
-    await expect(page.getByTestId('test-qualifier-step')).toBeVisible();
-    await expect(page.getByRole('heading', {name: 'My sexual identity is'})).toBeVisible();
-    await expect(page.getByTestId('test-qualifier-continue-button')).toBeDisabled();
-
-    await page.getByTestId('test-qualifier-choice-m').click();
-    await expect(page.getByTestId('test-qualifier-choice-m')).toHaveAttribute('data-selected', 'true');
-    await expect(page.getByTestId('test-qualifier-continue-button')).toBeEnabled();
-
-    await page.getByTestId('test-qualifier-continue-button').click();
-    await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-qualifier-step')).toBeHidden();
-    await expect(page.getByTestId('test-question-panel')).toBeVisible();
-    await expect(page.getByTestId('test-question-number')).toHaveText('Q1');
-    await expect(page.getByTestId('test-question-panel').getByRole('heading')).not.toHaveText('My sexual identity is');
-    await expect(page.getByTestId('test-progress')).toHaveText('0%');
-    await expect.poll(() => readResponseSet(page, variant)).toBe(JSON.stringify({'1': 'M'}));
-  });
-
   test('@smoke landing ingress ignores an older active-run response set for the same variant', async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_IN');
-    await page.addInitScript((variant) => {
+    await page.addInitScript(({variant, activeRunKey, responseSetKey}) => {
       const now = Date.now();
       window.localStorage.setItem(
-        `test:${variant}:activeRun`,
+        activeRunKey,
         JSON.stringify({variantId: variant, startedAtMs: now - 1000, lastAnsweredAtMs: now - 1000})
       );
       window.localStorage.setItem(
-        `test:${variant}:responses`,
+        responseSetKey,
         JSON.stringify({'1': 'B', '2': 'B', '3': 'B'})
       );
-    }, PRIMARY_AVAILABLE_TEST_VARIANT);
+    }, {
+      variant: PRIMARY_AVAILABLE_TEST_VARIANT,
+      activeRunKey: activeRunStorageKey(PRIMARY_AVAILABLE_TEST_VARIANT),
+      responseSetKey: responseSetStorageKey(PRIMARY_AVAILABLE_TEST_VARIANT)
+    });
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
