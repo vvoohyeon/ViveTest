@@ -285,7 +285,7 @@ test.describe('Instruction consent contract smoke', () => {
     await expect(page.getByTestId('test-progress')).toHaveText('13%');
   });
 
-  test('@smoke active-run resume with missing EGTT profile returns through instruction and profile prerequisite', async ({page}) => {
+  test('@smoke active-run resume with missing EGTT qualifier returns through instruction and qualifier step', async ({page}) => {
     const variant = 'egtt';
     await seedTelemetryConsent(page, 'OPTED_IN');
     await page.addInitScript((targetVariant) => {
@@ -304,14 +304,22 @@ test.describe('Instruction consent contract smoke', () => {
     await expect.poll(() => readInstructionSeen(page, variant)).toBeNull();
 
     await page.getByTestId('test-start-button').click();
-    await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
+    await expect(page.getByTestId('test-qualifier-step')).toBeVisible();
     await expect(page.getByRole('heading', {name: 'My sexual identity is'})).toBeVisible();
-    await expect(page.getByTestId('test-question-number')).toHaveCount(0);
+    await expect(page.getByTestId('test-qualifier-continue-button')).toBeDisabled();
 
-    await page.getByTestId('test-choice-b').click();
-    await expect(page.getByTestId('test-question-number')).toHaveText('Q2');
-    await expect(page.getByTestId('test-progress')).toHaveText('33%');
-    await expect.poll(() => readResponseSet(page, variant)).toBe(JSON.stringify({'1': 'B', '2': 'A'}));
+    await page.getByTestId('test-qualifier-choice-m').click();
+    await expect(page.getByTestId('test-qualifier-choice-m')).toHaveAttribute('data-selected', 'true');
+    await expect(page.getByTestId('test-qualifier-continue-button')).toBeEnabled();
+
+    await page.getByTestId('test-qualifier-continue-button').click();
+    await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
+    await expect(page.getByTestId('test-qualifier-step')).toBeHidden();
+    await expect(page.getByTestId('test-question-panel')).toBeVisible();
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q1');
+    await expect(page.getByTestId('test-question-panel').getByRole('heading')).not.toHaveText('My sexual identity is');
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
+    await expect.poll(() => readResponseSet(page, variant)).toBe(JSON.stringify({'1': 'M'}));
   });
 
   test('@smoke landing ingress ignores an older active-run response set for the same variant', async ({page}) => {

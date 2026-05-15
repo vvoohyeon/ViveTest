@@ -12,6 +12,8 @@ import {completePendingLandingTransition} from '@/features/transition/runtime';
 import {resolveTestEntryPolicy} from '@/features/test/entry-policy';
 import {InstructionOverlay} from '@/features/test/instruction-overlay';
 import {buildVariantQuestionBank} from '@/features/test/question-bank';
+import {buildQualifierOverlayModel, type QualifierOverlayItem} from './qualifier-overlay-model';
+import {getSchemaForVariant} from './schema-registry';
 import type {LandingTestCard} from '@/features/variant-registry';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
@@ -60,6 +62,13 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const variant = card.variant;
   const landingPath = useMemo(() => buildLocalizedPath(RouteBuilder.landing(), locale), [locale]);
   const questions = useMemo(() => buildVariantQuestionBank(variant, locale), [locale, variant]);
+  const qualifierItems = useMemo((): QualifierOverlayItem[] => {
+    const schema = getSchemaForVariant(variant);
+    if (!schema?.qualifierFields?.length) {
+      return [];
+    }
+    return buildQualifierOverlayModel(schema.qualifierFields, questions);
+  }, [variant, questions]);
   const slideDirectionRef = useRef<SlideDirection>('forward');
   const autoAdvanceTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [slideDirection, setSlideDirection] = useState<SlideDirection>('forward');
@@ -85,7 +94,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     updateAnswer,
     moveQuestion,
     handleSubmit
-  } = useTestRunController({variant, locale, pathname, questions});
+  } = useTestRunController({variant, locale, pathname, questions, qualifierItems});
   const submittedRef = useRef(submitted);
 
   const clearAutoAdvanceTimer = useCallback(() => {
@@ -158,7 +167,15 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
 
   const isBooting = !runtimeReady || !consentSnapshot.synced;
 
-  const {entryCommitted, redirecting, executeInstructionAction} =
+  const {
+    entryCommitted,
+    redirecting,
+    overlayStep,
+    qualifierDraft,
+    executeInstructionAction,
+    onQualifierSelect,
+    onQualifierBack
+  } =
     useTestEntryOrchestrator({
       variant,
       landingPath,
@@ -167,6 +184,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
       instructionSeen,
       runPhase,
       entryPolicy,
+      qualifierItems,
       router,
       dispatchRunAction
     });
@@ -175,7 +193,12 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     !isBooting &&
     !entryCommitted &&
     !redirecting &&
-    (!instructionSeen || !entryPolicy.canAutoCommitAfterInstructionSeen);
+    (
+      overlayStep !== 'instruction' ||
+      !instructionSeen ||
+      !entryPolicy.canAutoCommitAfterInstructionSeen ||
+      qualifierItems.length > 0
+    );
 
   const primaryButton = entryPolicy.cta.primary;
   const secondaryButton = entryPolicy.cta.secondary;
@@ -188,6 +211,9 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
       ? questions.filter((question) => question.questionType === 'scoring' && question.canonicalIndex <= currentQuestion.canonicalIndex).length
       : null;
   const answerGridInitialX = prefersReducedMotion ? 0 : slideDirection === 'forward' ? 18 : -18;
+  const currentQualifierStepIndex = typeof overlayStep === 'number' ? overlayStep : null;
+  const currentQualifierItem =
+    currentQualifierStepIndex !== null ? qualifierItems[currentQualifierStepIndex] : undefined;
 
   function handleAnswerChoice(choice: 'A' | 'B') {
     if (!currentQuestion || submitted) {
@@ -296,7 +322,11 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               instructionText={entryPolicy.content.instructionText}
               consentNote={instructionNote}
               showDivider={entryPolicy.content.showDivider}
-              primaryLabel={t(primaryButton.labelKey)}
+              primaryLabel={
+                overlayStep === 'instruction' && qualifierItems.length > 0
+                  ? t('next')
+                  : t(primaryButton.labelKey)
+              }
               secondaryLabel={secondaryButton ? t(secondaryButton.labelKey) : undefined}
               onPrimaryAction={() => {
                 executeInstructionAction(primaryButton.action);
@@ -310,6 +340,21 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               }
               primaryTestId={primaryButton.testId}
               secondaryTestId={secondaryButton?.testId}
+              qualifierStep={
+                currentQualifierItem
+                  ? {
+                      item: currentQualifierItem,
+                      selectedToken: qualifierDraft[currentQualifierItem.canonicalIndex] ?? null,
+                      onSelect: (token) => {
+                        onQualifierSelect(currentQualifierItem.canonicalIndex, token);
+                      },
+                      onBack: onQualifierBack,
+                      continueLabel: (currentQualifierStepIndex ?? 0) < qualifierItems.length - 1 ? t('next') : t('start'),
+                      continueDisabled: !qualifierDraft[currentQualifierItem.canonicalIndex],
+                      showBack: true
+                    }
+                  : undefined
+              }
             />
           ) : null}
 

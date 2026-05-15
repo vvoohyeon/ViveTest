@@ -19,7 +19,8 @@ describe('landing telemetry validation', () => {
         landing_ingress_flag: true,
         final_responses: {
           '1': 'A',
-          '12': 'B'
+          '12': 'B',
+          '13': 'M'
         }
       })
     ).not.toThrow();

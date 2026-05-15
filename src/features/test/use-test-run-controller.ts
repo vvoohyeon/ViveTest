@@ -11,10 +11,14 @@ import {
   readPendingLandingTransition
 } from '@/features/transition/store';
 import {asVariantId} from '@/features/test/domain';
+import type {QualifierOverlayItem} from '@/features/test/qualifier-overlay-model';
+import {hasValidQualifierAnswers} from '@/features/test/qualifier-resume-validator';
 import type {ResolvedQuestion} from '@/features/test/question-bank';
 import {getActiveRun, saveActiveRun, writeLastAnsweredAt} from '@/features/test/storage/active-run';
-import {readResponseSet, writeResponseSet} from '@/features/test/storage/response-set';
+import {readResponseSet, writeResponseSet, type ResponseSet} from '@/features/test/storage/response-set';
+import {volatilizeRunData} from '@/features/test/storage/volatility';
 import {
+  isProfileQuestion,
   resolveQuestionBootstrapState,
   resolveScoringProgress,
   type QuestionBootstrapState,
@@ -36,6 +40,7 @@ interface TestRunControllerInput {
   locale: AppLocale;
   pathname: string;
   questions: ReadonlyArray<ResolvedQuestion>;
+  qualifierItems?: ReadonlyArray<QualifierOverlayItem>;
 }
 
 interface TestRunControllerOutput {
@@ -51,7 +56,7 @@ interface TestRunControllerOutput {
   allAnswered: boolean;
   scoringProgress: ScoringProgress;
   totalQuestions: number;
-  answers: Record<string, 'A' | 'B'>;
+  answers: Record<string, string>;
   pendingTransitionId: string | null;
   dispatchRunAction: Dispatch<TestRunAction>;
   clearPendingTransitionId: () => void;
@@ -60,11 +65,69 @@ interface TestRunControllerOutput {
   handleSubmit: () => void;
 }
 
+const EMPTY_QUALIFIER_ITEMS: ReadonlyArray<QualifierOverlayItem> = [];
+
+function skipForwardPastProfile(
+  index: number,
+  questions: ReadonlyArray<ResolvedQuestion>
+): number {
+  let i = index;
+  while (i <= questions.length && isProfileQuestion(questions[i - 1])) {
+    i += 1;
+  }
+  return Math.min(i, questions.length);
+}
+
+function skipBackwardPastProfile(
+  index: number,
+  questions: ReadonlyArray<ResolvedQuestion>
+): number {
+  let i = index;
+  while (i > 1 && isProfileQuestion(questions[i - 1])) {
+    i -= 1;
+  }
+  return i;
+}
+
+function buildBootstrapResponseSet(
+  responseSet: ResponseSet,
+  qualifierItems: ReadonlyArray<QualifierOverlayItem>
+): Record<string, 'A' | 'B'> {
+  const qualifierIndexes = new Set(qualifierItems.map((item) => String(item.canonicalIndex)));
+  const bootstrapResponses: Record<string, 'A' | 'B'> = {};
+
+  for (const [key, value] of Object.entries(responseSet)) {
+    if (value === 'A' || value === 'B') {
+      bootstrapResponses[key] = value;
+      continue;
+    }
+
+    if (qualifierIndexes.has(key)) {
+      bootstrapResponses[key] = 'A';
+    }
+  }
+
+  return bootstrapResponses;
+}
+
+function buildSemanticAnswerMap(answers: Record<string, string>): Record<string, 'A' | 'B'> {
+  const semanticAnswers: Record<string, 'A' | 'B'> = {};
+
+  for (const [key, value] of Object.entries(answers)) {
+    if (value === 'A' || value === 'B') {
+      semanticAnswers[key] = value;
+    }
+  }
+
+  return semanticAnswers;
+}
+
 export function useTestRunController({
   variant,
   locale,
   pathname,
-  questions
+  questions,
+  qualifierItems = EMPTY_QUALIFIER_ITEMS
 }: TestRunControllerInput): TestRunControllerOutput {
   const [runState, dispatchRunAction] = useReducer(testRunReducer, buildInitialTestRunState());
   const variantId = asVariantId(variant);
@@ -106,16 +169,34 @@ export function useTestRunController({
     const landingIngress = readLandingIngress(variant);
     const activeRun = landingIngress ? null : getActiveRun(variantId);
     const responseSet = activeRun ? readResponseSet(variant) : null;
-    const nextInstructionSeen = hasSeenInstruction(variant);
+    const qualifierResumeIsValid = activeRun
+      ? hasValidQualifierAnswers(qualifierItems, responseSet ?? {})
+      : true;
+    const effectiveActiveRun = qualifierResumeIsValid ? activeRun : null;
+    const effectiveResponseSet = qualifierResumeIsValid ? responseSet : null;
+    let nextInstructionSeen = hasSeenInstruction(variant);
+
+    if (!qualifierResumeIsValid) {
+      volatilizeRunData(variantId, 'restart');
+      nextInstructionSeen = false;
+    }
+
+    const bootstrapResponseSet = effectiveResponseSet
+      ? buildBootstrapResponseSet(effectiveResponseSet, qualifierItems)
+      : null;
     const bootstrapState = resolveQuestionBootstrapState({
-      activeRun,
+      activeRun: effectiveActiveRun,
       instructionSeen: nextInstructionSeen,
       landingIngress,
       pendingTransition: nextPendingTransition,
       questions,
-      responseSet,
+      responseSet: bootstrapResponseSet,
       variant
     });
+    const bootstrapAnswers =
+      bootstrapState.entryMode === 'resume' && effectiveResponseSet
+        ? effectiveResponseSet
+        : bootstrapState.runtimeState.answers;
 
     if (nextInstructionSeen && !bootstrapState.instructionSeen) {
       clearInstructionSeen(variant);
@@ -126,16 +207,16 @@ export function useTestRunController({
     queueMicrotask(() => {
       dispatchRunAction({
         type: 'BOOTSTRAP_COMPLETE',
-        instructionSeen: bootstrapState.instructionSeen,
-        landingIngressFlag: bootstrapState.runtimeState.landingIngressFlag,
-        currentQuestionIndex: bootstrapState.runtimeState.currentQuestionIndex,
-        answers: bootstrapState.runtimeState.answers,
-        autoCommitEntry: bootstrapState.entryMode === 'resume' && bootstrapState.instructionSeen,
-        entryMode: bootstrapState.entryMode
+          instructionSeen: bootstrapState.instructionSeen,
+          landingIngressFlag: bootstrapState.runtimeState.landingIngressFlag,
+          currentQuestionIndex: bootstrapState.runtimeState.currentQuestionIndex,
+          answers: bootstrapAnswers,
+          autoCommitEntry: bootstrapState.entryMode === 'resume' && bootstrapState.instructionSeen,
+          entryMode: bootstrapState.entryMode
       });
       setPendingTransitionId(bootstrapState.pendingTransitionToComplete);
     });
-  }, [locale, pathname, questions, variant, variantId]);
+  }, [locale, pathname, qualifierItems, questions, variant, variantId]);
 
   useEffect(() => {
     if (runState.phase !== 'active' || runState.entrySequence <= processedEntrySequenceRef.current) {
@@ -145,11 +226,12 @@ export function useTestRunController({
     processedEntrySequenceRef.current = runState.entrySequence;
 
     if (runState.entryMode === 'new') {
+      const entryQuestionIndex = skipForwardPastProfile(runState.currentQuestionIndex, questions);
       trackAttemptStart({
         locale,
         route: pathname,
         variant,
-        questionIndex: runState.currentQuestionIndex,
+        questionIndex: entryQuestionIndex,
         dwellMsAccumulated: 0,
         landingIngressFlag: runState.landingIngressFlag
       });
@@ -182,14 +264,20 @@ export function useTestRunController({
     runState.entrySequence,
     runState.landingIngressFlag,
     runState.phase,
+    questions,
     variant,
     variantId
   ]);
 
   const totalQuestions = questions.length;
-  const currentQuestion = questions[runState.currentQuestionIndex - 1] ?? questions[0] ?? null;
-  const scoringProgress = resolveScoringProgress({questions, answers: runState.answers});
-  const currentAnswer = currentQuestion ? runState.answers[String(currentQuestion.canonicalIndex)] : undefined;
+  const currentQuestionIndex =
+    isRuntimeActive(runState) || isRuntimeSubmitted(runState)
+      ? skipForwardPastProfile(runState.currentQuestionIndex, questions)
+      : runState.currentQuestionIndex;
+  const currentQuestion = questions[currentQuestionIndex - 1] ?? questions[0] ?? null;
+  const scoringProgress = resolveScoringProgress({questions, answers: buildSemanticAnswerMap(runState.answers)});
+  const storedCurrentAnswer = currentQuestion ? runState.answers[String(currentQuestion.canonicalIndex)] : undefined;
+  const currentAnswer = storedCurrentAnswer === 'A' || storedCurrentAnswer === 'B' ? storedCurrentAnswer : undefined;
   const allAnswered = hasAllRequiredAnswers(runState.answers, totalQuestions);
   const started = isRuntimeActive(runState) || isRuntimeSubmitted(runState);
   const submitted = isRuntimeSubmitted(runState);
@@ -229,11 +317,15 @@ export function useTestRunController({
     settleCurrentQuestionDwell();
 
     if (direction === -1) {
-      const nextIndex = Math.max(1, runState.currentQuestionIndex - 1);
+      const nextIndex = skipBackwardPastProfile(Math.max(1, currentQuestionIndex - 1), questions);
+      if (nextIndex === currentQuestionIndex || isProfileQuestion(questions[nextIndex - 1])) {
+        return;
+      }
+
       const filteredAnswers = Object.fromEntries(
         Object.entries(runState.answers).filter(([key]) => Number(key) < nextIndex)
-      ) as Record<string, SemanticAnswer>;
-      dispatchRunAction({type: 'NAVIGATE_PREVIOUS'});
+      ) as Record<string, string>;
+      dispatchRunAction({type: 'NAVIGATE_PREVIOUS', nextQuestionIndex: nextIndex});
       writeResponseSet(variant, filteredAnswers);
       return;
     }
@@ -249,11 +341,14 @@ export function useTestRunController({
       [String(currentQuestion.canonicalIndex)]: answerToAdvance
     };
     const nextUnansweredQuestion = questions
-      .slice(runState.currentQuestionIndex)
+      .slice(currentQuestionIndex)
       .find((question) => {
         const answer = answersAfterAdvance[String(question.canonicalIndex)];
-        return answer !== 'A' && answer !== 'B';
+        return typeof answer !== 'string' || answer.length === 0;
       });
+    const nextQuestionIndex = nextUnansweredQuestion
+      ? skipForwardPastProfile(nextUnansweredQuestion.canonicalIndex, questions)
+      : skipForwardPastProfile(currentQuestionIndex + 1, questions);
 
     dispatchRunAction({
       type: 'SELECT_ANSWER',
@@ -261,7 +356,7 @@ export function useTestRunController({
       choice: answerToAdvance,
       totalQuestions,
       advance: true,
-      nextQuestionIndex: nextUnansweredQuestion?.canonicalIndex
+      nextQuestionIndex
     });
   };
 
@@ -295,7 +390,7 @@ export function useTestRunController({
     runPhase: runState.phase,
     landingIngressFlag: runState.landingIngressFlag,
     instructionSeen: runState.instructionSeen,
-    currentQuestionIndex: runState.currentQuestionIndex,
+    currentQuestionIndex,
     started,
     submitted,
     currentQuestion,

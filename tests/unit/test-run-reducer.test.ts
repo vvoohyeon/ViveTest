@@ -201,3 +201,60 @@ describe('testRunReducer', () => {
     expect(hasAllRequiredAnswers({'1': 'A'}, 2)).toBe(false);
   });
 });
+
+describe('testRunReducer COMMIT_ENTRY qualifier answers', () => {
+  it('merges qualifier tokens into state answers', () => {
+    const instruction = testRunReducer(buildInitialTestRunState(), {
+      type: 'BOOTSTRAP_COMPLETE',
+      instructionSeen: false,
+      landingIngressFlag: false,
+      currentQuestionIndex: 1,
+      answers: {}
+    });
+
+    const state = testRunReducer(instruction, {
+      type: 'COMMIT_ENTRY',
+      recordsInstructionSeen: true,
+      qualifierAnswers: {'1': 'M'}
+    });
+
+    expect(state.answers).toEqual({'1': 'M'});
+    expect(state.entryAnswersSnapshot).toEqual({'1': 'M'});
+  });
+
+  it('preserves seeded answers at different canonical indexes', () => {
+    const instruction = testRunReducer(buildInitialTestRunState(), {
+      type: 'BOOTSTRAP_COMPLETE',
+      instructionSeen: false,
+      landingIngressFlag: true,
+      currentQuestionIndex: 1,
+      answers: {'2': 'A'}
+    });
+
+    const state = testRunReducer(instruction, {
+      type: 'COMMIT_ENTRY',
+      recordsInstructionSeen: true,
+      qualifierAnswers: {'1': 'F'}
+    });
+
+    expect(state.answers).toEqual({'1': 'F', '2': 'A'});
+    expect(state.entryAnswersSnapshot).toEqual({'1': 'F', '2': 'A'});
+  });
+
+  it('keeps existing commit behavior when qualifier answers are absent', () => {
+    const instruction = testRunReducer(buildInitialTestRunState(), {
+      type: 'BOOTSTRAP_COMPLETE',
+      instructionSeen: false,
+      landingIngressFlag: true,
+      currentQuestionIndex: 2,
+      answers: {'2': 'A'}
+    });
+
+    const state = testRunReducer(instruction, {type: 'COMMIT_ENTRY', recordsInstructionSeen: true});
+
+    expect(state.phase).toBe('active');
+    expect(state.instructionSeen).toBe(true);
+    expect(state.answers).toEqual({'2': 'A'});
+    expect(state.entryAnswersSnapshot).toEqual({'2': 'A'});
+  });
+});

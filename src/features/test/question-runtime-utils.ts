@@ -207,3 +207,7 @@ export function resolveQuestionBootstrapState(input: {
     entryMode: resumeAnswers && resumeQuestionIndex !== null ? 'resume' : 'new'
   };
 }
+
+export function isProfileQuestion(q: ResolvedQuestion): boolean {
+  return q.questionType === 'profile';
+}

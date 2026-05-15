@@ -1,7 +1,7 @@
 import type {VariantId} from '@/features/test/domain';
 import {testVariantKey} from '@/features/test/storage/test-storage-keys';
 
-type ResponseSet = Record<string, 'A' | 'B'>;
+export type ResponseSet = Record<string, string>;
 
 const CANONICAL_INDEX_KEY_PATTERN = /^[1-9]\d*$/;
 
@@ -29,7 +29,7 @@ function filterResponseSet(value: Record<string, unknown>): ResponseSet | null {
       continue;
     }
 
-    if (answer !== 'A' && answer !== 'B') {
+    if (typeof answer !== 'string' || answer.length === 0) {
       continue;
     }
 

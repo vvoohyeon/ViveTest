@@ -43,7 +43,7 @@ export interface FinalSubmitTelemetryEvent extends TelemetryBaseEvent {
   question_index_1based: number;
   dwell_ms_accumulated: number;
   landing_ingress_flag: boolean;
-  final_responses: Record<string, 'A' | 'B'>;
+  final_responses: Record<string, string>;
 }
 
 export type TelemetryEvent =

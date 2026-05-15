@@ -44,9 +44,9 @@ describe('test storage response set', () => {
   it('round-trips canonical response entries with semantic values', () => {
     const variantId = asVariantId('qmbti');
 
-    writeResponseSet(variantId, {'1': 'A', '2': 'B'});
+    writeResponseSet(variantId, {'1': 'A', '2': 'B', '3': 'M'});
 
-    expect(readResponseSet(variantId)).toEqual({'1': 'A', '2': 'B'});
+    expect(readResponseSet(variantId)).toEqual({'1': 'A', '2': 'B', '3': 'M'});
   });
 
   it('returns null when the response key is missing', () => {
@@ -90,7 +90,7 @@ describe('test storage response set', () => {
     expect(readResponseSet(variantId)).toEqual({'1': 'A'});
   });
 
-  it('filters non-semantic values and returns null when no valid entries remain', () => {
+  it('filters non-string values and returns null when no valid entries remain', () => {
     const variantId = asVariantId('qmbti');
     const key = testVariantKey.responseSet(variantId);
 
@@ -104,9 +104,9 @@ describe('test storage response set', () => {
       })
     );
 
-    expect(readResponseSet(variantId)).toEqual({'1': 'A', '4': 'B'});
+    expect(readResponseSet(variantId)).toEqual({'1': 'A', '2': 'C', '4': 'B'});
 
-    window.localStorage.setItem(key, JSON.stringify({'1': 'C', q1: 'A'}));
+    window.localStorage.setItem(key, JSON.stringify({'1': null, q1: 'A'}));
 
     expect(readResponseSet(variantId)).toBeNull();
   });

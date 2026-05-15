@@ -280,7 +280,7 @@ export function trackFinalSubmit(input: {
   questionIndex: number;
   dwellMsAccumulated: number;
   landingIngressFlag: boolean;
-  finalResponses: Record<string, 'A' | 'B'>;
+  finalResponses: Record<string, string>;
 }): FinalSubmitTelemetryEvent {
   return enqueueOrSend({
     ...createBaseEvent({...input, eventType: 'final_submit'}),

@@ -1,4 +1,5 @@
 export type SemanticAnswer = 'A' | 'B';
+export type StoredAnswer = string;
 
 export type TestRunPhase = 'booting' | 'instruction' | 'active' | 'submitted' | 'redirecting';
 
@@ -8,11 +9,11 @@ export interface TestRunState {
   phase: TestRunPhase;
   landingIngressFlag: boolean;
   currentQuestionIndex: number;
-  answers: Record<string, SemanticAnswer>;
+  answers: Record<string, StoredAnswer>;
   instructionSeen: boolean;
   entrySequence: number;
   entryMode: TestRunEntryMode | null;
-  entryAnswersSnapshot: Record<string, SemanticAnswer>;
+  entryAnswersSnapshot: Record<string, StoredAnswer>;
 }
 
 export type TestRunAction =
@@ -21,7 +22,7 @@ export type TestRunAction =
       instructionSeen: boolean;
       landingIngressFlag: boolean;
       currentQuestionIndex: number;
-      answers: Record<string, SemanticAnswer>;
+      answers: Record<string, StoredAnswer>;
       autoCommitEntry?: boolean;
       entryMode?: TestRunEntryMode;
     }
@@ -29,6 +30,7 @@ export type TestRunAction =
       type: 'COMMIT_ENTRY';
       recordsInstructionSeen?: boolean;
       entryMode?: TestRunEntryMode;
+      qualifierAnswers?: Record<string, StoredAnswer>;
     }
   | {type: 'REDIRECT_HOME'}
   | {
@@ -39,7 +41,7 @@ export type TestRunAction =
       advance?: boolean;
       nextQuestionIndex?: number;
     }
-  | {type: 'NAVIGATE_PREVIOUS'}
+  | {type: 'NAVIGATE_PREVIOUS'; nextQuestionIndex?: number}
   | {type: 'SUBMIT'; totalQuestions: number};
 
 export function buildInitialTestRunState(): TestRunState {
@@ -56,12 +58,12 @@ export function buildInitialTestRunState(): TestRunState {
 }
 
 export function hasAllRequiredAnswers(
-  answers: Record<string, SemanticAnswer>,
+  answers: Record<string, StoredAnswer>,
   totalQuestions: number
 ): boolean {
   for (let index = 1; index <= totalQuestions; index += 1) {
     const answer = answers[String(index)];
-    if (answer !== 'A' && answer !== 'B') {
+    if (typeof answer !== 'string' || answer.length === 0) {
       return false;
     }
   }
@@ -82,7 +84,7 @@ function commitActiveEntry(
   input: {
     instructionSeen: boolean;
     entryMode?: TestRunEntryMode;
-    answers?: Record<string, SemanticAnswer>;
+    answers?: Record<string, StoredAnswer>;
   }
 ): TestRunState {
   const answers = input.answers ?? state.answers;
@@ -99,12 +101,12 @@ function commitActiveEntry(
 }
 
 function filterAnswersBeforeIndex(
-  answers: Record<string, SemanticAnswer>,
+  answers: Record<string, StoredAnswer>,
   nextIndex: number
-): Record<string, SemanticAnswer> {
+): Record<string, StoredAnswer> {
   return Object.fromEntries(
     Object.entries(answers).filter(([key]) => Number(key) < nextIndex)
-  ) as Record<string, SemanticAnswer>;
+  ) as Record<string, StoredAnswer>;
 }
 
 export function testRunReducer(state: TestRunState, action: TestRunAction): TestRunState {
@@ -141,9 +143,15 @@ export function testRunReducer(state: TestRunState, action: TestRunAction): Test
         return state;
       }
 
+      const answers = {
+        ...state.answers,
+        ...(action.qualifierAnswers ?? {})
+      };
+
       return commitActiveEntry(state, {
         instructionSeen: action.recordsInstructionSeen ? true : state.instructionSeen,
-        entryMode: action.entryMode ?? state.entryMode ?? undefined
+        entryMode: action.entryMode ?? state.entryMode ?? undefined,
+        answers
       });
     }
 
@@ -175,7 +183,7 @@ export function testRunReducer(state: TestRunState, action: TestRunAction): Test
         return state;
       }
 
-      const nextIndex = Math.max(1, state.currentQuestionIndex - 1);
+      const nextIndex = Math.max(1, action.nextQuestionIndex ?? state.currentQuestionIndex - 1);
       return {
         ...state,
         currentQuestionIndex: nextIndex,

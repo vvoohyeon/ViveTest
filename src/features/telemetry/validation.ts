@@ -165,8 +165,8 @@ export function validateTelemetryEventPayload(payload: unknown): TelemetryEvent 
       }
 
       for (const response of Object.values(event.final_responses)) {
-        if (response !== 'A' && response !== 'B') {
-          throw new Error('final_submit responses must use semantic A/B codes only.');
+        if (typeof response !== 'string' || response.length === 0) {
+          throw new Error('final_submit responses must use non-empty string values.');
         }
       }
       break;

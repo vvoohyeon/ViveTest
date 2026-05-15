@@ -69,6 +69,7 @@ function makeInput(overrides: Partial<{
     instructionSeen: overrides.instructionSeen ?? false,
     runPhase: overrides.runPhase ?? 'instruction',
     entryPolicy: overrides.entryPolicy ?? makePlainStartPolicy(),
+    qualifierItems: [],
     router: mockRouter,
     dispatchRunAction: overrides.dispatchRunAction ?? vi.fn()
   };
