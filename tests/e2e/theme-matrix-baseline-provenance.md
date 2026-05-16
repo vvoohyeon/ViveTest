@@ -47,6 +47,20 @@ and verification result. The PNG baselines themselves remain local-only under
 - Gate verification result: `qa:rules` passed; lint passed; typecheck passed; `npm test` passed with 381 tests; build passed.
 - Reason for regeneration: Prompt 2 UX/UI pass — accepted pre-existing drift accumulated since last regeneration; no Prompt 2 regression confirmed.
 
+## Theme Matrix Baseline Regeneration 2026-05-17
+
+- Date generated: 2026-05-17 KST
+- Git commit SHA: 09d7503eca67831284ade9dfe4ce35710f213dd9
+- Working tree note: qualifier-reentry-ui implementation present (uncommitted; plan `docs/plans/2026-05-16-qualifier-reentry-ui.md`). Theme-matrix test states use `qmbti` (no qualifier/profile): the reentry chip is guarded off (`qualifierItems.length === 0`), the §8f profile filter is a no-op, the §8-D4/Q-F1 `instructionVisible` change is a strict superset (`overlayMode` always `entry`), and the §8-D14 result-panel extraction reproduces byte-identical class strings — so qmbti DOM is unchanged vs pre-change. The pre-regen @gate showed ~117 broad ~1% sub-pixel diffs spanning blog/landing/history-menu and test surfaces (no shared code path to this change); post-regen only 6 PNGs were byte-different, all `theme-layout-test-instruction-kr-*` (Korean instruction-overlay text-wrap across 3 viewports × 2 themes), confirming preview/dev-runtime environment drift, not a qualifier-reentry regression.
+- OS: macOS 26.5 (25F71), Darwin 25.5.0 arm64
+- Node version: v24.2.0
+- Playwright version: 1.57.0
+- Regeneration command: `npm run qa:visual:full`
+- Regeneration result: `288 passed`
+- Gate verification command: `npm run test:e2e:gate`
+- Gate verification result: `126 passed`
+- Reason for regeneration: qualifier-reentry-ui implementation pass — accepted pre-existing environment drift accumulated since 2026-05-13 (SHA 0870bbb). No qualifier-reentry regression: change diff scope is telemetry + test-feature + `src/messages` + tests only (zero shared code with the drifted blog/landing/history surfaces); qmbti theme-matrix DOM is byte-identical. User-authorized §4 baseline regeneration.
+
 ## State Smoke Local Baseline Adjudication
 
 - Date generated: 2026-05-10 10:10:20 KST

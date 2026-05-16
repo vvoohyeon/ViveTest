@@ -20,7 +20,6 @@ vi.mock('@/features/test/storage/response-set', () => ({
   writeResponseSet: vi.fn()
 }));
 
-import {markInstructionSeen} from '@/features/transition/store';
 import {writeResponseSet} from '@/features/test/storage/response-set';
 
 const ACTION_EFFECTS = {
@@ -56,63 +55,82 @@ function makePolicy(): TestEntryPolicy {
 const mockRouter = {replace: vi.fn()} as any;
 
 function makeInput(overrides: Partial<{
-  qualifierItems: QualifierOverlayItem[];
-  runtimeReady: boolean;
-  landingIngressFlag: boolean;
-  instructionSeen: boolean;
+  answers: Record<string, string>;
   runPhase: TestRunPhase;
-  entryPolicy: TestEntryPolicy;
   dispatchRunAction: (action: TestRunAction) => void;
+  resetScoringAnswers: (qualifierAnswers: Record<string, string>) => void;
 }> = {}) {
   return {
     variant: 'egtt',
     landingPath: '/en',
-    runtimeReady: overrides.runtimeReady ?? true,
-    landingIngressFlag: overrides.landingIngressFlag ?? false,
-    instructionSeen: overrides.instructionSeen ?? false,
-    runPhase: overrides.runPhase ?? 'instruction',
-    entryPolicy: overrides.entryPolicy ?? makePolicy(),
-    qualifierItems: overrides.qualifierItems ?? qualifierItems,
-    answers: {},
+    runtimeReady: true,
+    landingIngressFlag: false,
+    instructionSeen: true,
+    runPhase: overrides.runPhase ?? ('active' as TestRunPhase),
+    entryPolicy: makePolicy(),
+    qualifierItems,
+    answers: overrides.answers ?? {'1': 'M', '2': 'A', '3': 'B'},
     router: mockRouter,
     dispatchRunAction: overrides.dispatchRunAction ?? vi.fn(),
-    resetScoringAnswers: vi.fn()
+    resetScoringAnswers: overrides.resetScoringAnswers ?? vi.fn()
   };
 }
 
-describe('useTestEntryOrchestrator qualifier wizard', () => {
+describe('useTestEntryOrchestrator qualifier reentry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('advances to the first qualifier step without committing entry', () => {
-    const dispatchRunAction = vi.fn();
-    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput({dispatchRunAction})));
-
-    act(() => {
-      result.current.executeInstructionAction('start');
-    });
-
-    expect(result.current.overlayStep).toBe(0);
-    expect(dispatchRunAction).not.toHaveBeenCalledWith(expect.objectContaining({type: 'COMMIT_ENTRY'}));
-  });
-
-  it('updates qualifier draft by canonical index', () => {
+  it('reopenQualifierOverlay enters reentry mode at qualifier step 0', () => {
     const {result} = renderHook(() => useTestEntryOrchestrator(makeInput()));
 
     act(() => {
-      result.current.onQualifierSelect(1, 'M');
+      result.current.reopenQualifierOverlay();
     });
 
-    expect(result.current.qualifierDraft).toEqual({1: 'M'});
+    expect(result.current.overlayMode).toBe('reentry');
+    expect(result.current.overlayStep).toBe(0);
   });
 
-  it('dispatches final qualifier answers with string canonical keys', () => {
-    const dispatchRunAction = vi.fn();
-    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput({dispatchRunAction})));
+  it('reopenQualifierOverlay seeds qualifierDraft from existing answers', () => {
+    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput({answers: {'1': 'F'}})));
 
     act(() => {
-      result.current.executeInstructionAction('start');
+      result.current.reopenQualifierOverlay();
+    });
+
+    expect(result.current.qualifierDraft).toEqual({1: 'F'});
+  });
+
+  it('reentry cancel closes the overlay without touching answers/storage', () => {
+    const resetScoringAnswers = vi.fn();
+    const {result} = renderHook(() =>
+      useTestEntryOrchestrator(makeInput({resetScoringAnswers}))
+    );
+
+    act(() => {
+      result.current.reopenQualifierOverlay();
+    });
+    act(() => {
+      result.current.onQualifierBack();
+    });
+
+    expect(result.current.overlayMode).toBe('entry');
+    expect(result.current.overlayStep).toBe('instruction');
+    expect(result.current.qualifierDraft).toEqual({});
+    expect(resetScoringAnswers).not.toHaveBeenCalled();
+    expect(writeResponseSet).not.toHaveBeenCalled();
+  });
+
+  it('reentry confirm resets scoring answers and closes the overlay', () => {
+    const dispatchRunAction = vi.fn();
+    const resetScoringAnswers = vi.fn();
+    const {result} = renderHook(() =>
+      useTestEntryOrchestrator(makeInput({dispatchRunAction, resetScoringAnswers}))
+    );
+
+    act(() => {
+      result.current.reopenQualifierOverlay();
     });
     act(() => {
       result.current.onQualifierSelect(1, 'F');
@@ -121,60 +139,28 @@ describe('useTestEntryOrchestrator qualifier wizard', () => {
       result.current.executeInstructionAction('start');
     });
 
-    expect(dispatchRunAction).toHaveBeenCalledWith({
-      type: 'COMMIT_ENTRY',
-      recordsInstructionSeen: true,
-      qualifierAnswers: {'1': 'F'}
-    });
-    expect(writeResponseSet).toHaveBeenCalledWith('egtt', {'1': 'F'});
-    expect(markInstructionSeen).toHaveBeenCalledWith('egtt');
+    expect(resetScoringAnswers).toHaveBeenCalledWith({'1': 'F'});
+    expect(result.current.overlayMode).toBe('entry');
+    expect(result.current.overlayStep).toBe('instruction');
     expect(result.current.qualifierDraft).toEqual({});
-  });
-
-  it('returns from qualifier step zero to the instruction step', () => {
-    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput()));
-
-    act(() => {
-      result.current.executeInstructionAction('start');
-    });
-    act(() => {
-      result.current.onQualifierBack();
-    });
-
-    expect(result.current.overlayStep).toBe('instruction');
-  });
-
-  it('preserves qualifier draft across back and forward navigation', () => {
-    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput()));
-
-    act(() => {
-      result.current.executeInstructionAction('start');
-    });
-    act(() => {
-      result.current.onQualifierSelect(1, 'M');
-    });
-    act(() => {
-      result.current.onQualifierBack();
-    });
-    act(() => {
-      result.current.executeInstructionAction('start');
-    });
-
-    expect(result.current.overlayStep).toBe(0);
-    expect(result.current.qualifierDraft).toEqual({1: 'M'});
-  });
-
-  it('commits entry directly when no qualifier items exist', () => {
-    const dispatchRunAction = vi.fn();
-    const {result} = renderHook(() =>
-      useTestEntryOrchestrator(makeInput({qualifierItems: [], dispatchRunAction}))
+    expect(dispatchRunAction).not.toHaveBeenCalledWith(
+      expect.objectContaining({type: 'COMMIT_ENTRY'})
     );
+  });
 
+  it('reentry confirm writes the new qualifier-only responses to storage', () => {
+    const {result} = renderHook(() => useTestEntryOrchestrator(makeInput()));
+
+    act(() => {
+      result.current.reopenQualifierOverlay();
+    });
+    act(() => {
+      result.current.onQualifierSelect(1, 'F');
+    });
     act(() => {
       result.current.executeInstructionAction('start');
     });
 
-    expect(result.current.overlayStep).toBe('instruction');
-    expect(dispatchRunAction).toHaveBeenCalledWith({type: 'COMMIT_ENTRY', recordsInstructionSeen: true});
+    expect(writeResponseSet).toHaveBeenCalledWith('egtt', {'1': 'F'});
   });
 });

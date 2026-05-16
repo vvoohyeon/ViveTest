@@ -206,3 +206,88 @@ test.describe('qualifier overlay — resume validation', () => {
     await expect(page.getByTestId('test-qualifier-continue-button')).toBeDisabled();
   });
 });
+
+async function commitEgttEntryWithChoice(
+  page: Page,
+  choiceTestId: 'test-qualifier-choice-m' | 'test-qualifier-choice-f'
+) {
+  await openEgttInstruction(page);
+  await advanceToQualifierStep(page);
+  await page.getByTestId(choiceTestId).click();
+  await page.getByTestId('test-qualifier-continue-button').click();
+  await expect(page.getByTestId('test-question-panel')).toBeVisible();
+}
+
+test.describe('qualifier overlay — reentry', () => {
+  test('chip is visible with the committed qualifier label', async ({page}) => {
+    await commitEgttEntryWithChoice(page, 'test-qualifier-choice-m');
+
+    const chip = page.getByTestId('test-qualifier-chip');
+    await expect(chip).toBeVisible();
+    await expect(chip).toContainText('Male');
+    await expectPageToBeAxeClean(page);
+  });
+
+  test('chip click reopens the overlay in reentry mode', async ({page}) => {
+    await commitEgttEntryWithChoice(page, 'test-qualifier-choice-m');
+
+    await page.getByTestId('test-qualifier-chip').click();
+
+    await expect(page.getByTestId('test-qualifier-step')).toBeVisible();
+    await expect(page.getByTestId('test-qualifier-reentry-cancel-button')).toBeVisible();
+    await expect(page.getByTestId('test-qualifier-reentry-cancel-button')).toHaveText('Cancel');
+    await expect(page.getByTestId('test-qualifier-back-button')).toHaveCount(0);
+    await expect(page.getByTestId('test-qualifier-continue-button')).toHaveText('Change and restart');
+    await expectPageToBeAxeClean(page);
+  });
+
+  test('reentry cancel closes the overlay and keeps answers', async ({page}) => {
+    await commitEgttEntryWithChoice(page, 'test-qualifier-choice-m');
+
+    await page.getByTestId('test-qualifier-chip').click();
+    await page.getByTestId('test-qualifier-reentry-cancel-button').click();
+
+    await expect(page.getByTestId('test-qualifier-step')).toHaveCount(0);
+    await expect(page.getByTestId('test-question-panel')).toBeVisible();
+    await expect(page.getByTestId('test-qualifier-chip')).toContainText('Male');
+    await expect
+      .poll(() => readStorageItem(page, 'local', responseSetStorageKey(EGTT_VARIANT)))
+      .toBe(JSON.stringify({'1': 'M'}));
+  });
+
+  test('reentry confirm changes qualifier, clears scoring, restarts at first scoring question', async ({page}) => {
+    await commitEgttEntryWithChoice(page, 'test-qualifier-choice-m');
+
+    await page.getByTestId('test-qualifier-chip').click();
+    await page.getByTestId('test-qualifier-choice-f').click();
+    await page.getByTestId('test-qualifier-continue-button').click();
+
+    await expect(page.getByTestId('test-question-panel')).toBeVisible();
+    await expect(page.getByTestId('test-instruction-overlay')).toHaveCount(0);
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q1');
+    await expect(page.getByTestId('test-question-panel')).toContainText(EGTT_FIRST_SCORING_QUESTION);
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
+    await expect(page.getByTestId('test-qualifier-chip')).toContainText('Female');
+    await expect
+      .poll(() => readStorageItem(page, 'local', responseSetStorageKey(EGTT_VARIANT)))
+      .toBe(JSON.stringify({'1': 'F'}));
+  });
+
+  test('entry-mode qualifier flow stays unchanged (D3/D4 regression guard)', async ({page}) => {
+    await openEgttInstruction(page);
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+
+    await advanceToQualifierStep(page);
+
+    await expect(page.getByTestId('test-qualifier-back-button')).toBeVisible();
+    await expect(page.getByTestId('test-qualifier-back-button')).toHaveText('Back');
+    await expect(page.getByTestId('test-qualifier-reentry-cancel-button')).toHaveCount(0);
+
+    await page.getByTestId('test-qualifier-choice-m').click();
+    await page.getByTestId('test-qualifier-continue-button').click();
+
+    await expect(page.getByTestId('test-question-panel')).toBeVisible();
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q1');
+    await expect(page.getByTestId('test-question-panel')).not.toContainText(EGTT_QUALIFIER_QUESTION);
+  });
+});

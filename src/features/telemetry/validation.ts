@@ -8,7 +8,9 @@ const TELEMETRY_EVENT_TYPES: ReadonlyArray<TelemetryEventType> = [
   'landing_view',
   'card_answered',
   'attempt_start',
-  'final_submit'
+  'final_submit',
+  'question_answered',
+  'result_viewed'
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -106,7 +108,12 @@ function assertNoForbiddenFields(value: unknown): void {
 }
 
 function assertPostAttemptSessionId(event: TelemetryEvent): void {
-  if ((event.event_type === 'attempt_start' || event.event_type === 'final_submit') && event.session_id === null) {
+  if (
+    (event.event_type === 'attempt_start' ||
+      event.event_type === 'final_submit' ||
+      event.event_type === 'question_answered') &&
+    event.session_id === null
+  ) {
     throw new Error('attempt_start and later telemetry events require session_id.');
   }
 }
@@ -165,9 +172,31 @@ export function validateTelemetryEventPayload(payload: unknown): TelemetryEvent 
       }
 
       for (const response of Object.values(event.final_responses)) {
-        if (typeof response !== 'string' || response.length === 0) {
-          throw new Error('final_submit responses must use non-empty string values.');
+        if (response !== 'A' && response !== 'B') {
+          throw new Error('final_submit responses must be "A" or "B".');
         }
+      }
+      break;
+    case 'question_answered':
+      if (
+        !event.variant.trim() ||
+        !Number.isInteger(event.question_index_1based) ||
+        event.question_index_1based < 1 ||
+        (event.choice !== 'A' && event.choice !== 'B') ||
+        !Number.isFinite(event.dwell_ms) ||
+        event.dwell_ms < 0 ||
+        typeof event.landing_ingress_flag !== 'boolean'
+      ) {
+        throw new Error('question_answered requires variant, 1-based question index, A/B choice, dwell_ms, and landing_ingress_flag.');
+      }
+      break;
+    case 'result_viewed':
+      if (
+        !event.variant.trim() ||
+        !event.derived_type.trim() ||
+        typeof event.landing_ingress_flag !== 'boolean'
+      ) {
+        throw new Error('result_viewed requires variant, derived_type, and landing_ingress_flag.');
       }
       break;
     default:

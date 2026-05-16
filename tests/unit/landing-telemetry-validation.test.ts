@@ -20,7 +20,7 @@ describe('landing telemetry validation', () => {
         final_responses: {
           '1': 'A',
           '12': 'B',
-          '13': 'M'
+          '13': 'A'
         }
       })
     ).not.toThrow();

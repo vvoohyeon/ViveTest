@@ -20,8 +20,10 @@ interface UseTestEntryOrchestratorInput {
   runPhase: TestRunPhase;
   entryPolicy: TestEntryPolicy;
   qualifierItems: ReadonlyArray<QualifierOverlayItem>;
+  answers: Record<string, string>;
   router: ReturnType<typeof useRouter>;
   dispatchRunAction: Dispatch<TestRunAction>;
+  resetScoringAnswers: (qualifierAnswers: Record<string, string>) => void;
 }
 
 interface UseTestEntryOrchestratorOutput {
@@ -29,10 +31,12 @@ interface UseTestEntryOrchestratorOutput {
   entryCommitted: boolean;
   redirecting: boolean;
   overlayStep: OverlayStepId;
+  overlayMode: 'entry' | 'reentry';
   qualifierDraft: Record<number, string>;
   executeInstructionAction: (action: TestInstructionAction) => void;
   onQualifierSelect: (canonicalIndex: number, token: string) => void;
   onQualifierBack: () => void;
+  reopenQualifierOverlay: () => void;
 }
 
 export function useTestEntryOrchestrator({
@@ -44,13 +48,16 @@ export function useTestEntryOrchestrator({
   runPhase,
   entryPolicy,
   qualifierItems,
+  answers,
   router,
-  dispatchRunAction
+  dispatchRunAction,
+  resetScoringAnswers
 }: UseTestEntryOrchestratorInput): UseTestEntryOrchestratorOutput {
   const entryCommitted = runPhase === 'active' || runPhase === 'submitted';
   const redirecting = runPhase === 'redirecting';
   const autoCommitScheduledRef = useRef(false);
   const [overlayStep, setOverlayStep] = useState<OverlayStepId>('instruction');
+  const [overlayMode, setOverlayMode] = useState<'entry' | 'reentry'>('entry');
   const [qualifierDraft, setQualifierDraft] = useState<Record<number, string>>({});
 
   const buildQualifierAnswers = useCallback(() => {
@@ -63,12 +70,38 @@ export function useTestEntryOrchestrator({
   }, [qualifierDraft, qualifierItems]);
 
   const onQualifierBack = useCallback(() => {
+    if (overlayMode === 'reentry') {
+      if (typeof overlayStep === 'number' && overlayStep > 0) {
+        setOverlayStep(overlayStep - 1);
+        return;
+      }
+
+      setOverlayMode('entry');
+      setOverlayStep('instruction');
+      setQualifierDraft({});
+      return;
+    }
+
     setOverlayStep((prev) => (typeof prev === 'number' && prev > 0 ? prev - 1 : 'instruction'));
-  }, []);
+  }, [overlayMode, overlayStep]);
 
   const onQualifierSelect = useCallback((canonicalIndex: number, token: string) => {
     setQualifierDraft((prev) => ({...prev, [canonicalIndex]: token}));
   }, []);
+
+  const reopenQualifierOverlay = useCallback(() => {
+    const seededDraft: Record<number, string> = {};
+    for (const item of qualifierItems) {
+      const storedToken = answers[String(item.canonicalIndex)];
+      if (storedToken && item.choices.some((choice) => choice.token === storedToken)) {
+        seededDraft[item.canonicalIndex] = storedToken;
+      }
+    }
+
+    setQualifierDraft(seededDraft);
+    setOverlayMode('reentry');
+    setOverlayStep(0);
+  }, [answers, qualifierItems]);
 
   const executeInstructionAction = useCallback(
     (action: TestInstructionAction) => {
@@ -120,6 +153,16 @@ export function useTestEntryOrchestrator({
         }
       }
 
+      if (overlayMode === 'reentry') {
+        const qualifierOnlyResponses = buildQualifierAnswers();
+        resetScoringAnswers(qualifierOnlyResponses);
+        writeResponseSet(variant, qualifierOnlyResponses);
+        setOverlayMode('entry');
+        setOverlayStep('instruction');
+        setQualifierDraft({});
+        return;
+      }
+
       const qualifierAnswers = buildQualifierAnswers();
       const hasQualifierAnswers = Object.keys(qualifierAnswers).length > 0;
       dispatchRunAction({
@@ -142,10 +185,12 @@ export function useTestEntryOrchestrator({
       instructionSeen,
       landingIngressFlag,
       landingPath,
+      overlayMode,
       overlayStep,
       qualifierDraft,
       qualifierItems,
       redirecting,
+      resetScoringAnswers,
       router,
       runtimeReady,
       variant
@@ -186,9 +231,11 @@ export function useTestEntryOrchestrator({
     entryCommitted,
     redirecting,
     overlayStep,
+    overlayMode,
     qualifierDraft,
     executeInstructionAction,
     onQualifierSelect,
-    onQualifierBack
+    onQualifierBack,
+    reopenQualifierOverlay
   };
 }

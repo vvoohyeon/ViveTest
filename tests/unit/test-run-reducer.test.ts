@@ -258,3 +258,84 @@ describe('testRunReducer COMMIT_ENTRY qualifier answers', () => {
     expect(state.entryAnswersSnapshot).toEqual({'2': 'A'});
   });
 });
+
+describe('testRunReducer RESET_SCORING_ANSWERS', () => {
+  function makeActiveState(answers: Record<string, string>) {
+    return testRunReducer(buildInitialTestRunState(), {
+      type: 'BOOTSTRAP_COMPLETE',
+      instructionSeen: true,
+      landingIngressFlag: false,
+      currentQuestionIndex: 3,
+      answers,
+      autoCommitEntry: true
+    });
+  }
+
+  it('replaces answers with the new qualifier map and clears scoring', () => {
+    const active = makeActiveState({'1': 'M', '2': 'A', '3': 'B'});
+
+    const state = testRunReducer(active, {
+      type: 'RESET_SCORING_ANSWERS',
+      firstScoringCanonicalIndex: 2,
+      qualifierAnswers: {'1': 'M'}
+    });
+
+    expect(state.answers).toEqual({'1': 'M'});
+  });
+
+  it('sets currentQuestionIndex to firstScoringCanonicalIndex and stays active', () => {
+    const active = makeActiveState({'1': 'M', '2': 'A'});
+
+    const state = testRunReducer(active, {
+      type: 'RESET_SCORING_ANSWERS',
+      firstScoringCanonicalIndex: 2,
+      qualifierAnswers: {'1': 'M'}
+    });
+
+    expect(state.currentQuestionIndex).toBe(2);
+    expect(state.phase).toBe('active');
+  });
+
+  it('returns state unchanged when phase is not active', () => {
+    const instruction = testRunReducer(buildInitialTestRunState(), {
+      type: 'BOOTSTRAP_COMPLETE',
+      instructionSeen: false,
+      landingIngressFlag: false,
+      currentQuestionIndex: 1,
+      answers: {'1': 'M'}
+    });
+
+    const state = testRunReducer(instruction, {
+      type: 'RESET_SCORING_ANSWERS',
+      firstScoringCanonicalIndex: 2,
+      qualifierAnswers: {'1': 'F'}
+    });
+
+    expect(state).toBe(instruction);
+  });
+
+  it('clears all answers when qualifierAnswers is empty', () => {
+    const active = makeActiveState({'1': 'M', '2': 'A', '3': 'B'});
+
+    const state = testRunReducer(active, {
+      type: 'RESET_SCORING_ANSWERS',
+      firstScoringCanonicalIndex: 1,
+      qualifierAnswers: {}
+    });
+
+    expect(state.answers).toEqual({});
+  });
+
+  it('propagates new qualifier values and leaves scoring incomplete (interleaved indexes)', () => {
+    const active = makeActiveState({'1': 'M', '2': 'A', '3': 'B', '4': 'A'});
+
+    const state = testRunReducer(active, {
+      type: 'RESET_SCORING_ANSWERS',
+      firstScoringCanonicalIndex: 2,
+      qualifierAnswers: {'1': 'F'}
+    });
+
+    expect(state.answers).toEqual({'1': 'F'});
+    expect(hasAllRequiredAnswers(state.answers, 4)).toBe(false);
+  });
+});

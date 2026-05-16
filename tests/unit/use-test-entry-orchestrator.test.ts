@@ -70,8 +70,10 @@ function makeInput(overrides: Partial<{
     runPhase: overrides.runPhase ?? 'instruction',
     entryPolicy: overrides.entryPolicy ?? makePlainStartPolicy(),
     qualifierItems: [],
+    answers: {},
     router: mockRouter,
-    dispatchRunAction: overrides.dispatchRunAction ?? vi.fn()
+    dispatchRunAction: overrides.dispatchRunAction ?? vi.fn(),
+    resetScoringAnswers: vi.fn()
   };
 }
 

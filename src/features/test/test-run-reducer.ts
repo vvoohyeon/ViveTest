@@ -42,7 +42,12 @@ export type TestRunAction =
       nextQuestionIndex?: number;
     }
   | {type: 'NAVIGATE_PREVIOUS'; nextQuestionIndex?: number}
-  | {type: 'SUBMIT'; totalQuestions: number};
+  | {type: 'SUBMIT'; totalQuestions: number}
+  | {
+      type: 'RESET_SCORING_ANSWERS';
+      firstScoringCanonicalIndex: number;
+      qualifierAnswers: Record<string, StoredAnswer>;
+    };
 
 export function buildInitialTestRunState(): TestRunState {
   return {
@@ -197,6 +202,18 @@ export function testRunReducer(state: TestRunState, action: TestRunAction): Test
       }
 
       return {...state, phase: 'submitted'};
+    }
+
+    case 'RESET_SCORING_ANSWERS': {
+      if (state.phase !== 'active') {
+        return state;
+      }
+
+      return {
+        ...state,
+        answers: {...action.qualifierAnswers},
+        currentQuestionIndex: action.firstScoringCanonicalIndex
+      };
     }
 
     default:

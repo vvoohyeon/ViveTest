@@ -6,7 +6,9 @@ export type TelemetryEventType =
   | 'landing_view'
   | 'card_answered'
   | 'attempt_start'
-  | 'final_submit';
+  | 'final_submit'
+  | 'question_answered'
+  | 'result_viewed';
 
 export interface TelemetryBaseEvent {
   event_type: TelemetryEventType;
@@ -46,8 +48,26 @@ export interface FinalSubmitTelemetryEvent extends TelemetryBaseEvent {
   final_responses: Record<string, string>;
 }
 
+export interface QuestionAnsweredEvent extends TelemetryBaseEvent {
+  event_type: 'question_answered';
+  variant: string;
+  question_index_1based: number;
+  choice: 'A' | 'B';
+  dwell_ms: number;
+  landing_ingress_flag: boolean;
+}
+
+export interface ResultViewedEvent extends TelemetryBaseEvent {
+  event_type: 'result_viewed';
+  variant: string;
+  derived_type: string;
+  landing_ingress_flag: boolean;
+}
+
 export type TelemetryEvent =
   | LandingViewTelemetryEvent
   | CardAnsweredTelemetryEvent
   | AttemptStartTelemetryEvent
-  | FinalSubmitTelemetryEvent;
+  | FinalSubmitTelemetryEvent
+  | QuestionAnsweredEvent
+  | ResultViewedEvent;

@@ -18,6 +18,7 @@ import {getActiveRun, saveActiveRun, writeLastAnsweredAt} from '@/features/test/
 import {readResponseSet, writeResponseSet, type ResponseSet} from '@/features/test/storage/response-set';
 import {volatilizeRunData} from '@/features/test/storage/volatility';
 import {
+  findFirstScoringQuestion,
   isProfileQuestion,
   resolveQuestionBootstrapState,
   resolveScoringProgress,
@@ -63,6 +64,8 @@ interface TestRunControllerOutput {
   updateAnswer: (choice: SemanticAnswer) => void;
   moveQuestion: (direction: -1 | 1, choiceOverride?: SemanticAnswer) => void;
   handleSubmit: () => void;
+  resetScoringAnswers: (qualifierAnswers: Record<string, string>) => void;
+  getCurrentDwellMs: () => number;
 }
 
 const EMPTY_QUALIFIER_ITEMS: ReadonlyArray<QualifierOverlayItem> = [];
@@ -367,7 +370,12 @@ export function useTestRunController({
 
     settleCurrentQuestionDwell();
     const dwellMsAccumulated = Object.values(dwellByQuestionRef.current).reduce((sum, value) => sum + value, 0);
-    const finalResponses = {...runState.answers};
+    const profileIndexes = new Set(
+      questions.filter((question) => isProfileQuestion(question)).map((question) => question.canonicalIndex)
+    );
+    const finalResponses = Object.fromEntries(
+      Object.entries(runState.answers).filter(([key]) => !profileIndexes.has(Number(key)))
+    ) as Record<string, string>;
     trackFinalSubmit({
       locale,
       route: pathname,
@@ -379,6 +387,23 @@ export function useTestRunController({
     });
     dispatchRunAction({type: 'SUBMIT', totalQuestions});
   };
+
+  const resetScoringAnswers = useCallback(
+    (qualifierAnswers: Record<string, string>) => {
+      const firstScoringCanonicalIndex = findFirstScoringQuestion(questions)?.canonicalIndex ?? 1;
+      dispatchRunAction({
+        type: 'RESET_SCORING_ANSWERS',
+        firstScoringCanonicalIndex,
+        qualifierAnswers
+      });
+    },
+    [questions]
+  );
+
+  const getCurrentDwellMs = useCallback(
+    () => (dwellStartRef.current !== null ? Math.max(0, Date.now() - dwellStartRef.current) : 0),
+    []
+  );
 
   const clearPendingTransitionId = useCallback(() => {
     pendingTransitionIdRef.current = null;
@@ -404,6 +429,8 @@ export function useTestRunController({
     clearPendingTransitionId,
     updateAnswer,
     moveQuestion,
-    handleSubmit
+    handleSubmit,
+    resetScoringAnswers,
+    getCurrentDwellMs
   };
 }

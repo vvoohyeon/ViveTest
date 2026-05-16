@@ -21,6 +21,7 @@ import type {
   AttemptStartTelemetryEvent,
   CardAnsweredTelemetryEvent,
   FinalSubmitTelemetryEvent,
+  QuestionAnsweredEvent,
   TelemetryBaseEvent,
   TelemetryConsentState,
   TelemetryEvent
@@ -290,4 +291,23 @@ export function trackFinalSubmit(input: {
     landing_ingress_flag: input.landingIngressFlag,
     final_responses: input.finalResponses
   } satisfies FinalSubmitTelemetryEvent) as FinalSubmitTelemetryEvent;
+}
+
+export function trackQuestionAnswered(input: {
+  locale: AppLocale;
+  route: string;
+  variant: string;
+  questionIndex: number;
+  choice: 'A' | 'B';
+  dwellMs: number;
+  landingIngressFlag: boolean;
+}): QuestionAnsweredEvent {
+  return enqueueOrSend({
+    ...createBaseEvent({...input, eventType: 'question_answered'}),
+    variant: input.variant,
+    question_index_1based: input.questionIndex,
+    choice: input.choice,
+    dwell_ms: input.dwellMs,
+    landing_ingress_flag: input.landingIngressFlag
+  } satisfies QuestionAnsweredEvent) as QuestionAnsweredEvent;
 }

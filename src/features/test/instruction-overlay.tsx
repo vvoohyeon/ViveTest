@@ -38,6 +38,8 @@ interface InstructionOverlayProps {
     continueLabel: string;
     continueDisabled: boolean;
     showBack: boolean;
+    isReentry?: boolean;
+    backLabel?: string;
   };
 }
 
@@ -85,9 +87,13 @@ export function InstructionOverlay({
                   type="button"
                   className={instructionSecondaryButtonClassName}
                   onClick={qualifierStep.onBack}
-                  data-testid="test-qualifier-back-button"
+                  data-testid={
+                    qualifierStep.isReentry
+                      ? 'test-qualifier-reentry-cancel-button'
+                      : 'test-qualifier-back-button'
+                  }
                 >
-                  Back
+                  {qualifierStep.backLabel ?? 'Back'}
                 </button>
               ) : null}
               <button
