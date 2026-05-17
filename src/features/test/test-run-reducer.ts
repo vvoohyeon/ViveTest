@@ -42,7 +42,7 @@ export type TestRunAction =
       nextQuestionIndex?: number;
     }
   | {type: 'NAVIGATE_PREVIOUS'; nextQuestionIndex?: number}
-  | {type: 'SUBMIT'; totalQuestions: number}
+  | {type: 'SUBMIT'; allAnswered: boolean}
   | {
       type: 'RESET_SCORING_ANSWERS';
       firstScoringCanonicalIndex: number;
@@ -60,20 +60,6 @@ export function buildInitialTestRunState(): TestRunState {
     entryMode: null,
     entryAnswersSnapshot: {}
   };
-}
-
-export function hasAllRequiredAnswers(
-  answers: Record<string, StoredAnswer>,
-  totalQuestions: number
-): boolean {
-  for (let index = 1; index <= totalQuestions; index += 1) {
-    const answer = answers[String(index)];
-    if (typeof answer !== 'string' || answer.length === 0) {
-      return false;
-    }
-  }
-
-  return totalQuestions > 0;
 }
 
 export function isRuntimeActive(state: TestRunState): boolean {
@@ -197,7 +183,7 @@ export function testRunReducer(state: TestRunState, action: TestRunAction): Test
     }
 
     case 'SUBMIT': {
-      if (state.phase !== 'active' || !hasAllRequiredAnswers(state.answers, action.totalQuestions)) {
+      if (state.phase !== 'active' || !action.allAnswered) {
         return state;
       }
 

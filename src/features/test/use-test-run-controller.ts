@@ -26,7 +26,6 @@ import {
   type ScoringProgress
 } from '@/features/test/question-runtime-utils';
 import {
-  hasAllRequiredAnswers,
   isRuntimeActive,
   isRuntimeSubmitted,
   testRunReducer,
@@ -281,7 +280,7 @@ export function useTestRunController({
   const scoringProgress = resolveScoringProgress({questions, answers: buildSemanticAnswerMap(runState.answers)});
   const storedCurrentAnswer = currentQuestion ? runState.answers[String(currentQuestion.canonicalIndex)] : undefined;
   const currentAnswer = storedCurrentAnswer === 'A' || storedCurrentAnswer === 'B' ? storedCurrentAnswer : undefined;
-  const allAnswered = hasAllRequiredAnswers(runState.answers, totalQuestions);
+  const allAnswered = scoringProgress.total > 0 && scoringProgress.answered === scoringProgress.total;
   const started = isRuntimeActive(runState) || isRuntimeSubmitted(runState);
   const submitted = isRuntimeSubmitted(runState);
 
@@ -385,7 +384,7 @@ export function useTestRunController({
       landingIngressFlag: runState.landingIngressFlag,
       finalResponses
     });
-    dispatchRunAction({type: 'SUBMIT', totalQuestions});
+    dispatchRunAction({type: 'SUBMIT', allAnswered});
   };
 
   const resetScoringAnswers = useCallback(

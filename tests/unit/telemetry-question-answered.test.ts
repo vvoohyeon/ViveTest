@@ -4,9 +4,10 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {
   resetTelemetryRuntimeForTests,
   setTelemetryConsentState,
-  trackQuestionAnswered
+  trackQuestionAnswered,
+  trackResultViewed
 } from '../../src/features/telemetry/runtime';
-import type {QuestionAnsweredEvent} from '../../src/features/telemetry/types';
+import type {QuestionAnsweredEvent, ResultViewedEvent} from '../../src/features/telemetry/types';
 import {validateTelemetryTransportEvent} from '../../src/features/telemetry/validation';
 
 function makeQuestionAnswered(overrides: Record<string, unknown> = {}) {
@@ -54,11 +55,18 @@ describe('question_answered / result_viewed validation', () => {
     );
   });
 
-  it('accepts a valid result_viewed event', () => {
+  it('accepts result_viewed without derived_type while the result pipeline is pending', () => {
+    const {derived_type: derivedType, ...event} = makeResultViewed();
+
+    expect(derivedType).toBe('INTJ');
+    expect(() => validateTelemetryTransportEvent(event)).not.toThrow();
+  });
+
+  it('accepts result_viewed with a non-empty derived_type when present', () => {
     expect(() => validateTelemetryTransportEvent(makeResultViewed())).not.toThrow();
   });
 
-  it('rejects result_viewed with an empty derived_type', () => {
+  it('rejects result_viewed with an empty derived_type when present', () => {
     expect(() => validateTelemetryTransportEvent(makeResultViewed({derived_type: ''}))).toThrow(
       /result_viewed/u
     );
@@ -123,5 +131,24 @@ describe('trackQuestionAnswered runtime', () => {
   it('types choice as the A|B union (type-level contract)', () => {
     const choice: QuestionAnsweredEvent['choice'] = 'B';
     expect(choice).toBe('B');
+  });
+
+  it('maps input fields to the result_viewed payload keys without derived_type', () => {
+    const event = trackResultViewed({
+      locale: 'en',
+      route: '/en/test/egtt',
+      variant: 'egtt',
+      landingIngressFlag: false
+    });
+
+    expect(event.event_type).toBe('result_viewed');
+    expect(event.variant).toBe('egtt');
+    expect(event.landing_ingress_flag).toBe(false);
+    expect(event.derived_type).toBeUndefined();
+  });
+
+  it('allows result_viewed derived_type as an optional type-level field', () => {
+    const derivedType: ResultViewedEvent['derived_type'] = undefined;
+    expect(derivedType).toBeUndefined();
   });
 });

@@ -60,7 +60,7 @@ export interface QuestionAnsweredEvent extends TelemetryBaseEvent {
 export interface ResultViewedEvent extends TelemetryBaseEvent {
   event_type: 'result_viewed';
   variant: string;
-  derived_type: string;
+  derived_type?: string | undefined;
   landing_ingress_flag: boolean;
 }
 

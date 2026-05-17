@@ -390,6 +390,50 @@ describe('useTestRunController', () => {
     );
   });
 
+  it('submits profile-first variants when all scoring answers exist without a profile runtime answer', async () => {
+    const {result} = renderHook(() =>
+      useTestRunController({
+        ...makeInput(),
+        variant: 'egtt',
+        pathname: '/en/test/egtt',
+        questions: egttQuestions
+      })
+    );
+    await flushMicrotasks();
+    await commitRuntimeEntry(result);
+
+    const scoringQuestions = egttQuestions.filter((question) => question.questionType === 'scoring');
+    for (let index = 0; index < scoringQuestions.length; index += 1) {
+      act(() => {
+        result.current.updateAnswer('A');
+      });
+      await flushMicrotasks();
+      act(() => {
+        result.current.moveQuestion(1);
+      });
+      await flushMicrotasks();
+    }
+
+    expect(result.current.answers['1']).toBeUndefined();
+    expect(result.current.scoringProgress).toMatchObject({
+      answered: 3,
+      total: 3
+    });
+    expect(result.current.allAnswered).toBe(true);
+
+    act(() => {
+      result.current.handleSubmit();
+    });
+    await flushMicrotasks();
+
+    expect(result.current.submitted).toBe(true);
+    expect(vi.mocked(trackFinalSubmit).mock.calls[0]?.[0].finalResponses).toEqual({
+      '2': 'A',
+      '3': 'A',
+      '4': 'A'
+    });
+  });
+
   it('surfaces and clears matching pending transition id', async () => {
     vi.mocked(readPendingLandingTransition).mockReturnValue({
       transitionId: 'tid-123',

@@ -135,9 +135,11 @@ if (fileExists(telemetry.runtime)) {
     !/trackLandingView/u.test(runtimeFile) ||
     !/trackCardAnswered/u.test(runtimeFile) ||
     !/trackAttemptStart/u.test(runtimeFile) ||
-    !/trackFinalSubmit/u.test(runtimeFile)
+    !/trackFinalSubmit/u.test(runtimeFile) ||
+    !/trackQuestionAnswered/u.test(runtimeFile) ||
+    !/trackResultViewed/u.test(runtimeFile)
   ) {
-    fail('Telemetry runtime must expose landing_view, card_answered, attempt_start, and final_submit helpers.');
+    fail('Telemetry runtime must expose landing_view, card_answered, attempt_start, final_submit, question_answered, and result_viewed helpers.');
   }
 
   if (/trackTransitionStart/u.test(runtimeFile) || /trackTransitionTerminal/u.test(runtimeFile)) {
@@ -151,9 +153,11 @@ if (fileExists(telemetry.validation)) {
     !/Forbidden telemetry field/u.test(validationFile) ||
     !/Legacy telemetry field/u.test(validationFile) ||
     !/card_answered/u.test(validationFile) ||
-    !/final_responses/u.test(validationFile)
+    !/final_responses/u.test(validationFile) ||
+    !/question_answered/u.test(validationFile) ||
+    !/result_viewed/u.test(validationFile)
   ) {
-    fail('Telemetry validation must reject forbidden/legacy fields, validate card_answered, and require final_responses completeness.');
+    fail('Telemetry validation must reject forbidden/legacy fields, validate card_answered/question_answered/result_viewed, and require final_responses completeness.');
   }
 }
 

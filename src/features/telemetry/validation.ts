@@ -193,10 +193,16 @@ export function validateTelemetryEventPayload(payload: unknown): TelemetryEvent 
     case 'result_viewed':
       if (
         !event.variant.trim() ||
-        !event.derived_type.trim() ||
         typeof event.landing_ingress_flag !== 'boolean'
       ) {
-        throw new Error('result_viewed requires variant, derived_type, and landing_ingress_flag.');
+        throw new Error('result_viewed requires variant and landing_ingress_flag.');
+      }
+
+      if (
+        Object.hasOwn(event, 'derived_type') &&
+        (typeof event.derived_type !== 'string' || !event.derived_type.trim())
+      ) {
+        throw new Error('result_viewed derived_type must be a non-empty string when present.');
       }
       break;
     default:

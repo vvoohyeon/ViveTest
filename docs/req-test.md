@@ -435,7 +435,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 
 **공통 규칙**:
 - domain derivation 함수가 소비하는 응답 맵은 `scoring` 응답에서는 선택된 pole 문자열(`poleA` 또는 `poleB` 값)을, `profile` qualifier 응답에서는 `QualifierFieldSpec.values`의 token을 저장한다.
-- runtime `final_responses`와 response set은 canonical index string key에 string value를 저장한다. scoring 응답은 semantic `A` / `B` 코드이고, qualifier 응답은 `QualifierFieldSpec.values`의 token이다.
+- response set은 canonical index string key에 string value를 저장한다. scoring 응답은 semantic `A` / `B` 코드이고, qualifier 응답은 `QualifierFieldSpec.values`의 token이다. runtime `final_submit.final_responses`는 scoring 응답만 포함하며 qualifier/profile 응답은 제외한다.
 - scoring `A` / `B` 코드는 domain 함수의 직접 입력이 아니다. 향후 `src/features/test/response-projection.ts`의 pure helper가 scoring 응답은 `A -> question.poleA`, `B -> question.poleB`로 투영하고, qualifier token은 schema의 허용 token으로 검증한 뒤 그대로 사용한다.
 - 이 projection layer 없이 `computeScoreStats()` 또는 `buildTypeSegment()`에 raw runtime response set을 전달하는 것을 금지한다.
 - 표시용 텍스트(선택지 본문)는 별도 i18n/콘텐츠 레이어에서 question index 기준으로 조회한다. Question 도메인 타입에 포함하지 않는다.
@@ -444,7 +444,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 
 **Progress 및 완료 게이팅**:
 - canonical `questions[]`는 scoring + profile 전체를 포함한다.
-- `all-required-answered`는 scoring 문항과 profile 문항 모두의 응답이 완료된 상태다.
+- `all-required-answered`는 runtime scoring 문항 응답이 모두 완료되고, qualifier/profile prerequisite은 instruction overlay entry 단계에서 이미 충족된 상태다. runtime completion gate는 scoring 문항만 계산하며 profile 문항은 main progress와 runtime navigation에서 제외한다.
 - main progress는 **answered scoring count / total scoring count**를 기준으로 계산한다.
 - landing ingress flag 존재 시 landing에서 pre-answer된 `scoring1`의 canonical index는 answered scoring count에 포함된다. profile question이 존재하면 이 answered index는 canonical `1`이 아닐 수 있다.
 
@@ -1214,7 +1214,7 @@ skeleton으로 확보해야 할 hook 위치:
 15. **Axis Score 시각화**: axisCount 1/2/4 렌더링. schema 선언 순서 준수.
 16. **콘텐츠 누락 fallback**: hard crash `0건`. fallback 표시. blocking/non-blocking 분류 정확성.
 17. **Cleanup Set 원자성**: cleanup 후 잔류 데이터 `0건`. 다른 variant 데이터 영향 `0건`.
-18. **Telemetry Contract**: §9.1에 명시된 이벤트 훅과 계약 누락 `0건`. `attempt_start` / `question_answered` index가 canonical 기준이며 user-facing Q label과 혼용되지 않음을 검증한다. `final_submit.final_responses`는 canonical question index string key와 non-empty string value를 허용하므로 qualifier token을 포함할 수 있다.
+18. **Telemetry Contract**: §9.1에 명시된 이벤트 훅과 계약 누락 `0건`. `attempt_start` / `question_answered` index가 canonical 기준이며 user-facing Q label과 혼용되지 않음을 검증한다. `final_submit.final_responses`는 scoring canonical question index string key와 semantic `A`/`B` value만 포함하며 qualifier token은 제외한다.
 19. **Staged Entry**: A/B 선택 시점으로부터 7분 만료. 재진입/새로고침으로 연장되지 않음. 만료 후 Direct Cold 처리. commit 경계 전후 우선 규칙 분기 정확성.
 <!-- assertion:B20-result-entry-eligibility -->
 20. **Result-entry Eligibility**: all-required-answered + 마지막 문항 유효 응답 조건 즉시 반영. tail reset 발생 즉시 false. 마지막 문항 변경 후 조건 충족 시 유지.

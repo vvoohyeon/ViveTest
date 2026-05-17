@@ -326,7 +326,15 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
       </header>
 
       {submitted ? (
-        <TestResultPanel questions={questions} answers={answers} locale={locale} landingPath={landingPath} />
+        <TestResultPanel
+          questions={questions}
+          answers={answers}
+          locale={locale}
+          landingPath={landingPath}
+          route={pathname}
+          variant={variant}
+          landingIngressFlag={landingIngressFlag}
+        />
       ) : (
         <>
           {instructionVisible ? (

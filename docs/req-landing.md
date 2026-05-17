@@ -729,7 +729,7 @@
   - ingress 경로: `landing_ingress_flag=true`, `question_index_1based`는 첫 runtime question의 canonical index (`q.1`이 있으면 `1`, 없으면 `scoring2`의 canonical index).
   - 직접 진입 경로: `landing_ingress_flag=false`, `question_index_1based`는 첫 runtime question의 canonical index (`q.1`이 있으면 `1`, 없으면 `scoring1`의 canonical index).
 - `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`.
-- `final_responses`는 canonical 전체 문항(profile 포함)의 응답 맵이며, 현재 runtime telemetry payload에서는 의미 코드 `'A' | 'B'`를 기록한다. 진입 경로(ingress/직접 진입)와 무관하게 동일한 구조를 유지한다. `scoring1` 재수정이 발생한 경우 최종 제출 시점의 값을 반영한다.
+- `final_responses`는 scoring canonical 문항의 응답 맵이며, 현재 runtime telemetry payload에서는 의미 코드 `'A' | 'B'`만 기록한다. profile/qualifier token은 `final_submit` payload에서 제외한다. 진입 경로(ingress/직접 진입)와 무관하게 동일한 구조를 유지한다. `scoring1` 재수정이 발생한 경우 최종 제출 시점의 값을 반영한다.
 - `landing_ingress_flag`는 진입 경로를 나타내며, 테스트 중 `scoring1`을 재수정하더라도 ingress 경로로 진입한 세션은 항상 `true`를 유지한다. `scoring1` 재수정 여부는 이 플래그의 값에 영향을 주지 않는다.
 - 상관키 생성 실패 시 세션 카운터 기반 대체키를 허용한다.
 - `transition_id`, `result_reason` 필드는 내부 시스템 로직 전용이며 텔레메트리 payload에 포함하지 않는다.

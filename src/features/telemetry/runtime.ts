@@ -22,6 +22,7 @@ import type {
   CardAnsweredTelemetryEvent,
   FinalSubmitTelemetryEvent,
   QuestionAnsweredEvent,
+  ResultViewedEvent,
   TelemetryBaseEvent,
   TelemetryConsentState,
   TelemetryEvent
@@ -310,4 +311,19 @@ export function trackQuestionAnswered(input: {
     dwell_ms: input.dwellMs,
     landing_ingress_flag: input.landingIngressFlag
   } satisfies QuestionAnsweredEvent) as QuestionAnsweredEvent;
+}
+
+export function trackResultViewed(input: {
+  locale: AppLocale;
+  route: string;
+  variant: string;
+  landingIngressFlag: boolean;
+  derivedType?: string;
+}): ResultViewedEvent {
+  return enqueueOrSend({
+    ...createBaseEvent({...input, eventType: 'result_viewed'}),
+    variant: input.variant,
+    ...(input.derivedType !== undefined ? {derived_type: input.derivedType} : {}),
+    landing_ingress_flag: input.landingIngressFlag
+  } satisfies ResultViewedEvent) as ResultViewedEvent;
 }

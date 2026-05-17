@@ -1,10 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {
-  buildInitialTestRunState,
-  hasAllRequiredAnswers,
-  testRunReducer
-} from '../../src/features/test/test-run-reducer';
+import {buildInitialTestRunState, testRunReducer} from '../../src/features/test/test-run-reducer';
 
 describe('testRunReducer', () => {
   it('moves from booting to instruction when instruction has not been seen', () => {
@@ -123,7 +119,7 @@ describe('testRunReducer', () => {
       autoCommitEntry: true
     });
 
-    const state = testRunReducer(active, {type: 'SUBMIT', totalQuestions: 4});
+    const state = testRunReducer(active, {type: 'SUBMIT', allAnswered: false});
 
     expect(state.phase).toBe('active');
   });
@@ -138,7 +134,7 @@ describe('testRunReducer', () => {
       autoCommitEntry: true
     });
 
-    const state = testRunReducer(active, {type: 'SUBMIT', totalQuestions: 4});
+    const state = testRunReducer(active, {type: 'SUBMIT', allAnswered: true});
 
     expect(state.phase).toBe('submitted');
   });
@@ -184,7 +180,7 @@ describe('testRunReducer', () => {
       answers: {'1': 'A', '2': 'B'},
       autoCommitEntry: true
     });
-    const submittedState = testRunReducer(submitted, {type: 'SUBMIT', totalQuestions: 2});
+    const submittedState = testRunReducer(submitted, {type: 'SUBMIT', allAnswered: true});
 
     expect(testRunReducer(submittedState, {
       type: 'SELECT_ANSWER',
@@ -193,12 +189,7 @@ describe('testRunReducer', () => {
       totalQuestions: 2
     })).toBe(submittedState);
     expect(testRunReducer(submittedState, {type: 'NAVIGATE_PREVIOUS'})).toBe(submittedState);
-    expect(testRunReducer(submittedState, {type: 'SUBMIT', totalQuestions: 2})).toBe(submittedState);
-  });
-
-  it('reports whether all required canonical answers exist', () => {
-    expect(hasAllRequiredAnswers({'1': 'A', '2': 'B'}, 2)).toBe(true);
-    expect(hasAllRequiredAnswers({'1': 'A'}, 2)).toBe(false);
+    expect(testRunReducer(submittedState, {type: 'SUBMIT', allAnswered: true})).toBe(submittedState);
   });
 });
 
@@ -326,7 +317,7 @@ describe('testRunReducer RESET_SCORING_ANSWERS', () => {
     expect(state.answers).toEqual({});
   });
 
-  it('propagates new qualifier values and leaves scoring incomplete (interleaved indexes)', () => {
+  it('propagates new qualifier values without deriving completion in the reducer', () => {
     const active = makeActiveState({'1': 'M', '2': 'A', '3': 'B', '4': 'A'});
 
     const state = testRunReducer(active, {
@@ -336,6 +327,5 @@ describe('testRunReducer RESET_SCORING_ANSWERS', () => {
     });
 
     expect(state.answers).toEqual({'1': 'F'});
-    expect(hasAllRequiredAnswers(state.answers, 4)).toBe(false);
   });
 });

@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import {useTranslations} from 'next-intl';
+import {useEffect} from 'react';
 
 import type {AppLocale} from '@/config/site';
+import {trackResultViewed} from '@/features/telemetry/runtime';
 import type {ResolvedQuestion} from '@/features/test/question-bank';
 import {isProfileQuestion} from '@/features/test/question-runtime-utils';
 import {buildLocalizedPath, type LocalizedRoutePath} from '@/i18n/localized-path';
@@ -32,10 +34,31 @@ interface TestResultPanelProps {
   answers: Record<string, string>;
   locale: AppLocale;
   landingPath: LocalizedRoutePath;
+  route: string;
+  variant: string;
+  landingIngressFlag: boolean;
 }
 
-export function TestResultPanel({questions, answers, locale, landingPath}: TestResultPanelProps) {
+export function TestResultPanel({
+  questions,
+  answers,
+  locale,
+  landingPath,
+  route,
+  variant,
+  landingIngressFlag
+}: TestResultPanelProps) {
   const t = useTranslations('test');
+
+  useEffect(() => {
+    // TODO: Replace with IntersectionObserver on derived_type block in 2위 result pipeline session; add derived_type to payload at that time.
+    trackResultViewed({
+      locale,
+      route,
+      variant,
+      landingIngressFlag
+    });
+  }, [landingIngressFlag, locale, route, variant]);
 
   return (
     <div className={testShellStageClassName} data-testid="test-stage">
