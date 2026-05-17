@@ -2,7 +2,7 @@ import {readdirSync, statSync} from 'node:fs';
 import path from 'node:path';
 
 import {createChecker, fileExists, read} from './_utils.mjs';
-import {e2e, telemetry} from './_path-config.mjs';
+import {e2e, telemetry, test} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 const THEME_MATRIX_SNAPSHOT_SUFFIX = '-chromium-darwin.png';
@@ -89,6 +89,7 @@ const requiredFiles = [
   'src/lib/correlation-id.ts',
   telemetry.runtime,
   telemetry.validation,
+  test.questionClient,
   'src/app/api/telemetry/route.ts',
   'playwright.config.ts',
   'tests/unit/landing-telemetry-validation.test.ts',
@@ -158,6 +159,19 @@ if (fileExists(telemetry.validation)) {
     !/result_viewed/u.test(validationFile)
   ) {
     fail('Telemetry validation must reject forbidden/legacy fields, validate card_answered/question_answered/result_viewed, and require final_responses completeness.');
+  }
+}
+
+if (fileExists(test.questionClient)) {
+  const questionClient = read(test.questionClient);
+
+  // Target-1 may move this UI ownership; keep this call-site anchor current when that refactor lands.
+  if (!/submitted \|\| isAnswerLocked/u.test(questionClient) || !/disabled=\{isAnswerLocked\}/u.test(questionClient)) {
+    fail('Test question client must keep answer-lock guarding at the current answer choice call sites.');
+  }
+
+  if (!/trackQuestionAnswered\(\{/u.test(questionClient)) {
+    fail('Test question client must emit question_answered from the answer choice call site.');
   }
 }
 

@@ -3,10 +3,14 @@ import {describe, expect, it} from 'vitest';
 import {asVariantId} from '../../src/features/test/domain';
 import {buildVariantQuestionBank} from '../../src/features/test/question-bank';
 import {
+  buildBootstrapResponseSet,
   resolveQuestionBootstrapState,
   resolveResumeQuestionIndex,
-  resolveScoringProgress
+  resolveScoringProgress,
+  skipBackwardPastProfile,
+  skipForwardPastProfile
 } from '../../src/features/test/question-runtime-utils';
+import type {ResolvedQuestion} from '../../src/features/test/question-bank';
 
 function buildActiveRun(variant: string) {
   const variantId = asVariantId(variant);
@@ -15,6 +19,19 @@ function buildActiveRun(variant: string) {
     variantId,
     startedAtMs: 1,
     lastAnsweredAtMs: 2
+  };
+}
+
+function makeQuestion(canonicalIndex: number, questionType: ResolvedQuestion['questionType']): ResolvedQuestion {
+  return {
+    id: `q${canonicalIndex}`,
+    canonicalIndex,
+    questionType,
+    question: `Question ${canonicalIndex}`,
+    poleA: questionType === 'scoring' ? 'A' : undefined,
+    poleB: questionType === 'scoring' ? 'B' : undefined,
+    answerA: 'Answer A',
+    answerB: 'Answer B'
   };
 }
 
@@ -429,6 +446,44 @@ describe('test question bootstrap state', () => {
       answered: 1,
       total: 8,
       percent: 13
+    });
+  });
+
+  it('skips profile questions forward from an arbitrary canonical index', () => {
+    const questions = buildVariantQuestionBank('egtt', 'en');
+
+    expect(skipForwardPastProfile(1, questions)).toBe(2);
+    expect(skipForwardPastProfile(2, questions)).toBe(2);
+  });
+
+  it('skips profile questions backward from an arbitrary canonical index', () => {
+    const questions = [
+      makeQuestion(1, 'scoring'),
+      makeQuestion(2, 'profile'),
+      makeQuestion(3, 'scoring')
+    ];
+
+    expect(skipBackwardPastProfile(2, questions)).toBe(1);
+    expect(skipBackwardPastProfile(3, questions)).toBe(3);
+  });
+
+  it('normalizes stored qualifier tokens only for bootstrap qualifier prerequisites', () => {
+    expect(
+      buildBootstrapResponseSet(
+        {
+          '1': 'M',
+          '2': 'A',
+          '3': 'custom'
+        },
+        [
+          {
+            canonicalIndex: 1
+          }
+        ]
+      )
+    ).toEqual({
+      '1': 'A',
+      '2': 'A'
     });
   });
 });

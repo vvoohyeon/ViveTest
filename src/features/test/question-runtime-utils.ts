@@ -40,6 +40,28 @@ export function findFirstScoringQuestion(questions: ReadonlyArray<ResolvedQuesti
   return questions.find((question) => question.questionType === 'scoring') ?? null;
 }
 
+export function skipForwardPastProfile(
+  index: number,
+  questions: ReadonlyArray<ResolvedQuestion>
+): number {
+  let i = index;
+  while (i <= questions.length && isProfileQuestion(questions[i - 1])) {
+    i += 1;
+  }
+  return Math.min(i, questions.length);
+}
+
+export function skipBackwardPastProfile(
+  index: number,
+  questions: ReadonlyArray<ResolvedQuestion>
+): number {
+  let i = index;
+  while (i > 1 && isProfileQuestion(questions[i - 1])) {
+    i -= 1;
+  }
+  return i;
+}
+
 export function resolveInitialQuestionIndex(input: {
   landingIngressFlag: boolean;
   questions: ReadonlyArray<ResolvedQuestion>;
@@ -128,6 +150,27 @@ export function resolveResumeQuestionIndex(input: {
 
 export function hasSemanticAnswer(answer: 'A' | 'B' | undefined): answer is 'A' | 'B' {
   return answer === 'A' || answer === 'B';
+}
+
+export function buildBootstrapResponseSet(
+  responseSet: Record<string, string>,
+  qualifierItems: ReadonlyArray<{canonicalIndex: number}>
+): ResponseSet {
+  const qualifierIndexes = new Set(qualifierItems.map((item) => String(item.canonicalIndex)));
+  const bootstrapResponses: ResponseSet = {};
+
+  for (const [key, value] of Object.entries(responseSet)) {
+    if (value === 'A' || value === 'B') {
+      bootstrapResponses[key] = value;
+      continue;
+    }
+
+    if (qualifierIndexes.has(key)) {
+      bootstrapResponses[key] = 'A';
+    }
+  }
+
+  return bootstrapResponses;
 }
 
 export function resolveScoringProgress(input: {

@@ -22,6 +22,9 @@ const UNKNOWN_OPT_OUT_NOTE =
   'For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing.';
 const OPTED_OUT_AVAILABLE_WARNING =
   "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test.";
+const EGTT_AVAILABLE_TEST_VARIANT = 'egtt';
+const EGTT_QUALIFIER_QUESTION = 'My sexual identity is';
+const EGTT_FIRST_SCORING_QUESTION = /interested in making me charming/u;
 
 type StorageVariantId = Parameters<typeof testVariantKey.responseSet>[0];
 
@@ -402,5 +405,58 @@ test.describe('Instruction consent contract smoke', () => {
         await page.close();
       }
     }
+  });
+});
+
+test.describe('EGTT qualifier consent path', () => {
+  // Chip/reentry cases stay in qualifier-overlay.spec.ts; this block covers consent-policy intersections only.
+  test('@smoke direct UNKNOWN available EGTT accepts consent, collects qualifier, and starts scoring', async ({
+    page
+  }) => {
+    await clearTelemetryConsent(page);
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto(buildLocalizedTestRoute('en', EGTT_AVAILABLE_TEST_VARIANT));
+
+    await expect(page.getByTestId('test-instruction-divider')).toBeVisible();
+    await expect(page.getByTestId('test-instruction-note')).toHaveText(UNKNOWN_AVAILABLE_NOTE);
+    await expect(page.getByTestId('test-accept-all-and-start-button')).toBeVisible();
+    await expect(page.getByTestId('test-deny-and-abandon-button')).toBeVisible();
+    await expectNoLegacyInstructionUi(page);
+
+    await page.getByTestId('test-accept-all-and-start-button').click();
+    await expect.poll(() => readConsent(page)).toBe('OPTED_IN');
+    await expect.poll(() => readInstructionSeen(page, EGTT_AVAILABLE_TEST_VARIANT)).toBe('true');
+    await expect(page.getByTestId('test-qualifier-step')).toContainText(EGTT_QUALIFIER_QUESTION);
+
+    await page.getByTestId('test-qualifier-choice-f').click();
+    await page.getByTestId('test-qualifier-continue-button').click();
+
+    await expect(page.getByTestId('test-instruction-overlay')).toHaveCount(0);
+    await expect(page.getByTestId('test-question-panel')).toBeVisible();
+    await expect(page.getByTestId('test-question-number')).toHaveText('Q1');
+    await expect(page.getByTestId('test-question-panel')).not.toContainText(EGTT_QUALIFIER_QUESTION);
+    await expect(page.getByTestId('test-question-panel')).toContainText(EGTT_FIRST_SCORING_QUESTION);
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
+    await expect.poll(() => readResponseSet(page, EGTT_AVAILABLE_TEST_VARIANT)).toBe(JSON.stringify({'1': 'F'}));
+  });
+
+  test('@smoke direct UNKNOWN available EGTT Deny and Abandon returns home without qualifier residue', async ({
+    page
+  }) => {
+    await clearTelemetryConsent(page);
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto(buildLocalizedTestRoute('en', EGTT_AVAILABLE_TEST_VARIANT));
+
+    await expect(page.getByTestId('test-deny-and-abandon-button')).toBeVisible();
+    await expect(page.getByTestId('test-qualifier-step')).toHaveCount(0);
+
+    await page.getByTestId('test-deny-and-abandon-button').click();
+
+    await expect(page).toHaveURL(/\/en$/u);
+    await expect.poll(() => readConsent(page)).toBe('OPTED_OUT');
+    await expect.poll(() => readInstructionSeen(page, EGTT_AVAILABLE_TEST_VARIANT)).toBeNull();
+    await expect.poll(() => readResponseSet(page, EGTT_AVAILABLE_TEST_VARIANT)).toBeNull();
+    await expect(page.locator(`[data-card-variant="${EGTT_AVAILABLE_TEST_VARIANT}"]`)).toHaveCount(0);
+    await expectNoLegacyInstructionUi(page);
   });
 });

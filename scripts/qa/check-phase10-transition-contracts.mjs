@@ -10,6 +10,7 @@ const requiredFiles = [
   'src/features/landing/landing-runtime.tsx',
   test.questionClient,
   test.runReducer,
+  test.testRunBootstrap,
   blog.destinationClient,
   landing.grid.mobileCardLifecycle,
   landing.grid.gridCardCss,
@@ -89,6 +90,15 @@ if (fileExists(test.runController)) {
 
   if (!/trackAttemptStart/u.test(runController) || !/trackFinalSubmit/u.test(runController)) {
     fail('Test run controller must emit attempt_start and final_submit.');
+  }
+}
+
+// Block 2a — bootstrap ownership: storage hydration stays outside the controller, dispatch remains reducer-mediated
+if (fileExists(test.testRunBootstrap)) {
+  const testRunBootstrap = read(test.testRunBootstrap);
+
+  if (!/dispatchRunAction/u.test(testRunBootstrap)) {
+    fail('Test run bootstrap hook must dispatch BOOTSTRAP_COMPLETE through the reducer boundary.');
   }
 }
 

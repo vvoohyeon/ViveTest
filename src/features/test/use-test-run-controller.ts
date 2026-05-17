@@ -2,27 +2,18 @@ import {useCallback, useEffect, useReducer, useRef, useState, type Dispatch} fro
 
 import type {AppLocale} from '@/config/site';
 import {trackAttemptStart, trackFinalSubmit} from '@/features/telemetry/runtime';
-import {terminatePendingLandingTransition} from '@/features/transition/runtime';
-import {
-  clearInstructionSeen,
-  consumeLandingIngress,
-  hasSeenInstruction,
-  readLandingIngress,
-  readPendingLandingTransition
-} from '@/features/transition/store';
+import {consumeLandingIngress} from '@/features/transition/store';
 import {asVariantId} from '@/features/test/domain';
 import type {QualifierOverlayItem} from '@/features/test/qualifier-overlay-model';
-import {hasValidQualifierAnswers} from '@/features/test/qualifier-resume-validator';
 import type {ResolvedQuestion} from '@/features/test/question-bank';
-import {getActiveRun, saveActiveRun, writeLastAnsweredAt} from '@/features/test/storage/active-run';
-import {readResponseSet, writeResponseSet, type ResponseSet} from '@/features/test/storage/response-set';
-import {volatilizeRunData} from '@/features/test/storage/volatility';
+import {saveActiveRun, writeLastAnsweredAt} from '@/features/test/storage/active-run';
+import {writeResponseSet} from '@/features/test/storage/response-set';
 import {
   findFirstScoringQuestion,
   isProfileQuestion,
-  resolveQuestionBootstrapState,
   resolveScoringProgress,
-  type QuestionBootstrapState,
+  skipBackwardPastProfile,
+  skipForwardPastProfile,
   type ScoringProgress
 } from '@/features/test/question-runtime-utils';
 import {
@@ -34,6 +25,8 @@ import {
   type TestRunAction,
   type TestRunPhase
 } from '@/features/test/test-run-reducer';
+import {useQuestionDwell} from '@/features/test/use-question-dwell';
+import {useTestRunBootstrap} from '@/features/test/use-test-run-bootstrap';
 
 interface TestRunControllerInput {
   variant: string;
@@ -69,49 +62,6 @@ interface TestRunControllerOutput {
 
 const EMPTY_QUALIFIER_ITEMS: ReadonlyArray<QualifierOverlayItem> = [];
 
-function skipForwardPastProfile(
-  index: number,
-  questions: ReadonlyArray<ResolvedQuestion>
-): number {
-  let i = index;
-  while (i <= questions.length && isProfileQuestion(questions[i - 1])) {
-    i += 1;
-  }
-  return Math.min(i, questions.length);
-}
-
-function skipBackwardPastProfile(
-  index: number,
-  questions: ReadonlyArray<ResolvedQuestion>
-): number {
-  let i = index;
-  while (i > 1 && isProfileQuestion(questions[i - 1])) {
-    i -= 1;
-  }
-  return i;
-}
-
-function buildBootstrapResponseSet(
-  responseSet: ResponseSet,
-  qualifierItems: ReadonlyArray<QualifierOverlayItem>
-): Record<string, 'A' | 'B'> {
-  const qualifierIndexes = new Set(qualifierItems.map((item) => String(item.canonicalIndex)));
-  const bootstrapResponses: Record<string, 'A' | 'B'> = {};
-
-  for (const [key, value] of Object.entries(responseSet)) {
-    if (value === 'A' || value === 'B') {
-      bootstrapResponses[key] = value;
-      continue;
-    }
-
-    if (qualifierIndexes.has(key)) {
-      bootstrapResponses[key] = 'A';
-    }
-  }
-
-  return bootstrapResponses;
-}
-
 function buildSemanticAnswerMap(answers: Record<string, string>): Record<string, 'A' | 'B'> {
   const semanticAnswers: Record<string, 'A' | 'B'> = {};
 
@@ -134,91 +84,22 @@ export function useTestRunController({
   const [runState, dispatchRunAction] = useReducer(testRunReducer, buildInitialTestRunState());
   const variantId = asVariantId(variant);
 
-  const dwellStartRef = useRef<number | null>(null);
-  const dwellByQuestionRef = useRef<Record<string, number>>({});
   const processedEntrySequenceRef = useRef(0);
-  const bootstrapStateRef = useRef<QuestionBootstrapState | null>(null);
   const pendingTransitionIdRef = useRef<string | null>(null);
   const [pendingTransitionId, setPendingTransitionId] = useState<string | null>(null);
+  const {getCurrentDwellMs, settleDwell, resetDwellForQuestion, accumulatedDwellMs} = useQuestionDwell();
 
-  useEffect(() => {
-    if (bootstrapStateRef.current) {
-      const cachedBootstrapState = bootstrapStateRef.current;
-      queueMicrotask(() => {
-        dispatchRunAction({
-          type: 'BOOTSTRAP_COMPLETE',
-          instructionSeen: cachedBootstrapState.instructionSeen,
-          landingIngressFlag: cachedBootstrapState.runtimeState.landingIngressFlag,
-          currentQuestionIndex: cachedBootstrapState.runtimeState.currentQuestionIndex,
-          answers: cachedBootstrapState.runtimeState.answers,
-          autoCommitEntry: cachedBootstrapState.entryMode === 'resume' && cachedBootstrapState.instructionSeen,
-          entryMode: cachedBootstrapState.entryMode
-        });
-        setPendingTransitionId(pendingTransitionIdRef.current);
-      });
-      return;
-    }
-
-    const pendingTransition = readPendingLandingTransition();
-    if (pendingTransition && (pendingTransition.targetType !== 'test' || pendingTransition.variant !== variant)) {
-      terminatePendingLandingTransition({
-        signal: 'transition_fail',
-        resultReason: 'DESTINATION_LOAD_ERROR'
-      });
-    }
-
-    const nextPendingTransition = readPendingLandingTransition();
-    const landingIngress = readLandingIngress(variant);
-    const activeRun = landingIngress ? null : getActiveRun(variantId);
-    const responseSet = activeRun ? readResponseSet(variant) : null;
-    const qualifierResumeIsValid = activeRun
-      ? hasValidQualifierAnswers(qualifierItems, responseSet ?? {})
-      : true;
-    const effectiveActiveRun = qualifierResumeIsValid ? activeRun : null;
-    const effectiveResponseSet = qualifierResumeIsValid ? responseSet : null;
-    let nextInstructionSeen = hasSeenInstruction(variant);
-
-    if (!qualifierResumeIsValid) {
-      volatilizeRunData(variantId, 'restart');
-      nextInstructionSeen = false;
-    }
-
-    const bootstrapResponseSet = effectiveResponseSet
-      ? buildBootstrapResponseSet(effectiveResponseSet, qualifierItems)
-      : null;
-    const bootstrapState = resolveQuestionBootstrapState({
-      activeRun: effectiveActiveRun,
-      instructionSeen: nextInstructionSeen,
-      landingIngress,
-      pendingTransition: nextPendingTransition,
-      questions,
-      responseSet: bootstrapResponseSet,
-      variant
-    });
-    const bootstrapAnswers =
-      bootstrapState.entryMode === 'resume' && effectiveResponseSet
-        ? effectiveResponseSet
-        : bootstrapState.runtimeState.answers;
-
-    if (nextInstructionSeen && !bootstrapState.instructionSeen) {
-      clearInstructionSeen(variant);
-    }
-
-    pendingTransitionIdRef.current = bootstrapState.pendingTransitionToComplete;
-    bootstrapStateRef.current = bootstrapState;
-    queueMicrotask(() => {
-      dispatchRunAction({
-        type: 'BOOTSTRAP_COMPLETE',
-          instructionSeen: bootstrapState.instructionSeen,
-          landingIngressFlag: bootstrapState.runtimeState.landingIngressFlag,
-          currentQuestionIndex: bootstrapState.runtimeState.currentQuestionIndex,
-          answers: bootstrapAnswers,
-          autoCommitEntry: bootstrapState.entryMode === 'resume' && bootstrapState.instructionSeen,
-          entryMode: bootstrapState.entryMode
-      });
-      setPendingTransitionId(bootstrapState.pendingTransitionToComplete);
-    });
-  }, [locale, pathname, qualifierItems, questions, variant, variantId]);
+  useTestRunBootstrap({
+    variant,
+    variantId,
+    locale,
+    pathname,
+    questions,
+    qualifierItems,
+    dispatchRunAction,
+    pendingTransitionIdRef,
+    onPendingTransitionIdChange: setPendingTransitionId
+  });
 
   useEffect(() => {
     if (runState.phase !== 'active' || runState.entrySequence <= processedEntrySequenceRef.current) {
@@ -256,10 +137,11 @@ export function useTestRunController({
       }
     }
 
-    dwellStartRef.current = Date.now();
+    resetDwellForQuestion();
   }, [
     locale,
     pathname,
+    resetDwellForQuestion,
     runState.currentQuestionIndex,
     runState.entryMode,
     runState.entryAnswersSnapshot,
@@ -284,16 +166,6 @@ export function useTestRunController({
   const started = isRuntimeActive(runState) || isRuntimeSubmitted(runState);
   const submitted = isRuntimeSubmitted(runState);
 
-  const settleCurrentQuestionDwell = () => {
-    if (!currentQuestion || dwellStartRef.current === null) {
-      return;
-    }
-
-    const delta = Math.max(0, Date.now() - dwellStartRef.current);
-    dwellByQuestionRef.current[currentQuestion.id] = (dwellByQuestionRef.current[currentQuestion.id] ?? 0) + delta;
-    dwellStartRef.current = Date.now();
-  };
-
   const updateAnswer = (choice: SemanticAnswer) => {
     if (!currentQuestion || !isRuntimeActive(runState)) {
       return;
@@ -316,7 +188,7 @@ export function useTestRunController({
       return;
     }
 
-    settleCurrentQuestionDwell();
+    settleDwell(currentQuestion);
 
     if (direction === -1) {
       const nextIndex = skipBackwardPastProfile(Math.max(1, currentQuestionIndex - 1), questions);
@@ -367,8 +239,8 @@ export function useTestRunController({
       return;
     }
 
-    settleCurrentQuestionDwell();
-    const dwellMsAccumulated = Object.values(dwellByQuestionRef.current).reduce((sum, value) => sum + value, 0);
+    settleDwell(currentQuestion);
+    const dwellMsAccumulated = accumulatedDwellMs();
     const profileIndexes = new Set(
       questions.filter((question) => isProfileQuestion(question)).map((question) => question.canonicalIndex)
     );
@@ -397,11 +269,6 @@ export function useTestRunController({
       });
     },
     [questions]
-  );
-
-  const getCurrentDwellMs = useCallback(
-    () => (dwellStartRef.current !== null ? Math.max(0, Date.now() - dwellStartRef.current) : 0),
-    []
   );
 
   const clearPendingTransitionId = useCallback(() => {
