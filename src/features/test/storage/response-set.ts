@@ -1,9 +1,8 @@
 import type {VariantId} from '@/features/test/domain';
 import {testVariantKey} from '@/features/test/storage/test-storage-keys';
+import {CANONICAL_INDEX_KEY_PATTERN} from '@/features/test/canonical-key';
 
 export type ResponseSet = Record<string, string>;
-
-const CANONICAL_INDEX_KEY_PATTERN = /^[1-9]\d*$/;
 
 function getLocalStorage(): Storage | null {
   if (typeof window === 'undefined') {

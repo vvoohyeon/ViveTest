@@ -50,7 +50,8 @@
     "qualifierRestartConfirm": "Change and restart",
     "qualifierPending": "—",
     "qualifierChipAriaLabel": "Change qualifier answers",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "overlayBack": "Back"
   },
   "blog": {
     "selected": "Selected article",

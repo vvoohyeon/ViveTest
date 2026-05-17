@@ -43,14 +43,15 @@
     "acceptAllAndStart": "すべて許可して開始",
     "denyAndAbandon": "拒否して中止",
     "denyAndStart": "拒否して開始",
-    "keepCurrentPreference": "Keep current preference",
-    "unknownAvailableNote": "For a better experience, please agree to the terms to proceed with the test.",
-    "unknownOptOutNote": "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing.",
-    "optedOutAvailableWarning": "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test.",
-    "qualifierRestartConfirm": "Change and restart",
+    "keepCurrentPreference": "現在の設定を維持",
+    "unknownAvailableNote": "より良い体験のため、テストを続けるには規約に同意してください。",
+    "unknownOptOutNote": "より良い体験のため、テストを続ける前に規約に同意してください。同意しなくても続行できます。",
+    "optedOutAvailableWarning": "このテストは同意したユーザーのみ利用できます。申し訳ありませんが、現在の設定を維持するとこのテストは受けられません。",
+    "qualifierRestartConfirm": "変更して最初からやり直す",
     "qualifierPending": "—",
-    "qualifierChipAriaLabel": "Change qualifier answers",
-    "cancel": "Cancel"
+    "qualifierChipAriaLabel": "資格設問の回答を変更",
+    "cancel": "キャンセル",
+    "overlayBack": "戻る"
   },
   "blog": {
     "selected": "選択した記事",

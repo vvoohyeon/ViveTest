@@ -1,10 +1,9 @@
 import type {LandingIngressRecord, PendingLandingTransition} from '@/features/transition/store';
 import type {ResolvedQuestion} from '@/features/test/question-bank';
 import type {ActiveRun} from '@/features/test/storage';
+import {CANONICAL_INDEX_KEY_PATTERN} from '@/features/test/canonical-key';
 
 type ResponseSet = Record<string, 'A' | 'B'>;
-
-const CANONICAL_INDEX_KEY_PATTERN = /^[1-9]\d*$/;
 
 export interface QuestionRuntimeState {
   ready: boolean;

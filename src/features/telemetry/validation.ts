@@ -1,9 +1,9 @@
 import type {TelemetryConsentState, TelemetryEvent, TelemetryEventType} from '@/features/telemetry/types';
+import {CANONICAL_INDEX_KEY_PATTERN} from '@/features/test/canonical-key';
 
 const FORBIDDEN_FIELD_PATTERN =
   /^(question_text|answer_text|free_input|free_text|email|ip|fingerprint)$/iu;
 const LEGACY_FORBIDDEN_FIELD_PATTERN = /^(transition_id|result_reason|final_q1_response)$/u;
-const CANONICAL_INDEX_KEY = /^[1-9]\d*$/u;
 const TELEMETRY_EVENT_TYPES: ReadonlyArray<TelemetryEventType> = [
   'landing_view',
   'card_answered',
@@ -166,7 +166,7 @@ export function validateTelemetryEventPayload(payload: unknown): TelemetryEvent 
       }
 
       for (const responseKey of Object.keys(event.final_responses)) {
-        if (!CANONICAL_INDEX_KEY.test(responseKey)) {
+        if (!CANONICAL_INDEX_KEY_PATTERN.test(responseKey)) {
           throw new Error('final_submit response keys must be canonical question index strings.');
         }
       }

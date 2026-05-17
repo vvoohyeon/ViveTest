@@ -93,7 +93,7 @@ export function InstructionOverlay({
                       : 'test-qualifier-back-button'
                   }
                 >
-                  {qualifierStep.backLabel ?? 'Back'}
+                  {qualifierStep.backLabel}
                 </button>
               ) : null}
               <button

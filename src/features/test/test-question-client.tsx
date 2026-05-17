@@ -379,7 +379,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                       continueDisabled: !qualifierDraft[currentQualifierItem.canonicalIndex],
                       showBack: true,
                       isReentry: overlayMode === 'reentry',
-                      backLabel: overlayMode === 'reentry' ? t('cancel') : undefined
+                      backLabel: overlayMode === 'reentry' ? t('cancel') : t('overlayBack')
                     }
                   : undefined
               }
