@@ -60,5 +60,6 @@ export const test = {
   questionClient: 'src/features/test/test-question-client.tsx',
   runController: 'src/features/test/use-test-run-controller.ts',
   runReducer: 'src/features/test/test-run-reducer.ts',
-  entryOrchestrator: 'src/features/test/use-test-entry-orchestrator.ts'
+  entryOrchestrator: 'src/features/test/use-test-entry-orchestrator.ts',
+  entrySideEffects: 'src/features/test/use-entry-side-effects.ts'
 };

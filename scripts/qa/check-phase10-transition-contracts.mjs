@@ -42,7 +42,7 @@ if (fileExists(transition.runtime)) {
   }
 }
 
-// Block 1 — entry-phase contracts: negative guard stays in client; ownership checks in orchestrator
+// Block 1 — entry-phase contracts: negative guard stays in client; ownership checks in entry side-effects hook
 if (fileExists(test.questionClient)) {
   const questionClient = read(test.questionClient);
 
@@ -51,13 +51,13 @@ if (fileExists(test.questionClient)) {
   }
 }
 
-if (fileExists(test.entryOrchestrator)) {
-  const orchestratorFile = read(test.entryOrchestrator);
-  if (!/markInstructionSeen/u.test(orchestratorFile)) {
-    fail('Entry orchestrator must call markInstructionSeen on commit actions.');
+if (fileExists(test.entrySideEffects)) {
+  const entrySideEffectsFile = read(test.entrySideEffects);
+  if (!/markInstructionSeen/u.test(entrySideEffectsFile)) {
+    fail('Entry side-effects hook must call markInstructionSeen on commit actions.');
   }
-  if (!/clearLandingIngress/u.test(orchestratorFile)) {
-    fail('Entry orchestrator must call clearLandingIngress on redirect actions.');
+  if (!/clearLandingIngress/u.test(entrySideEffectsFile)) {
+    fail('Entry side-effects hook must call clearLandingIngress on redirect actions.');
   }
 }
 

@@ -1,11 +1,12 @@
-import {useCallback, useEffect, useRef, useState, type Dispatch} from 'react';
+import {useCallback, type Dispatch} from 'react';
 import {useRouter} from 'next/navigation';
 
-import {setTelemetryConsentState} from '@/features/telemetry/consent-source';
-import {clearLandingIngress, markInstructionSeen} from '@/features/transition/store';
 import type {TestEntryPolicy, TestInstructionAction} from '@/features/test/entry-policy';
 import type {QualifierOverlayItem} from '@/features/test/qualifier-overlay-model';
 import {writeResponseSet} from '@/features/test/storage/response-set';
+import {useAutoCommit} from '@/features/test/use-auto-commit';
+import {useEntrySideEffects} from '@/features/test/use-entry-side-effects';
+import {useQualifierOverlayWizard} from '@/features/test/use-qualifier-overlay-wizard';
 import type {TestRunAction, TestRunPhase} from '@/features/test/test-run-reducer';
 import type {LocalizedRoutePath} from '@/i18n/localized-path';
 
@@ -55,53 +56,27 @@ export function useTestEntryOrchestrator({
 }: UseTestEntryOrchestratorInput): UseTestEntryOrchestratorOutput {
   const entryCommitted = runPhase === 'active' || runPhase === 'submitted';
   const redirecting = runPhase === 'redirecting';
-  const autoCommitScheduledRef = useRef(false);
-  const [overlayStep, setOverlayStep] = useState<OverlayStepId>('instruction');
-  const [overlayMode, setOverlayMode] = useState<'entry' | 'reentry'>('entry');
-  const [qualifierDraft, setQualifierDraft] = useState<Record<number, string>>({});
+  const {
+    overlayStep,
+    overlayMode,
+    qualifierDraft,
+    setOverlayStep,
+    onQualifierSelect,
+    onQualifierBack,
+    reopenQualifierOverlay: reopenQualifierOverlayWizard,
+    buildQualifierAnswers,
+    resetWizard
+  } = useQualifierOverlayWizard();
 
-  const buildQualifierAnswers = useCallback(() => {
-    const entries = qualifierItems.flatMap((item): Array<[string, string]> => {
-      const token = qualifierDraft[item.canonicalIndex];
-      return token ? [[String(item.canonicalIndex), token]] : [];
-    });
-
-    return Object.fromEntries(entries);
-  }, [qualifierDraft, qualifierItems]);
-
-  const onQualifierBack = useCallback(() => {
-    if (overlayMode === 'reentry') {
-      if (typeof overlayStep === 'number' && overlayStep > 0) {
-        setOverlayStep(overlayStep - 1);
-        return;
-      }
-
-      setOverlayMode('entry');
-      setOverlayStep('instruction');
-      setQualifierDraft({});
-      return;
-    }
-
-    setOverlayStep((prev) => (typeof prev === 'number' && prev > 0 ? prev - 1 : 'instruction'));
-  }, [overlayMode, overlayStep]);
-
-  const onQualifierSelect = useCallback((canonicalIndex: number, token: string) => {
-    setQualifierDraft((prev) => ({...prev, [canonicalIndex]: token}));
-  }, []);
+  const {
+    applyConsentEffect,
+    applyInstructionSeenEffect,
+    applyLandingIngressClearEffect
+  } = useEntrySideEffects({variant});
 
   const reopenQualifierOverlay = useCallback(() => {
-    const seededDraft: Record<number, string> = {};
-    for (const item of qualifierItems) {
-      const storedToken = answers[String(item.canonicalIndex)];
-      if (storedToken && item.choices.some((choice) => choice.token === storedToken)) {
-        seededDraft[item.canonicalIndex] = storedToken;
-      }
-    }
-
-    setQualifierDraft(seededDraft);
-    setOverlayMode('reentry');
-    setOverlayStep(0);
-  }, [answers, qualifierItems]);
+    reopenQualifierOverlayWizard(answers, qualifierItems);
+  }, [answers, qualifierItems, reopenQualifierOverlayWizard]);
 
   const executeInstructionAction = useCallback(
     (action: TestInstructionAction) => {
@@ -111,19 +86,18 @@ export function useTestEntryOrchestrator({
       }
 
       if (effect.writesConsent) {
-        setTelemetryConsentState(effect.writesConsent);
+        applyConsentEffect(effect.writesConsent);
       }
 
       if (effect.recordsInstructionSeen && !instructionSeen) {
-        markInstructionSeen(variant);
+        applyInstructionSeenEffect();
       }
 
       if (effect.redirectHome) {
-        setOverlayStep('instruction');
-        setQualifierDraft({});
+        resetWizard();
         dispatchRunAction({type: 'REDIRECT_HOME'});
         if (landingIngressFlag) {
-          clearLandingIngress(variant);
+          applyLandingIngressClearEffect();
         }
         router.replace(landingPath as LocalizedRoutePath);
         return;
@@ -154,16 +128,14 @@ export function useTestEntryOrchestrator({
       }
 
       if (overlayMode === 'reentry') {
-        const qualifierOnlyResponses = buildQualifierAnswers();
+        const qualifierOnlyResponses = buildQualifierAnswers(qualifierItems);
         resetScoringAnswers(qualifierOnlyResponses);
         writeResponseSet(variant, qualifierOnlyResponses);
-        setOverlayMode('entry');
-        setOverlayStep('instruction');
-        setQualifierDraft({});
+        resetWizard();
         return;
       }
 
-      const qualifierAnswers = buildQualifierAnswers();
+      const qualifierAnswers = buildQualifierAnswers(qualifierItems);
       const hasQualifierAnswers = Object.keys(qualifierAnswers).length > 0;
       dispatchRunAction({
         type: 'COMMIT_ENTRY',
@@ -175,10 +147,12 @@ export function useTestEntryOrchestrator({
         writeResponseSet(variant, qualifierAnswers);
       }
 
-      setQualifierDraft({});
-      setOverlayStep('instruction');
+      resetWizard();
     },
     [
+      applyConsentEffect,
+      applyInstructionSeenEffect,
+      applyLandingIngressClearEffect,
       buildQualifierAnswers,
       dispatchRunAction,
       entryPolicy.effects,
@@ -191,40 +165,24 @@ export function useTestEntryOrchestrator({
       qualifierItems,
       redirecting,
       resetScoringAnswers,
+      resetWizard,
       router,
       runtimeReady,
+      setOverlayStep,
       variant
     ]
   );
 
-  useEffect(() => {
-    if (
-      !runtimeReady ||
-      redirecting ||
-      entryCommitted ||
-      runPhase !== 'instruction' ||
-      !instructionSeen ||
-      !entryPolicy.canAutoCommitAfterInstructionSeen ||
-      qualifierItems.length > 0 ||
-      autoCommitScheduledRef.current
-    ) {
-      return;
-    }
-
-    autoCommitScheduledRef.current = true;
-    queueMicrotask(() => {
-      executeInstructionAction('start');
-    });
-  }, [
-    entryCommitted,
-    entryPolicy.canAutoCommitAfterInstructionSeen,
-    executeInstructionAction,
-    instructionSeen,
-    qualifierItems.length,
+  useAutoCommit({
+    runtimeReady,
     redirecting,
+    entryCommitted,
     runPhase,
-    runtimeReady
-  ]);
+    instructionSeen,
+    canAutoCommitAfterInstructionSeen: entryPolicy.canAutoCommitAfterInstructionSeen,
+    qualifierItemsCount: qualifierItems.length,
+    executeInstructionAction
+  });
 
   return {
     instructionSeen,
