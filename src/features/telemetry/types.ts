@@ -48,6 +48,8 @@ export interface FinalSubmitTelemetryEvent extends TelemetryBaseEvent {
   final_responses: Record<string, string>;
 }
 
+// NOTE: naming uses short form (vs. *TelemetryEvent for older events).
+// Unify naming in a future telemetry cleanup session if the union grows.
 export interface QuestionAnsweredEvent extends TelemetryBaseEvent {
   event_type: 'question_answered';
   variant: string;

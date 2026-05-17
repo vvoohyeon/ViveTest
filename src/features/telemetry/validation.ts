@@ -108,6 +108,9 @@ function assertNoForbiddenFields(value: unknown): void {
 }
 
 function assertPostAttemptSessionId(event: TelemetryEvent): void {
+  // TODO(2위 result pipeline): add result_viewed to the post-attempt
+  // session-id requirement once derived_type and IntersectionObserver
+  // fire point are implemented. See docs/plans/result-pipeline-todos.md.
   if (
     (event.event_type === 'attempt_start' ||
       event.event_type === 'final_submit' ||
@@ -138,6 +141,11 @@ export function validateTelemetryEventPayload(payload: unknown): TelemetryEvent 
       }
       break;
     case 'attempt_start':
+      // NOTE: `attempt_start` and `final_submit` validate question_index_1based
+      // as a finite number (original contract, allows non-integer finite values).
+      // `question_answered` uses the stricter integer check (newer contract).
+      // These are intentionally different; do not unify without an explicit
+      // telemetry contract decision.
       if (
         !event.variant.trim() ||
         !Number.isFinite(event.question_index_1based) ||

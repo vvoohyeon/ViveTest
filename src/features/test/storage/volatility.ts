@@ -40,6 +40,9 @@ export function volatilizeRunData(variantId: VariantId, trigger: VolatilityTrigg
       }
     }
 
+    // intentional cross-namespace delete: instructionSeen key is defined in
+    // landing storage (variantSessionKeys) but is semantically test-domain
+    // state. Cleared here per SSOT (docs/req-test.md volatility rules).
     getSessionStorage()?.removeItem(variantSessionKeys.instructionSeen(variantId));
   } catch (error) {
     console.error('Failed to volatilize test run data', {trigger, error});

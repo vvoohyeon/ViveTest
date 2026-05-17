@@ -165,13 +165,20 @@ if (fileExists(telemetry.validation)) {
 if (fileExists(test.questionClient)) {
   const questionClient = read(test.questionClient);
 
-  // Target-1 may move this UI ownership; keep this call-site anchor current when that refactor lands.
   if (!/submitted \|\| isAnswerLocked/u.test(questionClient) || !/disabled=\{isAnswerLocked\}/u.test(questionClient)) {
     fail('Test question client must keep answer-lock guarding at the current answer choice call sites.');
   }
 
   if (!/trackQuestionAnswered\(\{/u.test(questionClient)) {
     fail('Test question client must emit question_answered from the answer choice call site.');
+  }
+}
+
+if (fileExists(test.answerLock)) {
+  const answerLock = read(test.answerLock);
+
+  if (!/setTimeout/u.test(answerLock) || !/isAnswerLocked/u.test(answerLock)) {
+    fail('useAnswerLock must own the answer-lock timer and lock state.');
   }
 }
 

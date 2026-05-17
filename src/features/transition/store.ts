@@ -135,6 +135,14 @@ export function clearLandingIngress(variant: string): void {
   });
 }
 
+// NOTE: instructionSeen helpers are defined here (transition domain) but
+// consumed exclusively by src/features/test/** (test domain). This is a
+// cross-namespace dependency. If test-domain ownership is formalized in
+// a future session, move these to src/features/test/storage/
+// instruction-seen.ts and update import sites in:
+//   - src/features/test/use-entry-side-effects.ts
+//   - src/features/test/use-test-run-bootstrap.ts
+//   - src/features/test/storage/volatility.ts
 export function markInstructionSeen(variant: string): void {
   const storage = getSessionStorage();
   storage?.setItem(variantSessionKeys.instructionSeen(variant), 'true');
