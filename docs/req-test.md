@@ -256,13 +256,14 @@
 | Progress policy (scoring-only, profile = prerequisite) | §3.9, §3.11 |
 | Telemetry policy (canonical index, `attempt_start` timing) | §9.1, §9.2 |
 
-#### 2.9.16 Open but non-blocking items
+#### 2.9.16 Qualifier re-entry 구현 기준
 
-아래 항목은 아직 열려 있으나 구현 착수를 막는 차단 항목은 아니다.
-- qualifier recap의 최종 위치 / recap 텍스트 포맷
-- qualifier 수정 진입 시 overlay header/CTA copy
-- qualifier 수정 완료 후 원래 scoring 문항으로 복귀하는 세부 UX
-- qualifier overlay 안의 local step indicator 표현 방식
+아래 항목은 현재 코드 기준 구현된 qualifier recap/re-entry 기준이다. 결과 도출 파이프라인과 독립적으로 유지한다.
+- qualifier recap은 runtime question panel 상단의 chip으로 표시한다.
+- chip label은 저장된 qualifier token을 표시 선택지 label로 역매핑한다. 저장값이 누락되면 pending label을 사용한다.
+- chip activation은 qualifier overlay를 re-entry mode로 다시 열며, 현재 qualifier 값을 draft로 seed한다.
+- re-entry cancel은 overlay만 닫고 response set을 변경하지 않는다.
+- re-entry confirm은 qualifier answer만 보존한 response set을 다시 쓰고, scoring 응답을 삭제한 뒤 첫 scoring question부터 재시작한다.
 
 
 ## 3. Core Domain & UI Lifecycle Definitions
@@ -396,6 +397,13 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - final qualifier step의 Continue label은 instruction step의 Start label과 일치한다.
 - commit은 final qualifier step의 Continue action에서만 발생한다. qualifier가 없는 variant는 instruction step CTA에서 commit한다.
 - qualifier fields가 있는 variant는 `instructionSeen`이 `true`여도 auto-commit하지 않는다.
+
+**Qualifier re-entry 계약**:
+- qualifier fields가 있는 variant는 runtime entry 이후 현재 qualifier 선택을 recap chip으로 표시할 수 있다.
+- recap chip을 활성화하면 qualifier overlay를 re-entry mode로 다시 열고, 기존 qualifier answer를 draft 선택 상태로 표시한다.
+- re-entry cancel은 overlay만 닫고 runtime answers/storage를 변경하지 않는다.
+- re-entry confirm은 qualifier answer만 새 response set으로 보존하고 기존 scoring answers를 삭제한다. 이후 runtime panel은 첫 scoring question으로 돌아가며 main progress는 scoring answered 0으로 재계산된다.
+- re-entry는 같은 `/test/{variant}` 런타임 안에서 처리하며 별도 route 이동이나 instruction 재표시로 해석하지 않는다.
 
 **instructionSeen 생명주기**:
 - **기록 시점**: Start 계열 CTA 실행 직후 `instructionSeen:{variantId} = true`로 기록한다. qualifier question(예: EGTT 성별 질문)은 instruction overlay 안에서 수집되는 것이 의도된 설계이므로, `instructionSeen`만으로 qualifier variant를 auto-commit하면 안 된다.
@@ -621,6 +629,7 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 - question runtime panel은 variant의 ordered question set 중 scoring question만 표시한다. profile/qualifier question은 instruction overlay의 qualifier step에서 수집한다.
 - 사용자는 각 scoring runtime question에서 정확히 두 개의 answer option 중 하나를 선택해야 한다.
 - **scoring 응답 확정 직후 시스템은 즉시 다음 미응답 scoring question으로 이동한다.** 이 자동 이동 규칙은 정상 순차 진행, revision 후 진행, resume 후 진행 모두에 동일하게 적용되며 profile question은 runtime navigation에서 건너뛴다.
+- 자동 이동은 짧은 지연(현재 150ms) 동안 answer option을 잠그는 방식으로 처리한다. 이 지연 구간의 중복 클릭은 무시되어야 하며, Previous/문항 전환/unmount 시 예약된 자동 이동은 취소되어야 한다.
 - 사용자는 이전 문항으로 이동할 수 있다. 다음 문항 이동은 응답 확정 직후 자동 진행으로 처리한다.
 - 이전 문항으로 이동해 응답을 변경하면 tail reset이 발생한다 (§3.9 참조).
 - 마지막 문항의 응답을 변경하면 이전 derivation residue가 무효화된다. tail reset은 발생하지 않는다 (§3.9 참조).
@@ -1056,41 +1065,36 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 
 이번 단계에서 telemetry는 hook 위치만이 아니라 **이벤트 발화 시점, canonical index 의미, payload 축, cross-phase 해석 규칙까지 포함한 활성 계약**을 가진다.
 
-skeleton으로 확보해야 할 hook 위치:
+현재 구현과 target contract를 함께 관리하는 hook 위치:
 1. 랜딩 카드 A/B 선택 시점 (`card_answered` 대응, ingress 경로 전용) + 블로그 카드 Read more CTA. ※ `card_answered`는 landing phase 이벤트이며 test flow에서 재발화하지 않는다.
 2. instruction/qualifier overlay 완료 후 test runtime 진입 시점 (`attempt_start` 대응). **첫 scoring runtime question이 실제로 렌더되는 시점**에 발화. ingress: landing pre-answered `scoring1` 이후 다음 scoring question의 canonical index. direct: `scoring1`의 canonical index. EGTT처럼 `q.1` qualifier가 있는 경우에도 `q.1`은 runtime panel에 렌더되지 않으므로 `attempt_start.question_index_1based`는 첫 scoring question의 canonical index다.
-3. question 답변 시점 (`question_answered` 대응, 미래 hook). scoring runtime question에서 발화한다. qualifier overlay 선택은 canonical index에 저장되지만 runtime question panel 답변 이벤트로 재발화하지 않는다. landing pre-answered `scoring1`은 재발화 불필요.
-4. test 완료 확정 시점 (`final_submit` 대응, result screen entry commit)
-5. result 필수 콘텐츠(`derived_type` 블록) 뷰포트 진입 시점
-   (`result_viewed` 대응, Intersection Observer 1회 발화 후 disconnect)
-6. user-visible error render 시점
+3. question 답변 시점 (`question_answered` 대응). scoring runtime question에서 발화한다. 현재 live hook은 non-last scoring answer call site에서 발화하며, 마지막 scoring question은 `final_submit`이 completion event를 담당한다. qualifier overlay 선택은 canonical index에 저장되지만 runtime question panel 답변 이벤트로 재발화하지 않는다. landing pre-answered `scoring1`은 재발화 불필요.
+4. test 완료 확정 시점 (`final_submit` 대응). 현재 placeholder runtime은 Submit action에서 발화하며, Phase 7/10 result-entry pipeline에서는 result screen entry commit 계약과 다시 정합시켜야 한다.
+5. result 필수 콘텐츠(`derived_type` 블록) 뷰포트 진입 시점 (`result_viewed` 대응). 현재 placeholder result panel은 `TestResultPanel` mount 시 1회 발화하고 `derived_type`을 포함하지 않는다. 실제 result pipeline에서는 `derived_type` 블록 Intersection Observer 1회 발화 후 disconnect로 교체한다.
+6. user-visible error render 시점. 현재 live telemetry type union에는 아직 포함하지 않는다.
 
 > `questionIndex`/`question_index_1based`는 canonical index 기준이며 user-facing `Q1/Q2`와 다를 수 있다.
 
-### 9.2 다음 Phase 구현 의무 (MANDATORY)
+### 9.2 Telemetry 구현 상태 및 남은 의무
 
-> **⚠️ 다음 Phase 구현 착수 전에 아래 항목을 완료해야 한다. 생략하고 그 다음 단계로 진행하는 것을 금지한다.**
+> **⚠️ Phase 11 telemetry scope를 닫기 전 아래 항목의 구현 상태를 재확인해야 한다.** 이미 live hook으로 구현된 항목은 현재 계약을 유지하고, placeholder로 남은 항목은 result/error UX 구현 단계에서 완료해야 한다.
 
 1. 최소 이벤트셋 계약:
    Landing phase 이벤트(`landing_view`, `card_answered`)는 이번 단계 재구현 불필요. 연계 정합성은 blocker #28에서 검증한다.
 
-  - `attempt_start`: instruction 이후 첫 runtime question render 시점 발화.
-      필수 추가 필드: `landing_ingress_flag`, `question_index_1based`(canonical index 기준).
-      경로별 시작 문항 판정: §9.1 hook 2, §3.3 진입 경로 분류 표 참조.
-   - `question_answered`: 문항별 발화. 필수 필드: `questionIndex`(canonical 1-based),
-     `totalQuestions`.
-     scoring runtime question에서 발화한다.
-     landing pre-answered `scoring1`은 landing `card_answered`로만 기록되며 runtime에서 재발화하지 않는다.
-     UI의 scoring-based `Q1/Q2` 라벨은 telemetry payload에 포함하지 않는다.
-   - `final_submit`: result screen entry commit 시점 발화.
+   - `attempt_start`: instruction 이후 첫 runtime question render 시점 발화.
+     필수 추가 필드: `landing_ingress_flag`, `question_index_1based`(canonical index 기준).
+     경로별 시작 문항 판정: §9.1 hook 2, §3.3 진입 경로 분류 표 참조.
+   - `question_answered`: 현재 구현 완료된 live hook이다. 필수 필드: `question_index_1based`(canonical 1-based), `choice`, `dwell_ms`, `landing_ingress_flag`. non-last scoring runtime answer에서 발화한다. landing pre-answered `scoring1`은 landing `card_answered`로만 기록되며 runtime에서 재발화하지 않는다. UI의 scoring-based `Q1/Q2` 라벨은 telemetry payload에 포함하지 않는다.
+   - `final_submit`: 현재 placeholder runtime에서는 Submit action에서 발화한다. Phase 7/10에서 result screen entry commit이 별도 상태로 구현되면 해당 commit 시점으로 재정렬해야 한다.
      `final_submit.question_index_1based`는 최종 answered canonical index다.
-   - `result_viewed`: `derived_type` 블록 뷰포트 진입 시점, Intersection
-     Observer 1회 발화 후 disconnect.
+   - `result_viewed`: 현재 `TestResultPanel` mount 기반 임시 hook으로 구현되어 있으며 `derived_type`은 optional이다. Phase 9 result page 구현 시 `derived_type` 블록 뷰포트 진입 시점, Intersection Observer 1회 발화 후 disconnect로 교체한다.
+   - user-visible error render telemetry는 아직 live union에 없으며, error UX 구현 단계에서 별도 이벤트 계약을 확정한다.
 
 2. `session_id` non-null 보장 계약:
    - `attempt_start` 발화 시점부터 해당 세션의 모든 이벤트에서 `session_id`는 non-null이어야 한다.
    - `attempt_start` 이전 이벤트(`landing_view`, `card_answered`)는 **transport-patch 모델**을 적용한다: consent/session 확보 이전에 큐잉된 이벤트는 `session_id=null`로 발화하며, transport 단계에서 session_id가 패치된다. 이 비대칭은 의도된 설계이며 cross-phase event integrity 분석 시 반드시 고려해야 한다.
-   - `validateTelemetryEvent()` 및 e2e smoke는 `attempt_start` 이후 이벤트에서 `session_id !== null`을 직접 단언해야 한다. 이 단언 누락은 blocker #18 미매핑으로 처리한다.
+   - `validateTelemetryEvent()` 및 e2e smoke는 `attempt_start` 이후 이벤트에서 `session_id !== null`을 직접 단언해야 한다. 현재 transport validator는 `attempt_start`, `question_answered`, `final_submit`에 이 규칙을 적용한다. `result_viewed`는 placeholder mount fire가 실제 result pipeline으로 교체될 때 post-attempt session-id 규칙에 포함한다.
 
 > **이 항목들이 완성되지 않은 상태에서 share, history, admin 구현을 시작하면 telemetry 데이터 신뢰성을 보장할 수 없다.**
 

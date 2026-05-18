@@ -22,12 +22,12 @@ Phase 0 착수 이전에 요구되었던 랜딩 측 선행 구현은 완료되�
 | **3** | Storage · Session Lifecycle · Data Volatility | storage key API, active run timeout 판정, 5개 상태 플래그, 3가지 휘발 트리거 단위 구현 완료. live runtime active-run 생성/갱신과 resume read 경로도 Phase 5/6 사전 설계 결정으로 연결됨 | 1, 2 |
 | **4** | Entry Path · Staged Entry · Invalid Variant Recovery | test route entry guard, runtime-blocked redirect, lazy-validation redirect, stub error route는 구현됨. 7분 만료/완성형 recovery UX/공유 픽스처 확장은 남음 | 1, 2, 3 |
 | **5** | Instruction Gate · Runtime Entry Commit | instruction overlay와 `useTestEntryOrchestrator` 기반 commit/redirect/auto-commit 경로 구현. **Phase 5/6 사전 설계 결정 섹션 참조**: entry/runtime phase 상태는 `test-run-reducer.ts`로 통합되었고 orchestrator는 reducer-aware adapter로 유지됨 | 1, 2, 3, 4 |
-| **6** | Question Runtime Core | `useTestRunController` 기반 응답 루프, canonical-index keyed write/read, active-run resume, scoring progress, auto-advance, backward tail reset, placeholder submit/result는 구현됨. result-entry eligibility 저장/derivation 연결은 남음 | 1, 2, 3, 4, 5 |
+| **6** | Question Runtime Core | `useTestRunController` 기반 응답 루프, canonical-index keyed write/read, active-run resume, scoring progress, answer lock 기반 auto-advance, backward tail reset, qualifier re-entry reset, placeholder submit/result는 구현됨. result-entry eligibility 저장/derivation 연결은 남음 | 1, 2, 3, 4, 5 |
 | **7** | Derivation · Loading Screen | scoreStats/derivedType 계산, 5초 최소 로딩 AND 조건, back-from-loading | 1, 2, 3, 6 |
 | **8** | Result URL Payload · Validation | URL 구조, base64 인코딩, payload 검증 실패 경로 | 1 |
 | **9** | Result Page · Content Fallback | 케이스 매트릭스(1/2/4), mandatory/optional 섹션, content fallback | 7, 8 |
 | **10** | Error States · Terminal Exclusivity · Cleanup Set | commit-failure / derivation-failure taxonomy, §8.1 전이 테이블, §8.3 cleanup 원자성 | 5, 6, 7 |
-| **11** | Telemetry Contract · Release Gate | §9.1 hook 6개와 canonical telemetry 계약, traceability closure (blocker 1~30 매핑) | 전체 |
+| **11** | Telemetry Contract · Release Gate | §9.1 active hook(`attempt_start`, `question_answered`, `final_submit`, 임시 `result_viewed`)과 canonical telemetry 계약, traceability closure (blocker 1~30 매핑). user-visible error hook과 real `derived_type`/IntersectionObserver `result_viewed`는 결과·에러 UX 구현 시 확정 | 전체 |
 
 > Phase 10 checkpoint: `assertion:B17-cleanup-set-atomicity-e2e-phase10` must promote the Phase 3 unit cleanup-set proof into user-flow E2E coverage for every cleanup class that Phase 10 wires.
 
@@ -229,9 +229,11 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 
 **현재 구조 (SD-1 적용 후 상태):**
 - `src/features/test/test-run-reducer.ts`가 `booting | instruction | active | submitted | redirecting` phase, canonical answers, current index, entry sequence, new/resume entry mode, tail reset, submit guard를 소유한다.
-- `useTestRunController`가 reducer instance, bootstrap, progress, pending transition completion, dwell tracking, response persistence, `attempt_start`/`final_submit` hook을 소유한다.
-- `useTestEntryOrchestrator`가 CTA action 해석, consent write, `markInstructionSeen`, redirect-home side effect, auto-commit scheduling을 소유하되 독립 phase `useState`는 갖지 않는다.
-- `test-question-client.tsx`의 `entryCommittedForController` bridge state는 제거되었다. answer auto-advance timer는 UI wiring으로 남고, 지연 advance는 클릭 시점의 choice를 캡처한다.
+- `useTestRunBootstrap`이 pending transition, Landing Ingress, active-run/responseSet read, qualifier resume validation, `BOOTSTRAP_COMPLETE` dispatch를 소유한다.
+- `useTestRunController`가 reducer instance, progress, response persistence, active-run metadata write, dwell tracking(`useQuestionDwell`), `attempt_start`/`final_submit` hook을 소유한다.
+- `useTestEntryOrchestrator`가 CTA action 해석을 소유하고, qualifier wizard / entry side-effect / auto-commit hook을 조합한다. consent write, `markInstructionSeen`, redirect-home cleanup은 `useEntrySideEffects`를 통해 실행한다.
+- `test-question-client.tsx`의 `entryCommittedForController` bridge state는 제거되었다. answer auto-advance timer는 `useAnswerLock`으로 분리됐고, 지연 advance는 클릭 시점의 choice를 캡처한다.
+- `OverlayConnector`, `QualifierChip`, `ResultConnector`가 overlay/qualifier recap/placeholder result presentation mapping을 분리한다. qualifier re-entry confirm은 qualifier answer만 보존하고 scoring answers를 reset한다.
 
 **적용된 Phase 통합 Reducer 설계:**
 
@@ -249,12 +251,12 @@ interface TestRunState {
   phase: TestRunPhase;
   landingIngressFlag: boolean;
   currentIndex: number;                         // canonical index (1-based)
-  answers: Record<string, 'A' | 'B'>;          // key: String(canonicalIndex)
+  answers: Record<string, string>;             // key: String(canonicalIndex), scoring A/B 또는 qualifier token
   instructionSeen: boolean;
 }
 ```
 
-도입할 action 목록:
+적용된 action 목록:
 
 | Action | 전환 | 비고 |
 |---|---|---|
@@ -264,6 +266,7 @@ interface TestRunState {
 | `SELECT_ANSWER` | `active` (내부) | canonical index key에 'A'\|'B' 기록. 150ms 타이머는 client effect에서 처리 |
 | `NAVIGATE_PREVIOUS` | `active` (내부) | currentIndex - 1, answers를 index - 1 이하로 슬라이스 (tail reset) |
 | `SUBMIT` | `active → submitted` | `allAnswered` 전제 조건 검사는 reducer 내부에서 guard |
+| `RESET_SCORING_ANSWERS` | `active` (내부) | qualifier re-entry confirm 시 qualifier answers만 보존하고 첫 scoring question으로 복귀 |
 
 **Side effect 조율 원칙 (적용 기준):**
 - reducer는 순수 함수다. `markInstructionSeen(variant)`, `trackAttemptStart(...)`, `consumeLandingIngress(variant)`, `volatilizeRunData(...)` 등 모든 side effect는 phase 전환 action dispatch 이후 client의 `useEffect`에서 실행한다.
@@ -367,15 +370,17 @@ interface QuestionBootstrapInput {
 
 #### C-2. test-flow telemetry hook 검사 추가
 
-- [ ] `check-phase11-telemetry-contracts.mjs`에 test flow §9.1의 6개 hook 검사 추가 완료
-- [ ] 추가 대상 Phase 확정 및 기록 완료 (Phase 11 착수 시점을 기본값으로 한다)
-- 미완료 시: Phase 11 DoD의 "§9.1 hook 6개 위치 확보 누락 0건" 항목을 자동으로 단언할 수 없음.
+- [x] `check-phase11-telemetry-contracts.mjs`가 active telemetry helper surface(`trackQuestionAnswered`, `trackResultViewed`)와 `question_answered` call site, `useAnswerLock` timer ownership을 검사한다.
+- [x] `telemetry-question-answered.test.ts` / `test-result-panel.test.ts`가 `question_answered`와 임시 mount 기반 `result_viewed` payload를 검증한다.
+- [ ] user-visible error render telemetry hook은 아직 live type union에 없다. error UX 구현 단계에서 이벤트 계약과 QA 검사 추가 여부를 확정한다.
+- [ ] `result_viewed`의 real `derived_type` + IntersectionObserver 전환은 Phase 9 result pipeline에서 처리한다.
+- 미완료 시: Phase 11 DoD 중 user-visible error와 result-viewed finalization 범위를 자동으로 단언할 수 없음.
 
 #### C-3. `session_id` non-null 단언 검증
 
 - [x] `validateTelemetryEvent()` 또는 동등한 검증 함수에서 `attempt_start` 이후 이벤트에 대해 `session_id !== null` 단언 추가 완료
 - [x] e2e smoke에서 session_id non-null 직접 단언 추가 완료
-- 완료 상태(2026-04-25): `validateTelemetryTransportEvent()` / `patchTelemetryEventForTransport()`가 `attempt_start`·`final_submit`의 non-null session을 단언하며, `src/app/api/telemetry/route.ts`가 같은 transport validator를 재사용한다. `tests/e2e/transition-telemetry-smoke.spec.ts`의 `assertion:B18-post-attempt-session-id-e2e`가 runtime 전송 payload를 직접 검증한다.
+- 완료 상태(2026-05-17): `validateTelemetryTransportEvent()` / `patchTelemetryEventForTransport()`가 `attempt_start`·`question_answered`·`final_submit`의 non-null session을 단언하며, `src/app/api/telemetry/route.ts`가 같은 transport validator를 재사용한다. `tests/e2e/transition-telemetry-smoke.spec.ts`의 `assertion:B18-post-attempt-session-id-e2e`는 `attempt_start`/`final_submit` runtime 전송 payload를 직접 검증하고, `tests/unit/telemetry-question-answered.test.ts`가 `question_answered` transport rule을 검증한다.
 - 근거: `req-test.md §9.2` transport-patch 계약. blocker #18의 telemetry 전체 closure를 넓히기 위한 전제 조건.
 
 #### C-4. `landing_view` 발화 타이밍 비대칭 해석 규칙
@@ -384,7 +389,7 @@ interface QuestionBootstrapInput {
 - [ ] blocker #28 픽스처 설계에 아래 해석 규칙이 반영되어 있는지 확인
   - `landing_view`는 telemetry consent sync 이후에만 발화한다. `card_answered` · `attempt_start`와 발화 시점 기준이 다르다.
   - cross-phase event integrity 분석 시 `landing_view`는 분모(세션 수 기준)에서 제외한다.
-  - `attempt_start.question_index_1based`와 향후 `question_answered.questionIndex`는 canonical index 기준이다. user-facing `Q1/Q2`는 scoring order label이므로 픽스처 expectation을 동일 값으로 두면 안 된다.
+  - `attempt_start.question_index_1based`와 `question_answered.question_index_1based`는 canonical index 기준이다. user-facing `Q1/Q2`는 scoring order label이므로 픽스처 expectation을 동일 값으로 두면 안 된다.
   - 근거: `req-test.md §9.1` hook 1 주석, `§9.2` transport-patch 계약.
 
 ---
