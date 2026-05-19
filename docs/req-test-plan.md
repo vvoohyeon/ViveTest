@@ -283,7 +283,7 @@ interface TestRunState {
 > **구현 완료**: active-run resume 로드 경로는 `resolveQuestionBootstrapState()` 확장과 `useTestRunController` bootstrap wiring으로 구현했다.
 
 **현재 구조 (SD-2 적용 후 상태):**
-- `test:{variant}:responses`에 canonical index keyed answers를 run 도중 write하고, `readResponseSet()`이 positive integer canonical key와 `A | B` semantic value만 읽는다.
+- `test:{variant}:responses`에 canonical index keyed answers를 run 도중 write하고, `readResponseSet()`이 positive integer canonical key와 string value를 읽는다. scoring question 응답은 semantic `A` / `B`이고, qualifier question 응답은 qualifier overlay가 commit한 raw token(예: `M`, `F`)이다. `buildBootstrapResponseSet()`은 prerequisite 판정을 위해 qualifier token을 `A`로 정규화하지만 reducer state는 chip label resolution을 위해 raw token을 유지한다.
 - `test:{variant}:activeRun` key와 `saveActiveRun()` / `getActiveRun()` / `writeLastAnsweredAt()` API가 live runtime에 연결되었다.
 - `useTestRunController`는 Landing Ingress가 없을 때만 `getActiveRun()`을 읽고, active run이 유효할 때만 `readResponseSet()`을 읽는다. 새 runtime entry는 stale responseSet을 상속하지 않도록 빈 응답이더라도 fresh responseSet을 초기화한다.
 - `resolveQuestionBootstrapState()`는 storage를 직접 읽지 않고 caller가 전달한 `activeRun` / `responseSet` 입력으로 resume 여부를 판정한다.
@@ -303,7 +303,7 @@ interface QuestionBootstrapInput {
   variant: string;
   // 신규 항목
   activeRun: ActiveRunRecord | null; // getActiveRun(variant) 결과. null = timeout 또는 없음
-  responseSet: Record<string, 'A' | 'B'> | null; // readResponseSet(variant) 결과. null = missing/malformed/empty
+  responseSet: Record<string, string> | null; // readResponseSet(variant) 결과. null = missing/malformed/empty
 }
 ```
 

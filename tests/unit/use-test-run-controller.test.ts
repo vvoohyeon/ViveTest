@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
-import {StrictMode} from 'react';
+import {StrictMode, useRef} from 'react';
 import {act, renderHook} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {asVariantId} from '../../src/features/test/domain';
+import {buildQualifierOverlayModel} from '../../src/features/test/qualifier-overlay-model';
 import {buildVariantQuestionBank} from '../../src/features/test/question-bank';
+import {getSchemaForVariant} from '../../src/features/test/schema-registry';
+import type {TestRunAction} from '../../src/features/test/test-run-reducer';
+import {useTestRunBootstrap} from '../../src/features/test/use-test-run-bootstrap';
 import {useTestRunController} from '../../src/features/test/use-test-run-controller';
 
 vi.mock('../../src/features/telemetry/runtime', () => ({
@@ -54,6 +58,8 @@ import {readResponseSet, writeResponseSet} from '../../src/features/test/storage
 
 const qmbtiQuestions = buildVariantQuestionBank('qmbti', 'en');
 const egttQuestions = buildVariantQuestionBank('egtt', 'en');
+const egttSchema = getSchemaForVariant('egtt');
+const egttQualifierItems = buildQualifierOverlayModel(egttSchema?.qualifierFields ?? [], egttQuestions);
 
 function makeInput() {
   return {
@@ -232,6 +238,53 @@ describe('useTestRunController', () => {
       })
     );
     expect(vi.mocked(writeResponseSet)).toHaveBeenCalledWith('qmbti', {});
+  });
+
+  it('preserves raw qualifier token in reducer state during Strict Mode cached active-run resume replay', async () => {
+    vi.mocked(hasSeenInstruction).mockReturnValue(true);
+    vi.mocked(getActiveRun).mockReturnValue({
+      variantId: asVariantId('egtt'),
+      startedAtMs: 100,
+      lastAnsweredAtMs: 200
+    });
+    vi.mocked(readResponseSet).mockReturnValue({'1': 'M', '2': 'A'});
+    const actions: TestRunAction[] = [];
+
+    const {rerender} = renderHook(
+      ({pathname}) => {
+        const pendingTransitionIdRef = useRef<string | null>(null);
+        useTestRunBootstrap({
+          variant: 'egtt',
+          variantId: asVariantId('egtt'),
+          locale: 'en',
+          pathname,
+          questions: egttQuestions,
+          qualifierItems: egttQualifierItems,
+          dispatchRunAction: (action) => {
+            actions.push(action);
+          },
+          pendingTransitionIdRef,
+          onPendingTransitionIdChange: vi.fn()
+        });
+      },
+      {initialProps: {pathname: '/en/test/egtt'}, wrapper: StrictMode}
+    );
+    await flushMicrotasks();
+    actions.length = 0;
+
+    rerender({pathname: '/en/test/egtt?replay=1'});
+    await flushMicrotasks();
+
+    const replayAction = actions[actions.length - 1];
+    expect(replayAction?.type).toBe('BOOTSTRAP_COMPLETE');
+    if (!replayAction || replayAction.type !== 'BOOTSTRAP_COMPLETE') {
+      throw new Error('Expected cached bootstrap replay action');
+    }
+
+    expect(replayAction.answers['1']).toBe('M');
+    expect(replayAction.answers['2']).toBe('A');
+    expect(replayAction.answers['1']).not.toBe('A');
+    expect(vi.mocked(trackAttemptStart)).not.toHaveBeenCalled();
   });
 
   it('initializes a fresh empty response set when direct cold entry replaces stale responses', async () => {
