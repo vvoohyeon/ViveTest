@@ -59,6 +59,7 @@ export const e2e = {
 export const test = {
   questionClient: 'src/features/test/test-question-client.tsx',
   answerLock: 'src/features/test/use-answer-lock.ts',
+  answerHandler: 'src/features/test/use-answer-handler.ts',
   runController: 'src/features/test/use-test-run-controller.ts',
   testRunBootstrap: 'src/features/test/use-test-run-bootstrap.ts',
   runReducer: 'src/features/test/test-run-reducer.ts',

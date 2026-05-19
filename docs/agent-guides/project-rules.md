@@ -125,7 +125,7 @@ Do not treat the following as completed contracts:
   (`src/features/test/response-projection.ts` is a reserved placeholder)
 - Question-level telemetry — implemented, not stub: `question_answered` (validated;
   `trackQuestionAnswered` runtime helper; Phase 11 QA enforces helper presence; fires from
-  `test-question-client.tsx` on each non-last scoring answer) and `result_viewed` (validated;
+  `use-answer-handler.ts` on each non-last scoring answer) and `result_viewed` (validated;
   optional `derived_type`; temporary mount-based fire from `TestResultPanel`). Only remaining
   deferred follow-up: real `derived_type` value + IntersectionObserver replacement of the
   temporary mount fire — tracked in `docs/plans/result-pipeline-todos.md`.

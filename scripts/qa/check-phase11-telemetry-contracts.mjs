@@ -90,6 +90,7 @@ const requiredFiles = [
   telemetry.runtime,
   telemetry.validation,
   test.questionClient,
+  test.answerHandler,
   'src/app/api/telemetry/route.ts',
   'playwright.config.ts',
   'tests/unit/landing-telemetry-validation.test.ts',
@@ -165,12 +166,24 @@ if (fileExists(telemetry.validation)) {
 if (fileExists(test.questionClient)) {
   const questionClient = read(test.questionClient);
 
-  if (!/submitted \|\| isAnswerLocked/u.test(questionClient) || !/disabled=\{isAnswerLocked\}/u.test(questionClient)) {
-    fail('Test question client must keep answer-lock guarding at the current answer choice call sites.');
+  if (!/disabled=\{isAnswerLocked\}/u.test(questionClient)) {
+    fail('Test question client must keep answer buttons disabled while the answer lock is active.');
+  }
+}
+
+if (fileExists(test.answerHandler)) {
+  const answerHandler = read(test.answerHandler);
+
+  if (!/submitted \|\| isAnswerLocked/u.test(answerHandler)) {
+    fail('useAnswerHandler must keep submitted and answer-lock guard checks before updating answers.');
   }
 
-  if (!/trackQuestionAnswered\(\{/u.test(questionClient)) {
-    fail('Test question client must emit question_answered from the answer choice call site.');
+  if (!/trackQuestionAnswered\(\{/u.test(answerHandler)) {
+    fail('useAnswerHandler must emit question_answered from the answer choice call site.');
+  }
+
+  if (!/submittedRef\.current/u.test(answerHandler)) {
+    fail('useAnswerHandler must keep the submittedRef stale-closure guard before auto-advance.');
   }
 }
 

@@ -3,17 +3,17 @@
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {motion, useReducedMotion} from 'motion/react';
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {useTelemetryConsentSource} from '@/features/telemetry/consent-source';
-import {trackQuestionAnswered} from '@/features/telemetry/runtime';
 import {resolveTestEntryPolicy} from '@/features/test/entry-policy';
 import {OverlayConnector} from '@/features/test/overlay-connector';
 import {QualifierChip} from '@/features/test/qualifier-chip';
 import {ResultConnector} from '@/features/test/result-connector';
 import {buildVariantQuestionBank} from '@/features/test/question-bank';
 import {isProfileQuestion} from '@/features/test/question-runtime-utils';
+import {useAnswerHandler} from '@/features/test/use-answer-handler';
 import {useAnswerLock} from '@/features/test/use-answer-lock';
 import {useBeforeUnloadGuard} from '@/features/test/use-before-unload-guard';
 import {useLandingTransitionCompletion} from '@/features/test/use-landing-transition-completion';
@@ -51,6 +51,32 @@ const testAnswerButtonClassName =
 const testNavRowClassName = 'test-nav-row flex flex-wrap gap-[10px]';
 const testAnswerGridClassName = 'test-answer-grid grid gap-[10px]';
 const testQuestionNumberClassName = 'test-question-number text-sm font-semibold text-[var(--muted-ink)]';
+
+interface InstructionVisibleInput {
+  overlayMode: 'entry' | 'reentry';
+  isBooting: boolean;
+  entryCommitted: boolean;
+  redirecting: boolean;
+  overlayStep: 'instruction' | number;
+  instructionSeen: boolean;
+  canAutoCommitAfterInstructionSeen: boolean;
+  hasQualifierItems: boolean;
+}
+
+function resolveInstructionVisible(input: InstructionVisibleInput): boolean {
+  if (input.overlayMode === 'reentry') {
+    return true;
+  }
+  if (input.isBooting || input.entryCommitted || input.redirecting) {
+    return false;
+  }
+  return (
+    input.overlayStep !== 'instruction' ||
+    !input.instructionSeen ||
+    !input.canAutoCommitAfterInstructionSeen ||
+    input.hasQualifierItems
+  );
+}
 
 export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const t = useTranslations('test');
@@ -94,12 +120,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     resetScoringAnswers,
     getCurrentDwellMs
   } = useTestRunController({variant, locale, pathname, questions, qualifierItems});
-  const submittedRef = useRef(submitted);
   const {isAnswerLocked, lockAnswer, unlockAnswer, clearTimer} = useAnswerLock({currentQuestionIndex});
-
-  useEffect(() => {
-    submittedRef.current = submitted;
-  }, [submitted]);
 
   useBeforeUnloadGuard({started, submitted});
   useLandingTransitionCompletion({runtimeReady, pendingTransitionId, clearPendingTransitionId});
@@ -144,17 +165,16 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
       resetScoringAnswers
     });
 
-  const instructionVisible =
-    overlayMode === 'reentry' ||
-    (!isBooting &&
-      !entryCommitted &&
-      !redirecting &&
-      (
-        overlayStep !== 'instruction' ||
-        !instructionSeen ||
-        !entryPolicy.canAutoCommitAfterInstructionSeen ||
-        qualifierItems.length > 0
-      ));
+  const instructionVisible = resolveInstructionVisible({
+    overlayMode,
+    isBooting,
+    entryCommitted,
+    redirecting,
+    overlayStep,
+    instructionSeen,
+    canAutoCommitAfterInstructionSeen: entryPolicy.canAutoCommitAfterInstructionSeen,
+    hasQualifierItems: qualifierItems.length > 0
+  });
 
   const primaryButton = entryPolicy.cta.primary;
   const secondaryButton = entryPolicy.cta.secondary;
@@ -174,6 +194,26 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     () => questions.filter((question) => !isProfileQuestion(question)).at(-1)?.canonicalIndex ?? 0,
     [questions]
   );
+  const {handleAnswerChoice} = useAnswerHandler({
+    currentQuestion,
+    submitted,
+    isAnswerLocked,
+    updateAnswer,
+    currentScoringQuestionOrdinal,
+    lastScoringCanonicalIndex,
+    locale,
+    pathname,
+    variant,
+    getCurrentDwellMs,
+    landingIngressFlag,
+    started,
+    isLastQuestion,
+    clearTimer,
+    lockAnswer,
+    slideDirectionRef,
+    setSlideDirection,
+    moveQuestion
+  });
   const qualifierChipLabel = useMemo(
     () =>
       qualifierItems
@@ -185,39 +225,6 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
         .join(' · '),
     [qualifierItems, answers, t]
   );
-
-  function handleAnswerChoice(choice: 'A' | 'B') {
-    if (!currentQuestion || submitted || isAnswerLocked) {
-      return;
-    }
-
-    updateAnswer(choice);
-
-    if (currentScoringQuestionOrdinal !== null && currentQuestion.canonicalIndex !== lastScoringCanonicalIndex) {
-      trackQuestionAnswered({
-        locale,
-        route: pathname,
-        variant,
-        questionIndex: currentScoringQuestionOrdinal,
-        choice,
-        dwellMs: getCurrentDwellMs(),
-        landingIngressFlag
-      });
-    }
-
-    if (!started || submitted || isLastQuestion) {
-      clearTimer();
-      return;
-    }
-
-    lockAnswer(() => {
-      if (!submittedRef.current) {
-        slideDirectionRef.current = 'forward';
-        setSlideDirection('forward');
-        moveQuestion(1, choice);
-      }
-    });
-  }
 
   return (
     <section
