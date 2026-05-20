@@ -32,7 +32,7 @@
 - share URL 생성 UI/로직 (URL 구조 설계는 포함)
 - 닉네임 입력
 - 프레임워크/라우팅/i18n 기반 구조 재설계 (랜딩 단계 계승)
-- telemetry 이벤트 계약 및 payload schema 재정의 — 랜딩 phase 이벤트(`landing_view`, `card_answered`)와 전역 payload schema는 Landing Requirements §12 / `requirements.md` REQ-F-016이 소유한다. 본 문서의 §9(Telemetry Contract)는 test-flow 전용 hook 위치, canonical index 의미, cross-phase 정합성 계약을 추가 정의하는 것으로 한정된다.
+- telemetry 이벤트 계약 및 payload schema 재정의 — 랜딩 phase 이벤트(`landing_view`, `card_answered`)와 전역 payload schema는 Landing Requirements §12 / `requirements.md` REQ-F-016이 소유한다. 본 문서의 §9(Telemetry Contract)는 test-flow 전용 hook 위치, 이벤트별 question index 의미, cross-phase 정합성 계약을 추가 정의하는 것으로 한정된다.
 - consent instruction 분기 UX (`ingress type + consent state + attribute` 조합 기반 instruction 메시지·divider·CTA set 결정, `OPTED_OUT + available` 딥링크 진입 시  warning note + [Keep Current Preference] 표시, `OPTED_OUT + available` 랜딩 진입 카탈로그 단계 비도달 처리 포함)
   — Landing Requirements §13.5 소유. 본 문서 구현 범위 외. `§6.1`은 route-level invalid-variant recovery를 소유하며,consent 관련 진입 분기는 §13.5 정책 매트릭스 계약을 따른다. shared implementation은 허용하되 ownership boundary는 유지한다.
 
@@ -114,7 +114,7 @@
 - Questions source row는 source row 순서를 보존해 정규화해야 한다. sync 후 canonical `questions[]`는 **source row 순서 기준 1-based canonical index**로 재번호한다.
   - 예: `q.1, q.2, 1, 2, 3` → canonical `questions[]` index `1, 2, 3, 4, 5`
 - 현재 dev canonical 변환 구현은 `buildCanonicalQuestions(rows, locale)`이며, source row 순서를 canonical index로 재번호하고 profile row의 `poleA` / `poleB` `undefined` 상태를 보존한다. 표시용 question/answer 텍스트는 runtime question-bank selector가 별도 `ResolvedQuestion`으로 제공한다.
-- canonical index는 storage, qualifier mapping, schema validation, telemetry의 단일 기준축이다.
+- canonical index는 storage, qualifier mapping, schema validation, `attempt_start` 및 response payload 경계의 기준축이다. `question_answered.question_index_1based`는 현재 visible scoring-order ordinal을 사용하므로 canonical response key와 별도 계약으로 다룬다.
 - profile question도 canonical `questions[]`에 포함한다. 별도 profile 배열 분리를 허용하지 않는다.
 - landing preview payload source는 Questions source의 **first scoring question (`scoring1`)** 이다.
 - 현재 단계의 exported/runtime preview consumer shape는 `previewQuestion`, `answerChoiceA`, `answerChoiceB`로 고정한다. source fixture authoring detail이 무엇이든 consumer는 이 canonical shape만 사용해야 한다.
@@ -254,7 +254,7 @@
 | Runtime presentation layer (instruction/qualifier overlay + scoring question panel) | §3.6, §4.1 |
 | Entry flow (landing ingress vs direct, qualifier overlay 순서) | §3.3, §3.4, §4.1 |
 | Progress policy (scoring-only, profile = prerequisite) | §3.9, §3.11 |
-| Telemetry policy (canonical index, `attempt_start` timing) | §9.1, §9.2 |
+| Telemetry policy (이벤트별 question index, `attempt_start` timing) | §9.1, §9.2 |
 
 #### 2.9.16 Qualifier re-entry 구현 기준
 
@@ -448,7 +448,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - 이 projection layer 없이 `computeScoreStats()` 또는 `buildTypeSegment()`에 raw runtime response set을 전달하는 것을 금지한다.
 - 표시용 텍스트(선택지 본문)는 별도 i18n/콘텐츠 레이어에서 question index 기준으로 조회한다. Question 도메인 타입에 포함하지 않는다.
 - `questions[]` 배열은 실행 순서의 유일한 소스다. scoring question과 profile question을 별도 배열로 분리하지 않는다.
-- canonical index는 storage, qualifier mapping, telemetry의 단일 기준축이다. runtime question panel은 scoring question만 표시하지만 profile question의 canonical index는 저장/검증/qualifier mapping에 유지된다. user-facing `Q1/Q2`는 scoring question에만 적용되는 별도 label 체계다.
+- canonical index는 storage, qualifier mapping, `attempt_start`, `final_submit.final_responses`의 기준축이다. runtime question panel은 scoring question만 표시하지만 profile question의 canonical index는 저장/검증/qualifier mapping에 유지된다. `question_answered.question_index_1based`는 현재 visible scoring-order ordinal이며 canonical response key로 해석하지 않는다. user-facing `Q1/Q2`는 scoring question에만 적용되는 별도 label 체계다.
 
 **Progress 및 완료 게이팅**:
 - canonical `questions[]`는 scoring + profile 전체를 포함한다.
@@ -466,7 +466,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - 사용자는 진행 중 이전 응답을 수정할 수 있어야 한다.
 - 이미 답변된 문항을 재방문하면 기존 답변 상태가 선택된 상태로 표시되어야 한다.
 - 최종 계산과 결과 표시는 수정이 반영된 최종 응답 집합을 기준으로 해야 한다.
-- user-facing `Q1/Q2`는 scoring order label일 뿐 main progress/telemetry index 결정 불가. profile 문항은 main progress 분모/분자 미포함(qualifier overlay에서 별도 local step 표기 가능).
+- user-facing `Q1/Q2`는 scoring order label일 뿐 main progress나 canonical response key 결정에 사용할 수 없다. 단, 현재 `question_answered.question_index_1based`는 visible scoring-order ordinal을 사용하므로 표시되는 scoring 순번과 같은 숫자를 보낸다. profile 문항은 main progress 분모/분자 미포함(qualifier overlay에서 별도 local step 표기 가능).
 - qualifier 선택/수정 전후로 main progress는 변하지 않는다.
 
 **Tail Reset 계약**:
@@ -635,7 +635,7 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 - 마지막 문항의 응답을 변경하면 이전 derivation residue가 무효화된다. tail reset은 발생하지 않는다 (§3.9 참조).
 - main progress는 현재까지 유효하게 응답된 **scoring question 수 / total scoring count**를 기준으로 갱신되어야 한다.
 - 진행 상태는 프로그레스 바와 퍼센트(%)로 표시한다. 문항 번호 텍스트(예: `Question N of M`)는 표시하지 않는다.
-- user-facing `Q1/Q2/...`가 필요한 경우 이는 scoring order 기준으로만 해석하며, progress denominator나 telemetry index에 재사용하면 안 된다.
+- user-facing `Q1/Q2/...`가 필요한 경우 이는 scoring order 기준으로만 해석하며, progress denominator나 canonical response key에 재사용하면 안 된다. 현재 `question_answered.question_index_1based`는 이 scoring-order ordinal과 같은 숫자를 사용한다.
 - partial answer 상태에서 결과 계산으로 넘어가면 안 된다.
 
 ### 4.4 Final Question Screen
@@ -1063,17 +1063,17 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 
 ### 9.1 이번 단계 정책
 
-이번 단계에서 telemetry는 hook 위치만이 아니라 **이벤트 발화 시점, canonical index 의미, payload 축, cross-phase 해석 규칙까지 포함한 활성 계약**을 가진다.
+이번 단계에서 telemetry는 hook 위치만이 아니라 **이벤트 발화 시점, 이벤트별 question index 의미, payload 축, cross-phase 해석 규칙까지 포함한 활성 계약**을 가진다.
 
 현재 구현과 target contract를 함께 관리하는 hook 위치:
 1. 랜딩 카드 A/B 선택 시점 (`card_answered` 대응, ingress 경로 전용) + 블로그 카드 Read more CTA. ※ `card_answered`는 landing phase 이벤트이며 test flow에서 재발화하지 않는다.
 2. instruction/qualifier overlay 완료 후 test runtime 진입 시점 (`attempt_start` 대응). **첫 scoring runtime question이 실제로 렌더되는 시점**에 발화. ingress: landing pre-answered `scoring1` 이후 다음 scoring question의 canonical index. direct: `scoring1`의 canonical index. EGTT처럼 `q.1` qualifier가 있는 경우에도 `q.1`은 runtime panel에 렌더되지 않으므로 `attempt_start.question_index_1based`는 첫 scoring question의 canonical index다.
-3. question 답변 시점 (`question_answered` 대응). scoring runtime question에서 발화한다. 현재 live hook은 non-last scoring answer call site에서 발화하며, 마지막 scoring question은 `final_submit`이 completion event를 담당한다. qualifier overlay 선택은 canonical index에 저장되지만 runtime question panel 답변 이벤트로 재발화하지 않는다. landing pre-answered `scoring1`은 재발화 불필요.
+3. question 답변 시점 (`question_answered` 대응). scoring runtime question에서 발화한다. 현재 live hook은 non-last scoring answer call site에서 발화하며, `question_index_1based`는 visible scoring-order ordinal이다. 마지막 scoring question은 `final_submit`이 completion event를 담당한다. qualifier overlay 선택은 canonical index에 저장되지만 runtime question panel 답변 이벤트로 재발화하지 않는다. landing pre-answered `scoring1`은 재발화 불필요.
 4. test 완료 확정 시점 (`final_submit` 대응). 현재 placeholder runtime은 Submit action에서 발화하며, Phase 7/10 result-entry pipeline에서는 result screen entry commit 계약과 다시 정합시켜야 한다.
 5. result 필수 콘텐츠(`derived_type` 블록) 뷰포트 진입 시점 (`result_viewed` 대응). 현재 placeholder result panel은 `TestResultPanel` mount 시 1회 발화하고 `derived_type`을 포함하지 않는다. 실제 result pipeline에서는 `derived_type` 블록 Intersection Observer 1회 발화 후 disconnect로 교체한다.
 6. user-visible error render 시점. 현재 live telemetry type union에는 아직 포함하지 않는다.
 
-> `questionIndex`/`question_index_1based`는 canonical index 기준이며 user-facing `Q1/Q2`와 다를 수 있다.
+> `questionIndex`/`question_index_1based`의 의미는 이벤트별로 다르다. `attempt_start`는 첫 scoring runtime question의 canonical index를 사용한다. `question_answered`는 현재 visible scoring-order ordinal(`currentScoringQuestionOrdinal`)을 사용하며 canonical response key가 아니다. `final_submit.final_responses`는 이벤트 수준 completion index와 별개로 scoring canonical question index string key를 유지한다.
 
 ### 9.2 Telemetry 구현 상태 및 남은 의무
 
@@ -1085,7 +1085,7 @@ cleanup은 해당 variant 범위에만 영향을 준다.
    - `attempt_start`: instruction 이후 첫 runtime question render 시점 발화.
      필수 추가 필드: `landing_ingress_flag`, `question_index_1based`(canonical index 기준).
      경로별 시작 문항 판정: §9.1 hook 2, §3.3 진입 경로 분류 표 참조.
-   - `question_answered`: 현재 구현 완료된 live hook이다. 필수 필드: `question_index_1based`(canonical 1-based), `choice`, `dwell_ms`, `landing_ingress_flag`. non-last scoring runtime answer에서 발화한다. landing pre-answered `scoring1`은 landing `card_answered`로만 기록되며 runtime에서 재발화하지 않는다. UI의 scoring-based `Q1/Q2` 라벨은 telemetry payload에 포함하지 않는다.
+   - `question_answered`: 현재 구현 완료된 live hook이다. 필수 필드: `question_index_1based`(visible scoring-order 1-based ordinal), `choice`, `dwell_ms`, `landing_ingress_flag`. non-last scoring runtime answer에서 발화한다. landing pre-answered `scoring1`은 landing `card_answered`로만 기록되며 runtime에서 재발화하지 않는다. UI의 scoring-based `Q1/Q2` 라벨 텍스트는 telemetry payload에 포함하지 않지만, 현재 numeric index는 같은 scoring order를 사용한다.
    - `final_submit`: 현재 placeholder runtime에서는 Submit action에서 발화한다. Phase 7/10에서 result screen entry commit이 별도 상태로 구현되면 해당 commit 시점으로 재정렬해야 한다.
      `final_submit.question_index_1based`는 최종 answered canonical index다.
    - `result_viewed`: 현재 `TestResultPanel` mount 기반 임시 hook으로 구현되어 있으며 `derived_type`은 optional이다. Phase 9 result page 구현 시 `derived_type` 블록 뷰포트 진입 시점, Intersection Observer 1회 발화 후 disconnect로 교체한다.
@@ -1218,7 +1218,7 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 15. **Axis Score 시각화**: axisCount 1/2/4 렌더링. schema 선언 순서 준수.
 16. **콘텐츠 누락 fallback**: hard crash `0건`. fallback 표시. blocking/non-blocking 분류 정확성.
 17. **Cleanup Set 원자성**: cleanup 후 잔류 데이터 `0건`. 다른 variant 데이터 영향 `0건`.
-18. **Telemetry Contract**: §9.1에 명시된 이벤트 훅과 계약 누락 `0건`. `attempt_start` / `question_answered` index가 canonical 기준이며 user-facing Q label과 혼용되지 않음을 검증한다. `final_submit.final_responses`는 scoring canonical question index string key와 semantic `A`/`B` value만 포함하며 qualifier token은 제외한다.
+18. **Telemetry Contract**: §9.1에 명시된 이벤트 훅과 계약 누락 `0건`. `attempt_start.question_index_1based`는 첫 scoring runtime question의 canonical index이고, `question_answered.question_index_1based`는 visible scoring-order ordinal이며 canonical response key와 혼용되지 않음을 검증한다. `final_submit.final_responses`는 scoring canonical question index string key와 semantic `A`/`B` value만 포함하며 qualifier token은 제외한다.
 19. **Staged Entry**: A/B 선택 시점으로부터 7분 만료. 재진입/새로고침으로 연장되지 않음. 만료 후 Direct Cold 처리. commit 경계 전후 우선 규칙 분기 정확성.
 <!-- assertion:B20-result-entry-eligibility -->
 20. **Result-entry Eligibility**: all-required-answered + 마지막 문항 유효 응답 조건 즉시 반영. tail reset 발생 즉시 false. 마지막 문항 변경 후 조건 충족 시 유지.
@@ -1237,7 +1237,7 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 <!-- assertion:B27-type-segment-parsing-qualifier-validation -->
 27. **Type Segment Parsing / Qualifier Validation**: `qualifierFields` 없는 variant에서 `type` segment 길이 = `axisCount`. `qualifierFields` 있는 variant에서 `type` segment 길이 = `axisCount + tokenLength 합산`. qualifier 값이 `values` 목록 외 값이면 에러 렌더링. `qualifierFields.questionIndex`가 scoring 문항을 가리키면 blocking data error. `qualifierFields` 항목의 `values` 빈 배열·`tokenLength<=0`·값 길이 불일치 시 `QUALIFIER_SPEC_INVALID` blocking error. `qualifierFields` 항목의 `values` 배열 내 중복 값 존재 시 `DUPLICATE_QUALIFIER_VALUE` blocking error.blocking 항목 1~27 모두 최소 1개 자동 단언 매핑.
 <!-- assertion:B28-cross-phase-event-integrity-shared-fixture -->
-28. **Cross-phase Event Integrity (Landing→Test)**: ingress 경로에서 `card_answered`(landing phase) → `attempt_start`(test phase) 순서 보장. `card_answered.landing_ingress_flag = true`인 세션에서 `attempt_start.landing_ingress_flag = true`이고, `attempt_start.question_index_1based`는 첫 scoring runtime question의 canonical index임을 검증한다. qualifier question(`q.1` 등)은 instruction overlay에서 수집되며 runtime panel에 렌더되지 않으므로 `attempt_start` index로 사용하지 않는다. 직접 진입 경로에서는 `card_answered` 미발화 + `attempt_start.question_index_1based`가 첫 scoring runtime question의 canonical index임을 검증한다. 같은 픽스처에서 telemetry canonical index와 user-facing scoring label을 분리 검증해야 한다.
+28. **Cross-phase Event Integrity (Landing→Test)**: ingress 경로에서 `card_answered`(landing phase) → `attempt_start`(test phase) 순서 보장. `card_answered.landing_ingress_flag = true`인 세션에서 `attempt_start.landing_ingress_flag = true`이고, `attempt_start.question_index_1based`는 첫 scoring runtime question의 canonical index임을 검증한다. qualifier question(`q.1` 등)은 instruction overlay에서 수집되며 runtime panel에 렌더되지 않으므로 `attempt_start` index로 사용하지 않는다. 직접 진입 경로에서는 `card_answered` 미발화 + `attempt_start.question_index_1based`가 첫 scoring runtime question의 canonical index임을 검증한다. 같은 픽스처에서 `attempt_start` canonical index와 `question_answered` scoring-order ordinal/user-facing scoring label의 경계를 분리 검증해야 한다.
 Landing Requirements §14.2 check 15와 연동하며, 두 블로커의 단언이 동일 픽스처를 공유해야 한다.
 <!-- assertion:B29-sheets-sync-action-validation -->
 <!-- assertion:B29-sheets-sync-orchestration-scenario -->

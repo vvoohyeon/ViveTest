@@ -27,7 +27,7 @@ Phase 0 착수 이전에 요구되었던 랜딩 측 선행 구현은 완료되�
 | **8** | Result URL Payload · Validation | URL 구조, base64 인코딩, payload 검증 실패 경로 | 1 |
 | **9** | Result Page · Content Fallback | 케이스 매트릭스(1/2/4), mandatory/optional 섹션, content fallback | 7, 8 |
 | **10** | Error States · Terminal Exclusivity · Cleanup Set | commit-failure / derivation-failure taxonomy, §8.1 전이 테이블, §8.3 cleanup 원자성 | 5, 6, 7 |
-| **11** | Telemetry Contract · Release Gate | §9.1 active hook(`attempt_start`, `question_answered`, `final_submit`, 임시 `result_viewed`)과 canonical telemetry 계약, traceability closure (blocker 1~30 매핑). user-visible error hook과 real `derived_type`/IntersectionObserver `result_viewed`는 결과·에러 UX 구현 시 확정 | 전체 |
+| **11** | Telemetry Contract · Release Gate | §9.1 active hook(`attempt_start`, `question_answered`, `final_submit`, 임시 `result_viewed`)과 이벤트별 telemetry index 계약, traceability closure (blocker 1~30 매핑). user-visible error hook과 real `derived_type`/IntersectionObserver `result_viewed`는 결과·에러 UX 구현 시 확정 | 전체 |
 
 > Phase 10 checkpoint: `assertion:B17-cleanup-set-atomicity-e2e-phase10` must promote the Phase 3 unit cleanup-set proof into user-flow E2E coverage for every cleanup class that Phase 10 wires.
 
@@ -270,8 +270,8 @@ interface TestRunState {
 | `RESET_SCORING_ANSWERS` | `active` (내부) | qualifier re-entry confirm 시 qualifier answers만 보존하고 첫 scoring question으로 복귀 |
 
 **Side effect 조율 원칙 (적용 기준):**
-- reducer는 순수 함수다. `markInstructionSeen(variant)`, `trackAttemptStart(...)`, `consumeLandingIngress(variant)`, `volatilizeRunData(...)` 등 모든 side effect는 phase 전환 action dispatch 이후 client의 `useEffect`에서 실행한다.
-- `phase` 필드를 dependency로 사용해 각 side effect가 정확히 한 번 실행되도록 보장한다. `useRef` flag(예: `attemptStartedRef`) 패턴은 이 구조로 자연스럽게 대체된다.
+- reducer는 순수 함수다. 다만 현재 구현은 side effect를 두 층으로 나눈다: instruction CTA 해석 중 필요한 pre-branch effect(`setTelemetryConsentState`, `markInstructionSeen`, redirect-home 시 `clearLandingIngress`/`router.replace`)는 `useTestEntryOrchestrator.executeInstructionAction()` 내부에서 직접 실행하고, active-entry 이후 effect(`trackAttemptStart`, `consumeLandingIngress`, active-run metadata/response set write, dwell reset`)는 `useTestRunController`의 entry effect에서 실행한다.
+- controller entry effect는 `entrySequence`와 `processedEntrySequenceRef`로 중복 실행을 방지한다. bootstrap replay cache와 `useAutoCommit`은 Strict Mode 중복 commit을 막기 위해 별도 ref guard를 사용한다.
 - consent 상태(`consentSnapshot`)는 reducer 외부에서 `BOOTSTRAP_COMPLETE` action payload로 주입한다. reducer가 `useTelemetryConsentSource()`를 직접 소비하지 않는다.
 
 **검증 전략:**
@@ -390,7 +390,7 @@ interface QuestionBootstrapInput {
 - [ ] blocker #28 픽스처 설계에 아래 해석 규칙이 반영되어 있는지 확인
   - `landing_view`는 telemetry consent sync 이후에만 발화한다. `card_answered` · `attempt_start`와 발화 시점 기준이 다르다.
   - cross-phase event integrity 분석 시 `landing_view`는 분모(세션 수 기준)에서 제외한다.
-  - `attempt_start.question_index_1based`와 `question_answered.question_index_1based`는 canonical index 기준이다. user-facing `Q1/Q2`는 scoring order label이므로 픽스처 expectation을 동일 값으로 두면 안 된다.
+  - `attempt_start.question_index_1based`는 첫 scoring runtime question의 canonical index 기준이다. `question_answered.question_index_1based`는 현재 `currentScoringQuestionOrdinal` 기반 visible scoring-order ordinal이며 canonical response key가 아니다. user-facing `Q1/Q2` 라벨 텍스트는 payload에 없지만 numeric expectation은 같은 scoring order를 사용한다.
   - 근거: `req-test.md §9.1` hook 1 주석, `§9.2` transport-patch 계약.
 
 ---

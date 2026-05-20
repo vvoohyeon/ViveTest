@@ -44,7 +44,7 @@
 | Locale normalization | `ko* → kr` · Simplified Chinese → `zs` · Traditional Chinese → `zt` |
 | `[locale]/layout.tsx` flag | `dynamicParams = false` |
 | `next.config.ts` flags | `typedRoutes = true`, `experimental.globalNotFound = true` |
-| Tech stack | `next@16.2.4`, `react@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0` (unused) |
+| Tech stack | `next@16.2.4`, `react@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0` (test question answer-grid transitions) |
 | Tailwind | v4. Tokens/base: `src/app/globals.css`. Landing grid/card motion: `landing-grid-card.module.css`. *(2026-04-21)* |
 
 Directory ownership details → `docs/agent-guides/project-rules.md §Ownership`
