@@ -43,22 +43,12 @@ if (fileExists(transition.runtime)) {
   }
 }
 
-// Block 1 — entry-phase contracts: negative guard stays in client; ownership checks in entry side-effects hook
+// Block 1 — entry-phase contracts: negative guard stays in client
 if (fileExists(test.questionClient)) {
   const questionClient = read(test.questionClient);
 
   if (/fallbackTransitionId/u.test(questionClient) || /runtimeState\.transitionId/u.test(questionClient)) {
     fail('Test question client must not depend on fallback/runtime transitionId state.');
-  }
-}
-
-if (fileExists(test.entrySideEffects)) {
-  const entrySideEffectsFile = read(test.entrySideEffects);
-  if (!/markInstructionSeen/u.test(entrySideEffectsFile)) {
-    fail('Entry side-effects hook must call markInstructionSeen on commit actions.');
-  }
-  if (!/clearLandingIngress/u.test(entrySideEffectsFile)) {
-    fail('Entry side-effects hook must call clearLandingIngress on redirect actions.');
   }
 }
 

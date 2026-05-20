@@ -15,7 +15,7 @@ import {
   buildBootstrapResponseSet,
   resolveQuestionBootstrapState,
   type QuestionBootstrapState
-} from '@/features/test/question-runtime-utils';
+} from '@/features/test/bootstrap-state-resolver';
 import {getActiveRun, type ActiveRun} from '@/features/test/storage/active-run';
 import {clearInstructionSeen, hasSeenInstruction} from '@/features/test/storage/instruction-seen';
 import {readResponseSet, type ResponseSet} from '@/features/test/storage/response-set';

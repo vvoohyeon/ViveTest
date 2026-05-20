@@ -5,7 +5,9 @@ import {buildVariantQuestionBank} from '../../src/features/test/question-bank';
 import {
   buildBootstrapResponseSet,
   resolveQuestionBootstrapState,
-  resolveResumeQuestionIndex,
+  resolveResumeQuestionIndex
+} from '../../src/features/test/bootstrap-state-resolver';
+import {
   resolveScoringProgress,
   skipBackwardPastProfile,
   skipForwardPastProfile

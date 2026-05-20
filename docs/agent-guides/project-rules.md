@@ -87,6 +87,10 @@
   - `instructionSeen` key/helper owner → `src/features/test/storage/instruction-seen.ts`
   - ADR-B external legacy key format: `vivetest-test-instruction-seen:{variant}`
     remains outside the ADR-B prefix form (`test:{variant}:instructionSeen`) until Phase 5 migration.
+  - Landing ingress → runtime answer boundary:
+    - `writeLandingIngress` / `readLandingIngress` / `clearLandingIngress` → `src/features/transition/store.ts`
+    - `preAnswerChoice → first scoring answer` bootstrap mapping → `src/features/test/bootstrap-state-resolver.ts`
+    - Bootstrap state resolution (question index, resume path, ingress precedence) → `src/features/test/bootstrap-state-resolver.ts`
   - Exception: `public/theme-bootstrap.js` retains `'vivetest-theme'` as string literal
     (TS import not possible at pre-hydration stage)
 - `instructionSeen` remains a variant-scoped `sessionStorage` key.

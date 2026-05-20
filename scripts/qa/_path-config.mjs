@@ -62,6 +62,7 @@ export const test = {
   answerHandler: 'src/features/test/use-answer-handler.ts',
   runController: 'src/features/test/use-test-run-controller.ts',
   testRunBootstrap: 'src/features/test/use-test-run-bootstrap.ts',
+  bootstrapStateResolver: 'src/features/test/bootstrap-state-resolver.ts',
   runReducer: 'src/features/test/test-run-reducer.ts',
   entryOrchestrator: 'src/features/test/use-test-entry-orchestrator.ts'
 };
