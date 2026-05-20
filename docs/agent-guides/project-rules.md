@@ -78,8 +78,8 @@
   - `BlockingDataErrorReason` surface
 - Instruction body copy: owned by fixtures.
   CTA labels and consent notes: owned by locale messages.
-- Live anchors: `buildVariantQuestionBank()`, `resolveVariantPreviewQ1()`.
-  Legacy inline-bridge helper exported only as deprecated compatibility path.
+- Live anchors: `buildVariantQuestionBank()`, `resolveVariantPreviewQ1()`, and the thin
+  `resolveVariantPreviewPayload()` projection helper. Do not reintroduce inline preview fields.
 - Test route: does not render route-local consent banners, confirm dialogs, or blocked popups.
 - Storage Key SSOT:
   - Landing keys → `src/features/landing/storage/storage-keys.ts`
@@ -116,8 +116,9 @@
   `tests/e2e/theme-matrix-baseline-provenance.md` using `tests/e2e/README.md`.
 - Combined theme label format: `Language ⋅ Theme`.
 - `public/theme-bootstrap.js` reads `vivetest-theme` before hydration.
-- `motion` package installed but not imported anywhere in `src` or `tests`.
-  Any adoption must align with `docs/req-landing.md §8.3 Core Motion Contract`. *(2026-04-15)*
+- `motion` is currently imported in `src/features/test/test-question-client.tsx`
+  for answer-grid transitions. Any broader adoption must align with
+  `docs/req-landing.md §8.3 Core Motion Contract`.
 
 ---
 

@@ -3,7 +3,7 @@
 ## 1. Scope & Non-goals
 
 ### 1.1 Scope (V1)
-**Rule**: V1 구현 범위는 랜딩 카탈로그 UI, 카드 상태 전이(Normal/Expanded), unavailable 계약, 랜딩→목적지 전환 핸드셰이크, 최소 텔레메트리, SSR/Hydration 안정성으로 한정한다.
+**Rule**: V1 구현 범위는 랜딩 카탈로그 UI, 카드 상태 전이(Normal/Expanded), 카드 타입별 노출·진입 계약, consent-aware catalog filtering, 랜딩→목적지 전환 핸드셰이크, 랜딩 ingress와 test instruction 진입 경계, return restoration, 최소 텔레메트리, SSR/Hydration 안정성으로 한정한다.
 
 ### 1.2 Non-goals (V1)
 **Rule**: 배경 동적 연출, 랜딩 런타임의 Google Sheets 직접 호출, 전역 택소노미 전체 구현, 테스트/블로그 본문 고도화는 V1 범위에서 제외한다. Google Sheets → generated registry 동기화 파이프라인은 `docs/req-test.md` §2가 소유하며, 랜딩 UI는 여전히 generated runtime registry + resolver 경계만 소비한다.
@@ -23,13 +23,13 @@
 | Term | Definition |
 |---|---|
 | Card Type | 카드 가시성·진입 가능성·consent 연동을 결정하는 5종 분류. `available` \| `unavailable` \| `hide` \| `opt_out` \| `debug`. consent × 카드 타입 전체 매트릭스는 §13.9 참조. |
-| Available Card | 카탈로그에 노출. 진입 가능. consent 미선택(default) 또는 Agree All 사용자에게 노출. Disagree All 사용자에게 비노출. |
+| Available Card | 카탈로그에 노출. 진입 가능. consent 미선택(default) 또는 Agree All 사용자에게 노출. Disagree All 사용자에게는 end-user catalog에서 비노출이나, 직접 URL 유입은 instruction warning branch로 처리한다. |
 | Unavailable Card | 카탈로그에 노출. Coming Soon badge 표시. 진입 불가. 직접 URL 접근 시 에러 복구 페이지. consent 상태와 무관하게 노출. |
 | Hidden Card | 카탈로그에서 제외. 직접 URL 접근 시 에러 복구 페이지. 운영 목적 임시 비노출 처리에 사용. consent 상태와 무관하게 비노출. |
 | Opt-out Card | 카탈로그에 노출. 진입 가능. consent 상태와 무관하게 항상 노출(미선택·Agree·Disagree 공통). 상세 계약은 §13.9 참조. |
-| Debug Card | 로컬/QA 환경 전용. production 배포에서는 Hidden Card와 동일하게 처리. |
-| Normal | 기본 탐색 상태. CTA 비노출 |
-| Expanded | 상세 슬롯 노출 상태. CTA 허용(카드 타입 규칙 적용) |
+| Debug Card | QA audience 전용. end-user catalog에서는 Hidden Card와 동일하게 비노출 처리한다. |
+| Normal | 기본 탐색 상태. Start/Read more/A-B entry CTA 비노출 |
+| Expanded | 상세 슬롯 노출 상태. Test는 A/B 응답 CTA, Blog는 Read more CTA 허용(카드 타입 규칙 적용) |
 | Card Shell | 카드 외곽 컨테이너. scale/높이/clip 규칙의 기준 단위 |
 | Row Baseline | Expanded 진입 직전 Normal 상태의 같은 row 높이 기준값 |
 | Handoff | 카드 A에서 B로 연속 hover/tap 이동하는 전이 경로 |
@@ -37,10 +37,13 @@
 | Hover-capable Mode | `width>=768` + `(hover:hover && pointer:fine)` |
 | Tap Mode | `width<768` 또는 hover-capability 미감지 |
 | Keyboard Mode | 최근 입력이 `Tab/Shift+Tab` 기반인 상태 |
-| Landing Ingress Flag | 랜딩 Test 카드에서 **first scoring question (`scoring1`)**을 pre-answer한 뒤 유입되었음을 나타내는 플래그 |
-| Question Index | canonical `questions[]` 기준 1-based 인덱스. telemetry 기준축이며 user-facing `Q1/Q2`와 동일하다고 가정하면 안 된다 |
+| Landing Ingress Flag | 랜딩 Test 카드에서 **first scoring question (`scoring1`)** preview를 A/B로 선택한 뒤 유입되었음을 나타내는 variant-scoped 세션 레코드. live record는 `createdAtMs`를 보유하지만 7분 만료는 future contract다. |
+| Runtime Entry Commit | instruction/qualifier 절차가 끝나고 test runtime active run으로 진입하는 경계. qualifier 없는 variant는 Start 계열 CTA가 commit이고, qualifier variant는 final qualifier Continue가 commit이다. |
+| Question Index | canonical `questions[]` 기준 1-based 인덱스. `attempt_start`와 `final_submit` 계열의 기준축이며 user-facing `Q1/Q2`와 동일하다고 가정하면 안 된다. `question_answered`의 live index 축은 runtime scoring-order ordinal이므로 Test Flow Requirements §9.1을 따른다. |
 | User-facing Q Label | scoring question에만 부여되는 `Q1`, `Q2`, ... 표기. canonical index가 아니라 scoring order 기준 |
 | Transition Correlation | start/complete/fail/cancel를 묶는 상관키 |
+| Internal Transition Signal | `transition_start/complete/fail/cancel` 계열의 store/runtime 내부 신호. rollback, pending cleanup, GNB overlay 교체 경계에만 사용하며 telemetry network event가 아니다. |
+| CTA Action Identity | CTA가 수행하는 저장·commit·redirect 효과의 식별자. qualifier variant에서는 primary visible label이 `Next`로 보일 수 있어도 action identity와 test id는 base CTA를 유지한다. 이는 label 선택 문제가 아니라 `consent state × instructionSeen state × entry path × qualifier requirement` 조합으로 해석되는 test-route entry 계약의 일부다. |
 
 ## 3. Conflict Resolution Policy
 
@@ -216,6 +219,8 @@
 - 공통: 배경은 불투명 또는 반투명+blur를 사용한다.
 - 공통: `scrollY > 4px`에서 얕은 shadow를 적용하고, shadow가 없으면 `1px divider`를 적용한다.
 - Desktop Landing: 좌측 CI(home), 메뉴(테스트 이력/블로그), 우측 설정 트리거(햄버거 금지).
+- Desktop Blog/History: Landing과 동일한 메뉴/설정 구조를 사용하되 현재 route context에 맞는 Back 없는 일반 GNB로 동작한다.
+- Desktop Test: 좌측 Back, 중앙 Timer만 제공하며 설정·언어·테마·History/Blog 링크를 노출하지 않는다.
 - Desktop 설정 레이어: 기본 열기 방식은 hover(`>=1024`), 포인터 감지 불가 환경에서는 focus/click fallback 허용.
 - Desktop 설정 레이어 닫기: `Esc`, outside click, focus out. Tab/Shift+Tab 기반 focus out 닫힘은 즉시 적용한다.
 - Desktop 설정 레이어: 트리거와 레이어 사이 hover gap을 금지한다.
@@ -235,9 +240,11 @@
 - Mobile Landing/Blog/History: 닫힘 완료 후 포커스는 햄버거 트리거로 복귀해야 한다.
 - Mobile Landing: 최하단 설정 컨트롤은 언어/테마 2개만 허용한다.
 - Mobile Test: Back + Timer만 제공하며 instruction/question/result 전 상태에서 동일 구성을 유지한다.
+- Mobile Test: 햄버거, 설정 레이어, 언어/테마 컨트롤을 노출하지 않는다.
 - Mobile Test Back: 우선 `history.back`, 불가 시 `/{locale}`로 fallback.
 - Mobile Blog: Back + 햄버거를 사용하고 최하단 설정 컨트롤 규칙은 Landing과 동일하게 적용한다.
 - History: Blog와 동일한 GNB 컨텍스트를 사용한다(Desktop/Mobile 공통).
+- Landing keyboard entry: desktop/tablet에서 첫 `Tab`은 첫 enterable landing card로 이동하고, 첫 card에서 `Shift+Tab`은 마지막 visible GNB control로 복귀한다. Blog/History/Test context는 이 landing 전용 focus transfer를 사용하지 않고 native GNB focus order를 유지한다.
 - 언어 변경 위치: Desktop은 설정 레이어 내부만, Mobile은 햄버거 최하단 컨트롤만 허용한다.
 - 테마 상태: 최초는 system-follow, 수동 변경 이후 `light|dark`를 localStorage에 고정 저장한다.
 
@@ -247,21 +254,25 @@
 3. Automated: Mobile Test Back의 history fallback 동작을 검증한다.
 4. Automated: Desktop 설정 트리거↔레이어 경계 이동에서 hover gap crossing으로 닫힘이 발생하지 않음을 검증한다.
 5. Automated: Desktop focus out 닫힘 지연이 `<=1 frame`이며 hover 유예가 적용되지 않음을 검증한다.
+6. Automated: Landing-only GNB↔card keyboard focus transfer와 Blog/History/Test native GNB focus order를 각각 검증한다.
 
 ### 6.5 Card Slot Order Contract
 **Rule**: 슬롯 순서와 존재 규칙은 고정한다.
 - Normal 순서: `cardTitle -> cardThumbnail -> cardSubtitle -> tags`
+- Normal/front 상태에서는 Start, Read more, A/B answerChoice 같은 entry CTA를 렌더링하지 않는다. Normal 카드의 1차 트리거는 확장 또는 unavailable overlay 확인만 담당한다.
 - Expanded 공통 헤더: `cardTitle`만 유지
 - Expanded Test에서는 `subtitle/thumbnail/tags`를 제거한다(숨김 아님, 비노출).
 - Expanded Blog에서는 `thumbnail/tags`만 제거하고 같은 `subtitle`을 유지한다.
 - `cardThumbnail`은 UI slot 이름일 뿐이며, thumbnail asset 결정 입력은 오직 `variant`다.
 - fallback thumbnail도 `variant` 기반 규칙 안에서만 결정한다.
 - Test Expanded: `previewQuestion`, `answerChoiceA/B`, `meta(3)`
+- Test entry는 Expanded의 `answerChoiceA/B`에서만 시작할 수 있다.
 - Test Expanded의 canonical preview consumer shape는 `previewQuestion`, `answerChoiceA`, `answerChoiceB`로 고정한다.
 - 현재 Test Expanded preview source는 Questions의 **first scoring question (`scoring1`)** projection이다. UI는 이를 source detail로 인식하지 않고 resolver가 주입한 landing projection으로만 소비해야 한다.
 - Questions fixture 기반 `scoring1` projection은 registry builder가 `testPreviewPayloadByVariant`에 반영한다. `resolveTestPreviewPayload()`는 이 registry store를 읽어 동일 consumer shape로 반환한다.
 - preview payload 접근 로직을 랜딩 UI 컴포넌트 내부에 분산시키는 것을 금지한다. raw fixture shape 직접 참조도 금지한다.
 - Blog Expanded: `cardSubtitleExpanded(최대 4줄)`, `meta(3)`, `primaryCTA(Read more)`
+- Blog entry는 Expanded의 `primaryCTA(Read more)`에서만 시작할 수 있다.
 
 **Verification**:
 1. Manual: Normal/Expanded 전환 시 슬롯 제거/등장 순서를 확인한다.
@@ -369,8 +380,10 @@
 - Test Expanded `meta`는 3개 고정이며 runtime data key는 `durationM`, `sharedC`, `engagedC`만 사용한다. 표시 라벨만 `예상 시간`, `공유`, `시도`로 분기하며 non-interactive 정보 슬롯으로 렌더링한다.
 - Test Expanded는 별도 Start CTA를 허용하지 않는다.
 - Test Expanded의 preview/answer CTA는 generic first row가 아니라 canonical preview payload만 사용한다. 해당 payload는 Questions **first scoring question (`scoring1`)** 에서 파생되며 consumer shape는 유지되어야 한다.
+- Test Expanded의 A/B 선택은 landing pre-answer와 landing ingress를 생성하는 유일한 landing-side test entry 액션이다.
 - Blog Expanded `meta`는 3개 고정이며 runtime data key는 `durationM`, `sharedC`, `engagedC`만 사용한다. 표시 라벨만 `읽기 시간`, `공유`, `조회`로 분기하며 non-interactive 정보 슬롯으로 렌더링한다.
 - Blog Expanded `primaryCTA`는 1개 고정(`Read more`, i18n).
+- Blog Expanded `primaryCTA`는 pending transition과 return restoration만 생성한다. landing ingress, pre-answer, `card_answered`는 Blog entry에서 생성하지 않는다.
 - Expanded `meta` 수치값은 축약 표기(`k`/`m` 등)를 금지하고 3자리마다 `,` 구분자를 적용한다.
 - 카드에 노출되는 텍스트(제목/부제/질문/선택지/메타 레이블)는 활성 locale에 맞춰 표시해야 하며, locale 값 누락 시 default locale fallback을 적용한다.
 
@@ -617,10 +630,12 @@
 - Test: answerChoiceA/B
 - Blog: Read more
 - Blog CTA 전환은 선택된 article 식별자를 목적지로 전달해야 하며, 목적지는 해당 식별자 기준으로 콘텐츠 컨텍스트를 결정해야 한다.
+- Test CTA 전환은 선택된 A/B 값을 landing ingress로 저장하고 목적지는 runtime entry commit 경계에서 canonical binding을 수행한다.
 - article 식별자 누락/무효 시에는 문서에 정의된 안전 fallback으로 처리해야 한다.
 - Mobile에서도 CTA 입력(마우스 클릭/터치 탭)은 닫기 동작보다 우선하며 반드시 `transition_start`로 귀결되어야 한다.
 - 본 섹션의 전환 시작 규칙은 Section 13.3/13.6의 fail/cancel/rollback 계약을 변경하지 않는다.
 - **Test 페이지 destination-ready 해석**: `/test/{variant}` 진입 시 destination-ready는 variant 유효성 검증 완료 + Runtime Entry Commit 준비 완료를 동시에 만족하는 시점이다 (Test Flow Requirements §2.4 참조).
+- **Blog 페이지 destination-ready 해석**: `/blog/{variant}` 진입 시 route variant와 article model이 일치하고 route model ready 이후 animation frame에서 complete 처리할 수 있는 시점이다. Blog index 또는 invalid/non-enterable article fallback은 selected article로 간주하지 않는다.
 
 ---
 
@@ -711,23 +726,26 @@
 - V1 필수 이벤트:
   - `landing_view`: 1회.
   - `card_answered`: 1회. 랜딩 카드 A/B 선택 시점에 발화하며, 랜딩 ingress 경로에서만 발생한다. 직접 진입 경로에서는 발화하지 않는다. 이 이벤트는 landing phase에서 기록된 `scoring1` 응답을 대표한다.
-  - `attempt_start`: 1회. instruction 이후 **첫 runtime question render 시점**에 발화한다. ingress 경로에서는 landing에서 pre-answered `scoring1`을 건너뛴 뒤 첫 runtime question이 기준이다.
+  - `attempt_start`: 1회. runtime entry commit 이후 **첫 scoring runtime question 진입 시점**에 발화한다. profile/qualifier row는 runtime panel의 `attempt_start` 기준 문항이 아니다.
+  - `question_answered`: runtime scoring question 응답 시 발화한다. landing에서 pre-answered된 `scoring1`은 `question_answered`로 재발화하지 않는다.
   - `final_submit`: 1회.
+  - `result_viewed`: 현재 live placeholder result surface mount 시 발화할 수 있다. 실제 result pipeline에서는 `derived_type` 블록 visibility와 detail payload를 `docs/req-test.md`가 소유한다.
 - `transition_start`, `transition_complete`, `transition_fail`, `transition_cancel`은 내부 시스템 신호로만 유지하며 텔레메트리 전송 대상에서 제외한다. `card_answered`는 사용자 행위 기반 이벤트이며 위 내부 신호와 독립적으로 동작한다.
 - 기본 미수집: `scroll`, `hover`, `expanded/tap 토글`, `tilt/조명 상호작용`, `unavailable hover/tap 시도`.
-- test runtime의 `question_answered`는 landing에서 pre-answered된 `scoring1`을 재발화하지 않는다. landing phase의 `card_answered`와 runtime phase의 `question_answered`는 역할이 다르다.
+- landing phase의 `card_answered`와 runtime phase의 `question_answered`는 역할이 다르다.
 
 ### 12.2 Required Fields per Telemetry Event
 **Rule**: 텔레메트리 이벤트별 필수 필드는 아래와 같이 고정한다.
-- 공통 필수 필드(모든 전송 이벤트): `event_id`, `session_id`, `ts_ms(UTC)`, `locale`, `route`, `consent_state`.
+- 공통 필수 필드(모든 전송 이벤트): `event_id`, `session_id`, `ts_ms(UTC)`, `locale`, `route`, `consent_state`. `session_id` 필드는 항상 존재해야 하나, live validator는 `landing_view`, `card_answered`, `result_viewed`에서 `null`을 허용하고 `attempt_start`, `question_answered`, `final_submit`에서는 non-null을 요구한다.
 - `card_answered` 추가 필수 필드: `source_variant`, `target_route`, `landing_ingress_flag`.
   - `source_variant`는 선택이 발생한 카드의 식별자다.
   - `target_route`는 진입 예정 테스트 variant 경로다.
   - `landing_ingress_flag`는 `true`로 고정한다.
 - `attempt_start` 추가 필수 필드: `landing_ingress_flag`, `question_index_1based`.
   - `question_index_1based`는 UI `Qn`이 아니라 **canonical index**다.
-  - ingress 경로: `landing_ingress_flag=true`, `question_index_1based`는 첫 runtime question의 canonical index (`q.1`이 있으면 `1`, 없으면 `scoring2`의 canonical index).
-  - 직접 진입 경로: `landing_ingress_flag=false`, `question_index_1based`는 첫 runtime question의 canonical index (`q.1`이 있으면 `1`, 없으면 `scoring1`의 canonical index).
+  - ingress 경로: `landing_ingress_flag=true`, `question_index_1based`는 first scoring runtime question의 canonical index다. landing preview가 seed한 `scoring1`을 재발화하지 않는다.
+  - 직접 진입 경로: `landing_ingress_flag=false`, `question_index_1based`는 first scoring runtime question의 canonical index다. profile/qualifier row가 선행해도 `attempt_start` 기준은 scoring row다.
+- `question_answered` 추가 필드는 runtime telemetry contract를 따른다. 현재 live payload의 question index는 visible scoring-order ordinal이며 canonical index와 혼동하면 안 된다.
 - `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`.
 - `final_responses`는 scoring canonical 문항의 응답 맵이며, 현재 runtime telemetry payload에서는 의미 코드 `'A' | 'B'`만 기록한다. profile/qualifier token은 `final_submit` payload에서 제외한다. 진입 경로(ingress/직접 진입)와 무관하게 동일한 구조를 유지한다. `scoring1` 재수정이 발생한 경우 최종 제출 시점의 값을 반영한다.
 - `landing_ingress_flag`는 진입 경로를 나타내며, 테스트 중 `scoring1`을 재수정하더라도 ingress 경로로 진입한 세션은 항상 `true`를 유지한다. `scoring1` 재수정 여부는 이 플래그의 값에 영향을 주지 않는다.
@@ -737,10 +755,12 @@
 ### 12.3 Payload Boundaries
 **Rule**: 텔레메트리 payload는 의미 코드 중심으로 제한한다.
 - 금지: 원문 질문/답변 텍스트, 자유입력 텍스트, PII/지문성 식별자(IP, fingerprint).
-- 응답은 의미 코드만 기록한다 (`'A' | 'B'` 선택 코드). question index는 canonical 1-based 기준.
-- `final_submit` 필수 필드: `variant`, `question_index_1based`(최종 answered canonical index), `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`(canonical 전체 문항 의미 코드 맵, 진입 경로 무관 동일 구조, `scoring1` 재수정 시 최종 제출 시점 반영).
+- 응답은 의미 코드만 기록한다 (`'A' | 'B'` 선택 코드). `attempt_start`와 `final_submit`의 question index는 canonical 1-based 기준이며, `question_answered`의 live index 축은 §12.2의 event-specific 규칙을 따른다.
+- `final_submit` 필수 필드: `variant`, `question_index_1based`(최종 answered canonical index), `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`(scoring canonical 문항 의미 코드 맵, profile/qualifier 제외, 진입 경로 무관 동일 구조, `scoring1` 재수정 시 최종 제출 시점 반영).
 - `landing_ingress_flag`는 진입 경로 기준이며 `scoring1` 재수정으로 변경되지 않는다.
-- Test domain derivation 전에 `src/features/test/response-projection.ts` Phase 4/7 projection layer가 `'A'|'B'`를 pole/qualifier token으로 변환한다. landing/test telemetry payload를 `computeScoreStats()` 또는 `buildTypeSegment()`에 직접 전달하면 안 된다.
+- landing/test telemetry payload의 `'A'|'B'`는 domain derivation token이 아니다. scoring/result derivation 세부 변환은 `docs/req-test.md`가 소유하며, telemetry payload를 score/result computation 입력으로 직접 사용하면 안 된다.
+- payload validator는 PII-like key와 legacy field(`transition_id`, `result_reason`, `final_q1_response`)를 거부해야 한다.
+
 ### 12.4 Consent State Machine
 **Rule**: consent는 `UNKNOWN -> OPTED_IN | OPTED_OUT` 상태 머신으로 관리한다.
 - SSR/초기 렌더는 `UNKNOWN` 고정.
@@ -749,6 +769,7 @@
 - `OPTED_IN` 확정 시에만 유예 이벤트 전송을 허용한다.
 - `OPTED_OUT` 확정 시 유예 이벤트를 폐기한다.
 - 옵트아웃 즉시 익명 식별자/연결키를 무효화하고 전송을 차단한다.
+- Vercel Analytics와 Speed Insights bridge도 동일 consent source를 따라야 하며, `OPTED_IN` 확정 전에는 render/network attach를 금지한다.
 
 ### 12.5 Anonymous ID Policy
 **Rule**: 익명 ID는 비식별/안전 생성 원칙을 따른다.
@@ -789,6 +810,7 @@
 - Tap Mode에서는 오버레이 상시 노출
 
 **Adapter 레이어 책임 (Landing-side 계약)**: `unavailable` 판정의 단일 소스는 generated runtime registry의 `attribute` 필드다. `loadVariantRegistry()` + `resolveLandingCatalog()`가 카드 attribute를 반영해 카탈로그를 구성하며, 렌더링/상호작용 레이어는 이 값을 그대로 사용한다. 직접 URL 접근 차단은 req-test.md §2.5/§6.1이 소유한다.
+
 ### 13.3 Landing→Destination Handshake
 **Rule**: 전환 잠금과 GNB 교체 시점은 아래 규칙으로 고정한다.
 - 전환 시작 즉시 `TRANSITIONING`으로 진입한다.
@@ -798,26 +820,34 @@
 - source GNB는 목적지 진입 완료 전까지 유지한다.
 - destination GNB는 목적지 진입 완료 시점에 1회 교체한다.
 - `transition_complete`는 destination ready 이전에 발생하면 안 된다.
+- destination ready 이후 complete 처리는 Test에서는 runtime ready와 pending transition 확인 뒤, Blog에서는 route/article model ready와 animation frame 이후에 수행한다.
 - 전환 종료 이벤트는 `complete|fail|cancel` 중 정확히 1회만 발생해야 한다.
 - 실패/취소 시 pre-answer 및 pending 상태를 롤백해야 한다.
-- 실패/취소 cleanup set은 pre-answer, ingress flag, pending transition/state, interaction lock, body lock, queued close 상태를 모두 포함해야 하며 부분 정리를 금지한다.
+- 성공 complete는 pending transition만 정리한다. return scroll record는 landing 재진입 시 1회 restoration 후 consume되어야 한다.
+- 실패/취소 cleanup set은 pre-answer, ingress flag, pending transition/state, return restoration record, interaction lock, body lock, queued close 상태를 모두 포함해야 하며 부분 정리를 금지한다.
 - fail/cancel/rollback 계약은 모바일 CTA 우선순위 보완 여부와 무관하게 항상 동일하게 유지해야 한다.
+- pending transition timeout은 destination ready가 발생하지 않는 경우 fail terminal로 귀결되어야 하며, live timeout 기준은 `1600ms`다.
+- duplicate-locale target route는 transition start 이전 no-op으로 처리해야 하며 pending, return scroll, landing ingress, internal transition signal, telemetry event를 생성하면 안 된다.
+- Test card transition은 pending transition + return scroll + landing ingress + `card_answered`를 생성한다. Blog transition은 pending transition + return scroll + internal transition signal만 생성하며 landing ingress와 `card_answered`를 생성하지 않는다.
 - `transition_complete`, `transition_fail`, `transition_cancel`은 내부 시스템 신호로 rollback 경계 및 GNB 교체 시점을 결정한다. 텔레메트리 전송 대상이 아니다.
 
 ### 13.4 Test `scoring1` Pre-answer & Instruction Start Rule
 **Rule**: `scoring1` pre-answer와 시작 문항 결정은 ingress flag 기준으로만 판단한다.
 - 본 계약은 Test 카드에만 적용하며 Blog 카드에는 적용하지 않는다.
-- Test 카드 Expanded에서 A/B 선택 시: ①선택값을 `scoring1` provisional pre-answer로 **즉시 durable staged entry**에 저장, ②`variant + session` 단위 landing ingress flag 기록, ③`createdAtMs`를 함께 기록, ④`/test/[variant]` 진입
+- Test 카드 Expanded에서 A/B 선택 시: ①선택값을 `scoring1` provisional pre-answer로 session-scoped landing ingress에 저장, ②`variant + session` 단위 landing ingress flag 기록, ③`createdAtMs`를 함께 기록, ④`/test/[variant]` 진입
 - landing 단계에서는 이 provisional pre-answer를 아직 canonical question index에 bind하지 않는다.
-- landing ingress runtime은 `q.1`이 존재하면 `q.1`부터, 없으면 `scoring2`부터 시작한다.
-- landing ingress flag 부재 시 direct runtime은 `q.1`이 존재하면 `q.1`부터, 없으면 `scoring1`부터 시작한다.
-- profile question이 존재하면 runtime에서는 `scoring1` 다음에 `q.*`가 먼저 노출될 수 있으며, landing ingress 이후 자동 제시는 unanswered profile → unanswered scoring 순서를 따른다.
-- landing에서 seed된 `scoring1`은 revisitable이지만 auto-present 대상이 아니어야 한다.
+- test runtime bootstrap은 landing ingress를 읽어 first scoring question의 canonical index에 A/B 값을 bind한다. profile/qualifier row는 landing preview source가 아니며 landing pre-answer의 canonical target도 아니다.
+- landing ingress runtime start 규칙: seeded `scoring1` answer를 active run에 반영한 뒤 test runtime이 선택한 첫 runtime-presentable scoring step으로 진입한다. qualifier가 있는 variant는 qualifier overlay를 먼저 완료해야 하며, final continuation 이후의 세부 시작 위치는 `docs/req-test.md`의 active entry policy가 소유한다.
+- direct runtime start 규칙: landing pre-answer 없이 test runtime이 선택한 첫 runtime-presentable scoring step으로 진입한다. qualifier/profile 수집이 필요한 variant는 instruction/qualifier overlay 단계가 이를 먼저 처리한다.
+- landing ingress flag 부재 시 direct runtime은 first scoring question부터 시작한다. profile/qualifier row가 필요한 variant는 instruction/qualifier overlay 단계가 이를 먼저 처리하며, runtime telemetry의 `attempt_start`는 첫 scoring runtime question 기준으로 발화한다.
+- landing에서 seed된 `scoring1`은 revisitable이지만 landing이 profile/qualifier answer를 만들거나 저장하면 안 된다.
+- qualifier 없는 variant는 instruction Start 계열 CTA가 runtime entry commit 경계다.
+- qualifier variant는 instruction primary CTA가 qualifier step으로 이동하는 경계이며, final qualifier Continue가 runtime entry commit 경계다. landing ingress consume과 active run replace는 이 commit 이후에만 허용한다.
 - 동일 variant 재진입에서 instruction이 생략되는 경우: ingress flag 존재 시 즉시 시작 + landing ingress runtime start 규칙 적용, 부재 시 direct runtime start 규칙 적용.
 - old active run replace는 commit success 시점에만 발생한다.
 - 사용자는 테스트 중 `scoring1`을 재수정할 수 있다.
-- staged entry 만료(A/B 선택 시점으로부터 7분 경과)와 commit-failure UX는 다음 Phase(Test Flow Requirements) 범위다.
-- 이번 Phase에서는 ingress save/read/consume/rollback 계약만 release-blocking으로 유지한다.
+- staged entry 만료(A/B 선택 시점으로부터 7분 경과)는 target/future contract다. live runtime은 `createdAtMs`를 저장하지만 7분 expiry를 bootstrap gate로 enforce하지 않는다.
+- 이번 Phase에서는 ingress save/read/bind/consume/rollback 계약과 Blog 비적용 계약만 release-blocking으로 유지한다.
 
 ### 13.5 Instruction Contract
 
@@ -833,20 +863,23 @@
 - consent note, divider, CTA set은 `ingress type + consent state + attribute` 조합으로 결정한다.
 - landing ingress 판정은 landing ingress flag만 사용한다. path/referrer/pending transition은 근거로 쓰지 않는다.
 - test route는 route-local consent banner, confirm dialog, blocked popup을 렌더하지 않는다.
+- 아래 표는 CTA action identity와 기본 visible label을 정의한다. qualifier variant의 instruction step에서는 primary action identity/test id/effect는 그대로 유지하되 visible label만 localized `Next`로 표시한다. secondary CTA visible label은 override하지 않는다.
+- qualifier variant에서 [Start], [Accept All and Start], [Deny and Start]의 commit 효과는 instruction primary click 즉시 실행되지 않고 final qualifier Continue에서 실행된다. qualifier 없는 variant에서는 해당 CTA click이 곧 runtime entry commit이다.
+- qualifier variant CTA 해석은 단순 [Next] label 정책이 아니다. landing ingress/direct entry, current consent state, `instructionSeen`, active-run resume validity, qualifier re-entry 여부를 test runtime entry policy가 함께 평가한다. 본 문서는 landing entry 가능성과 consent matrix를 고정하고, overlay 표시/생략·qualifier progression·resume recovery의 상세 실행은 Test Flow Requirements §3.6이 소유한다.
 
 
 | ingress | consent | attribute | 표시 내용 | CTA | 결과 |
 |---|---|---|---|---|---|
-| landing ingress | `OPTED_IN` | `available` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. landing은 `scoring1` 유지, runtime은 `q.1`이 있으면 `q.1`, 없으면 `scoring2`부터 진행 |
-| landing ingress | `OPTED_IN` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. landing은 `scoring1` 유지, runtime은 `q.1`이 있으면 `q.1`, 없으면 `scoring2`부터 진행 |
+| landing ingress | `OPTED_IN` | `available` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. landing ingress runtime start 규칙 적용 |
+| landing ingress | `OPTED_IN` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. landing ingress runtime start 규칙 적용 |
 | landing ingress | `OPTED_OUT` | `available` | 비도달 | 없음 | 랜딩 카탈로그에서 비노출, 일반 사용자 플로우상 진입 불가 |
-| landing ingress | `OPTED_OUT` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. landing은 `scoring1` 유지, runtime은 `q.1`이 있으면 `q.1`, 없으면 `scoring2`부터 진행 |
+| landing ingress | `OPTED_OUT` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. landing ingress runtime start 규칙 적용 |
 | landing ingress | `UNKNOWN` | `available` | variant별 사전 정의 instruction 메시지 + divider + "For a better experience, please agree to the terms to proceed with the test." | [Accept All and Start] / [Deny and Abandon] | Accept: `OPTED_IN` 저장 + commit + landing ingress runtime start 규칙 적용. Deny: `OPTED_OUT` 저장 + 랜딩 복귀 + commit 0 |
 | landing ingress | `UNKNOWN` | `opt_out` | variant별 사전 정의 instruction 메시지 + divider + "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing." | [Accept All and Start] / [Deny and Start] | Accept: `OPTED_IN` 저장 + commit + landing ingress runtime start 규칙 적용. Deny: `OPTED_OUT` 저장 + commit + landing ingress runtime start 규칙 적용 |
-| 딥링크 유입 | `OPTED_IN` | `available` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. runtime은 `q.1`이 있으면 `q.1`, 없으면 `scoring1`부터 진행 |
-| 딥링크 유입 | `OPTED_IN` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. runtime은 `q.1`이 있으면 `q.1`, 없으면 `scoring1`부터 진행 |
+| 딥링크 유입 | `OPTED_IN` | `available` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. direct runtime start 규칙 적용 |
+| 딥링크 유입 | `OPTED_IN` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. direct runtime start 규칙 적용 |
 | 딥링크 유입 | `OPTED_OUT` | `available` | variant별 사전 정의 instruction 메시지 + divider + "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test." | [Accept All and Start] / [Keep Current Preference] | Accept: `OPTED_IN` 저장 + commit + direct runtime start 규칙 적용. Keep: consent 유지 + 랜딩 복귀 + commit 0 |
-| 딥링크 유입 | `OPTED_OUT` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. runtime은 `q.1`이 있으면 `q.1`, 없으면 `scoring1`부터 진행 |
+| 딥링크 유입 | `OPTED_OUT` | `opt_out` | variant별 사전 정의 instruction 메시지 | [Start] | consent 저장 없이 commit. direct runtime start 규칙 적용 |
 | 딥링크 유입 | `UNKNOWN` | `available` | variant별 사전 정의 instruction 메시지 + divider + "For a better experience, please agree to the terms to proceed with the test." | [Accept All and Start] / [Deny and Abandon] | Accept: `OPTED_IN` 저장 + commit + direct runtime start 규칙 적용. Deny: `OPTED_OUT` 저장 + 랜딩 복귀 + commit 0 |
 | 딥링크 유입 | `UNKNOWN` | `opt_out` | variant별 사전 정의 instruction 메시지 + divider + "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing." | [Accept All and Start] / [Deny and Start] | Accept: `OPTED_IN` 저장 + commit + direct runtime start 규칙 적용. Deny: `OPTED_OUT` 저장 + commit + direct runtime start 규칙 적용 |
 
@@ -857,11 +890,11 @@
 
 #### CTA action 불변식
 
-- [Accept All and Start]: `OPTED_IN` 저장 + runtime entry commit + `instructionSeen` 기록. landing ingress는 `scoring1` 유지 후 `q.1` 또는 `scoring2`부터, 딥링크 유입은 `q.1` 또는 `scoring1`부터 진행한다.
-- [Deny and Start]: `OPTED_OUT` 저장 + runtime entry commit + `instructionSeen` 기록. landing ingress는 `scoring1` 유지 후 `q.1` 또는 `scoring2`부터, 딥링크 유입은 `q.1` 또는 `scoring1`부터 진행한다.
+- [Accept All and Start]: `OPTED_IN` 저장 + runtime entry commit + `instructionSeen` 기록. landing ingress는 landing ingress runtime start 규칙, 딥링크 유입은 direct runtime start 규칙을 따른다.
+- [Deny and Start]: `OPTED_OUT` 저장 + runtime entry commit + `instructionSeen` 기록. landing ingress는 landing ingress runtime start 규칙, 딥링크 유입은 direct runtime start 규칙을 따른다.
 - [Deny and Abandon]: `OPTED_OUT` 저장 + 랜딩 복귀 + runtime entry commit `0건` + `instructionSeen` 기록 `0건`.
 - [Keep Current Preference]: consent 유지 + 랜딩 복귀 + runtime entry commit `0건` + `instructionSeen` 기록 `0건`.
-- [Start]: consent 저장 없이 runtime entry commit + `instructionSeen` 기록. landing ingress는 `scoring1` 유지 후 `q.1` 또는 `scoring2`부터, 딥링크 유입은 `q.1` 또는 `scoring1`부터 진행한다.
+- [Start]: consent 저장 없이 runtime entry commit + `instructionSeen` 기록. landing ingress는 landing ingress runtime start 규칙, 딥링크 유입은 direct runtime start 규칙을 따른다.
 
 - 동일 variant 최초 진입(Landing/딥링크 공통)에서는 instruction 표시 필수.
 - `instructionSeen:{variantId}`가 유효한 경우 instruction 재표시 금지.
@@ -869,7 +902,7 @@
   다음 진입은 최초 진입으로 취급 (Test Flow Requirements §3.6 참조).
 
 **Verification**:
-1. Automated: landing ingress 경로에서 `OPTED_IN + available|opt_out`, `OPTED_OUT + opt_out`는 variant별 plain instruction + [Start]만 표시하고, landing pre-answered `scoring1` 이후 runtime이 `q.1` 또는 `scoring2`부터 진행함을 검증한다. 딥링크 유입의 동일 consent × attribute 조합은 plain instruction + [Start] + `q.1` 또는 `scoring1` 시작임을 검증한다.
+1. Automated: landing ingress 경로에서 `OPTED_IN + available|opt_out`, `OPTED_OUT + opt_out`는 variant별 plain instruction + [Start]만 표시하고, landing ingress runtime start 규칙을 따름을 검증한다. 딥링크 유입의 동일 consent × attribute 조합은 plain instruction + [Start] + direct runtime start 규칙을 검증한다.
 2. Automated: landing ingress + `OPTED_OUT` + `available`가 랜딩 카탈로그 단계에서 비도달 상태임을 검증한다. test route에 fallback branch가 없음을 함께 검증한다.
 3. Automated: `UNKNOWN` + `available` 조합 — landing ingress 경로에서는 variant별 instruction + divider + available note + [Accept All and Start] / [Deny and Abandon]이 표시되고, [Accept All and Start] → `OPTED_IN` 저장 + landing ingress runtime start 규칙 적용, [Deny and Abandon] → `OPTED_OUT` 저장 + 랜딩 복귀를 검증한다. 딥링크 유입 경로에서는 동일 UI 구성 + [Accept All and Start] → direct runtime start 규칙 적용, [Deny and Abandon] → 랜딩 복귀를 검증한다.
 4. Automated: `UNKNOWN` + `opt_out` 조합 — landing ingress 경로에서는 variant별 instruction + divider + opt_out note + [Accept All and Start] / [Deny and Start]가 표시되고 두 CTA 모두 landing ingress runtime start 규칙을 따름을 검증한다. 딥링크 유입 경로에서는 동일 UI 구성 + 두 CTA 모두 direct runtime start 규칙을 따름을 검증한다.
@@ -878,6 +911,7 @@
 7. Automated: [Accept All and Start] → `OPTED_IN` 영구 저장 + runtime entry commit + `instructionSeen` 기록이 원자적으로 실행됨을 검증한다.
 8. Automated: OPTED_OUT 상태에서 opt_out 카드 직접 URL 접근 시 정상 진입됨을 검증한다 (§13.9 준용).
 9. Automated: 모든 variant에서 서로 다른 instruction 본문이 노출됨을 검증한다. 동일 instruction 메시지를 공유하는 variant `0건`을 확인한다.
+10. Automated: qualifier variant의 instruction primary visible label은 `Next`로 표시되지만 action identity/test id/effect는 [Start] 또는 [Accept All and Start] 계열을 유지하고, final qualifier Continue에서 runtime entry commit이 발생함을 검증한다.
 
 ### 13.6 Pre-answer Lifecycle / Failure Rollback
 **Rule**: pre-answer lifecycle과 실패 정리는 누수 없이 종료되어야 한다.
@@ -886,14 +920,16 @@
 - pre-answer를 `scoring1` 응답으로 적용하기 위한 유일한 기준은 **landing ingress flag 존재 여부**다.
 - landing ingress flag가 존재하면 pre-answer를 `scoring1` 응답으로 적용한다.
 - 단, canonical question index binding은 landing 단계가 아니라 runtime entry commit 시점에 수행한다.
-- landing ingress flag가 없는 유입에 pre-answer 적용을 금지한다. storage에 pre-answer가 잔류하더라도 무시하고 direct runtime start 규칙(`q.1` 우선, 없으면 `scoring1`)으로 정상 진행한다.
+- landing ingress flag가 없는 유입에 pre-answer 적용을 금지한다. storage에 pre-answer가 잔류하더라도 무시하고 direct runtime start 규칙으로 정상 진행한다.
 - transition correlation은 pre-answer 유효성 판단의 근거로 사용하지 않는다.
 
 **read / consume 분리 계약**:
 - read와 consume을 분리해야 한다.
 - read 시 즉시 파기를 금지한다.
-- consume은 instruction Start click 직후 수행한다.
-- instruction 생략 경로에서는 Start click과 동등한 내부 `test_start` 시점에 consume한다.
+- consume은 runtime entry commit 이후 active run 생성 경계에서 수행한다.
+- qualifier 없는 variant에서는 instruction Start 계열 CTA click이 위 commit 경계다.
+- qualifier variant에서는 final qualifier Continue가 위 commit 경계다. instruction primary `Next` click 직후 consume하면 안 된다.
+- instruction 생략 경로에서는 Start click과 동등한 내부 runtime entry commit 시점에 consume한다.
 
 **실패 롤백 계약**:
 - 전환 실패/취소 시 pre-answer를 롤백해야 한다.
@@ -914,13 +950,14 @@
 **Rule**:
 - 필수 복원 대상은 `scrollY`
 - 저장 시점은 라우팅 호출 직전
+- transition complete는 return restoration record를 consume하지 않는다.
 - 랜딩 재진입 mount 직후 `1회` 복원 후 즉시 consume
 - 동일 재진입에서 중복 복원을 금지한다.
 - 복원 과정에서 자동 viewport 보정 스크롤을 금지한다.
 
 **Verification**:
 1. Automated: ingress flag/시작 문항/landing pre-answered `scoring1` 유지 규칙을 검증한다.
-2. Automated: consume 시점이 Start 직후(또는 test_start)인지 검증한다.
+2. Automated: consume 시점이 runtime entry commit 이후 active run 생성 경계인지 검증한다. qualifier variant에서는 final qualifier Continue 이전 consume `0건`을 확인한다.
 3. Automated: rollback 3케이스와 종료 이벤트 상호배타성을 검증한다.
 4. Automated: dwell time 누적 계산(재방문 포함)을 검증한다.
 
@@ -942,19 +979,21 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 - Disagree All 선택 시 카탈로그에는 opt_out 카드와 unavailable 카드만 남는다.
 - consent 상태 변경은 카탈로그 필터링에 즉시 반영되어야 한다. 페이지 리로드 없이 반영을 권장하나, 구현 방식은 구현자 재량이다.
 - opt_out 카드의 진입 가능성은 `available` 카드와 동일하다. 진입 시 telemetry 동작은 §12 Telemetry 계약을 따른다.
+- `available` 카드는 `OPTED_OUT` 상태의 end-user catalog에서 비노출이지만, 직접 URL 유입은 instruction 단계의 warning + [Accept All and Start] / [Keep Current Preference] 분기로 처리한다.
+- `hide`와 `debug` 카드는 end-user catalog에서 비노출이다. QA audience에서는 debug/hide fixture가 보일 수 있으나 일반 사용자 진입 가능성 계약으로 승격하면 안 된다.
 - opt_out 카드는 consent UX를 우회하지 않는다.
-  - landing ingress + `UNKNOWN` + `opt_out`는 divider + opt_out note + [Accept All and Start] / [Deny and Start]를 사용하고, 두 CTA 모두 landing pre-answered `scoring1` 이후 `q.1` 또는 `scoring2`부터 진행한다.
-  - 딥링크 유입 + `UNKNOWN` + `opt_out`는 divider + opt_out note + [Accept All and Start] / [Deny and Start]를 사용하고, 두 CTA 모두 `q.1` 또는 `scoring1`부터 진행한다.
-  - landing ingress + `OPTED_IN` + `opt_out`, landing ingress + `OPTED_OUT` + `opt_out`는 plain instruction + [Start]를 사용하며 landing pre-answered `scoring1` 이후 `q.1` 또는 `scoring2`부터 진행한다.
-  - 딥링크 유입 + `OPTED_IN` + `opt_out`, 딥링크 유입 + `OPTED_OUT` + `opt_out`는 plain instruction + [Start]를 사용하며 `q.1` 또는 `scoring1`부터 진행한다.
+  - landing ingress + `UNKNOWN` + `opt_out`는 divider + opt_out note + [Accept All and Start] / [Deny and Start]를 사용하고, 두 CTA 모두 landing ingress runtime start 규칙을 따른다.
+  - 딥링크 유입 + `UNKNOWN` + `opt_out`는 divider + opt_out note + [Accept All and Start] / [Deny and Start]를 사용하고, 두 CTA 모두 direct runtime start 규칙을 따른다.
+  - landing ingress + `OPTED_IN` + `opt_out`, landing ingress + `OPTED_OUT` + `opt_out`는 plain instruction + [Start]를 사용하며 landing ingress runtime start 규칙을 따른다.
+  - 딥링크 유입 + `OPTED_IN` + `opt_out`, 딥링크 유입 + `OPTED_OUT` + `opt_out`는 plain instruction + [Start]를 사용하며 direct runtime start 규칙을 따른다.
 - `attribute` 5종 필터링은 landing-side resolver(`loadVariantRegistry()` / `resolveLandingCatalog()`)가 담당한다. Google Sheets registry 연동 이후에도 이 레이어 책임은 변경되지 않는다(ADR-F 확정, `docs/req-test-plan.md` Part 4 참조).
 
 **Verification**:
 1. Automated: Disagree All 상태에서 available 카드 `0건`, opt_out 카드 정상 노출을 검증한다.
 2. Automated: consent 상태 전환 시 카탈로그 필터 결과 변경이 즉시 반영됨을 검증한다.
-3. Automated: opt_out 카드 진입 경로가 §13.5 정책 매트릭스 계약을 따름을 검증한다.   instruction 분기 상세 검증은 §13.5 Verification을 따른다.
-4. Automated: landing ingress + `OPTED_OUT` + `opt_out`에서 plain instruction + [Start] + landing pre-answered `scoring1` 이후 `q.1` 또는 `scoring2` 시작임을 검증한다.
-5. Automated: 딥링크 유입 + `OPTED_OUT` + `opt_out`에서 plain instruction + [Start] + `q.1` 또는 `scoring1` 시작임을 검증한다.
+3. Automated: opt_out 카드 진입 경로가 §13.5 정책 매트릭스 계약을 따름을 검증한다. instruction 분기 상세 검증은 §13.5 Verification을 따른다.
+4. Automated: landing ingress + `OPTED_OUT` + `opt_out`에서 plain instruction + [Start] + landing ingress runtime start 규칙을 검증한다.
+5. Automated: 딥링크 유입 + `OPTED_OUT` + `opt_out`에서 plain instruction + [Start] + direct runtime start 규칙을 검증한다.
 
 ---
 
@@ -971,10 +1010,10 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 **Rule**: 아래 핵심 블로킹 체크 중 1건이라도 실패하면 릴리스를 차단한다.
 1. SSR/Hydration: warning `0건`, typedRoutes build PASS, `useSearchParams()` Suspense 경계 위반 `0건` (Section 5, 11).
 2. Routing/i18n: single locale prefix, duplicate prefix `0건`, `proxy.ts` 단일 책임, locale-less allowlist/404 분기 PASS (Section 5, 13).
-3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, trigger-layer gap `0px`, focus out close `<=1 frame`, hover 유예 hover-only, Mobile overlay/backdrop/scroll lock, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
+3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, trigger-layer gap `0px`, focus out close `<=1 frame`, hover 유예 hover-only, Mobile overlay/backdrop/scroll lock, Desktop/Mobile Test의 Back+Timer-only control set, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
 4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Expanded/handoff 활성 중 grid plan freeze, 폭 변경 시 강제 종료 후 재계산, same-row 비대상 카드 top/bottom/outer height 오차 `0px`, Desktop Normal same-row bottom edge `0px`, 텍스트 overflow(특히 subtitle long-token)로 인한 카드/row inline-size 확장 `0건`, 텍스트 overflow로 인한 형제 슬롯(썸네일/태그) inline-size 변형 `0건`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, handoff는 enterable 카드(available 또는 opt_out) 기준으로만 성립, shell scale/crop PASS (Section 6, 7, 8, 9).
-5. Keyboard/A11y: 카드 Shell focus 경계, Tab 순차 Expanded override, 카드 내부 포커스 순회, Esc 우선순위 해제, aria 규칙, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 9).
-6. Transition/Test Handshake: ingress flag 기록, landing `scoring1` pre-answer 유지, runtime start 규칙(`q.1` 우선 / 없으면 `scoring2` 또는 `scoring1`) 적용, consume 시점, rollback 3케이스, canonical/runtime order와 user-facing scoring label 역전 `0건`, Blog article 식별자 전달, `start=1 -> terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, Mobile lifecycle atomicity(`OPENING -> OPEN -> CLOSING -> NORMAL`), single sequence 상태 전이 1회, OPENING close queue 처리, CLOSING 인터럽트 무시, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op, return scroll 복원 1회+즉시 consume PASS (Section 8, 12, 13).
+5. Keyboard/A11y: 카드 Shell focus 경계, Landing-only GNB↔card focus transfer, Tab 순차 Expanded override, 카드 내부 포커스 순회, Esc 우선순위 해제, aria 규칙, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 9).
+6. Transition/Test Handshake: ingress flag 기록, landing `scoring1` pre-answer 유지, landing/direct runtime start 규칙 적용, runtime entry commit 이후 ingress consume, rollback 3케이스, canonical/runtime order와 user-facing scoring label 역전 `0건`, Blog article 식별자 전달, Blog transition의 landing ingress/card_answered `0건`, `start=1 -> terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, Mobile lifecycle atomicity(`OPENING -> OPEN -> CLOSING -> NORMAL`), single sequence 상태 전이 1회, OPENING close queue 처리, CLOSING 인터럽트 무시, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op, return scroll 복원 1회+즉시 consume PASS (Section 8, 12, 13).
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
 8. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).
 9. Privacy/Consent: `UNKNOWN/OPTED_OUT` 전송 `0건`, `OPTED_IN`에서만 전송, 랜덤 소스 불가 환경 전송 차단 PASS (Section 12, 15).
@@ -983,15 +1022,15 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
-15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_variant`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `card_answered`가 landing phase의 `scoring1` 기록임을 유지하고, `attempt_start.question_index_1based`가 UI `Qn`이 아니라 첫 runtime question의 canonical index로 정확히 발화하며, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
+15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_variant`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `card_answered`가 landing phase의 `scoring1` 기록임을 유지하고, `attempt_start.question_index_1based`가 UI `Qn`이 아니라 first scoring runtime question의 canonical index로 정확히 발화하며, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
 16. Rollback Cleanup Closure: fail/cancel 케이스(사용자 취소, 목적지 타임아웃, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건`, duplicate-locale preflight no-op에서 pending/ingress/telemetry/internal signal `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
-18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses` 포함, canonical 전 문항 맵) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).
+18. Telemetry Final Payload Completeness: `question_answered`가 landing pre-answer를 재발화하지 않고, `result_viewed`가 result surface 기준으로만 발화하며, `final_submit` 필수 필드(`final_responses` 포함, scoring canonical 문항 맵) 누락 `0건`, profile/qualifier token·raw text·PII `0건` PASS (Section 12.3).
 19. Traceability Closure: 이 섹션(§14.2)의 모든 블로킹 항목이 최소 1개 이상의 자동 단언과 매핑되어야 하며, 미매핑 `0건` PASS (Section 14.3).
-20. **Instruction Contract Display**: variant별 instruction 본문이 항상 표시되고, `UNKNOWN + available|opt_out`에서는 divider + consent note가 추가된다. `OPTED_IN + available|opt_out`, `OPTED_OUT + opt_out`에서는 plain instruction + [Start]만 표시된다. test route consent banner/dialog/popup `0건` PASS.
-21. **[Accept All and Start] Contract**: `OPTED_IN` 영구 저장 + runtime entry commit + `instructionSeen` 기록 원자성 PASS. landing ingress는 landing pre-answered `scoring1` 이후 `q.1` 또는 `scoring2`, 딥링크 유입은 `q.1` 또는 `scoring1`로 시작 PASS.
-22. **Secondary CTA Contract**: [Deny and Abandon] = `OPTED_OUT` 저장 + 랜딩 복귀 + runtime entry commit `0건` + `instructionSeen` 기록 `0건`. [Deny and Start] = `OPTED_OUT` 저장 + runtime entry commit + `instructionSeen` 기록이며, landing ingress는 landing pre-answered `scoring1` 이후 `q.1` 또는 `scoring2`, 딥링크 유입은 `q.1` 또는 `scoring1`로 진행 PASS. [Keep Current Preference] = consent 유지 + 랜딩 복귀 + runtime entry commit `0건` PASS.
-23. **OPTED_OUT Available Deep-link Warning Contract**: 딥링크 유입 + `OPTED_OUT` + `available` 경로는 즉시 redirect되지 않고 warning note + [Keep Current Preference]를 표시한다. [Keep Current Preference]는 랜딩 복귀 + commit `0건`, [Accept All and Start]는 `OPTED_IN` 저장 후 direct runtime start 규칙(`q.1` 또는 `scoring1`) 적용 PASS. `landing ingress + OPTED_OUT + available`는 카탈로그 단계 비도달 PASS (§13.5).
+20. **Instruction Contract Display**: variant별 instruction 본문이 항상 표시되고, `UNKNOWN + available|opt_out`에서는 divider + consent note가 추가된다. `OPTED_IN + available|opt_out`, `OPTED_OUT + opt_out`에서는 plain instruction + [Start]만 표시된다. qualifier variant의 primary visible label은 instruction step에서 `Next`로 override되며 action identity는 유지된다. test route consent banner/dialog/popup `0건` PASS.
+21. **[Accept All and Start] Contract**: `OPTED_IN` 영구 저장 + runtime entry commit + `instructionSeen` 기록 원자성 PASS. qualifier 없는 variant는 CTA click에서 commit되고, qualifier variant는 final qualifier Continue에서 commit된다. landing ingress는 landing ingress runtime start 규칙, 딥링크 유입은 direct runtime start 규칙 PASS.
+22. **Secondary CTA Contract**: [Deny and Abandon] = `OPTED_OUT` 저장 + 랜딩 복귀 + runtime entry commit `0건` + `instructionSeen` 기록 `0건`. [Deny and Start] = `OPTED_OUT` 저장 + runtime entry commit + `instructionSeen` 기록이며, landing ingress는 landing ingress runtime start 규칙, 딥링크 유입은 direct runtime start 규칙 PASS. [Keep Current Preference] = consent 유지 + 랜딩 복귀 + runtime entry commit `0건` PASS.
+23. **OPTED_OUT Available Deep-link Warning Contract**: 딥링크 유입 + `OPTED_OUT` + `available` 경로는 즉시 redirect되지 않고 warning note + [Keep Current Preference]를 표시한다. [Keep Current Preference]는 랜딩 복귀 + commit `0건`, [Accept All and Start]는 `OPTED_IN` 저장 후 direct runtime start 규칙 적용 PASS. `landing ingress + OPTED_OUT + available`는 카탈로그 단계 비도달 PASS (§13.5).
 
 ### 14.3 Release Traceability Closure
 
@@ -1003,6 +1042,19 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 **Verification**:
 1. Automated: blocker item ↔ automated assertion 매핑 정합성 검사를 수행한다.
 2. Manual: 릴리스 리뷰에서 매핑 표 샘플링 검수를 수행한다.
+
+### 14.4 Visual Redesign Preservation Contract
+
+**Rule**: 시각 스타일 또는 디자인 시스템을 재구현하더라도 아래 interaction contract는 변경하면 안 된다.
+- Normal/front 상태에는 entry CTA를 추가하지 않는다. Test A/B와 Blog Read more는 Expanded에서만 활성화한다.
+- enterable 기준은 `available|opt_out`이며, unavailable은 catalog에 보이지만 Expanded/CTA/transition 진입을 허용하지 않는다.
+- end-user catalog는 `hide|debug`를 숨기고, `OPTED_OUT`에서는 `available`을 숨기며, `opt_out|unavailable`은 유지한다.
+- landing preview는 first scoring question만 사용한다. profile/qualifier row를 landing preview source로 사용하지 않는다.
+- Test transition은 landing ingress + `card_answered`를 만들고, Blog transition은 만들지 않는다.
+- transition pending/terminal/rollback, duplicate-locale no-op, return scroll 1회 복원, destination-ready complete 경계는 스타일 레이어 변경과 독립적으로 보존한다.
+- GNB context별 control set과 landing-only keyboard focus transfer를 보존한다.
+- consent-gated telemetry와 Vercel Analytics/Speed Insights bridge는 동일 consent source를 유지한다.
+- data-testid, semantic button/link, inert/aria-disabled 기반 a11y guard는 시각 표현 변경으로 제거하면 안 된다.
 
 ---
 
