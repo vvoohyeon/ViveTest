@@ -84,7 +84,8 @@
 - Storage Key SSOT:
   - Landing keys → `src/features/landing/storage/storage-keys.ts`
   - Test keys → `src/features/test/storage/storage-keys.ts` compatibility re-export; concrete Phase 3 key API lives in `src/features/test/storage/test-storage-keys.ts`
-  - ADR-B external legacy key: `vivetest-test-instruction-seen:{variant}`
+  - `instructionSeen` key/helper owner → `src/features/test/storage/instruction-seen.ts`
+  - ADR-B external legacy key format: `vivetest-test-instruction-seen:{variant}`
     remains outside the ADR-B prefix form (`test:{variant}:instructionSeen`) until Phase 5 migration.
   - Exception: `public/theme-bootstrap.js` retains `'vivetest-theme'` as string literal
     (TS import not possible at pre-hydration stage)

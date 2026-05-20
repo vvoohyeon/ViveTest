@@ -70,20 +70,6 @@ export const SESSION_STORAGE_KEYS = {
  */
 export const variantSessionKeys = {
   /**
-   * 해당 variant의 instruction overlay를 이미 확인했는지 여부.
-   *
-   * ADR-B 외부 legacy key.
-   * 현재 key 형식은 `vivetest-test-instruction-seen:{variant}`이며,
-   * ADR-B prefix 형식인 `test:{variant}:instructionSeen` 바깥에 유지된다.
-   * Phase 5 migration 전까지는 이 legacy key를 유지한다.
-   *
-   * 소유: src/features/transition/store.ts
-   * 소비: src/features/test/test-question-client.tsx
-   */
-  instructionSeen: (variant: string) =>
-    `vivetest-test-instruction-seen:${variant}` as const,
-
-  /**
    * landing 카드에서 진입할 때 기록되는 ingress 레코드.
    * { variant, preAnswerChoice, createdAtMs, landingIngressFlag } 형태.
    * 소유: src/features/transition/store.ts

@@ -1,7 +1,6 @@
 import {JSDOM} from 'jsdom';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 
-import {variantSessionKeys} from '../../src/features/landing/storage/storage-keys';
 import {asVariantId, type VariantId} from '../../src/features/test/domain';
 import {
   saveActiveRun,
@@ -11,6 +10,7 @@ import {
   volatilizeRunData,
   type VolatilityTrigger
 } from '../../src/features/test/storage';
+import {instructionSeenKey} from '../../src/features/test/storage/instruction-seen';
 
 const VOLATILITY_TRIGGERS: VolatilityTrigger[] = ['result_entry_committed', 'inactivity', 'restart'];
 
@@ -54,21 +54,21 @@ function seedRunContinuationData(variantId: VariantId) {
   for (const flagName of STATE_FLAG_NAMES) {
     setFlag(variantId, flagName, true);
   }
-  window.sessionStorage.setItem(variantSessionKeys.instructionSeen(variantId), 'true');
+  window.sessionStorage.setItem(instructionSeenKey(variantId), 'true');
 }
 
 function expectRunContinuationDataDeleted(variantId: VariantId) {
   for (const key of cleanupKeys(variantId)) {
     expect(window.localStorage.getItem(key)).toBeNull();
   }
-  expect(window.sessionStorage.getItem(variantSessionKeys.instructionSeen(variantId))).toBeNull();
+  expect(window.sessionStorage.getItem(instructionSeenKey(variantId))).toBeNull();
 }
 
 function expectRunContinuationDataPreserved(variantId: VariantId) {
   for (const key of cleanupKeys(variantId)) {
     expect(window.localStorage.getItem(key)).not.toBeNull();
   }
-  expect(window.sessionStorage.getItem(variantSessionKeys.instructionSeen(variantId))).toBe('true');
+  expect(window.sessionStorage.getItem(instructionSeenKey(variantId))).toBe('true');
 }
 
 describe('test storage volatility', () => {
@@ -107,9 +107,9 @@ describe('test storage volatility', () => {
     expectRunContinuationDataPreserved(egtt);
   });
 
-  it('deletes the legacy instructionSeen session key through variantSessionKeys', () => {
+  it('deletes the legacy instructionSeen session key through the test-domain key owner', () => {
     const variantId = asVariantId('qmbti');
-    const legacyInstructionKey = variantSessionKeys.instructionSeen(variantId);
+    const legacyInstructionKey = instructionSeenKey(variantId);
 
     window.sessionStorage.setItem(legacyInstructionKey, 'true');
 
@@ -126,7 +126,7 @@ describe('test storage volatility', () => {
     volatilizeRunData(variantId, 'inactivity');
 
     expect(cleanupKeys(variantId).filter((key) => window.localStorage.getItem(key) !== null)).toEqual([]);
-    expect(window.sessionStorage.getItem(variantSessionKeys.instructionSeen(variantId))).toBeNull();
+    expect(window.sessionStorage.getItem(instructionSeenKey(variantId))).toBeNull();
   });
 
   // Variant-switch cleanup is Phase 4 owned and is intentionally not modeled as a volatilizeRunData() trigger.

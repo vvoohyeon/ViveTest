@@ -12,7 +12,6 @@ vi.mock('@/features/telemetry/consent-source', () => ({
 }));
 
 vi.mock('@/features/transition/store', () => ({
-  markInstructionSeen: vi.fn(),
   clearLandingIngress: vi.fn()
 }));
 

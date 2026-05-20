@@ -22,16 +22,18 @@ vi.mock('../../src/features/transition/runtime', () => ({
 }));
 
 vi.mock('../../src/features/transition/store', () => ({
-  clearInstructionSeen: vi.fn(),
   consumeLandingIngress: vi.fn(),
-  hasSeenInstruction: vi.fn(() => false),
   readLandingIngress: vi.fn(() => null),
   readPendingLandingTransition: vi.fn(() => null),
-  markInstructionSeen: vi.fn(),
   clearLandingIngress: vi.fn(),
   writeLandingIngress: vi.fn(),
   writePendingLandingTransition: vi.fn(),
   terminatePendingLandingTransition: vi.fn()
+}));
+
+vi.mock('../../src/features/test/storage/instruction-seen', () => ({
+  clearInstructionSeen: vi.fn(),
+  hasSeenInstruction: vi.fn(() => false)
 }));
 
 vi.mock('../../src/features/test/storage/response-set', () => ({
@@ -47,13 +49,12 @@ vi.mock('../../src/features/test/storage/active-run', () => ({
 
 import {trackAttemptStart, trackFinalSubmit} from '../../src/features/telemetry/runtime';
 import {
-  clearInstructionSeen,
   consumeLandingIngress,
-  hasSeenInstruction,
   readLandingIngress,
   readPendingLandingTransition
 } from '../../src/features/transition/store';
 import {getActiveRun, saveActiveRun, writeLastAnsweredAt} from '../../src/features/test/storage/active-run';
+import {clearInstructionSeen, hasSeenInstruction} from '../../src/features/test/storage/instruction-seen';
 import {readResponseSet, writeResponseSet} from '../../src/features/test/storage/response-set';
 
 const qmbtiQuestions = buildVariantQuestionBank('qmbti', 'en');

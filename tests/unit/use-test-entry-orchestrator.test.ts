@@ -12,12 +12,16 @@ vi.mock('../../src/features/telemetry/consent-source', () => ({
 }));
 
 vi.mock('../../src/features/transition/store', () => ({
-  markInstructionSeen: vi.fn(),
   clearLandingIngress: vi.fn()
 }));
 
+vi.mock('../../src/features/test/storage/instruction-seen', () => ({
+  markInstructionSeen: vi.fn()
+}));
+
 import {setTelemetryConsentState} from '../../src/features/telemetry/consent-source';
-import {clearLandingIngress, markInstructionSeen} from '../../src/features/transition/store';
+import {clearLandingIngress} from '../../src/features/transition/store';
+import {markInstructionSeen} from '../../src/features/test/storage/instruction-seen';
 
 const ACTION_EFFECTS = {
   start: {writesConsent: null, redirectHome: false, commitsRuntimeEntry: true, recordsInstructionSeen: true},

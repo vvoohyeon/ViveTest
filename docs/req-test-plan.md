@@ -150,7 +150,7 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 
 ### 핵심 설계 결정 (확정 및 일부 구현 완료)
 
-**storage 추상 레이어 선택**: Phase 3 storage key 네이밍과 key 목록은 `src/features/test/storage/test-storage-keys.ts`가 소유한다. 현재 key surface는 `test:{variant}:activeRun`, `test:{variant}:responses`, `test:{variant}:flag:{flagName}`이며, `instructionSeen`은 아직 landing legacy key(`vivetest-test-instruction-seen:{variant}`)를 사용한다.
+**storage 추상 레이어 선택**: Phase 3 storage key 네이밍과 key 목록은 `src/features/test/storage/test-storage-keys.ts`가 소유한다. 현재 key surface는 `test:{variant}:activeRun`, `test:{variant}:responses`, `test:{variant}:flag:{flagName}`이며, `instructionSeen` helper/key owner는 `src/features/test/storage/instruction-seen.ts`다. live key format은 아직 legacy key(`vivetest-test-instruction-seen:{variant}`)를 유지한다.
 
 **variant-scoped 격리**: 모든 storage 조작은 해당 variant 범위에만 영향을 준다. `tests/unit/test-storage-active-run.test.ts`, `tests/unit/test-storage-state-flags.test.ts`, `tests/unit/test-storage-volatility.test.ts`가 다른 variant 데이터 보존을 단언한다.
 
@@ -185,13 +185,14 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 **Migration 계획**:
 - Phase 3에서는 legacy key(`vivetest-test-instruction-seen:{variant}`)를 그대로 사용한다.
 - Phase 5/SD-1 reducer 적용 후에도 live key는 legacy sessionStorage key로 유지한다.
-- `test:{variant}:instructionSeen` 전환은 별도 storage-key migration 범위로 남긴다. 현재 구현은 `markInstructionSeen()` / `hasSeenInstruction()` / `clearInstructionSeen()`를 통해 legacy key를 일관되게 관리한다.
+- `test:{variant}:instructionSeen` 전환은 별도 storage-key migration 범위로 남긴다. 현재 구현은 `src/features/test/storage/instruction-seen.ts`의 `markInstructionSeen()` / `hasSeenInstruction()` / `clearInstructionSeen()`를 통해 legacy key를 일관되게 관리한다.
 
 **instructionSeen 삭제 정책 확인**:
 - `req-test.md §6.8`이 단일 SSOT. 세 트리거 모두 포함 삭제.
 - Phase 3 `volatilizeRunData()` 구현 시 분기 없이 세 트리거 동일 처리.
 
 - [x] `instructionSeen` legacy key가 ADR-B prefix 외부로 명시적 선언됨
+- [x] Finding 4 ownership move 완료: helper/key owner가 test storage로 이동함
 - [x] future storage-key migration target 확정 (`test:{variant}:instructionSeen`, 현재 live key는 legacy 유지)
 - [x] `volatilizeRunData()` 구현 기준: §6.8 SSOT, 세 트리거 모두 포함 삭제
 - [x] ADR-B key 그룹핑 구조와 충돌 없음 확인됨 — Phase 4 착수 허용

@@ -3,8 +3,6 @@ import {useEffect, useRef, type Dispatch} from 'react';
 import type {AppLocale} from '@/config/site';
 import {terminatePendingLandingTransition} from '@/features/transition/runtime';
 import {
-  clearInstructionSeen,
-  hasSeenInstruction,
   readLandingIngress,
   readPendingLandingTransition,
   type LandingIngressRecord
@@ -19,6 +17,7 @@ import {
   type QuestionBootstrapState
 } from '@/features/test/question-runtime-utils';
 import {getActiveRun, type ActiveRun} from '@/features/test/storage/active-run';
+import {clearInstructionSeen, hasSeenInstruction} from '@/features/test/storage/instruction-seen';
 import {readResponseSet, type ResponseSet} from '@/features/test/storage/response-set';
 import {volatilizeRunData} from '@/features/test/storage/volatility';
 import type {StoredAnswer, TestRunAction} from '@/features/test/test-run-reducer';
@@ -157,8 +156,6 @@ export function useTestRunBootstrap({
         : bootstrapState.runtimeState.answers;
 
     if (nextInstructionSeen && !bootstrapState.instructionSeen) {
-      // Cross-namespace: key owned by landing storage, semantically test-domain.
-      // Per SSOT volatility rules (docs/req-test.md). Do not move without updating all import sites.
       clearInstructionSeen(variant);
     }
 

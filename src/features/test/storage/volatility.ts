@@ -1,6 +1,6 @@
 import type {VariantId} from '@/features/test/domain';
 
-import {variantSessionKeys} from '@/features/landing/storage/storage-keys';
+import {instructionSeenKey} from '@/features/test/storage/instruction-seen';
 import {STATE_FLAG_NAMES, testVariantKey} from '@/features/test/storage/test-storage-keys';
 
 export type VolatilityTrigger = 'result_entry_committed' | 'inactivity' | 'restart';
@@ -40,10 +40,7 @@ export function volatilizeRunData(variantId: VariantId, trigger: VolatilityTrigg
       }
     }
 
-    // intentional cross-namespace delete: instructionSeen key is defined in
-    // landing storage (variantSessionKeys) but is semantically test-domain
-    // state. Cleared here per SSOT (docs/req-test.md volatility rules).
-    getSessionStorage()?.removeItem(variantSessionKeys.instructionSeen(variantId));
+    getSessionStorage()?.removeItem(instructionSeenKey(variantId));
   } catch (error) {
     console.error('Failed to volatilize test run data', {trigger, error});
   }

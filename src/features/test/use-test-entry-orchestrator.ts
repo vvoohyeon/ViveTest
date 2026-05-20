@@ -8,11 +8,12 @@ import type {
   TestInstructionActionEffect
 } from '@/features/test/entry-policy';
 import type {QualifierOverlayItem} from '@/features/test/qualifier-overlay-model';
+import {markInstructionSeen} from '@/features/test/storage/instruction-seen';
 import {writeResponseSet} from '@/features/test/storage/response-set';
 import {useAutoCommit} from '@/features/test/use-auto-commit';
 import {useQualifierOverlayWizard} from '@/features/test/use-qualifier-overlay-wizard';
 import type {TestRunAction, TestRunPhase} from '@/features/test/test-run-reducer';
-import {clearLandingIngress, markInstructionSeen} from '@/features/transition/store';
+import {clearLandingIngress} from '@/features/transition/store';
 import type {LocalizedRoutePath} from '@/i18n/localized-path';
 
 type OverlayStepId = 'instruction' | number;

@@ -12,15 +12,18 @@ vi.mock('@/features/telemetry/consent-source', () => ({
 }));
 
 vi.mock('@/features/transition/store', () => ({
-  markInstructionSeen: vi.fn(),
   clearLandingIngress: vi.fn()
+}));
+
+vi.mock('@/features/test/storage/instruction-seen', () => ({
+  markInstructionSeen: vi.fn()
 }));
 
 vi.mock('@/features/test/storage/response-set', () => ({
   writeResponseSet: vi.fn()
 }));
 
-import {markInstructionSeen} from '@/features/transition/store';
+import {markInstructionSeen} from '@/features/test/storage/instruction-seen';
 import {writeResponseSet} from '@/features/test/storage/response-set';
 
 const ACTION_EFFECTS = {
