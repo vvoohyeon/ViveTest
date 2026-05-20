@@ -63,6 +63,5 @@ export const test = {
   runController: 'src/features/test/use-test-run-controller.ts',
   testRunBootstrap: 'src/features/test/use-test-run-bootstrap.ts',
   runReducer: 'src/features/test/test-run-reducer.ts',
-  entryOrchestrator: 'src/features/test/use-test-entry-orchestrator.ts',
-  entrySideEffects: 'src/features/test/use-entry-side-effects.ts'
+  entryOrchestrator: 'src/features/test/use-test-entry-orchestrator.ts'
 };

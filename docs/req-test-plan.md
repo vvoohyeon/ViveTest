@@ -231,7 +231,7 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 - `src/features/test/test-run-reducer.ts`가 `booting | instruction | active | submitted | redirecting` phase, canonical answers, current index, entry sequence, new/resume entry mode, tail reset, submit guard를 소유한다.
 - `useTestRunBootstrap`이 pending transition, Landing Ingress, active-run/responseSet read, qualifier resume validation, `BOOTSTRAP_COMPLETE` dispatch를 소유한다.
 - `useTestRunController`가 reducer instance, progress, response persistence, active-run metadata write, dwell tracking(`useQuestionDwell`), `attempt_start`/`final_submit` hook을 소유한다.
-- `useTestEntryOrchestrator`가 CTA action 해석을 소유하고, qualifier wizard / entry side-effect / auto-commit hook을 조합한다. consent write, `markInstructionSeen`, redirect-home cleanup은 `useEntrySideEffects`를 통해 실행한다.
+- `useTestEntryOrchestrator`가 CTA action 해석을 소유하고, qualifier wizard / inline entry side-effect calls / auto-commit hook을 조합한다. consent write, `markInstructionSeen`, redirect-home cleanup은 별도 `useEntrySideEffects` hook 없이 orchestrator 내부에서 `setTelemetryConsentState`, `markInstructionSeen`, `clearLandingIngress` 직접 호출로 실행한다.
 - `test-question-client.tsx`의 `entryCommittedForController` bridge state는 제거되었다. answer auto-advance timer는 `useAnswerLock`으로 분리됐고, 지연 advance는 클릭 시점의 choice를 캡처한다.
 - `OverlayConnector`, `QualifierChip`, `ResultConnector`가 overlay/qualifier recap/placeholder result presentation mapping을 분리한다. qualifier re-entry confirm은 qualifier answer만 보존하고 scoring answers를 reset한다.
 
