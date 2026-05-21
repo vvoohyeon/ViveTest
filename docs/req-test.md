@@ -33,8 +33,8 @@
 - 닉네임 입력
 - 프레임워크/라우팅/i18n 기반 구조 재설계 (랜딩 단계 계승)
 - telemetry 이벤트 계약 및 payload schema 재정의 — 랜딩 phase 이벤트(`landing_view`, `card_answered`)와 전역 payload schema는 Landing Requirements §12 / `requirements.md` REQ-F-016이 소유한다. 본 문서의 §9(Telemetry Contract)는 test-flow 전용 hook 위치, 이벤트별 question index 의미, cross-phase 정합성 계약을 추가 정의하는 것으로 한정된다.
-- consent instruction 분기 UX (`ingress type + consent state + attribute` 조합 기반 instruction 메시지·divider·CTA set 결정, `OPTED_OUT + available` 딥링크 진입 시  warning note + [Keep Current Preference] 표시, `OPTED_OUT + available` 랜딩 진입 카탈로그 단계 비도달 처리 포함)
-  — Landing Requirements §13.5 소유. 본 문서 구현 범위 외. `§6.1`은 route-level invalid-variant recovery를 소유하며,consent 관련 진입 분기는 §13.5 정책 매트릭스 계약을 따른다. shared implementation은 허용하되 ownership boundary는 유지한다.
+- consent instruction 분기 UX의 landing-owned matrix 재정의 (`ingress type + consent state + attribute` 조합 기반 instruction 메시지·divider·CTA set 결정, `OPTED_OUT + available` 딥링크 진입 시 warning note + [Keep Current Preference] 표시, `OPTED_OUT + available` 랜딩 진입 카탈로그 단계 비도달 처리 포함)
+  — Landing Requirements §13.5 소유. 본 문서는 test route 진입 이후 overlay 표시/생략, action identity의 runtime effect, qualifier progression, active-run resume/recovery 해석만 소유한다. `§6.1`은 route-level invalid-variant recovery를 소유하며, consent 관련 진입 분기는 §13.5 정책 매트릭스 계약을 따른다. shared implementation은 허용하되 ownership boundary는 유지한다.
 
 ### 1.3 Locked Decisions
 
@@ -50,16 +50,30 @@
 | 테스트 진입 경로 | Landing ingress + 직접 접근(딥링크/새로고침) 모두 지원 |
 | Scoring schema | schema-driven, axisCount ∈ {1, 2, 4} 가변. MBTI 4축 하드코딩 금지. 각 axis는 `scoringMode: 'binary_majority' \| 'scale'`을 선언한다. 현재 구현 대상은 `binary_majority`만이며 `scale`은 타입 예약 상태다. variant는 `qualifierFields`를 선언해 result URL `type` segment에 scoring 결과 외 보조 식별자를 추가할 수 있다 |
 | Answer revision | 이전 문항 재방문 및 답변 수정 허용. 이전 문항 수정 시 tail reset 적용 |
-| Staged entry expiry | A/B 선택 시점으로부터 7분. 재진입/새로고침으로 연장되지 않는다 |
+| Staged entry expiry | 목표 계약: A/B 선택 시점으로부터 7분. 재진입/새로고침으로 연장되지 않는다. 현재 live runtime은 `createdAtMs`만 저장하며 7분 expiry enforcement는 아직 구현하지 않은 future/pending contract다 |
 | Result URL 구조 | `/result/{variant}/{type}?{base64Payload}` |
 | Result URL 인코딩 | `variant`은 path segment 1, `type`은 path segment 2. `type` segment 길이 = `axisCount + sum(qualifierFields[i].tokenLength)`. `qualifierFields`가 없거나 빈 배열이면 길이 = `axisCount`. `scoreStats`와 `shared`(boolean)는 JSON → URL-safe Base64 → 키 없는 query string. `scoringSchemaId`는 URL 어느 위치에도 포함하지 않는다. `variant`가 스키마의 유일한 식별자 |
 | 공유 여부 식별자 | `shared: true/false`를 base64 payload 내부에 포함. 별도 `share=y` query parameter를 사용하지 않는다 |
 | Result derivation 최소 로딩 시간 | 5초 (변경 가능한 설정값) |
 | Inactivity timeout | 마지막 답변 후 30분, 재진입 시점에 판정 |
-| 응답 데이터 휘발 | result screen entry commit 완료 직후, timeout 판정 시, 처음부터 다시 하기 commit success 시 즉시 삭제 |
+| 응답 데이터 휘발 | timeout 판정 시, 처음부터 다시 하기 commit success 시 즉시 삭제. result screen entry commit 완료 직후 삭제는 result pipeline target contract이며 현재 placeholder submit에서는 완료 처리하지 않는다 |
 | Telemetry | 최신 정책 기준의 이벤트/인덱스/발화 시점 계약을 본 문서에서 정의한다 |
 | Share CTA | 이번 단계 미구현 |
 | Nickname 입력 | 이번 단계 미구현 |
+
+### 1.4 Current Runtime Status Snapshot
+
+이 문서는 요구사항/UX/인터랙션 계약을 소유하되, 현재 live runtime과 아직 target contract에 머무는 범위를 명확히 구분한다.
+
+**현재 live runtime으로 확인된 범위**:
+- `/test/{variant}` route guard, instruction overlay, consent note/divider/CTA policy, qualifier overlay, qualifier re-entry, `instructionSeen` 생명주기, landing ingress/direct/resume bootstrap, scoring-only question panel, answer lock 기반 delayed auto-advance, previous navigation tail reset, active-run resume, `final_submit`/placeholder result panel, `attempt_start`·`question_answered`·`final_submit`·임시 `result_viewed` telemetry hook.
+
+**아직 target contract 또는 placeholder bridge인 범위**:
+- score derivation → result-entry loading → self-contained result URL → 실제 result page rendering pipeline은 live runtime에 연결되지 않았다.
+- staged entry record는 `createdAtMs`를 저장하지만, 현재 test bootstrap은 7분 만료/commit-failure UX를 집행하지 않는다. §3.5의 expiry/commit-failure 규칙은 요구사항상 목표로 유지하되, live 구현 의무로 완료 처리하지 않는다.
+- 현재 final step은 locale `submit` CTA로 placeholder submit을 수행하고, 즉시 placeholder result panel을 렌더한다. 이 placeholder result surface는 현 단계에서 허용된 live surface다. §4.5~§8.3의 result derivation/loading/result URL/cleanup 계약은 이후 result pipeline 통합 시 적용할 target contract로 유지하며, 현 시점의 다음 단계 필수 구현 범위로 보지 않는다.
+- `result_viewed`는 현재 placeholder result panel mount 시 1회 발화하며 `derived_type`을 포함하지 않는다.
+- user-visible error render telemetry는 아직 live event union에 포함되지 않는다.
 
 ---
 
@@ -270,13 +284,13 @@
 
 ### 3.1 Core Entities
 
-- **Attempt**: 랜딩 카드 A/B 선택 시점에 시작되는 시도 단위(도메인 개념). telemetry `attempt_start` 이벤트 발화 시점(instruction 이후 첫 runtime question 렌더)과 다르다. timing 상세 및 경로별 시작 문항 계약: §9.1 참조.
-- **Staged Entry**: landing ingress 전용의 임시 진입 상태. provisional `scoring1` pre-answer, ingress flag, unconsumed entry marker를 포함한다. A/B 선택 시점으로부터 7분 후 만료된다. 상세 계약은 §3.5 참조.
+- **Attempt**: 랜딩 카드 A/B 선택 시점에 시작되는 시도 단위(도메인 개념). telemetry `attempt_start` 이벤트 발화 시점(instruction/qualifier 완료 이후 첫 scoring runtime question 렌더)과 다르다. timing 상세 및 경로별 시작 문항 계약: §9.1 참조.
+- **Staged Entry**: landing ingress 전용의 임시 진입 상태. provisional `scoring1` pre-answer, ingress flag, unconsumed entry marker를 포함한다. 목표 계약상 A/B 선택 시점으로부터 7분 후 만료되지만, 현재 live runtime은 `createdAtMs` 저장까지만 구현되어 있다. 상세 계약은 §3.5 참조.
 - **Test Variant**: 사용자가 실행하는 테스트 단위. identifier, scoring schema, axis model, question set, result content 지원 범위를 가진다.
 - **Session / Run Context**: instruction → question runtime → result까지 이어지는 실행 문맥.
 - **Active Run**: 완료되지 않고 timeout되지 않은 진행 중 테스트 세션. 동일 variant에 대한 응답 데이터가 local storage에 존재하고, 마지막 답변 후 30분 미경과 상태. Completed run은 active run이 아니다.
 - **Response Set**: 현재 run에서 기록된 응답 집합.
-- **Question Index**: canonical `questions[]` 배열 순서를 나타내는 1-based 인덱스. storage, validation, qualifier mapping, telemetry의 기준축이다.
+- **Question Index**: canonical `questions[]` 배열 순서를 나타내는 1-based 인덱스. storage, validation, qualifier mapping, `attempt_start`, `final_submit.question_index_1based`, `final_submit.final_responses`의 기준축이다. `question_answered.question_index_1based`는 현재 visible scoring-order ordinal을 사용하므로 별도 event-specific 계약으로 다룬다.
 - **Scoring Order**: scoring question만 대상으로 한 1-based 순서. `scoring1`, `scoring2`, ... 형태로 표현한다.
 - **User-facing Q Label**: UI에 노출되는 `Q1`, `Q2`, ... 표기. canonical index가 아니라 scoring order 기준이다. profile question은 이 번호 체계에 포함되지 않는다.
 - **Ingress Flag**: 랜딩 카드에서 `scoring1` pre-answer와 함께 기록된 진입 플래그. 시작 문항 판정의 유일한 근거다.
@@ -309,16 +323,24 @@
 
 | 경로 | 정의 | Ingress Flag | 시작 문항 |
 |---|---|---|---|
-| Landing Ingress | 랜딩 카드 A/B 선택으로 진입. staged entry 생성 | 있음 | landing에서 `scoring1` pre-answer 후, qualifier fields가 있으면 overlay에서 수집하고 runtime은 다음 scoring question부터 시작. qualifier가 없으면 `scoring2` |
-| Direct Cold | 딥링크/직접 URL 입력 또는 general re-entry(새로고침/back-forward). valid active run 없음 또는 timeout. completed run 재진입 포함 | 없음 | qualifier fields가 있으면 overlay에서 수집하고 runtime은 `scoring1`부터 시작. qualifier가 없으면 `scoring1` |
-| Direct Resume | 딥링크/새로고침/general re-entry. valid active run 존재 | 무관 | 마지막으로 응답을 확정한 문항 기준 |
+| Landing Ingress | 랜딩 카드 A/B 선택으로 진입. staged entry 생성 | 있음 | first scoring canonical index에 pre-answer를 bind한다. 이후 첫 runtime 화면은 active entry policy가 current index, qualifier prerequisite, profile skip을 평가해 결정한다. 현재 live EGTT path는 final qualifier Continue 후 profile index를 skip해 first runtime-presentable scoring question을 표시한다. |
+| Direct Cold | 딥링크/직접 URL 입력 또는 general re-entry(새로고침/back-forward). valid active run 없음 또는 timeout. completed run 재진입 포함 | 없음 | qualifier fields가 있으면 overlay에서 수집하고 first scoring question부터 시작한다. qualifier가 없으면 first scoring question부터 시작한다. |
+| Direct Resume | 딥링크/새로고침/general re-entry. landing ingress가 없고 valid active run 존재 | 없음 | 저장된 response set 기준 첫 미응답 scoring 문항. qualifier prerequisite가 유효해야 하며, resume은 새 `attempt_start`를 발화하지 않는다 |
 
 **불변식**:
 - Direct Resume는 프롬프트 없이 즉시 재개해야 한다. resume 위치는 마지막으로 응답을 확정한 문항 다음의 미응답 문항이며, profile/qualifier 문항은 runtime panel에 표시하지 않고 다음 scoring 문항으로 건너뛴다. 마지막으로 화면에 표시된 문항 기준이 아니다.
+- Landing Ingress가 존재하면 같은 variant의 active run보다 우선한다. 이 경우 old response set은 상속하지 않고 landing pre-answer와 qualifier answer만 새 entry commit 경계에서 반영한다.
+- qualifier fields가 있는 variant의 Direct Resume은 저장된 qualifier token이 현재 qualifier choice token 목록에 포함될 때만 유효하다. 누락·invalid token은 active run/response set/`instructionSeen` cleanup 후 Direct Cold fresh start로 복구한다.
 - Completed run 재진입(same variant): active run이 존재하지 않으므로 Direct Cold로 분류한다. fresh start로 처리한다. 결과 continuity를 기본 재진입 정책으로 삼지 않는다.
 - Landing same-variant A/B 재선택은 항상 restart intent다. 기존 active run 유무와 무관하게 staged entry를 새로 생성한다. 기존 active run은 runtime entry commit success 시점에만 대체된다.
 - 진입 경로 판정은 재진입/새로고침 시점에 재평가한다.
 - qualifier fields가 있는 variant에서는 profile question이 instruction overlay 안의 qualifier step으로 수집되며 runtime question panel에 표시되지 않는다. user-facing `Q1/Q2`와 canonical index를 동일시하면 안 된다.
+
+**현재 구현 상태 / active entry policy 경계**:
+- 현재 live bootstrap은 Landing Ingress에서 first scoring question을 찾아 staged A/B 값을 그 canonical key에 seed한다.
+- qualifier 없는 variant에서는 active entry policy가 seeded first scoring question 다음 runtime-presentable scoring question으로 진입시킨다.
+- qualifier/profile-first variant(EGTT)는 bootstrap current index가 profile canonical index `1`로 남고, final qualifier Continue가 `COMMIT_ENTRY`를 만든 뒤 runtime controller가 profile index를 skip해 first runtime-presentable scoring question(canonical `2`)을 표시한다. 이 화면은 user-facing `Q1`이며 seeded answer와 progress를 유지한다.
+- 따라서 Landing Ingress 이후 시작 위치는 landing 문서가 직접 hard-code하지 않는다. 본 문서는 현재 live active entry policy를 기록하며, future change가 필요하면 이 policy와 telemetry 기대값을 함께 갱신해야 한다.
 
 ### 3.4 Runtime Entry Contract
 
@@ -332,7 +354,7 @@
 - commit success: 확정된 실행 문맥으로 question runtime 진입.
 - commit failure: §6.6 Commit-failure Error State로 처리.
 - old active run replace는 commit success에만 결합된다. commit failure 시 old active run replacement가 발생하지 않는다.
-- staged entry 만료(7분 경과) 시 commit failure로 처리한다.
+- 목표 계약상 staged entry 만료(7분 경과) 시 commit failure로 처리한다. 현재 live runtime은 이 만료 판정을 아직 집행하지 않는다.
 
 **일반 계약**:
 - 모든 runtime 진입은 §3.3의 세 경로 중 정확히 하나로 분류되어야 한다.
@@ -346,6 +368,8 @@
 
 staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 
+> 현재 코드 확인 결과 live storage record는 `createdAtMs`를 포함하지만, test bootstrap은 7분 만료 판정을 적용하지 않는다. 아래 만료/commit-failure 규칙은 요구사항상 목표 / future pending contract이며, 구현 전까지 현재 UX는 unconsumed landing ingress가 존재하면 이를 우선 적용한다.
+
 **구성 요소**:
 - provisional `scoring1` pre-answer
 - ingress flag
@@ -354,13 +378,13 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 
 **생성 시점**: 랜딩 카드 A/B 선택 시.
 
-**만료**:
+**만료 (target/future contract)**:
 - A/B 선택 시점으로부터 7분 후 만료한다.
 - 재진입 / 새로고침 / back-forward 탐색으로 연장되지 않는다.
 - 만료 후 same-variant 진입은 Direct Cold(fresh entry)로 처리한다.
 - 만료 시 별도 경고 없이 자연스럽게 fresh entry로 전환한다.
 
-**복구 허용 조건**: same variant + same tab + eligible browser navigation + unconsumed + unexpired(7분 미경과) — 모두 충족해야 복구 대상.
+**복구 허용 조건 (target/future contract)**: same variant + same tab + eligible browser navigation + unconsumed + unexpired(7분 미경과) — 모두 충족해야 복구 대상.
 - runtime entry commit 전까지 landing flow 내부에서는 staged entry가 우선 상태다.
 - runtime entry commit 후에는 staged entry 우선 규칙이 종료되고 일반 active run 규칙이 적용된다.
 - landing 단계에서는 pre-answer를 durable하게 저장하지만 canonical question index에는 아직 bind하지 않는다.
@@ -372,29 +396,42 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - test start는 instruction 문맥에서 시작되어야 한다.
 - instruction 진입 후 start 이전에 이탈하는 경우, 이는 **pre-test abandonment context**로 취급한다.
 - instruction은 기존 `scoring1` pre-answer를 무효화하거나 덮어쓰면 안 된다.
+- instruction은 별도 route가 아니라 `/test/{variant}` 위 overlay다. overlay는 booting/sync 대기, runtime entry committed, redirecting 상태에서는 표시되지 않는다. qualifier re-entry mode에서는 runtime이 이미 active여도 표시된다.
+- entry overlay는 아래 중 하나라도 참이면 표시된다: 현재 qualifier step이 active, `instructionSeen`이 false, 현재 entry policy가 `instructionSeen` 이후 auto-commit 불가, 또는 qualifier fields가 존재함. 반대로 qualifier가 없는 variant에서 `instructionSeen=true`이고 현재 policy가 auto-commit 가능한 경우에는 overlay를 재표시하지 않고 내부 auto-commit으로 runtime에 진입한다.
+- qualifier fields가 있는 variant는 `instructionSeen=true`만으로 auto-commit하지 않는다. valid qualifier answer가 있는 Direct Resume 경로에서만 instruction/qualifier overlay를 생략할 수 있다.
 
 **Instruction contract 분기 조건 (SSOT: Landing Requirements §13.5)**:
 - instruction 본문은 variant별 고유 `instruction` 데이터가 소유한다. generic fallback을 금지한다.
-- consent note / divider / CTA set은 `ingress type + consent state + attribute` 조합으로 결정한다.
+- consent note / divider / base action set은 `ingress type + consent state + attribute` 조합으로 결정한다.
 - 이 섹션에서 `딥링크 유입`은 landing ingress flag가 없는 test route 진입을 뜻한다.
 - test route는 route-local consent banner, confirm dialog, blocked popup을 렌더하지 않는다.
-- landing ingress + `OPTED_IN` + `available|opt_out`, landing ingress + `OPTED_OUT` + `opt_out`: plain instruction + [Start]. qualifier fields가 있으면 [Start]는 qualifier step으로 진행하고 final qualifier Continue에서 runtime entry를 commit한다. landing에서 `scoring1`을 유지한 채 qualifier question은 instruction overlay 안에서 수집하고 runtime은 다음 scoring question부터 진행한다.
-- landing ingress + `UNKNOWN` + `available`: instruction + divider + "For a better experience, please agree to the terms to proceed with the test." + [Accept All and Start] / [Deny and Abandon], Accept/Deny 결과에 따라 위 landing ingress runtime start 규칙 적용 또는 랜딩 복귀를 수행한다.
-- landing ingress + `UNKNOWN` + `opt_out`: instruction + divider + "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing." + [Accept All and Start] / [Deny and Start], 두 CTA 모두 landing ingress runtime start 규칙(qualifier overlay 수집 후 다음 scoring question부터 runtime 진행)을 따른다.
-- 딥링크 유입 + `OPTED_IN` + `available|opt_out`, 딥링크 유입 + `OPTED_OUT` + `opt_out`: plain instruction + [Start]. qualifier fields가 있으면 [Start]는 qualifier step으로 진행하고 final qualifier Continue에서 runtime entry를 commit한다. qualifier question은 instruction overlay 안에서 수집하고 runtime은 `scoring1`부터 진행한다.
-- 딥링크 유입 + `UNKNOWN` + `available`: instruction + divider + "For a better experience, please agree to the terms to proceed with the test." + [Accept All and Start] / [Deny and Abandon], Accept는 direct runtime start 규칙(qualifier overlay 수집 후 `scoring1`부터 runtime 진행)을 적용하고, Deny는 랜딩 복귀를 수행한다.
-- 딥링크 유입 + `UNKNOWN` + `opt_out`: instruction + divider + "For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing." + [Accept All and Start] / [Deny and Start], 두 CTA 모두 direct runtime start 규칙(qualifier overlay 수집 후 `scoring1`부터 runtime 진행)을 따른다.
-- 딥링크 유입 + `OPTED_OUT` + `available`: instruction + divider + "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test." + [Accept All and Start] / [Keep Current Preference].
+- CTA action identity(예: `start`, `accept_all_and_start`, `deny_and_start`)는 consent matrix가 소유한다. 현재 live UI는 qualifier fields가 있는 variant의 instruction step에서 **primary action의 visible label만 localized `Next`로 override**한다. action, test id, consent write, redirect, `instructionSeen` 기록 여부는 base action identity를 그대로 따른다. qualifier가 없는 variant는 base action label을 그대로 표시한다.
+- qualifier fields가 있는 variant의 current live CTA policy:
+
+| entry path | consent state / attribute | instruction step visible CTA | effect before qualifier step |
+|---|---|---|---|
+| landing ingress or direct | `OPTED_IN` + `available|opt_out` | [Next]만 표시 (`start` action) | consent write 없음, `instructionSeen` 기록, qualifier step으로 이동 |
+| landing ingress or direct | `OPTED_OUT` + `opt_out` | [Next]만 표시 (`start` action) | consent write 없음, `instructionSeen` 기록, qualifier step으로 이동 |
+| landing ingress or direct | `UNKNOWN` + `available` | [Next] (`accept_all_and_start` action) + [Deny and Abandon] | primary는 `OPTED_IN` 저장 + `instructionSeen` 기록 + qualifier step 이동. secondary는 `OPTED_OUT` 저장 + 랜딩 복귀 + commit 0 + `instructionSeen` 기록 0 |
+| landing ingress or direct | `UNKNOWN` + `opt_out` | [Next] (`accept_all_and_start` action) + [Deny and Start] | primary는 `OPTED_IN` 저장 + `instructionSeen` 기록 + qualifier step 이동. secondary는 `OPTED_OUT` 저장 + `instructionSeen` 기록 + qualifier step 이동 |
+| direct only | `OPTED_OUT` + `available` | [Next] (`accept_all_and_start` action) + [Keep Current Preference] | primary는 `OPTED_IN` 저장 + `instructionSeen` 기록 + qualifier step 이동. secondary는 consent 유지 + 랜딩 복귀 + commit 0 + `instructionSeen` 기록 0 |
+
+- 위 표에서 [Next]는 현재 live label이다. 즉 qualifier variant의 primary button은 consent 미선택 상태에서도 visible text가 [Accept All and Start]가 아니라 [Next]일 수 있지만, action identity가 `accept_all_and_start`이면 consent 저장 효과는 그대로 실행된다. secondary consent action label은 override하지 않는다.
 - landing ingress + `OPTED_OUT` + `available`는 카탈로그 단계에서 비도달 상태로 유지한다. test route fallback branch를 두지 않는다.
+- qualifier fields가 없는 variant는 동일 consent matrix를 사용하되 primary visible label override가 없다. 예: `UNKNOWN + available`은 [Accept All and Start] / [Deny and Abandon], `UNKNOWN + opt_out`은 [Accept All and Start] / [Deny and Start], direct `OPTED_OUT + available`은 [Accept All and Start] / [Keep Current Preference]를 그대로 표시한다.
+- landing ingress와 direct/deep-link entry는 동일한 consent action matrix를 사용하지만 runtime 시작 위치는 §3.3의 active entry policy가 결정한다. 현재 live 구현에서 qualifier 없는 landing ingress는 seeded `scoring1` 다음 scoring question부터 시작하고, qualifier/profile-first landing ingress는 final qualifier Continue 후 profile index를 skip해 first runtime-presentable scoring question을 표시한다. direct/deep-link는 landing pre-answer 없이 qualifier를 수집한 뒤 first scoring question부터 시작한다.
+- active-run resume은 valid active run + valid qualifier prerequisite + `instructionSeen=true`일 때 base consent policy와 무관하게 instruction/qualifier overlay를 생략한다. valid active run이지만 `instructionSeen=false`이면 instruction step을 다시 보여준 뒤 resume continuation으로 commit하며, 이 경우 새 `attempt_start`를 발화하지 않는다.
+- `instructionSeen=true`라도 qualifier answer가 missing/invalid이면 auto-commit하거나 qualifier step만 단독 복구하지 않는다. 현재 live bootstrap은 active run/response set/`instructionSeen`을 cleanup하고 Direct Cold fresh start로 되돌려 instruction step부터 다시 보여준다. 이후 CTA policy는 현재 consent state와 entry path에 따라 위 표를 다시 적용한다.
+- qualifier re-entry는 entry consent matrix를 사용하지 않는다. runtime 내부 chip activation으로 qualifier step을 re-entry mode로 열며, [Cancel] / [Change and restart]만 사용한다.
 - route-level invalid-variant recovery owner와 consent instruction owner를 혼합하지 않는다.
-- EGTT 같은 qualifier question은 instruction overlay 안에서 수집된다. EGTT runtime question flow는 첫 scoring question(canonical index 2)부터 시작하며, profile-type question은 runtime question panel에 표시되지 않는다. 이 경우에도 landing이 미리 답한 문항은 항상 `scoring1`이다.
+- EGTT 같은 qualifier question은 instruction overlay 안에서 수집된다. profile-type question은 runtime question panel에 표시되지 않는다. 현재 live EGTT runtime은 active entry policy에 따라 first runtime-presentable scoring question(canonical index 2)을 표시하며, landing ingress에서도 landing이 미리 답한 `scoring1` seed와 progress를 유지한다.
 
 **Qualifier overlay step 계약**:
 - Instruction step은 모든 variant에 표시된다. qualifier fields가 있는 variant의 primary CTA는 runtime entry를 즉시 commit하지 않고 첫 qualifier step으로 진행한다.
 - Qualifier step은 `QualifierFieldSpec` 1개당 1단계로 표시한다. 각 단계는 question text와 token value별 선택 버튼을 제공한다.
 - Back은 이전 qualifier step 또는 instruction step으로 돌아간다.
 - Continue는 현재 단계 선택 전까지 disabled 상태다.
-- final qualifier step의 Continue label은 instruction step의 Start label과 일치한다.
+- entry mode의 final qualifier step은 localized Start label을 표시한다. re-entry mode의 final qualifier step은 qualifier 변경과 scoring answer reset을 알리는 restart confirm label을 표시한다.
 - commit은 final qualifier step의 Continue action에서만 발생한다. qualifier가 없는 variant는 instruction step CTA에서 commit한다.
 - qualifier fields가 있는 variant는 `instructionSeen`이 `true`여도 auto-commit하지 않는다.
 
@@ -406,9 +443,10 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - re-entry는 같은 `/test/{variant}` 런타임 안에서 처리하며 별도 route 이동이나 instruction 재표시로 해석하지 않는다.
 
 **instructionSeen 생명주기**:
-- **기록 시점**: Start 계열 CTA 실행 직후 `instructionSeen:{variantId} = true`로 기록한다. qualifier question(예: EGTT 성별 질문)은 instruction overlay 안에서 수집되는 것이 의도된 설계이므로, `instructionSeen`만으로 qualifier variant를 auto-commit하면 안 된다.
-- **재표시 조건**: `instructionSeen:{variantId}`가 `true`인 경우 qualifier fields가 없는 variant는 instruction을 표시하지 않는다. qualifier fields가 있는 variant는 valid qualifier answer가 저장된 resume 경로에서만 instruction/qualifier overlay를 생략할 수 있으며, 그렇지 않으면 overlay를 다시 표시한다. Direct Resume 경로는 이 규칙의 결과적 적용이다.
-- **리셋 조건**: §6.8이 단일 SSOT다. 세 가지 휘발 트리거 (result screen entry commit 완료 / inactivity timeout 판정 / 처음부터 다시 하기 commit success) 모두 `instructionSeen`을 포함 삭제한다. 삭제 후 다음 진입 시 instruction overlay (qualifier question 수집 포함)가 재표시된다. 삭제 범위 세부사항은 §6.8 참조.
+- **저장 범위**: `instructionSeen`은 variant-scoped `sessionStorage` 상태다. 현재 live key는 legacy `vivetest-test-instruction-seen:{variant}`이며, `test:{variant}:instructionSeen` 전환은 별도 migration 범위다.
+- **기록 시점**: entry policy action의 effect가 `recordsInstructionSeen=true`인 CTA 실행 직후 `instructionSeen:{variantId} = true`로 기록한다. qualifier variant에서는 visible label이 [Next]여도 action identity가 `start`, `accept_all_and_start`, `deny_and_start`이면 이 기록 효과를 가진다. `deny_and_abandon` / `keep_current_preference`는 기록하지 않는다.
+- **재표시 조건**: `instructionSeen:{variantId}`가 `true`인 경우에도 qualifier fields가 있는 fresh entry는 qualifier prerequisite 때문에 instruction overlay를 다시 표시한다. valid active-run resume + valid qualifier answer + `instructionSeen=true`인 경우에만 instruction/qualifier overlay를 생략한다. qualifier answer missing/invalid recovery에서는 `instructionSeen`을 삭제하고 instruction step부터 fresh start한다. qualifier fields가 없는 fresh entry는 `instructionSeen=true`이고 auto-commit 가능한 plain policy일 때 overlay 없이 runtime에 진입한다.
+- **리셋 조건**: §6.8이 단일 SSOT다. inactivity timeout 판정 / 처음부터 다시 하기 commit success는 live trigger이며, result screen entry commit 완료는 result pipeline target trigger다. 각 trigger가 실제 발생하면 `instructionSeen`을 포함 삭제한다. 삭제 후 다음 진입 시 instruction overlay (qualifier question 수집 포함)가 재표시된다. 삭제 범위 세부사항은 §6.8 참조.
 
 ### 3.7 Session / Run Lifecycle Contract
 
@@ -421,9 +459,15 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 **Active Run 판정 조건**: 해당 variant 진행 상태 존재 + 마지막 답변으로부터 30분 미경과 + run 미완료 + qualifier fields가 있는 variant의 저장 qualifier answer가 유효할 때 → active run 유효. 30분 초과 시 → timeout 처리, §6.8 휘발 즉시 적용 후 Cold Start. qualifier answer가 누락되었거나 허용 token이 아니면 해당 run data와 `instructionSeen`을 휘발하고 qualifier overlay를 포함한 fresh start로 전환한다.
 > **판정 절차의 구현 세부사항 (조회 방법, timestamp 비교 로직 등)은 별도 구현/설계 문서에서 정의한다.**
 
+**Replay / Strict Mode 불변식**:
+- React Strict Mode 또는 bootstrap cache replay는 사용자에게 별도 UX로 노출되지 않는다.
+- 요구사항 수준의 불변식은 bootstrap side effect의 idempotency다. 동일 entry가 replay되어도 `attempt_start`, active-run metadata write, response set initialization이 중복 발생하면 안 된다.
+- qualifier resume cache replay는 raw qualifier token(예: `M`, `F`)을 reducer/runtime state에 보존해야 한다. prerequisite 판정을 위해 내부적으로 semantic `A`로 정규화하더라도, chip label resolution과 `final_submit` filtering이 의존하는 stored token을 덮어쓰면 안 된다.
+
 **Verification**:
 1. Automated: 30분 경과 fixture에서 재진입 시 timeout 처리 + Cold Start를 검증한다.
 2. Automated: 29분 59초 경과 fixture에서 active run 유효 판정을 검증한다.
+3. Automated: Strict Mode 또는 cached bootstrap replay에서 entry side effect 중복 `0건`과 raw qualifier token 보존을 검증한다.
 
 ### 3.8 Question Model Contract
 
@@ -448,7 +492,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - 이 projection layer 없이 `computeScoreStats()` 또는 `buildTypeSegment()`에 raw runtime response set을 전달하는 것을 금지한다.
 - 표시용 텍스트(선택지 본문)는 별도 i18n/콘텐츠 레이어에서 question index 기준으로 조회한다. Question 도메인 타입에 포함하지 않는다.
 - `questions[]` 배열은 실행 순서의 유일한 소스다. scoring question과 profile question을 별도 배열로 분리하지 않는다.
-- canonical index는 storage, qualifier mapping, `attempt_start`, `final_submit.final_responses`의 기준축이다. runtime question panel은 scoring question만 표시하지만 profile question의 canonical index는 저장/검증/qualifier mapping에 유지된다. `question_answered.question_index_1based`는 현재 visible scoring-order ordinal이며 canonical response key로 해석하지 않는다. user-facing `Q1/Q2`는 scoring question에만 적용되는 별도 label 체계다.
+- canonical index는 storage, qualifier mapping, `attempt_start`, `final_submit.question_index_1based`, `final_submit.final_responses`의 기준축이다. runtime question panel은 scoring question만 표시하지만 profile question의 canonical index는 저장/검증/qualifier mapping에 유지된다. `question_answered.question_index_1based`는 현재 visible scoring-order ordinal이며 canonical response key로 해석하지 않는다. user-facing `Q1/Q2`는 scoring question에만 적용되는 별도 label 체계다.
 
 **Progress 및 완료 게이팅**:
 - canonical `questions[]`는 scoring + profile 전체를 포함한다.
@@ -595,19 +639,19 @@ payload 구조 계약(§5.1)과 분리된 레이어로, §6.4와 §7.1은 이 �
 
 ### 4.1 Instruction → Start
 
-- start action이 발생하면 qualifier가 없는 variant는 question runtime으로 진입하고, qualifier fields가 있는 variant는 qualifier overlay step으로 진입한다. qualifier fields가 있는 variant의 runtime entry는 final qualifier Continue action에서 commit된다.
+- instruction CTA action이 발생하면 qualifier가 없는 variant는 question runtime으로 진입하고, qualifier fields가 있는 variant는 qualifier overlay step으로 진입한다. qualifier fields가 있는 variant에서는 primary visible label이 [Next]여도 base action effect(동의 저장, `instructionSeen` 기록, redirect 여부)를 먼저 실행한 뒤 qualifier step으로 이동한다. qualifier fields가 있는 variant의 runtime entry는 final qualifier Continue action에서 commit된다.
 - Ingress flag 존재 시:
   - landing은 항상 `scoring1`을 pre-answer한다.
   - instruction은 기존 `scoring1` 응답을 유지해야 한다.
   - qualifier fields가 있는 variant는 instruction overlay와 runtime question panel 사이의 dedicated qualifier step에서 qualifier를 수집한다.
-  - runtime panel은 scoring-type question만 렌더한다. EGTT runtime question flow는 첫 scoring question(canonical index 2)부터 시작한다.
+  - runtime panel은 scoring-type question만 렌더한다. EGTT runtime question flow는 active entry policy에 따라 first runtime-presentable scoring question(canonical index 2)을 표시한다. Landing Ingress에서도 현재 live 구현은 이 화면으로 진입하며, seeded answer가 이미 선택/진행률에 반영된 상태다.
   - main progress는 기존 설명과 동일하게 scoring questions만 count한다.
 - **`scoring1` pre-answer consume 계약**:
   - `scoring1` pre-answer는 **validated landing-origin context**가 확인된 경우에만 응답 집합에 적용한다.
   - validated landing-origin context가 없는 경우: pre-answer를 응답 집합에 적용하지 않는다. storage에 pre-answer가 잔류하더라도 무시하고, qualifier fields가 있으면 instruction overlay에서 qualifier를 수집한 뒤 `scoring1`부터 정상 진행한다.
   - read와 consume을 분리한다. read 시 즉시 삭제를 금지한다.
-  - consume 시점: qualifier가 없는 variant는 instruction Start 버튼 클릭 직후, qualifier fields가 있는 variant는 final qualifier Continue action 직후 수행.
-  - instruction 생략 경로(variant 재진입)에서는 내부 `test_start` 시점에 consume한다. qualifier fields가 있는 variant는 valid qualifier answer가 있는 resume 경로에서만 이 생략 경로를 사용할 수 있다.
+  - consume 시점: qualifier가 없는 variant는 instruction Start 계열 action이 `COMMIT_ENTRY`를 만든 뒤 active entry effect에서 수행한다. qualifier fields가 있는 variant는 final qualifier Continue action이 `COMMIT_ENTRY`를 만든 뒤 active entry effect에서 수행한다.
+  - instruction 생략 경로(variant 재진입)에서는 내부 auto-commit이 active entry effect로 이어지는 시점에 consume한다. qualifier fields가 있는 variant는 valid qualifier answer가 있는 resume 경로에서만 이 생략 경로를 사용할 수 있다.
 
 ### 4.2 Landing Ingress + Restart Intent
 
@@ -617,12 +661,12 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 - old active run은 commit success 전까지 보존한다.
 - commit success 시 새 run은 old active run의 response set을 상속하지 않는다.
 - 새 run의 초기 response set은 빈 상태에서 시작하며, first scoring canonical index에 bind된 pre-answer **1개만 seed** 한다.
-- staged entry가 만료(7분)되었거나 commit이 실패하면 §6.6 Commit-failure Error State로 처리하며, old active run이 있다면 그대로 유지된다.
+- 목표 계약상 staged entry가 만료(7분)되었거나 commit이 실패하면 §6.6 Commit-failure Error State로 처리하며, old active run이 있다면 그대로 유지된다. 현재 live runtime은 7분 만료 판정을 아직 집행하지 않는다.
 
 **Verification**:
 1. Automated: same-variant landing 재선택 시 restart intent 의미가 적용되고 old active run이 commit success 전까지 유지되는지 검증한다.
 2. Automated: commit success 시 fresh response set이 생성되고 first scoring answer 하나만 seed되는지 검증한다.
-3. Automated: staged entry 만료 후 commit failure 처리 시 old active run replacement가 발생하지 않는지 검증한다.
+3. Future Automated: 7분 expiry enforcement 구현 시, staged entry 만료 후 commit failure 처리와 old active run replacement 미발생을 검증한다.
 
 ### 4.3 Question Runtime
 
@@ -642,7 +686,15 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 
 마지막 문항은 일반 문항과 다른 terminal-adjacent 규칙을 가진다.
 
+**현재 placeholder runtime**:
+- live runtime은 마지막 scoring question에서 locale `submit` CTA를 표시한다.
+- 이 CTA는 `all-required-answered = true`일 때만 활성화되며, 클릭 시 `final_submit` telemetry를 발화하고 placeholder result panel로 전환한다.
+- 별도의 result derivation loading 단계와 self-contained result URL commit은 아직 live runtime에 연결되어 있지 않다.
+- placeholder result surface는 현 단계에서 유지되는 허용 surface이며, 실제 result pipeline 전환은 현재 문서 현행화 범위의 다음 필수 구현 항목이 아니다.
+
 **"결과 보기" CTA 제공 조건**:
+> 아래 규칙은 실제 result pipeline 연결 시 적용할 target contract다.
+
 - 마지막 문항에서 두 선택지 중 하나의 응답이 유효하게 선택된 상태면 "결과 보기" 액션을 제공한다.
 - 이 규칙은 아래 경우 모두에 동일하게 적용된다:
   - 정상 순차 진행으로 마지막 문항에 도달
@@ -662,6 +714,7 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 
 ### 4.5 Completion → Result-entry Eligibility
 
+- 현재 placeholder bridge에서는 마지막 scoring question에서 Submit action이 completion과 placeholder result panel 전환을 동시에 담당한다. 아래 result-entry eligibility 계약은 실제 result derivation/loading pipeline이 연결될 때 적용할 target contract다.
 - 마지막 required question까지 응답이 완료되면 run은 result-entry eligibility를 획득한다 (§3.10).
 - result-entry eligible 상태에서 시스템은 마지막 문항 화면에 "결과 보기" 액션을 제공한다.
 - 마지막 문항 응답과 결과 도출 단계 진입은 같은 이벤트가 아니다. 사용자가 "결과 보기"를 클릭할 때만 결과 도출 단계로 진입한다.
@@ -669,6 +722,8 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 - completion 판정은 scoring 문항과 qualifier overlay prerequisite 모두 완료된 상태를 기준으로 한다. 단, main progress 자체는 scoring-only다.
 
 ### 4.6 Result Derivation Loading
+
+> 현재 live runtime에는 result derivation loading 단계가 없다. 이 섹션은 Phase 9/Result pipeline 통합 시 적용할 target contract다.
 
 **진입**: "결과 보기" 액션 활성화 시 result derivation loading 단계에 진입한다.
 
@@ -889,7 +944,7 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 
 ### 6.6 Commit-failure Error State
 
-**정의**: runtime entry commit 자체가 확정되지 못한 실패 상태. staged entry 만료(7분), 목적지 라우트 진입 실패 등이 원인이 될 수 있다.
+**정의**: runtime entry commit 자체가 확정되지 못한 실패 상태. 목표 계약상 staged entry 만료(7분), 목적지 라우트 진입 실패 등이 원인이 될 수 있다. 현재 live runtime은 staged entry 7분 만료를 아직 commit-failure 원인으로 집행하지 않는다.
 
 **유지 / 폐기**:
 
@@ -935,15 +990,15 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 
 ### 6.8 응답 데이터 휘발 계약
 
-아래 조건 중 하나라도 발생하면 진행 중 응답 데이터를 즉시 완전 삭제해야 한다.
+아래 조건 중 하나라도 발생하면 진행 중 응답 데이터를 즉시 완전 삭제해야 한다. 단, Result screen entry commit은 현재 placeholder submit에서 발생하지 않는 result pipeline target trigger다.
 
 | 휘발 트리거 | 삭제 범위 |
 |---|---|
-| Result screen entry commit 완료 | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
+| Result screen entry commit 완료 | result pipeline target contract: run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제). 현재 placeholder submit은 이 trigger를 실행하지 않는다 |
 | Inactivity timeout (30분, 재진입 시 판정) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
 | 처음부터 다시 하기 (commit success 시) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
 
-> **instructionSeen 삭제 정책 (§6.8이 단일 SSOT)**: 세 트리거 모두 `instructionSeen`을 포함 삭제한다. instructionSeen이 삭제되면 다음 진입 시 instruction overlay(qualifier question 수집 포함)가 재표시된다.
+> **instructionSeen 삭제 정책 (§6.8이 단일 SSOT)**: 위 트리거가 실제 발생하면 모두 `instructionSeen`을 포함 삭제한다. 단, result screen entry commit trigger는 result pipeline target이며 현재 placeholder submit의 완료 처리로 간주하지 않는다. instructionSeen이 삭제되면 다음 진입 시 instruction overlay(qualifier question 수집 포함)가 재표시된다.
 > §3.6의 리셋 조건은 이 섹션을 참조한다.
 
 > **variant 범위 격리**: `instructionSeen` 삭제는 trigger가 발생한 해당 variant에 한정된다. "해당 variant에 대해 사용자가 instruction을 본 사실"만 삭제하며, 다른 variant의 `instructionSeen`에 영향을 주지 않는다.
@@ -975,7 +1030,9 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 ### 7.1 콘텐츠 섹션 구성
 
 §3.12 Result Rendering Contract에서 위임받는 세부 구현 기준이다.  
-이번 단계에서 아래 섹션을 dummy data로 구성한다. 섹션 구조는 schema-driven으로 설계한다.
+현재 live runtime의 result surface는 placeholder panel이다. placeholder panel은 profile/qualifier 문항을 제외한 scoring response row, 랜딩 복귀 CTA, history CTA만 렌더하며 `derived_type`, `axis_chart`, `type_desc`, self-contained result URL을 생성하지 않는다.
+
+아래 섹션 구성은 Phase 9/Result pipeline 통합 시 적용할 target contract다. dummy data 또는 real result content를 쓰더라도 섹션 구조는 schema-driven으로 설계한다.
 
 **Mandatory 섹션** (variant 선언 여부와 무관하게 항상 표시):
 1. `derived_type` — `type` segment 전체를 키로 content mapping에서 조회한 표시 라벨 강조 표시. qualifier가 없는 variant(MBTI 등)에서는 derivedType 토큰과 동일. qualifier가 있는 variant(EGTT 등)에서는 `type` segment 전체(e.g. `"EM"`)를 content mapping 키로 사용해 조회한 라벨(e.g. `"에겐남"`)을 표시한다.
@@ -996,6 +1053,8 @@ instruction / runtime / result 각 구간은 다음 원칙을 따른다:
 
 ### 8.1 Runtime Terminal Exclusivity
 
+> 현재 placeholder result surface는 `DERIVATION_LOADING → COMPLETED → RESULT` 파이프라인을 아직 실행하지 않는다. 이 섹션은 result pipeline 통합 시 적용할 target contract다.
+
 하나의 run/session execution 문맥은 정확히 하나의 종료 상태로 귀결되어야 한다.
 
 ```
@@ -1014,6 +1073,8 @@ ENTRY → INSTRUCTION(optional) → IN_PROGRESS → RESULT_ELIGIBLE → DERIVATI
 > commit-failure와 derivation-failure는 run의 terminal 상태가 아니다. 진행 중 error state이며, run은 여전히 eligible 또는 in-progress 상태에 있다.
 
 ### 8.2 State Hygiene / Storage Contract
+
+> 현재 live runtime에는 result derivation loading 단계가 없다. 아래 플래그 구분은 result pipeline target contract다.
 
 result derivation 전환 구간에서 아래 상태를 구분해서 관리해야 한다. 단일 플래그로 뭉개면 안 된다.
 
@@ -1038,7 +1099,7 @@ result derivation 전환 구간에서 아래 상태를 구분해서 관리해야
 |---|---|
 | 처음부터 다시 하기 (commit success) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
 | Timeout 판정 (재진입 시) | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
-| Result screen entry commit 완료 | run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제) |
+| Result screen entry commit 완료 | result pipeline target contract: run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제). 현재 placeholder submit은 이 commit을 수행하지 않는다 |
 | Commit-failure 발생 | new staged entry + restart intent + pending new-run context 폐기. old active run 유지 |
 | Derivation-failure 발생 | §6.7 폐기 항목 목록 전체. 응답 집합 + eligibility 유지 |
 | 마지막 문항 응답 변경 | §6.7 폐기 항목 목록과 동일 범위의 derivation residue 무효화. 응답 집합 + eligibility 유지 가능 |
@@ -1067,13 +1128,15 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 
 현재 구현과 target contract를 함께 관리하는 hook 위치:
 1. 랜딩 카드 A/B 선택 시점 (`card_answered` 대응, ingress 경로 전용) + 블로그 카드 Read more CTA. ※ `card_answered`는 landing phase 이벤트이며 test flow에서 재발화하지 않는다.
-2. instruction/qualifier overlay 완료 후 test runtime 진입 시점 (`attempt_start` 대응). **첫 scoring runtime question이 실제로 렌더되는 시점**에 발화. ingress: landing pre-answered `scoring1` 이후 다음 scoring question의 canonical index. direct: `scoring1`의 canonical index. EGTT처럼 `q.1` qualifier가 있는 경우에도 `q.1`은 runtime panel에 렌더되지 않으므로 `attempt_start.question_index_1based`는 첫 scoring question의 canonical index다.
+2. instruction/qualifier overlay 완료 후 test runtime 진입 시점 (`attempt_start` 대응). **첫 scoring runtime question이 실제로 렌더되는 시점**에 발화한다. 현재 live hook은 `runState.currentQuestionIndex`에서 profile row를 skip한 canonical index를 사용한다. qualifier 없는 landing ingress는 seeded `scoring1` 다음 scoring question의 canonical index를 보낸다. qualifier/profile-first landing ingress와 Direct Cold는 첫 scoring question의 canonical index를 보낸다. EGTT처럼 `q.1` qualifier가 있는 경우에도 `q.1`은 runtime panel에 렌더되지 않으므로 `attempt_start.question_index_1based`는 canonical `2`다. Direct Resume은 기존 active run 연속으로 처리하므로 새 `attempt_start`를 발화하지 않는다.
 3. question 답변 시점 (`question_answered` 대응). scoring runtime question에서 발화한다. 현재 live hook은 non-last scoring answer call site에서 발화하며, `question_index_1based`는 visible scoring-order ordinal이다. 마지막 scoring question은 `final_submit`이 completion event를 담당한다. qualifier overlay 선택은 canonical index에 저장되지만 runtime question panel 답변 이벤트로 재발화하지 않는다. landing pre-answered `scoring1`은 재발화 불필요.
 4. test 완료 확정 시점 (`final_submit` 대응). 현재 placeholder runtime은 Submit action에서 발화하며, Phase 7/10 result-entry pipeline에서는 result screen entry commit 계약과 다시 정합시켜야 한다.
 5. result 필수 콘텐츠(`derived_type` 블록) 뷰포트 진입 시점 (`result_viewed` 대응). 현재 placeholder result panel은 `TestResultPanel` mount 시 1회 발화하고 `derived_type`을 포함하지 않는다. 실제 result pipeline에서는 `derived_type` 블록 Intersection Observer 1회 발화 후 disconnect로 교체한다.
 6. user-visible error render 시점. 현재 live telemetry type union에는 아직 포함하지 않는다.
 
 > `questionIndex`/`question_index_1based`의 의미는 이벤트별로 다르다. `attempt_start`는 첫 scoring runtime question의 canonical index를 사용한다. `question_answered`는 현재 visible scoring-order ordinal(`currentScoringQuestionOrdinal`)을 사용하며 canonical response key가 아니다. `final_submit.final_responses`는 이벤트 수준 completion index와 별개로 scoring canonical question index string key를 유지한다.
+
+> **비전환 원칙**: 이번 문서는 `question_answered.question_index_1based`를 canonical index로 전환하지 않는다. live implementation의 visible scoring-order ordinal을 현재 계약으로 기록하며, canonical response key와 혼용 금지를 release-blocking 검증 대상으로 둔다.
 
 ### 9.2 Telemetry 구현 상태 및 남은 의무
 
@@ -1082,12 +1145,13 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 1. 최소 이벤트셋 계약:
    Landing phase 이벤트(`landing_view`, `card_answered`)는 이번 단계 재구현 불필요. 연계 정합성은 blocker #28에서 검증한다.
 
-   - `attempt_start`: instruction 이후 첫 runtime question render 시점 발화.
+   - `attempt_start`: instruction/qualifier overlay 완료 후 첫 scoring runtime question render 시점 발화.
      필수 추가 필드: `landing_ingress_flag`, `question_index_1based`(canonical index 기준).
-     경로별 시작 문항 판정: §9.1 hook 2, §3.3 진입 경로 분류 표 참조.
+     경로별 시작 문항 판정: §9.1 hook 2, §3.3 진입 경로 분류 표 참조. Direct Resume에서는 새 시도 시작 이벤트로 재발화하지 않는다.
    - `question_answered`: 현재 구현 완료된 live hook이다. 필수 필드: `question_index_1based`(visible scoring-order 1-based ordinal), `choice`, `dwell_ms`, `landing_ingress_flag`. non-last scoring runtime answer에서 발화한다. landing pre-answered `scoring1`은 landing `card_answered`로만 기록되며 runtime에서 재발화하지 않는다. UI의 scoring-based `Q1/Q2` 라벨 텍스트는 telemetry payload에 포함하지 않지만, 현재 numeric index는 같은 scoring order를 사용한다.
    - `final_submit`: 현재 placeholder runtime에서는 Submit action에서 발화한다. Phase 7/10에서 result screen entry commit이 별도 상태로 구현되면 해당 commit 시점으로 재정렬해야 한다.
      `final_submit.question_index_1based`는 최종 answered canonical index다.
+     `final_submit.final_responses`는 scoring canonical question index string key와 semantic `A`/`B` value만 포함한다. qualifier/profile canonical index에 저장된 raw token은 response set에는 보존되지만 `final_submit` payload에서는 제외한다.
    - `result_viewed`: 현재 `TestResultPanel` mount 기반 임시 hook으로 구현되어 있으며 `derived_type`은 optional이다. Phase 9 result page 구현 시 `derived_type` 블록 뷰포트 진입 시점, Intersection Observer 1회 발화 후 disconnect로 교체한다.
    - user-visible error render telemetry는 아직 live union에 없으며, error UX 구현 단계에서 별도 이벤트 계약을 확정한다.
 
@@ -1203,10 +1267,10 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 
 1. **Variant Validation / Error Recovery**: invalid variant가 crash를 유발하지 않는다. 에러 복구 페이지로 이동하며 session이 생성되지 않는다. 복구 카드가 카탈로그 순서 + 완료 이력 필터 기준으로 최대 2개 표시된다.
 2. **진입 경로 분기**: Landing Ingress / Direct Cold / Direct Resume 각 경로 분기 정확성. completed run 재진입이 Direct Cold로 분류됨.
-3. **Instruction Gate**: start는 instruction 문맥에서만 발생한다. instruction 이탈은 pre-test abandonment로 구분된다. instruction step은 모든 variant에 표시되며, variant에 qualifier fields가 있으면 primary CTA가 qualifier step으로 진행하고 qualifier가 없으면 직접 runtime entry를 commit한다. qualifier step은 `QualifierFieldSpec` 1개당 1단계로 표시되며, 각 단계는 question text와 token value별 선택 버튼을 제공한다. Back은 이전 qualifier step 또는 instruction step으로 돌아간다. Continue는 현재 단계 선택 전까지 disabled 상태이며, final qualifier step의 Continue label은 instruction step의 Start label과 일치한다. commit은 final qualifier step의 Continue action에서만 발생한다(qualifier가 없는 variant는 instruction step CTA에서 발생). qualifier fields가 있는 variant는 `instructionSeen`이 `true`여도 auto-commit하지 않는다. qualifier question(예: EGTT 성별 질문)은 instruction overlay 안에서 수집되므로, valid qualifier answer가 있는 resume 경로에서는 qualifier 수집 단계도 생략된다. 세 가지 휘발 트리거(result screen entry commit 완료 / inactivity timeout / 처음부터 다시 하기 commit success) 모두에서 `instructionSeen`이 포함 삭제된다. variant switch 및 blocking data error cleanup 시 해당 variant의 `instructionSeen`은 유지된다. 세부: §6.8 (단일 SSOT) 참조.
-4. **Instruction / Ingress Continuity**: `scoring1` pre-answer가 있는 진입에서 instruction이 기존 응답을 무효화하지 않는다. consume 시점이 Start 클릭 직후(또는 test_start)임을 검증한다.
+3. **Instruction Gate**: start는 instruction 문맥에서만 발생한다. instruction 이탈은 pre-test abandonment로 구분된다. instruction step은 모든 variant에 표시되며, variant에 qualifier fields가 있으면 primary action의 visible label은 현재 [Next]로 override된다. 이때 action identity는 consent matrix를 그대로 따르므로 `UNKNOWN + available|opt_out` 및 direct `OPTED_OUT + available`의 primary는 visible [Next]여도 `accept_all_and_start` 효과를 실행하고, secondary consent CTA는 [Deny and Abandon] / [Deny and Start] / [Keep Current Preference] label을 유지한다. qualifier step은 `QualifierFieldSpec` 1개당 1단계로 표시되며, 각 단계는 question text와 token value별 선택 버튼을 제공한다. Back은 이전 qualifier step 또는 instruction step으로 돌아간다. Continue는 현재 단계 선택 전까지 disabled 상태이며, entry mode의 final qualifier step은 Start label, re-entry mode의 final qualifier step은 restart confirm label을 표시한다. commit은 final qualifier Continue action에서만 발생한다(qualifier가 없는 variant는 instruction step CTA에서 발생). qualifier fields가 있는 fresh entry는 `instructionSeen=true`만으로 auto-commit하지 않는다. valid active-run resume + valid qualifier answer + `instructionSeen=true`일 때만 instruction/qualifier overlay를 생략한다. missing/invalid qualifier recovery는 active run/response set/`instructionSeen` cleanup 후 instruction step부터 fresh start한다. inactivity timeout / 처음부터 다시 하기 commit success trigger와 future result screen entry commit trigger는 `instructionSeen`을 포함 삭제한다. variant switch 및 blocking data error cleanup 시 해당 variant의 `instructionSeen`은 유지된다. 세부: §6.8 (단일 SSOT) 참조.
+4. **Instruction / Ingress Continuity**: `scoring1` pre-answer가 있는 진입에서 instruction이 기존 응답을 무효화하지 않는다. consume 시점이 qualifier 없는 variant와 qualifier variant 모두 `COMMIT_ENTRY` 이후 active entry effect 경계이며, instruction 생략 경로도 내부 auto-commit 이후 active entry effect 경계임을 검증한다.
 5. **Active Run 판정**: 30분 경계값 전후 판정 정확성. timeout 시 휘발.
-6. **응답 데이터 휘발**: result screen entry commit 후, timeout 후, 처음부터 다시 하기 commit success 후 — 잔류 데이터 `0건`. derivation-failure 상태에서 응답 데이터 미삭제.
+6. **응답 데이터 휘발**: timeout 후, 처음부터 다시 하기 commit success 후 — 잔류 데이터 `0건`. result screen entry commit 후 휘발은 result pipeline target check이며 현재 placeholder submit에서는 발생하지 않는다. derivation-failure 상태에서 응답 데이터 미삭제.
 7. **Question Model Integrity**: canonical 모든 question이 `questionType` 필드를 가진다. scoring question은 필수 `poleA`/`poleB` + bidirectional 기준 정확히 1개 scoring axis 매핑. profile question은 axis 귀속 없음이며 `poleA`/`poleB`는 optional로 허용한다. 전체 canonical question index 중복 없음.
 8. **Progress / Completion Gating**: main progress가 scoring answered/total 기준이며 profile 문항을 포함하지 않는다. qualifier overlay prerequisite 미완료 또는 미응답 canonical 문항 존재 시 completion 차단.
 9. **Answer Revision / Tail Reset**: 이전 문항 재방문 시 기존 답변 표시. 이전 문항(non-final) 응답 변경 즉시 tail reset + eligibility false. 마지막 문항 응답 변경 시 derivation residue 무효화만 발생, eligibility 조건 충족 시 유지.
@@ -1219,13 +1283,13 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 16. **콘텐츠 누락 fallback**: hard crash `0건`. fallback 표시. blocking/non-blocking 분류 정확성.
 17. **Cleanup Set 원자성**: cleanup 후 잔류 데이터 `0건`. 다른 variant 데이터 영향 `0건`.
 18. **Telemetry Contract**: §9.1에 명시된 이벤트 훅과 계약 누락 `0건`. `attempt_start.question_index_1based`는 첫 scoring runtime question의 canonical index이고, `question_answered.question_index_1based`는 visible scoring-order ordinal이며 canonical response key와 혼용되지 않음을 검증한다. `final_submit.final_responses`는 scoring canonical question index string key와 semantic `A`/`B` value만 포함하며 qualifier token은 제외한다.
-19. **Staged Entry**: A/B 선택 시점으로부터 7분 만료. 재진입/새로고침으로 연장되지 않음. 만료 후 Direct Cold 처리. commit 경계 전후 우선 규칙 분기 정확성.
+19. **Staged Entry**: 현재 live check는 staged entry가 `createdAtMs`를 저장하고 unconsumed landing ingress를 우선 적용하는지 검증한다. 7분 만료 enforcement, 만료 후 Direct Cold 처리, commit-failure 분기는 future/pending contract이며 해당 구현 단계에서 release-blocking check로 격상한다.
 <!-- assertion:B20-result-entry-eligibility -->
 20. **Result-entry Eligibility**: all-required-answered + 마지막 문항 유효 응답 조건 즉시 반영. tail reset 발생 즉시 false. 마지막 문항 변경 후 조건 충족 시 유지.
 <!-- assertion:B21-final-question-screen -->
-21. **Final Question Screen**: result-entry eligible 상태에서 "결과 보기" CTA 제공. back-from-loading / derivation-failure 복귀 후에도 마지막 문항 응답 보존 및 "결과 보기" 재제공.
+21. **Final Question Screen**: 현재 live runtime은 마지막 scoring question에서 locale `submit` CTA를 제공하고 placeholder result panel로 전환한다. "결과 보기" CTA, back-from-loading, derivation-failure 복귀 후 마지막 문항 응답 보존 및 "결과 보기" 재제공은 result pipeline target contract다.
 <!-- assertion:B22-result-derivation-loading -->
-22. **Result Derivation Loading**: 5초(설정값) 최소 로딩. result screen entry commit = `derivation_computed = true` AND `min_loading_duration_elapsed = true` 두 조건 동시 충족. persistence timing: commit 이후에만 확정 저장. state hygiene: 5개 상태 플래그 미혼용.
+22. **Result Derivation Loading**: 현재 live runtime에는 loading 단계가 없다. 5초(설정값) 최소 로딩, result screen entry commit = `derivation_computed = true` AND `min_loading_duration_elapsed = true`, commit 이후 persistence timing, state hygiene는 result pipeline target contract다.
 <!-- assertion:B23-back-from-loading -->
 23. **Back-from-Loading**: 항상 마지막 문항 복귀 (last-viewed 기준 아님). 마지막 문항 응답 보존. derivation residue + loading residue 정리. `result_entry_committed` / `result_persisted` 미발생 확인.
 <!-- assertion:B24-commit-failure -->
