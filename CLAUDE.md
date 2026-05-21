@@ -13,7 +13,10 @@ At the start of every session:
 1. Read root `AGENTS.md`. Internalize critical boundaries (§4), build commands (§5), and the Task Routing Table (§2).
 2. If `.planning/STATE.md` exists, read it and restore task state before proceeding.
 3. Using the Task Routing Table (§2), identify which contract documents and sub-guides apply to the current task. Load only those — do not read all documents upfront.
-4. When scope narrows to a subdirectory, read the nearest child `AGENTS.md` as a delta.
+4. For rebuild tasks, follow `AGENTS.md` routing to the applicable rebuild operation sources, especially `docs/rebuild-worktree-setup.md`, `docs/wave-roadmap.md`, and `docs/decision-register.md`. Do not load or restate them unless the task scope requires them.
+5. When scope narrows to a subdirectory, read the nearest child `AGENTS.md` as a delta.
+6. Using the Task Routing Table (§2), identify which contract documents and sub-guides apply to the current task. Load only those — do not read all documents upfront.
+7. When scope narrows to a subdirectory, read the nearest child `AGENTS.md` as a delta.
 
 Re-read `AGENTS.md` when: scope shifts to a new subsystem · High-Risk files enter the change set · session context may have drifted from current file state.
 
@@ -58,8 +61,39 @@ Minor ambiguity with an obvious safe default: state the assumption in one senten
 For all other tasks, state assumptions in one sentence and proceed in the smallest executable unit.
 
 **When planning:** The plan must include all fields from `AGENTS.md §7`. Save to `docs/plans/YYYY-MM-DD-feature.md`.
+For rebuild plans, include these fields before proposing execution:
+- Task mode: `Analysis Only`, `Plan Only`, or `Implementation`
+- Active wave or approved wave range
+- Files expected to be modified
+- Reference-only files/worktrees
+- Protected contracts that must remain unchanged
+- Validation gates to run after implementation
 **Do not begin implementation until the user explicitly approves the plan.**
 Execute one unit at a time. Verify before advancing. If new requirements emerge during execution, stop and re-confirm before continuing.
+
+---
+
+## Skill Routing
+
+Applies only to non-trivial tasks.
+
+| Situation | Handling |
+|:---|:---|
+| A non-trivial task requires a plan | First write a plan that includes all fields from `AGENTS.md §7` |
+| An Ask First or High-Risk file is included in the change targets | Define failing tests before implementation (enter TDD) |
+| A runtime error occurs, or 2 or more fix attempts have failed | Systematically diagnose the root cause before retrying |
+| The task includes a UI change and requires E2E regression testing | Run Playwright using the commands in `AGENTS.md §5` |
+| A change requested in a Rebuild task crosses the include/exclude boundary of the corresponding wave | Stop immediately before writing the plan — report the boundary violation and wait for instructions |
+
+### Lightweight Path — Small Task Exception
+
+Handle the task directly without a plan only when **all** of the following conditions are met:
+- Obvious change: typo, comment update, or copy adjustment
+- Simple `docs/` update with no structural or decision change
+- Scope, SSOT impact, and product decision are all clear
+
+**Do not use the Lightweight Path when the task involves an Ask First file, SSOT contract, High-Risk area, or product/UX decision** — no exceptions, even if the change appears small.  
+Lightweight tasks: state the assumption in one sentence, run the default gates from `AGENTS.md §5`, and use the commit message instead of a separate document.
 
 ---
 
@@ -143,6 +177,8 @@ At the end of every session, report results then output:
 - Consult **Gold Standards** (`AGENTS.md §6`) before referencing external code patterns; external patterns are acceptable only when they do not conflict
 - Do not perform without explicit prior approval: adding external packages · modifying build or deployment configuration · deleting files · accessing external networks · running destructive commands
 - Do not invoke automated multi-wave execution, parallel agents, or automated implementation pipelines. `.planning/STATE.md` never authorizes autonomous execution
+- Do not redesign, rename, reorganize, or reinterpret the confirmed rebuild branch/worktree/checkpoint/merge topology
+- Do not use legacy reference or checkpoint worktrees as implementation targets
 - Do not create a source code file exceeding **500 lines**. Exceptions: centralized TypeScript global type declarations; self-contained sequential pipeline logic with no reuse potential across the codebase. (Documentation files exempt.)
 - Do not create or extract a source code file under **30 lines** unless reused in multiple places and independently unit-testable; inline single-use code into the caller instead.
 
@@ -151,6 +187,16 @@ At the end of every session, report results then output:
 ## Claude Code Guardrails
 
 These address failure modes specific to Claude Code's autonomous editing behavior.
+
+### Rebuild-specific guardrails
+
+- **For rebuild tasks, treat worktree, branch, checkpoint, and merge topology as fixed project facts.** Do not infer, redesign, rename, or reorganize them.
+- **Before editing in rebuild scope, verify the applicable wave boundary from `AGENTS.md`-routed project sources.** If the requested change crosses wave include/exclude scope, stop and report the mismatch.
+- **Never use legacy reference or checkpoint worktrees as edit targets.** If Claude Code detects itself outside the confirmed active implementation workspace during an edit-intended task, stop before modifying files.
+- **Do not execute multiple waves autonomously.** Complete only the approved unit, verify it, and wait for the next instruction.
+- **Do not treat checkpoint branches as implementation branches.** Use them only for verification, comparison, or rollback anchoring unless the user explicitly approves a separate recovery/fix branch.
+
+### General autonomous-editing guardrails
 
 - **Never broaden scope opportunistically.** Note adjacent improvements as suggestions — do not apply them without approval.
 - **Do not rewrite stable modules** for stylistic or structural cleanup unless explicitly requested.

@@ -32,6 +32,16 @@
 `docs/requirements.md` — background context only; not a direct implementation SSOT.  
 `docs/archive/**` — historical reference only; not a current contract basis.
 
+### Rebuild Workflow Sources
+
+When a task involves rebuild scope, wave sequencing, local worktree roles, checkpoint usage, legacy reference comparison, or rollback anchoring, use these project sources as applicable:
+
+- `docs/rebuild-worktree-setup.md` — confirmed local worktree/branch roles, active implementation workspace, legacy-reference boundary, and checkpoint/rollback-anchor roles.
+- `docs/wave-roadmap.md` — approved rebuild wave sequence, prerequisites, include/exclude scope, risk level, handoff, and validation expectations.
+- `docs/decision-register.md` — confirmed rebuild decisions, conflict-resolution records, scope guards, and implementation caveats.
+
+Do not load these documents upfront for unrelated tasks. They are project-specific operating facts, not replacements for the active CI document’s planning, clarification, execution, or STATE.md rules.
+
 ---
 
 ## 3. Active Runtime Surface
@@ -52,6 +62,16 @@ Directory ownership details → `docs/agent-guides/project-rules.md §Ownership`
 ---
 
 ## 4. Critical Boundaries
+
+### Rebuild Worktree Boundaries
+
+For rebuild work, do not redesign, rename, or reinterpret the confirmed branch/worktree/checkpoint topology.
+
+- Active rebuild implementation defaults to the confirmed local `main` workspace unless the user explicitly directs otherwise.
+- `legacy/reference` is read-only reference only. It may be inspected for behavior, implementation comparison, file evidence, and contract preservation checks, but must not be modified or used as an implementation branch.
+- Checkpoint worktrees are verification, comparison, and rollback anchors. They are not regular implementation spaces.
+- Do not update checkpoint branches, start recovery from a checkpoint, merge, reset, revert, push, or otherwise manipulate branches unless the user explicitly approves that operation.
+- If a task appears to require changing the worktree/checkpoint topology, stop and report it as a blocking question.
 
 ### Never — Do Not Modify
 
@@ -180,6 +200,13 @@ Required fields before approval and before implementation begins:
 - [ ] Impact assessment: shared components (shell/GNB) · localization · a11y · state contracts · core user flow
 - [ ] Validation commands (per `docs/agent-guides/verification-commands.md`)
 - [ ] Decisions requiring user confirmation before execution
+
+**For Rebuild tasks, the following must also be included in addition to the items above:**
+- [ ] The corresponding wave number or approved wave range
+- [ ] Task mode: `Analysis Only` / `Plan Only` / `Implementation`
+- [ ] Reference-only files and worktree (explicitly specify targets that must not be modified)
+- [ ] Preservation contracts required by the corresponding wave Exclude list (items that must not be changed)
+- [ ] Validation gates applicable within the wave scope
 
 Any plan missing these fields must be revised before approval. Plan documents have no length limit — exhaustive detail is the goal, not a side effect.
 
