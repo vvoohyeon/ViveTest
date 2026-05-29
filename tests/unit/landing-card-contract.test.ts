@@ -67,7 +67,7 @@ function renderDesktopExpandedCardDocument({
 }
 
 describe('landing card slot contract', () => {
-  it('keeps Normal slot order as title -> thumbnail -> subtitle -> tags and preserves empty-tags container', () => {
+  it('keeps Normal slot order as thumbnail -> title -> subtitle -> tags and preserves empty-tags container', () => {
     const catalog = resolveLandingCatalog('en', {audience: 'qa'});
     const card = catalog.find((candidate) => candidate.variant === 'debug-sample');
 
@@ -80,7 +80,7 @@ describe('landing card slot contract', () => {
       (element) => element.getAttribute('data-slot')
     );
 
-    expect(orderedSlots).toEqual(['cardTitle', 'cardThumbnail', 'cardSubtitle', 'tags']);
+    expect(orderedSlots).toEqual(['cardThumbnail', 'cardTitle', 'cardSubtitle', 'tags']);
     expect(doc.querySelector('.landing-grid-card-tags-gap')).not.toBeNull();
 
     const tags = doc.querySelector('[data-slot="tags"]');

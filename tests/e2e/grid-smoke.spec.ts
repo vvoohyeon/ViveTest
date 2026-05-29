@@ -812,7 +812,7 @@ test.describe('Phase 4 grid smoke', () => {
         .filter((value): value is string => value !== null);
     });
 
-    expect(orderedSlots).toEqual(['cardTitle', 'cardThumbnail', 'cardSubtitle', 'tags']);
+    expect(orderedSlots).toEqual(['cardThumbnail', 'cardTitle', 'cardSubtitle', 'tags']);
     await expect(emptyTagsCard.locator('[data-slot="tags"] .landing-grid-card-tag-item')).toHaveCount(0);
 
     const minHeight = await emptyTagsCard
