@@ -258,7 +258,7 @@
 
 ### 6.5 Card Slot Order Contract
 **Rule**: 슬롯 순서와 존재 규칙은 고정한다.
-- Normal 순서: `cardTitle -> cardThumbnail -> cardSubtitle -> tags`
+- Normal 순서: `cardThumbnail -> cardTitle -> cardSubtitle -> tags`
 - Normal/front 상태에서는 Start, Read more, A/B answerChoice 같은 entry CTA를 렌더링하지 않는다. Normal 카드의 1차 트리거는 확장 또는 unavailable overlay 확인만 담당한다.
 - Expanded 공통 헤더: `cardTitle`만 유지
 - Expanded Test에서는 `subtitle/thumbnail/tags`를 제거한다(숨김 아님, 비노출).
@@ -320,7 +320,7 @@
 2) Spacing Model (`base_gap + comp_gap`) & Compensation Determinism
 - `subtitle -> tags` 구간은 `기본 간격(base_gap) + 보정 간격(comp_gap)` 이원 정책으로 고정한다.
 - `base_gap`은 Normal 상태의 `subtitle 하단`과 `tags container 상단` 시각 거리이며, Desktop/Tablet/Mobile 전 구간에서 비-0을 유지해야 한다.
-- `base_gap`은 `title -> thumbnail -> subtitle` 기본 수직 리듬과 동일 기준으로 유지해야 한다.
+- `base_gap`은 `thumbnail -> title -> subtitle` 기본 수직 리듬과 동일 기준으로 유지해야 한다.
 - `comp_gap = actual_gap - base_gap`으로 정의한다.
 - `needs_comp(card_i) = (natural_height_i < max(natural_height_row))` 판정식을 고정한다.
 - `needs_comp=true` 카드만 `comp_gap>0`을 허용한다.

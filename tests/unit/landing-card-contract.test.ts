@@ -127,6 +127,10 @@ describe('landing card slot contract', () => {
     expect(expandedDoc.querySelector('[data-slot="cardThumbnail"]')).toBeNull();
     expect(expandedDoc.querySelector('[data-slot="tags"]')).toBeNull();
 
+    const expandedTitles = expandedDoc.querySelectorAll('[data-slot="cardTitle"]');
+    expect(expandedTitles).toHaveLength(1);
+    expect(expandedTitles[0]?.className).toContain('landing-grid-card-title-normal');
+
     expect(expandedDoc.querySelector('[data-slot="expandedSurface"]')).not.toBeNull();
     expect(expandedDoc.querySelector('[data-slot="previewQuestion"]')).not.toBeNull();
     expect(expandedDoc.querySelector('[data-slot="answerChoiceA"]')).not.toBeNull();
