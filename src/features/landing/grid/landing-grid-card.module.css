@@ -1,8 +1,21 @@
-.root:has(:focus-visible) {
-  box-shadow:
-    0 0 0 3px var(--focus-ring-outer),
-    0 0 0 6px var(--focus-ring-inner),
-    var(--card-shadow);
+.root {
+  /* Wave 3 Normal collapsed-face skin tokens (design.md §4). Strategy A: consumed only by
+     collapsed Normal selectors, so no shared global token is mutated. */
+  --normal-card-border: transparent;
+  --normal-card-shadow: 0 1px 2px rgb(26 26 31 / 4%);
+  --normal-focus-ring: #5c8e78;
+  --normal-thumb-radius: 12px;
+  --normal-tag-bg: #f0ece2;
+  --normal-tag-ink: #4a4a55;
+  --normal-tag-radius: 5px;
+}
+
+/* Collapsed Normal focus ring — sage outline (design.md §6.2). Excludes the desktop overlay
+   layer so the expanded focus rule below remains the sole authority there (outline is not
+   reset by that rule's box-shadow override). */
+.root:not(.desktopOverlayLayer):has(:focus-visible) {
+  outline: 2px solid var(--normal-focus-ring);
+  outline-offset: 2px;
 }
 
 /* Semantic style classes are the CSS contract; data-* stays on the DOM as QA/debug anchors only. */

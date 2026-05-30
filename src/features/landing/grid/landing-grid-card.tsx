@@ -212,14 +212,14 @@ const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
 const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
   'landing-grid-card-subtitle min-w-0 overflow-hidden text-ellipsis text-[0.92rem] leading-[1.4] text-[var(--muted-ink)] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
-  'landing-grid-card-thumbnail-slot relative mt-[var(--landing-card-base-gap)] aspect-[6/1] w-full min-w-0 shrink-0 overflow-hidden rounded-[10px] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
+  'landing-grid-card-thumbnail-slot relative mt-[var(--landing-card-base-gap)] aspect-[6/1] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
 const LANDING_GRID_CARD_TAGS_CLASSNAME =
-  'landing-grid-card-tags m-0 flex min-h-7 min-w-0 shrink-0 list-none items-center gap-1.5 overflow-hidden p-0';
+  'landing-grid-card-tags m-0 flex min-h-7 min-w-0 shrink-0 list-none items-center gap-2 overflow-hidden p-0';
 const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
   'landing-grid-card-tags-gap h-[calc(var(--landing-card-base-gap)_+_var(--landing-card-comp-gap))]';
 const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
 const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
-  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-transparent bg-[var(--chip-bg)] px-2.5 py-1 text-[0.74rem] leading-[1.2]';
+  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] border border-transparent bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium leading-[1.2] text-[var(--normal-tag-ink)]';
 const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME = 'landing-grid-card-preview-question m-0 text-[var(--muted-ink)]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
 const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
@@ -904,7 +904,7 @@ export function LandingGridCard({
       ? '[background:var(--panel-solid)] [box-shadow:none]'
       : isMobileOpening || isMobileClosing
         ? '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:none]'
-        : '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)]';
+        : '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--normal-card-shadow)] [border:1px_solid_var(--normal-card-border)]';
   const resolvedRootClassName = joinClassNames(
     LANDING_GRID_CARD_ROOT_CLASSNAME,
     styles.root,
