@@ -97,7 +97,7 @@ if (fileExists('src/app/[locale]/blog/[variant]/page.tsx')) {
 
 if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
-  if (!/data-slot=\{includeSlotAttributes \? 'cardThumbnail' : undefined\}/u.test(cardFile)) {
+  if (!/data-slot=\{exposePublicSlot \? 'cardThumbnail' : undefined\}/u.test(cardFile)) {
     fail('LandingGridCard must expose the canonical cardThumbnail slot name.');
   }
 

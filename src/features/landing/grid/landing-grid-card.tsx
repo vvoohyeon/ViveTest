@@ -276,11 +276,14 @@ const LANDING_GRID_CARD_UNAVAILABLE_BADGE_CLASSNAME =
 type LandingTestCard = Extract<LandingCard, {type: 'test'}>;
 type LandingBlogCard = Extract<LandingCard, {type: 'blog'}>;
 
+type NormalCardFacePresentation = 'collapsed' | 'expandedTitleOnly';
+
 interface NormalCardFaceProps {
   card: LandingCard;
   hasAssetMedia: boolean;
   isMobileViewport: boolean;
   exposePublicSlots: boolean;
+  presentation: NormalCardFacePresentation;
   titleRef?: RefObject<HTMLHeadingElement | null>;
   subtitleRef?: RefObject<HTMLParagraphElement | null>;
 }
@@ -427,18 +430,27 @@ function NormalCardFace({
   hasAssetMedia,
   isMobileViewport,
   exposePublicSlots,
+  presentation,
   titleRef,
   subtitleRef
 }: NormalCardFaceProps) {
+  const title = (
+    <NormalCardTitle
+      card={card}
+      isMobileViewport={isMobileViewport}
+      exposePublicSlot={exposePublicSlots}
+      titleRef={titleRef}
+    />
+  );
+
+  if (presentation === 'expandedTitleOnly') {
+    return title;
+  }
+
   return (
     <>
       <NormalCardThumbnail card={card} hasAssetMedia={hasAssetMedia} exposePublicSlot={exposePublicSlots} />
-      <NormalCardTitle
-        card={card}
-        isMobileViewport={isMobileViewport}
-        exposePublicSlot={exposePublicSlots}
-        titleRef={titleRef}
-      />
+      {title}
       <NormalCardSubtitle card={card} exposePublicSlot={exposePublicSlots} subtitleRef={subtitleRef} />
       <NormalCardTagRow card={card} exposePublicSlot={exposePublicSlots} />
     </>
@@ -1018,18 +1030,12 @@ export function LandingGridCard({
         onClick={onClick}
       >
         <div className={resolvedContentClassName}>
-          {isMobileExpanded ? null : isExpanded ? (
-            <NormalCardTitle
-              card={card}
-              isMobileViewport={isMobileViewport}
-              exposePublicSlot
-              titleRef={normalTitleRef}
-            />
-          ) : (
+          {isMobileExpanded ? null : (
             <NormalCardFace
               card={card}
               hasAssetMedia={hasAssetMedia}
               isMobileViewport={isMobileViewport}
+              presentation={isDesktopExpanded ? 'expandedTitleOnly' : 'collapsed'}
               exposePublicSlots
               titleRef={normalTitleRef}
               subtitleRef={normalSubtitleRef}
