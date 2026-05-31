@@ -122,6 +122,16 @@
 
 ---
 
+## Visual / Design System {#Visual-Design}
+
+- **Visual SSOT:** `docs/design/design.md` (VIVE/ViveTest design-system foundation + ViveTest catalog application layer) owns visual foundations, tokens, reusable components, and visual application patterns. It does **not** own waves, scope, QA gates, routing, telemetry, storage, test-flow behavior, or data contracts (BQ-21). On conflict: `decision-register.md` > product requirements > `design.md`.
+- **Landing visual implementation:** lives in `src/features/landing/grid/landing-grid-card.tsx` + `landing-grid-card.module.css`, using scoped `--normal-*` / `--expanded-*` tokens. Their *values* match the `design.md` semantic tokens; this coexistence is intentional — `design.md` is visual intent, `module.css` is implementation. Do not refactor scoped tokens as a side effect of unrelated work.
+- **Global theme tokens:** `src/app/globals.css` is the Tailwind v4 tokens/base SSOT (Ask-First). The global layer is still the prior theme; migration to the `design.md` warm-neutral / sage / Pretendard semantic namespace is **Wave 16** scope, gated by the theme-bootstrap risk plan (BQ-04). Do **not** apply `design.md` global tokens to `globals.css` before Wave 16.
+- **Per-wave CSS is not the design SSOT.** Superseded wave reference CSS lives under `docs/design/resources/superseded/`. A supplemental CSS extraction is permitted **only** when the BQ-19 Analysis gate documents a concrete `design.md` gap and the user approves it.
+- **Design reference screenshots** in `docs/design/resources/` are interpretation aids, distinct from the project's visual-regression test baselines under `tests/e2e/*-snapshots/`. Nothing here authorizes baseline regeneration (BQ-07).
+
+---
+
 ## Unimplemented / Stub Areas
 
 Do not treat the following as completed contracts:

@@ -27,6 +27,7 @@
 | transition / telemetry / consent | `docs/req-landing.md §8, §12, §13` | `docs/agent-guides/project-rules.md §Blog-Telemetry-Theme` | `docs/agent-guides/verification-commands.md §telemetry` |
 | test flow / domain | `docs/req-test.md`, `docs/req-test-plan.md` | `docs/agent-guides/project-rules.md §TestFlow` | `docs/agent-guides/verification-commands.md §test-flow` |
 | variant registry / fixture | `docs/req-landing.md §12`, `docs/req-test.md §2`, `docs/project-analysis.md §5.3` | `docs/agent-guides/project-rules.md §VariantRegistry` | `docs/agent-guides/verification-commands.md §variant-registry` |
+| visual skin / design tokens / card visual | `docs/design/design.md` (+ §7 application layer) | `docs/agent-guides/project-rules.md §Visual-Design` | `docs/agent-guides/verification-commands.md §landing` |
 | blocker evidence | `docs/blocker-traceability.json` | — | — |
 
 `docs/requirements.md` — background context only; not a direct implementation SSOT.  
@@ -39,8 +40,10 @@ When a task involves rebuild scope, wave sequencing, local worktree roles, check
 - `docs/rebuild-worktree-setup.md` — confirmed local worktree/branch roles, active implementation workspace, legacy-reference boundary, and checkpoint/rollback-anchor roles.
 - `docs/wave-roadmap.md` — approved rebuild wave sequence, prerequisites, include/exclude scope, risk level, handoff, and validation expectations.
 - `docs/decision-register.md` — confirmed rebuild decisions, conflict-resolution records, scope guards, and implementation caveats.
+- `docs/design/design.md` — VIVE/ViveTest 시각 권위(foundations → tokens → components → patterns/application). **visual-only**: waves/scope/QA/routing/telemetry/storage/behavior는 지배하지 않는다(BQ-21). per-wave CSS snippet은 design SSOT가 아니며, 보충 CSS는 BQ-19 Analysis gate 승인 시에만 발행한다. design.md의 전역 토큰값은 target intent이며 `globals.css` 전역 적용은 Wave 16에서 수행한다.
 
 Do not load these documents upfront for unrelated tasks. They are project-specific operating facts, not replacements for the active CI document’s planning, clarification, execution, or STATE.md rules.
+**Visual source precedence (BQ-21):** `decision-register.md` → product requirements / active rules → `docs/design/design.md` → its patterns/application layer → mockup resources → existing implementation evidence → wave-specific CSS (exception only). design.md never overrides behavior, storage, telemetry, routing, i18n, test-flow, QA, or a11y contracts.
 
 ---
 
@@ -55,7 +58,7 @@ Do not load these documents upfront for unrelated tasks. They are project-specif
 | `[locale]/layout.tsx` flag | `dynamicParams = false` |
 | `next.config.ts` flags | `typedRoutes = true`, `experimental.globalNotFound = true` |
 | Tech stack | `next@16.2.4`, `react@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0` (test question answer-grid transitions) |
-| Tailwind | v4. Tokens/base: `src/app/globals.css`. Landing grid/card motion: `landing-grid-card.module.css`. *(2026-04-21)* |
+| Tailwind | v4. Tokens/base: `src/app/globals.css`. Landing grid/card motion + scoped visual-skin tokens (`--normal-*` / `--expanded-*`): `landing-grid-card.module.css`. *(2026-04-21)* |
 
 Directory ownership details → `docs/agent-guides/project-rules.md §Ownership`
 
@@ -218,6 +221,7 @@ Any plan missing these fields must be revised before approval. Plan documents ha
 - `qa:rules` excluded from Done gate — release-level reference pipeline only.
 - `qa:gate:once` / `qa:gate` — run only before release or when investigating flakiness.
 - Bug fix or behavior change: confirm regression test coverage has been added or updated.
+- Wave가 신규 시각 결정을 확정하면 wave-specific CSS가 아니라 `docs/design/design.md`(patterns/application layer)에 환류한다. implementation-only refactor에는 design.md를 갱신하지 않는다(BQ-21).
 - If the change triggers a §9 update condition, update AGENTS.md in the same commit.
 - `AGENTS.md` changes: cross-reference file paths, commands, locale set, and representative
   anchors against the actual repository before marking done.
