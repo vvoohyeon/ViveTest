@@ -135,6 +135,16 @@ describe('landing card slot contract', () => {
     expect(expandedDoc.querySelector('[data-slot="previewQuestion"]')).not.toBeNull();
     expect(expandedDoc.querySelector('[data-slot="answerChoiceA"]')).not.toBeNull();
     expect(expandedDoc.querySelector('[data-slot="answerChoiceB"]')).not.toBeNull();
+
+    // Wave 4: each choice renders answer text + a decorative arrow that stays out of the accessible name.
+    const expandedChoiceA = expandedDoc.querySelector('[data-slot="answerChoiceA"]');
+    const expandedChoiceArrow = expandedChoiceA?.querySelector('.landing-grid-card-answer-choice-arrow');
+    expect(expandedChoiceArrow?.getAttribute('aria-hidden')).toBe('true');
+    expect(expandedChoiceArrow?.textContent?.trim()).toBe('→');
+    expect(
+      (expandedChoiceA?.querySelector('.landing-grid-card-answer-choice-text')?.textContent ?? '').length
+    ).toBeGreaterThan(0);
+
     expect(expandedDoc.querySelectorAll('.landing-grid-card-meta-item')).toHaveLength(3);
 
     expect(expandedDoc.querySelector('[data-slot="primaryCTA"]')).toBeNull();

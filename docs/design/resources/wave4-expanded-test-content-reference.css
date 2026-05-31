@@ -1,0 +1,154 @@
+/* ViveTest catalog — Expanded test card content reference.
+   Visual handoff only: realized content styling for the expanded test card —
+   quiet context label, prominent preview question, two text-only choices with →,
+   a flex spacer, and the meta row (shared · completed).
+   Adapt these values into your own codebase; class names are descriptive
+   references. Overlay geometry, sizing, motion choreography, and the resting
+   card system are intentionally out of scope. Shares the visual language of the
+   Normal card reference. */
+
+/* 1. Local expanded-content tokens */
+.vive-expanded-test {
+  /* Surfaces */
+  --vive-card-surface:    #FFFFFF;  /* elevated fill (choice buttons) */
+
+  /* Ink / text */
+  --vive-ink:             #1A1A1F;  /* preview question */
+  --vive-ink-soft:        #2E2E36;  /* choice text */
+  --vive-body:            #4A4A55;  /* duration emphasis in meta */
+  --vive-muted:           #7A7A85;  /* context label, meta */
+  --vive-muted-soft:      #A6A6AE;  /* meta separator */
+
+  /* Borders / accent */
+  --vive-hairline-strong: #D6D1C4;  /* choice border */
+  --vive-sage:            #5C8E78;  /* choice hover border, arrow on hover, focus ring */
+  --vive-sage-muted:      #E8F0EC;  /* choice hover background */
+  --vive-focus-ring:      #5C8E78;
+
+  /* Radius / motion */
+  --vive-radius-md:       12px;     /* choice buttons */
+  --vive-ease:            cubic-bezier(0.2, 0, 0, 1);
+  --vive-dur-fast:        140ms;
+}
+
+/* 2. Expanded test content root
+   Vertical content column. Assumes no thumbnail, subtitle, or resting tags are
+   rendered in this state. No PREVIEW QUESTION label and no A/B badges anywhere. */
+.vive-expanded-test {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 3. Context label — the test name, as a quiet context cue only */
+.vive-expanded-test__context {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--vive-muted);
+}
+
+/* 4. Preview question — prominent */
+.vive-expanded-test__question {
+  margin-top: 4px;
+  font-size: 21px;            /* range 20–22; 21 default */
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--vive-ink);
+  word-break: keep-all;
+  overflow-wrap: anywhere;    /* wraps naturally; never truncated */
+}
+
+/* 5. Choice list — vertical stack */
+.vive-expanded-test__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* 6. Choice button */
+.vive-expanded-test__choice {
+  display: flex;
+  align-items: flex-start;            /* arrow stays near the top of wrapped text */
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;                  /* equal top/bottom; no fixed min-height */
+  text-align: left;
+  background: var(--vive-card-surface);
+  border: 1px solid var(--vive-hairline-strong);
+  border-radius: var(--vive-radius-md);
+  cursor: pointer;
+  transition: border-color var(--vive-dur-fast) var(--vive-ease),
+              background var(--vive-dur-fast) var(--vive-ease);
+}
+.vive-expanded-test__choice:hover {
+  border-color: var(--vive-sage);
+  background: var(--vive-sage-muted);
+}
+
+/* 7. Choice text and arrow */
+.vive-expanded-test__choiceText {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--vive-ink-soft);
+  word-break: keep-all;
+  overflow-wrap: anywhere;            /* wraps freely; never truncated */
+}
+.vive-expanded-test__choiceArrow {
+  flex-shrink: 0;
+  margin-top: 3px;                     /* aligns the → near the first text line */
+  color: var(--vive-muted);
+  /* glyph is "→" only — no A/B letter badge */
+}
+.vive-expanded-test__choice:hover .vive-expanded-test__choiceArrow {
+  color: var(--vive-sage);
+}
+
+/* 8. Spacer before meta
+   Absorbs surplus height ONLY between the final choice and the meta row.
+   No other internal gap should grow. No divider sits here. */
+.vive-expanded-test__spacer {
+  flex: 1;
+  min-height: 14px;
+}
+
+/* 9. Meta row */
+.vive-expanded-test__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--vive-muted);
+}
+.vive-expanded-test__metaItem {
+  /* labels read "<n> shared" and "<n> completed" — never "taken"/"have taken";
+     numbers are shown full-digit */
+}
+.vive-expanded-test__metaItem--duration {
+  color: var(--vive-body);             /* duration slightly stronger */
+  font-weight: 600;
+}
+.vive-expanded-test__metaSeparator {
+  color: var(--vive-muted-soft);       /* middle dot "·" */
+}
+
+/* 10. Focus-visible reference */
+.vive-expanded-test__choice:focus-visible {
+  outline: 2px solid var(--vive-focus-ring);
+  outline-offset: 2px;
+}
+
+/* 11. Reduced-motion-safe visual transitions */
+@media (prefers-reduced-motion: reduce) {
+  .vive-expanded-test__choice {
+    transition: none;
+  }
+}

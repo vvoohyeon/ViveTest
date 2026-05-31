@@ -220,10 +220,14 @@ const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
 const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
 const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
   'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] border border-transparent bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium leading-[1.2] text-[var(--normal-tag-ink)]';
-const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME = 'landing-grid-card-preview-question m-0 text-[var(--muted-ink)]';
+const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME =
+  'landing-grid-card-preview-question m-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--text-strong)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
 const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
-  'landing-grid-card-answer-choice cursor-pointer overflow-visible rounded-[12px] border border-[var(--interactive-neutral-border)] bg-[var(--landing-answer-bg-rest)] bg-none px-3 py-2.5 text-left leading-[1.4] whitespace-normal text-[var(--interactive-neutral-ink)] text-clip transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease] disabled:cursor-default hover:border-[var(--landing-answer-border-hover)] hover:bg-[var(--landing-answer-bg-hover)] hover:bg-none hover:shadow-[var(--landing-answer-shadow-hover)] active:border-[var(--interactive-accent-border)] active:bg-[var(--landing-answer-bg-pressed)] active:bg-none active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent-solid)_16%,transparent)] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
+  'landing-grid-card-answer-choice flex items-start gap-3 cursor-pointer overflow-visible rounded-[12px] border border-[var(--interactive-neutral-border)] bg-[var(--landing-answer-bg-rest)] bg-none px-3 py-2.5 text-left leading-[1.4] whitespace-normal text-[var(--interactive-neutral-ink)] text-clip transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease] disabled:cursor-default hover:border-[var(--landing-answer-border-hover)] hover:bg-[var(--landing-answer-bg-hover)] hover:bg-none hover:shadow-[var(--landing-answer-shadow-hover)] active:border-[var(--interactive-accent-border)] active:bg-[var(--landing-answer-bg-pressed)] active:bg-none active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent-solid)_16%,transparent)] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
+const LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME = 'landing-grid-card-answer-choice-text min-w-0 flex-1';
+const LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME =
+  'landing-grid-card-answer-choice-arrow mt-[3px] shrink-0 text-[var(--muted-ink)]';
 const LANDING_GRID_CARD_META_GRID_CLASSNAME = 'landing-grid-card-meta-grid m-0 grid grid-cols-3 gap-2';
 const LANDING_GRID_CARD_META_ITEM_CLASSNAME = 'landing-grid-card-meta-item m-0 grid min-w-0 gap-0.5';
 const LANDING_GRID_CARD_META_LABEL_CLASSNAME =
@@ -539,6 +543,36 @@ interface DesktopExpandedShellProps {
   onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
 }
 
+function ExpandedTestAnswerChoice({
+  choice,
+  label,
+  interactive,
+  onSelect
+}: {
+  choice: 'A' | 'B';
+  label: string;
+  interactive: boolean;
+  onSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME}
+      data-slot={interactive ? `answerChoice${choice}` : undefined}
+      onClick={(event) => {
+        if (interactive) {
+          onSelect?.(choice, event);
+        }
+      }}
+      tabIndex={interactive ? undefined : -1}
+      aria-hidden={interactive ? undefined : 'true'}
+    >
+      <span className={LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME}>{label}</span>
+      <span className={LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME} aria-hidden="true">→</span>
+    </button>
+  );
+}
+
 function ExpandedTestBody({card, locale, copy, interactive, onAnswerChoiceSelect}: ExpandedTestBodyProps) {
   // Preserve the registry resolver boundary; card UI must not read fixture source directly.
   const previewPayload = resolveTestPreviewPayload(card.variant, locale);
@@ -558,34 +592,18 @@ function ExpandedTestBody({card, locale, copy, interactive, onAnswerChoiceSelect
         data-slot={interactive ? 'answerChoices' : undefined}
         data-motion-slot="answerChoices"
       >
-        <button
-          type="button"
-          className={LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME}
-          data-slot={interactive ? 'answerChoiceA' : undefined}
-          onClick={(event) => {
-            if (interactive) {
-              onAnswerChoiceSelect?.('A', event);
-            }
-          }}
-          tabIndex={interactive ? undefined : -1}
-          aria-hidden={interactive ? undefined : 'true'}
-        >
-          {previewPayload.answerChoiceA}
-        </button>
-        <button
-          type="button"
-          className={LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME}
-          data-slot={interactive ? 'answerChoiceB' : undefined}
-          onClick={(event) => {
-            if (interactive) {
-              onAnswerChoiceSelect?.('B', event);
-            }
-          }}
-          tabIndex={interactive ? undefined : -1}
-          aria-hidden={interactive ? undefined : 'true'}
-        >
-          {previewPayload.answerChoiceB}
-        </button>
+        <ExpandedTestAnswerChoice
+          choice="A"
+          label={previewPayload.answerChoiceA}
+          interactive={interactive}
+          onSelect={onAnswerChoiceSelect}
+        />
+        <ExpandedTestAnswerChoice
+          choice="B"
+          label={previewPayload.answerChoiceB}
+          interactive={interactive}
+          onSelect={onAnswerChoiceSelect}
+        />
       </div>
 
       <dl

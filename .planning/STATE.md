@@ -1,47 +1,59 @@
-# STATE.md — Wave 3 Normal Card Visual Skin (Snapshot 3 of 3 — COMPLETE)
+# STATE.md — Wave 4 Expanded Test Content Contract (Snapshot 2 of ≤3 — verification complete)
 
-> Session continuity anchor only (temporal progress). Not executable, not an SSOT.
-> Plan SSOT: `docs/plans/2026-05-31-wave-3-normal-card-visual-skin.md` (approved).
-> Implementation from commit `020e12d`. **Status: implementation + verification COMPLETE. Not committed (not requested).**
+> Session continuity anchor only. Not executable, not an SSOT.
+> Approved analysis: `docs/plans/2026-05-31-wave-4-expanded-test-content-contract-analysis.md`.
+> Visual authority: `design.md §6.5/§7.7/§10` + `resources/wave4-expanded-test-content-reference.css`.
+> Base commit `fe063ad` (wave-3), branch `main`. **Not committed (not requested).**
 
 ## Outcome
 
-Wave 3 (visual skin; CSS/className only; BQ-19 = no logic candidates) implemented and verified.
-All plan §5 steps done (Step 7 VS-06 intentionally skipped — default keep `color-mix(--panel-solid 90%)`).
+Wave 4 implemented + verified. Logic directive honored: no logic candidates — existing logic preserved.
+All code complete; basic Done gate green; functional + geometry E2E green. Two pre-existing visual
+baselines diverge as expected (BQ-07 — not regenerated this wave).
 
-## Files changed (2 card files only)
-
-`src/features/landing/grid/landing-grid-card.module.css`
-- `.root { --normal-card-border:transparent; --normal-card-shadow:0 1px 2px rgb(26 26 31/4%);
-  --normal-focus-ring:#5c8e78; --normal-thumb-radius:12px; --normal-tag-bg:#f0ece2;
-  --normal-tag-ink:#4a4a55; --normal-tag-radius:5px; }`
-- focus rule: `.root:not(.desktopOverlayLayer):has(:focus-visible){ outline:2px solid var(--normal-focus-ring); outline-offset:2px; }`
-  (was blue box-shadow double ring; overlay rules untouched).
+## Files changed (2 files)
 
 `src/features/landing/grid/landing-grid-card.tsx`
-- :215 thumbnail radius → `var(--normal-thumb-radius)` (aspect-[6/1]/object-cover kept).
-- :217 tags row `gap-2`; :222 chip → 5px radius / `--normal-tag-bg` / `--normal-tag-ink` / 13px / `font-medium` / `px-[9px]`
-  (kept `border border-transparent`, nowrap, ellipsis, py-1, leading-[1.2]).
-- :907 collapsed resting → `[box-shadow:var(--normal-card-shadow)] [border:1px_solid_var(--normal-card-border)]`.
+- previewQuestion prominence (21px/600/`--text-strong`/tracking/keep-all/anywhere) — W4-CC-02 (D2).
+- `ExpandedTestAnswerChoice` helper: `<button>[<span .answer-choice-text>, <span .answer-choice-arrow aria-hidden>→</span>]`;
+  replaces duplicated A/B buttons. Added `flex items-start gap-3` to choice class (layout only).
+  New hooks `…-text` (`min-w-0 flex-1`), `…-arrow` (`mt-[3px] shrink-0 text-[var(--muted-ink)]`).
+  Preserved: `type`, `data-slot=answerChoice{A,B}`, `onClick→onAnswerChoiceSelect`, `tabIndex`/`aria-hidden`,
+  resolver payload boundary, motion slots. — W4-CC-01 (D3).
+- Choice-button skin, meta labels/numbers, title/continuity, overlay geometry, resolver/telemetry, i18n: untouched.
 
-## Verification — all gates GREEN
+`tests/unit/landing-card-contract.test.ts`
+- Presence-only: choice arrow is `aria-hidden="true"` + `→`; answer text in separate `.…-answer-choice-text`.
 
-- `npm run lint` ✓ · `npm run typecheck` ✓ · `npm test` ✓ (73 files / 479 tests) · `npm run build` ✓.
-- `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/grid-smoke.spec.ts` → **18 passed**.
-  Confirms tag border alpha ≤0.05, tags min-height 28px, thumbnail ratio 5.5–6.5, radius equality,
-  slot order, and expanded-overlay metric/collapse contracts all hold.
-- No baseline regeneration, no `qa:visual:full` (BQ-07). No stop condition (plan §7) hit.
+## Verification
 
-## Key Decisions
+- **Basic Done gate (AGENTS.md §5): ALL GREEN** — `lint` ✓ · `typecheck` ✓ · `test` ✓ (73 files / 479) · `build` ✓.
+- **Functional E2E (preview mode):**
+  - `grid-smoke.spec.ts` 18/18 ✓ — incl. `B4-geometry-active-frame` (siblings frozen), `B4-short-expanded`
+    (content-fit, no shell leak), `B13-hover-collapse`. → Wave 4 Exclude boundary (overlay geometry /
+    sibling isolation) intact despite the taller question.
+  - `state-smoke.spec.ts` functional ✓ — `:289` keyboard CTA traversal (trigger→choiceA→choiceB→unavailable)
+    passes in isolation; it only flaked under parallel workers (pre-existing contention; arrow is
+    non-focusable so focus order is unchanged).
+- **Two screenshot-baseline diffs (NOT regenerated):**
+  - `state-smoke :352 expanded-focus-shell.png` (baseline May 10) — diverges from **Wave 4** question prominence.
+  - `state-smoke :366 overlay-focus-shell.png` (baseline May 29) — diverges from **Wave 3** Normal skin /
+    sage focus ring on the focused unavailable card (already stale since Wave 3; Wave 3 validated via grid-smoke).
+  - Provenance verified = approved Wave 3+4 visual changes; width unchanged, functional + geometry intact.
+  - Per **BQ-07** (baselines discarded → re-approved AFTER rebuild) + analysis §10 ("No baselines"),
+    these are **not** regenerated mid-rebuild. `theme-matrix-baseline-provenance.md` governs only
+    `qa:visual:full` theme-matrix PNGs, not these state-smoke shell snapshots.
 
-- Focus rule scoped `:not(.desktopOverlayLayer)` so the sage outline does not bleed onto the
-  desktop overlay (overlay rule overrides only box-shadow, not outline) — honors plan's
-  "isolated from overlay focus rule" guard; overlay rules left literally untouched. Class-based,
-  not `[data-card-state]` (module.css:8 contract + VS-10).
-- §8 defaults stand: VS-02 Defer (Blog hover→W7/8; Test no-hover preserved); VS-06 keep `color-mix`;
-  thumbnail aspect keep `6/1` (VS-08 Reject; `16/6` logged as future reconciliation).
+## Decisions / Boundaries honored
 
-## If resuming
+D1 preserve `cardTitle` (no context-label element) · D2 Wave 4 owns question prominence ·
+D3 decorative `aria-hidden` arrow · D4 meta `completed`/full-number = Wave 5.
+Question color used existing `--text-strong`; warm `#1A1A1F` token reconciliation deferred to Wave 5.
 
-Work is complete. Remaining optional actions only on user request: commit the 2 files; add
-presence-only Wave-3 hook assertions (plan §6.2); Wave 4+ per `docs/wave-roadmap.md`.
+## If resuming / next steps (user decisions)
+
+- Commit the 2 files if desired (Wave 4). Optionally include `.planning/STATE.md`.
+- Visual baselines: the 2 `*-shell` snapshots will be re-approved at the BQ-07 post-rebuild baseline step
+  (e.g., Wave 14 stabilization) — do not regenerate piecemeal mid-rebuild unless the user directs it.
+- Next wave: Wave 5 (Expanded test visual skin) per `docs/wave-roadmap.md` — choice button skin, equal
+  padding, meta `completed`/full-number, plus warm-token reconciliation for the question/arrow.
