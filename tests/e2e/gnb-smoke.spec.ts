@@ -6,7 +6,6 @@ import {
   buildLocalizedBlogDetailRoute,
   buildLocalizedBlogIndexRoute,
   buildLocalizedPrimaryTestRoute,
-  PRIMARY_AVAILABLE_TEST_VARIANT,
   SECONDARY_BLOG_VARIANT
 } from './helpers/landing-fixture';
 
@@ -375,12 +374,11 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(page.locator('#theme-switch-style')).toHaveCount(0, {timeout: 3000});
   });
 
-  test('@smoke desktop settings reuses the landing answer hover affordance for selectable locale and theme chips', async ({
+  test('@smoke desktop settings expose a hover affordance on selectable locale and theme chips while selected chips stay inert', async ({
     page
   }) => {
     await page.setViewportSize({width: 1280, height: 900});
 
-    const landingAnswerHoverStylesByTheme = {} as Record<'light' | 'dark', Awaited<ReturnType<typeof readInteractiveSurfaceStyles>>>;
     const themePreviewRestStylesByTheme = {
       light: {
         backgroundColor: 'rgb(255, 255, 255)',
@@ -395,20 +393,6 @@ test.describe('Phase 3 gnb shell smoke', () => {
     for (const theme of ['light', 'dark'] as const) {
       await seedManualTheme(page, theme);
       await page.goto('/en');
-
-      const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
-      await testCard.getByTestId('landing-grid-card-trigger').click({force: true});
-
-      const answerChoice = testCard.locator('.landing-grid-card-answer-choice').first();
-      await expect(answerChoice).toBeVisible();
-      await answerChoice.hover();
-      await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
-      landingAnswerHoverStylesByTheme[theme] = await readInteractiveSurfaceStyles(answerChoice);
-    }
-
-    for (const theme of ['light', 'dark'] as const) {
-      await seedManualTheme(page, theme);
-      await page.goto('/en');
       await page.mouse.move(32, 220);
       await expect(page.getByTestId('gnb-settings-panel')).toBeHidden();
 
@@ -419,15 +403,15 @@ test.describe('Phase 3 gnb shell smoke', () => {
       const selectableLocaleChip = localeControls.locator('button:not([disabled])').first();
       const selectedLocaleChip = localeControls.locator('button[disabled]');
       const {alternateButton, currentButton} = getThemeControls(page, 'desktop');
-      const expectedLocaleHoverStyles = landingAnswerHoverStylesByTheme[theme];
       const alternateTheme = theme === 'light' ? 'dark' : 'light';
-      const expectedThemeHoverStyles = landingAnswerHoverStylesByTheme[alternateTheme];
 
-      const [selectedLocaleBeforeHover, currentThemeBeforeHover, alternateThemeBeforeHover] = await Promise.all([
-        readInteractiveSurfaceStyles(selectedLocaleChip),
-        readInteractiveSurfaceStyles(currentButton),
-        readInteractiveSurfaceStyles(alternateButton)
-      ]);
+      const [selectableLocaleBeforeHover, selectedLocaleBeforeHover, currentThemeBeforeHover, alternateThemeBeforeHover] =
+        await Promise.all([
+          readInteractiveSurfaceStyles(selectableLocaleChip),
+          readInteractiveSurfaceStyles(selectedLocaleChip),
+          readInteractiveSurfaceStyles(currentButton),
+          readInteractiveSurfaceStyles(alternateButton)
+        ]);
 
       expect.soft(selectedLocaleBeforeHover.hasVisibleBorder).toBe(false);
       expect.soft(currentThemeBeforeHover.hasVisibleBorder).toBe(false);
@@ -439,13 +423,17 @@ test.describe('Phase 3 gnb shell smoke', () => {
       );
       expect.soft(alternateThemeBeforeHover.color).toBe(themePreviewRestStylesByTheme[alternateTheme].color);
 
+      // Selectable GNB chips expose their own interactive hover affordance. This is asserted at the
+      // presence level (an affordance appears) rather than by matching the expanded-test answer-choice
+      // styles: Wave 5 re-skinned the answer choice to its own scoped sage tokens, and the GNB visual
+      // is a later wave, so the two surfaces are intentionally no longer style-identical.
       await selectableLocaleChip.hover();
       await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
-      expect.soft(await readInteractiveSurfaceStyles(selectableLocaleChip)).toEqual(expectedLocaleHoverStyles);
+      expect.soft(await readInteractiveSurfaceStyles(selectableLocaleChip)).not.toEqual(selectableLocaleBeforeHover);
 
       await alternateButton.hover();
       await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
-      expect.soft(await readInteractiveSurfaceStyles(alternateButton)).toEqual(expectedThemeHoverStyles);
+      expect.soft(await readInteractiveSurfaceStyles(alternateButton)).not.toEqual(alternateThemeBeforeHover);
 
       await selectedLocaleChip.hover();
       await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);

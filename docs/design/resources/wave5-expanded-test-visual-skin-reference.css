@@ -1,0 +1,140 @@
+/* ViveTest catalog — Expanded test card visual skin reference.
+   Visual handoff only: the final visual treatment for the expanded test card's
+   context label, preview question, choice buttons, arrow glyph, focus state,
+   and meta row. Consolidates the skin values from the catalog visual authority
+   and the expanded-content structure reference.
+   Adapt these values into your own codebase; class names are descriptive
+   references. No overlay geometry, no expansion sizing, no behavior. */
+
+/* 1. Local expanded visual tokens */
+.vive-expanded-test-skin {
+  --vive-expanded-card-surface: #FFFFFF;  /* choice button fill */
+  --vive-expanded-ink:          #1A1A1F;  /* preview question */
+  --vive-expanded-ink-soft:     #2E2E36;  /* choice text */
+  --vive-expanded-body:         #4A4A55;  /* duration emphasis */
+  --vive-expanded-muted:        #7A7A85;  /* context label, meta, arrow */
+  --vive-expanded-muted-soft:   #A6A6AE;  /* meta separator */
+  --vive-expanded-border:       #D6D1C4;  /* choice border (hairline-strong) */
+  --vive-expanded-sage:         #5C8E78;  /* choice hover border, arrow on hover, focus */
+  --vive-expanded-sage-muted:   #E8F0EC;  /* choice hover background */
+  --vive-expanded-radius:       12px;     /* choice radius */
+  --vive-expanded-ease:         cubic-bezier(0.2, 0, 0, 1);
+  --vive-expanded-dur:          140ms;
+}
+
+/* 2. Expanded test visual root (context only — vertical content column) */
+.vive-expanded-test-skin {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 3. Context label — quiet test-name cue (no PREVIEW QUESTION label anywhere) */
+.vive-expanded-test-skin__context {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--vive-expanded-muted);
+}
+
+/* 4. Preview question — prominent */
+.vive-expanded-test-skin__question {
+  margin-top: 4px;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--vive-expanded-ink);
+  word-break: keep-all;
+  overflow-wrap: anywhere;      /* wraps naturally; never truncated */
+}
+
+/* 5. Choice list — vertical stack */
+.vive-expanded-test-skin__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* 6. Choice button — text + → only; no A/B badge, no fixed min-height */
+.vive-expanded-test-skin__choice {
+  display: flex;
+  align-items: flex-start;       /* arrow rides near the top of wrapped text */
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;            /* 12 top/bottom · 14 left/right */
+  text-align: left;
+  background: var(--vive-expanded-card-surface);
+  border: 1px solid var(--vive-expanded-border);
+  border-radius: var(--vive-expanded-radius);
+  cursor: pointer;
+  transition: border-color var(--vive-expanded-dur) var(--vive-expanded-ease),
+              background var(--vive-expanded-dur) var(--vive-expanded-ease);
+}
+
+/* 7. Choice text and arrow */
+.vive-expanded-test-skin__choiceText {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--vive-expanded-ink-soft);
+  word-break: keep-all;
+  overflow-wrap: anywhere;       /* wraps freely; never truncated */
+}
+.vive-expanded-test-skin__choiceArrow {
+  flex-shrink: 0;
+  margin-top: 3px;               /* aligns the → with the first text line */
+  color: var(--vive-expanded-muted);   /* muted by default; "→" glyph only */
+}
+
+/* 8. Choice hover and focus-visible */
+.vive-expanded-test-skin__choice:hover {
+  border-color: var(--vive-expanded-sage);
+  background: var(--vive-expanded-sage-muted);
+}
+.vive-expanded-test-skin__choice:hover .vive-expanded-test-skin__choiceArrow {
+  color: var(--vive-expanded-sage);          /* arrow goes sage on hover */
+}
+.vive-expanded-test-skin__choice:focus-visible {
+  outline: 2px solid var(--vive-expanded-sage);
+  outline-offset: 2px;                        /* focus always visible */
+}
+
+/* 9. Meta row — no divider sits above this row */
+.vive-expanded-test-skin__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--vive-expanded-muted);
+}
+.vive-expanded-test-skin__metaItem {
+  /* labels read "<n> shared" and "<n> completed" — never "taken"/"have taken";
+     numbers are full-digit, never abbreviated (no k / m) */
+}
+.vive-expanded-test-skin__metaItem--duration {
+  color: var(--vive-expanded-body);
+  font-weight: 600;                            /* duration slightly stronger */
+}
+.vive-expanded-test-skin__metaSeparator {
+  color: var(--vive-expanded-muted-soft);      /* middle dot "·" */
+}
+
+/* 10. Optional spacer reference (visual reference only)
+   A flex spacer between the final choice and the meta row, so surplus height
+   pools above the meta. No overlay sizing / measured-height / positioning here. */
+.vive-expanded-test-skin__spacer {
+  flex: 1;
+  min-height: 14px;
+}
+
+/* 11. Reduced-motion-safe transitions */
+@media (prefers-reduced-motion: reduce) {
+  .vive-expanded-test-skin__choice {
+    transition: none;
+  }
+}

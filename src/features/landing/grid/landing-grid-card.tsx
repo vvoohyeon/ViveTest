@@ -221,13 +221,14 @@ const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0
 const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
   'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] border border-transparent bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium leading-[1.2] text-[var(--normal-tag-ink)]';
 const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME =
-  'landing-grid-card-preview-question m-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--text-strong)] [word-break:keep-all] [overflow-wrap:anywhere]';
+  'landing-grid-card-preview-question m-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--expanded-question-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
 const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
-  'landing-grid-card-answer-choice flex items-start gap-3 cursor-pointer overflow-visible rounded-[12px] border border-[var(--interactive-neutral-border)] bg-[var(--landing-answer-bg-rest)] bg-none px-3 py-2.5 text-left leading-[1.4] whitespace-normal text-[var(--interactive-neutral-ink)] text-clip transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease] disabled:cursor-default hover:border-[var(--landing-answer-border-hover)] hover:bg-[var(--landing-answer-bg-hover)] hover:bg-none hover:shadow-[var(--landing-answer-shadow-hover)] active:border-[var(--interactive-accent-border)] active:bg-[var(--landing-answer-bg-pressed)] active:bg-none active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent-solid)_16%,transparent)] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
-const LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME = 'landing-grid-card-answer-choice-text min-w-0 flex-1';
+  'landing-grid-card-answer-choice group/answerChoice flex items-start gap-3 cursor-pointer overflow-visible rounded-[12px] border border-[var(--expanded-choice-border)] bg-[var(--expanded-choice-surface)] px-3.5 py-3 text-left text-clip transition-[border-color,background-color] duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none disabled:cursor-default hover:border-[var(--expanded-choice-accent)] hover:bg-[var(--expanded-choice-accent-surface)] focus-visible:[outline:2px_solid_var(--expanded-choice-accent)] focus-visible:[outline-offset:2px]';
+const LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME =
+  'landing-grid-card-answer-choice-text min-w-0 flex-1 text-[15px] font-normal leading-[1.45] text-[var(--expanded-choice-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME =
-  'landing-grid-card-answer-choice-arrow mt-[3px] shrink-0 text-[var(--muted-ink)]';
+  'landing-grid-card-answer-choice-arrow mt-[3px] shrink-0 text-[var(--expanded-choice-arrow-ink)] transition-colors duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/answerChoice:text-[var(--expanded-choice-accent)]';
 const LANDING_GRID_CARD_META_GRID_CLASSNAME = 'landing-grid-card-meta-grid m-0 grid grid-cols-3 gap-2';
 const LANDING_GRID_CARD_META_ITEM_CLASSNAME = 'landing-grid-card-meta-item m-0 grid min-w-0 gap-0.5';
 const LANDING_GRID_CARD_META_LABEL_CLASSNAME =
@@ -1170,7 +1171,7 @@ export function getDefaultCardCopy(): LandingCardCopy {
     closeExpandedAria: 'Close expanded card',
     metaEstimated: 'Est. time',
     metaShares: 'Shares',
-    metaAttempts: 'Total attempts',
+    metaAttempts: 'Completed',
     metaReadTime: 'Read time',
     metaViews: 'Views',
     readMore: 'Read more'

@@ -1,59 +1,39 @@
-# STATE.md — Wave 4 Expanded Test Content Contract (Snapshot 2 of ≤3 — verification complete)
+# STATE.md — Wave 5 Expanded Test Visual Skin (COMPLETE, uncommitted)
 
 > Session continuity anchor only. Not executable, not an SSOT.
-> Approved analysis: `docs/plans/2026-05-31-wave-4-expanded-test-content-contract-analysis.md`.
-> Visual authority: `design.md §6.5/§7.7/§10` + `resources/wave4-expanded-test-content-reference.css`.
-> Base commit `fe063ad` (wave-3), branch `main`. **Not committed (not requested).**
+> Approved analysis: `docs/plans/2026-05-31-wave-5-expanded-test-visual-skin-analysis.md`.
+> Visual authority: `design.md §6.5/§7.7/§7.8/§10` + `docs/design/resources/wave5-expanded-test-visual-skin-reference.css`.
+> Base commit `a6e0dd8` (wave-4), branch `main`. **Implementation complete + verified. Not committed (awaiting instruction).**
 
 ## Outcome
 
-Wave 4 implemented + verified. Logic directive honored: no logic candidates — existing logic preserved.
-All code complete; basic Done gate green; functional + geometry E2E green. Two pre-existing visual
-baselines diverge as expected (BQ-07 — not regenerated this wave).
+Wave 5 = expanded test visual skin. Logic directive honored: no candidates — existing logic preserved.
+Basic Done gate GREEN; functional + geometry E2E green; gnb-smoke updated + green. Only the two pre-existing
+`*-shell` screenshot baselines diverge (deferred per BQ-07; not regenerated).
 
-## Files changed (2 files)
+## Files changed (17 tracked + 1 new doc)
 
-`src/features/landing/grid/landing-grid-card.tsx`
-- previewQuestion prominence (21px/600/`--text-strong`/tracking/keep-all/anywhere) — W4-CC-02 (D2).
-- `ExpandedTestAnswerChoice` helper: `<button>[<span .answer-choice-text>, <span .answer-choice-arrow aria-hidden>→</span>]`;
-  replaces duplicated A/B buttons. Added `flex items-start gap-3` to choice class (layout only).
-  New hooks `…-text` (`min-w-0 flex-1`), `…-arrow` (`mt-[3px] shrink-0 text-[var(--muted-ink)]`).
-  Preserved: `type`, `data-slot=answerChoice{A,B}`, `onClick→onAnswerChoiceSelect`, `tabIndex`/`aria-hidden`,
-  resolver payload boundary, motion slots. — W4-CC-01 (D3).
-- Choice-button skin, meta labels/numbers, title/continuity, overlay geometry, resolver/telemetry, i18n: untouched.
-
-`tests/unit/landing-card-contract.test.ts`
-- Presence-only: choice arrow is `aria-hidden="true"` + `→`; answer text in separate `.…-answer-choice-text`.
+- Source: `landing-grid-card.module.css` (+7 scoped `--expanded-*` tokens), `landing-grid-card.tsx`
+  (question warm ink; choice button Replace skin: warm border/surface, sage hover, sage focus outline, padding 14×12,
+  `group/answerChoice`; choice text 15/400/ink-soft; arrow warm-muted + group-hover sage; `getDefaultCardCopy` metaAttempts→'Completed').
+- i18n: `src/messages/*.json` ×12 — metaAttempts value → localized "completed" (keys unchanged; metaShares untouched).
+- Tests: `gnb-smoke.spec.ts` (decoupled the "reuses landing answer hover" test → GNB-internal presence-level affordance; removed orphaned import);
+  `state-smoke.spec.ts` (:575 — box-shadow assertion now asserts no-handoff `.toBe`; added 180ms settle wait so the baseline samples the rested choice).
+- Docs (untracked): `wave5-expanded-test-visual-skin-reference.css` (user-added), `…wave-5-…-analysis.md`.
 
 ## Verification
 
-- **Basic Done gate (AGENTS.md §5): ALL GREEN** — `lint` ✓ · `typecheck` ✓ · `test` ✓ (73 files / 479) · `build` ✓.
-- **Functional E2E (preview mode):**
-  - `grid-smoke.spec.ts` 18/18 ✓ — incl. `B4-geometry-active-frame` (siblings frozen), `B4-short-expanded`
-    (content-fit, no shell leak), `B13-hover-collapse`. → Wave 4 Exclude boundary (overlay geometry /
-    sibling isolation) intact despite the taller question.
-  - `state-smoke.spec.ts` functional ✓ — `:289` keyboard CTA traversal (trigger→choiceA→choiceB→unavailable)
-    passes in isolation; it only flaked under parallel workers (pre-existing contention; arrow is
-    non-focusable so focus order is unchanged).
-- **Two screenshot-baseline diffs (NOT regenerated):**
-  - `state-smoke :352 expanded-focus-shell.png` (baseline May 10) — diverges from **Wave 4** question prominence.
-  - `state-smoke :366 overlay-focus-shell.png` (baseline May 29) — diverges from **Wave 3** Normal skin /
-    sage focus ring on the focused unavailable card (already stale since Wave 3; Wave 3 validated via grid-smoke).
-  - Provenance verified = approved Wave 3+4 visual changes; width unchanged, functional + geometry intact.
-  - Per **BQ-07** (baselines discarded → re-approved AFTER rebuild) + analysis §10 ("No baselines"),
-    these are **not** regenerated mid-rebuild. `theme-matrix-baseline-provenance.md` governs only
-    `qa:visual:full` theme-matrix PNGs, not these state-smoke shell snapshots.
+- lint ✓ · typecheck ✓ · test ✓ (73/479) · build ✓.
+- grid-smoke 18/18 ✓ (incl. B4 geometry isolation, short-expanded, B13 hover-collapse). gnb-smoke 23/23 ✓.
+- state-smoke functional ✓ (entry trigger focus/click/keyboard; :575 hover fill light+dark; :289 serial). 
+  Parallel run: :289 is a pre-existing worker-contention flake (passes in isolation; arrow is non-focusable).
+- Deferred (BQ-07, NOT regenerated): `state-smoke` screenshots `expanded-focus-shell.png`, `overlay-focus-shell.png`.
 
-## Decisions / Boundaries honored
+## Commit readiness
 
-D1 preserve `cardTitle` (no context-label element) · D2 Wave 4 owns question prominence ·
-D3 decorative `aria-hidden` arrow · D4 meta `completed`/full-number = Wave 5.
-Question color used existing `--text-strong`; warm `#1A1A1F` token reconciliation deferred to Wave 5.
+Ready. Suggested: `wave-5: expanded test visual skin`. Do not regenerate baselines. Not pushed.
 
-## If resuming / next steps (user decisions)
+## Follow-ups (later waves)
 
-- Commit the 2 files if desired (Wave 4). Optionally include `.planning/STATE.md`.
-- Visual baselines: the 2 `*-shell` snapshots will be re-approved at the BQ-07 post-rebuild baseline step
-  (e.g., Wave 14 stabilization) — do not regenerate piecemeal mid-rebuild unless the user directs it.
-- Next wave: Wave 5 (Expanded test visual skin) per `docs/wave-roadmap.md` — choice button skin, equal
-  padding, meta `completed`/full-number, plus warm-token reconciliation for the question/arrow.
+Shared meta layout + Blog (Wave 8) · Wave 6 geometry/spacer · Wave 15 GNB visual (then gnb-smoke can re-tighten to shared affordance) ·
+Wave 16 theme/dark (scoped tokens are fixed light/warm now, like Wave 3) · i18n "completed" translations best-effort (native review optional).

@@ -588,6 +588,9 @@ test.describe('Phase 7 state + capability smoke', () => {
       const hoverExitTarget = testCard.locator('[data-slot="cardTitleExpanded"]');
       await movePointerToCenter(page, hoverExitTarget);
       const answerChoice = testCard.locator('[data-slot="answerChoiceA"]');
+      // Let any expand-time hover on the choice settle back to rest before sampling the baseline
+      // (the choice skin transitions border/background over 140ms).
+      await page.waitForTimeout(180);
       const beforeHover = await readInteractiveMetrics(answerChoice);
 
       expect(beforeHover.hovered).toBe(false);
@@ -611,7 +614,9 @@ test.describe('Phase 7 state + capability smoke', () => {
       expect(afterHover.backgroundImage).toBe('none');
       expect(afterHover.backgroundColor).not.toBe(beforeHover.backgroundColor);
       expect(afterHover.borderColor).not.toBe(beforeHover.borderColor);
-      expect(afterHover.boxShadow).not.toBe(beforeHover.boxShadow);
+      // Wave 5 skin: the choice hover affordance is a border + continuous background change only;
+      // the box-shadow handoff was removed, so hover keeps box-shadow 'none' rather than changing it.
+      expect(afterHover.boxShadow).toBe(beforeHover.boxShadow);
       expect(Math.abs(afterHover.x - beforeHover.x)).toBeLessThanOrEqual(1);
       expect(Math.abs(afterHover.y - beforeHover.y)).toBeLessThanOrEqual(1);
       expect(Math.abs(afterHover.width - beforeHover.width)).toBeLessThanOrEqual(1);
