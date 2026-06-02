@@ -21,11 +21,11 @@
     "comingSoon": "即将推出",
     "closeExpandedAria": "关闭展开的卡片",
     "close": "关闭",
-    "metaEstimated": "预计时间",
-    "metaShares": "分享数",
-    "metaAttempts": "完成数",
-    "metaReadTime": "阅读时间",
-    "metaViews": "浏览量",
+    "metaEstimated": "分钟",
+    "metaShares": "分享",
+    "metaAttempts": "完成",
+    "metaReadTime": "分钟阅读",
+    "metaViews": "浏览",
     "readMore": "阅读更多"
   },
   "test": {

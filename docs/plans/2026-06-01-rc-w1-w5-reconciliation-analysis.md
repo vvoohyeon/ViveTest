@@ -24,6 +24,23 @@
 
 **Working-tree note.** The repo already carried uncommitted docs/design-resource changes before this report (`AGENTS.md`, `docs/agent-guides/project-rules.md`, `docs/decision-register.md`, `docs/design/design.md`, deleted root wave CSS, new `docs/design/resources/superseded/`, untracked BQ-21/Wave 6 docs, and Wave 5 source per `.planning/STATE.md`). This analysis treats those as pre-existing context; it does not claim, reinterpret, or revert them.
 
+### User Decision Applied
+
+The user has resolved the Candidate Register as follows:
+
+| ID | Decision | Implementation disposition |
+|---|---|---|
+| RC-W1W5-01 | Reject / no-change | Keep `Completed`; optionally clarify `design.md §7.3` as word choice, not casing directive |
+| RC-W1W5-02 | Approve | Adopt `16 / 6`; update implementation and `grid-smoke` in the same change set |
+| RC-W1W5-03 | Approve | Rework fallback SVG and `qmbti` thumbnail SVG to warm-neutral/sage palette |
+| RC-W1W5-04 | Approve if same small set | Repoint current Wave 6 analysis to `design.md` before reuse; avoid broad historical rewrite |
+| RC-W1W5-05 | Optional | May include in the same docs/assets hygiene change set; not required |
+| RC-W1W5-06 | Defer | Do not touch `scripts/qa/*` in this change set |
+
+This resolves the previously conflict-gated status of RC-W1W5-02. The subsequent implementation scope is visual/asset/QA-contract reconciliation only; resolver, storage, telemetry, transition, routing, test entry, and i18n behavior remain protected.
+
+These decisions supersede the earlier “conflict-gated / open question” framing in this report. RC-W1W5-02 is now approved for implementation as a visual/QA-contract reconciliation.
+
 ## 2. Sources Read (routing order)
 
 - `AGENTS.md` — §4 Critical Boundaries, §2 Task Routing Table (visual skin / design tokens / card visual row), Visual source precedence (BQ-21).
@@ -116,9 +133,19 @@ All scoped `--normal-*` / `--expanded-*` tokens are declared in
 
 **BQ-21 coverage (RC-2):** `16/6` is a concrete value, **fully covered** by `design.md §6.2`. No supplemental-CSS exception needed. The gap is not in design.md — it is the conflict with the E2E contract + the near-unchanged expectation.
 
+**User decision / resolved status.** The user approved adopting `16 / 6`. The prior conflict-gated status is resolved: implementation should change the thumbnail slot from `aspect-[6/1]` to the `16 / 6` design SSOT value, and the `grid-smoke` ratio assertion must be updated in the same change set. The previous `6/1` assertion is now treated as a QA encoding of the old implementation, not as a product contract.
+
+**Implementation disposition.**
+- Update `landing-grid-card.tsx:215` from `aspect-[6/1]` to the `16 / 6` equivalent.
+- Update `tests/e2e/grid-smoke.spec.ts:823-827` from the `6/1` bound to an appropriate `16/6` bound, e.g. around `2.4–2.9`.
+- Redraw/rework both thumbnail SVG surfaces to the new ratio in the same change set to avoid accidental `object-cover` cropping.
+- Preserve card entry behavior, storage, telemetry, transition, resolver, routing, and i18n behavior.
+
+**Risk note.** The visual delta remains non-trivial: at fixed width, `16/6` is about 2.25× taller than `6/1`. That is now an accepted visual/QA-contract change, not an open question. Rollback is straightforward: restore `6/1`, previous SVG viewBox/art, and previous grid-smoke ratio bounds.
+
 ---
 
-## 6. RC-2′ — Meta Label Casing (`metaAttempts`) — reclassified
+## 6. RC-W1W5-01 — Meta Label Casing (`metaAttempts`) — rejected / no-change
 
 ### Evidence
 
@@ -133,6 +160,13 @@ All scoped `--normal-*` / `--expanded-*` tokens are declared in
 Sibling labels in the same row (en): `metaEstimated` = `"Est. time"`, `metaShares` = `"Shares"`; adjacent card copy: `comingSoon` = `"Coming soon"`, `metaViews` = `"Views"`, `readMore` = `"Read more"`. **The entire realized copy set uses sentence case (first-letter capital).**
 
 Requirements search (`req-landing.md`, `req-test.md`, `req-test-plan.md`, `project-analysis.md`, `requirements.md`): every "completed"/"Completed run" hit is a **test-flow domain term** (Active/Completed Run state machine, result pipeline) — **no product requirement governs landing meta-label casing.**
+
+**Final decision.** Rejected / no-change. Keep rendered English `Completed`. This is not an implementation task.
+
+**Disposition.**
+- No source or locale message change.
+- No row-wide lowercase rewrite.
+- Optional docs-only clarification, if this file is edited in a nearby docs pass: clarify `design.md §7.3` so `completed` is understood as word choice, not a casing directive.
 
 ### The real finding: a design.md internal notation tension, not code drift
 
@@ -161,6 +195,16 @@ Read literally, §7.3's lowercase `completed` would demand "completed"; but §4.
 
 **Design coverage:** §4.4/§4.9 give the **constraint** (warm-neutral / sage family, low saturation) and §5 gives the token family (`--canvas`, `--surface-soft`, `--sage`/`--sage-soft`/`--sage-muted`); §9 explicitly states real thumbnail imagery is a "recommended missing resource" and current ones are "calm abstract placeholders." So exact placeholder hex is the implementer's choice **within** that family — **covered enough; no supplemental-CSS exception** (these are SVG/inline assets, not a CSS-snippet gap). Contrast must be checked for the overlaid token text (§4.10). Couples with RC-2 if the ratio changes (re-draw art to the new viewBox).
 
+**Coupling with RC-W1W5-02.** Because `16 / 6` is approved, this palette correction must not be implemented as a color-only edit against the old `600×100` / `6:1` art. Rework the fallback SVG and `qmbti` thumbnail SVG composition, viewBox, and palette together.
+
+**User decision.** Approved. Implement RC-W1W5-03 in the same change set as RC-W1W5-02.
+
+**Required implementation scope:**
+- Replace cold-blue / teal / navy values in the inline fallback SVG.
+- Rework `public/landing-card-media/qmbti/thumbnail.svg` into the warm-neutral/sage family.
+- If RC-W1W5-02 changes the thumbnail slot to `16 / 6`, redraw the SVG art and viewBox for that ratio in the same change set.
+- Prefer the existing design token family as source values where practical; do not introduce a new palette system.
+
 ---
 
 ## 8. RC-4 — Superseded References & Doc Repointing
@@ -178,9 +222,16 @@ Read literally, §7.3's lowercase `completed` would demand "completed"; but §4.
 | `docs/plans/2026-05-31-wave-3-normal-card-visual-skin.md` | Names `wave3-…reference.css` as visual authority/reference | Historical approved plan — optional supersession note only if docs are actively normalized. |
 | `docs/plans/2026-05-31-wave-5-expanded-test-visual-skin-analysis.md` | Names `wave4-…reference.css` as visual authority (notes "no separate wave5 css exists") | Historical approved analysis — optional supersession note only. |
 
-**Classification:** required docs correction for the untracked Wave 6 analysis before reuse; optional historical annotation for the completed Wave 3/5 plans. No runtime impact.
+**User decision.** Approved only for the same small current set.
+
+**Disposition.**
+- Required before reuse: repoint the current untracked Wave 6 analysis from wave4/5 CSS references to `docs/design/design.md`.
+- Do not broadly rewrite historical Wave 3/5 plans in this change set.
+- Historical docs may retain superseded references as historical evidence unless they are actively reused as current visual authority.
 
 **BQ-21 coverage (RC-4):** fully covered by `design.md` + `project-rules.md §Visual-Design` ("Per-wave CSS is not the design SSOT… superseded under `…/superseded/`"). No CSS exception.
+
+**Scope guard.** This approval is limited to the current Wave 6 analysis document before reuse. Do not normalize historical Wave 3/5 reports in this change set unless they are actively being reused as current visual authority.
 
 ---
 
@@ -200,6 +251,8 @@ Read literally, §7.3's lowercase `completed` would demand "completed"; but §4.
 | Path casing note | Git tracks canonical `docs/design/design.md` (lowercase); the macOS case-insensitive filesystem can display `DESIGN.md` in tool output. Use the lowercase path in docs. No action needed. |
 
 **Classification:** BQ traceability is intact (no correction needed). The logo whitespace is optional hygiene; note the corrected understanding of `git diff --check`.
+
+If the implementation change set already touches docs/design assets, stripping `vive-logo.svg:2` is allowed. It must not expand the scope or become a blocker.
 
 ---
 
@@ -226,19 +279,20 @@ Improvement value rated 1–5: (1) modern React patterns · (2) simplicity/maint
 ### RC-W1W5-01 — Meta `metaAttempts` casing (reclassified to no-change / optional docs clarification)
 | Field | Value |
 |---|---|
-| Classification | **Optional.** Recommended **no code/i18n change** ("Completed" satisfies BQ-09 word + §4.2 sentence case + row consistency). Optional design.md §7.3 wording clarification only. |
-| Affected layers | docs (design.md §7.3) at most; **no** i18n change recommended |
-| Change magnitude | Low (docs) / None (code) |
-| Improvement value | 1) n/a · 2) low (removes §4.2-vs-§7.3 doc ambiguity) · 3) none · 4) none · 5) none |
-| Risk & rollback | Negligible (docs clarification). Doing the *literal-lowercase* alternative instead would be Medium scope (row-wide + 6 cased locales + §4.2 revision) and is **not** recommended without an explicit voice decision. |
-| Wave dependency | Wave 4/5 content scope; no Wave 6+ dependency |
-| design coverage | Covered but internally ambiguous (§4.2 vs §7.3) |
-| Later validation gates | If a docs clarification only: markdown review. If user chooses literal-lowercase: Basic Gates + landing copy assertion + grid/state/gnb functional smoke; **no** screenshot baseline regen |
+| Classification | **Rejected / no-change.** Keep rendered `Completed`; optional `design.md §7.3` wording clarification only. |
+| Change magnitude | Low (docs-only, if applied). |
+| Affected layers | docs (design.md §7.3) at most; **no** i18n/source change. |
+| Risk & rollback | Very low. Rollback: revert the docs note. |
+| Improvement value | 2) low (removes §4.2-vs-§7.3 notation ambiguity); others n/a. |
+| Wave dependency | Wave 4/5 content scope; no Wave 6+ dependency. |
+| design coverage | Covered but internally ambiguous (§4.2 vs §7.3). |
+| Later validation gates | Markdown review only. |
 
 ### RC-W1W5-02 — Thumbnail aspect ratio `6/1` → `16/6`
 | Field | Value |
 |---|---|
-| Classification | **Required correction (SSOT drift)**, **conflict-gated** — proceed only if the user does not reaffirm `6/1` as an intentional product/QA contract |
+| Classification | **Approved required correction.** Adopt `16 / 6`; update implementation + `grid-smoke` ratio contract in the same change set. |
+| Risk & rollback | Medium. Approved despite non-trivial visual delta. Rollback: restore `aspect-[6/1]`, previous SVG viewBox/art, and previous grid-smoke ratio bound. |
 | Affected layers | visual/CSS (`landing-grid-card.tsx:215`), tests (`grid-smoke.spec.ts:823-827`), docs (if `6/1` reaffirmed → log BQ-21 exception) |
 | Change magnitude | **Medium–High** (thumbnail ~2.25× taller; affects card height/row rhythm; **not** near-unchanged) |
 | Improvement value | 1) n/a · 2) medium (removes design↔impl contradiction) · 3) neutral · 4) high (explicit ratio assertion) · 5) low/neutral |
@@ -250,7 +304,7 @@ Improvement value rated 1–5: (1) modern React patterns · (2) simplicity/maint
 ### RC-W1W5-03 — Replace cold-blue thumbnail placeholder/asset palette
 | Field | Value |
 |---|---|
-| Classification | **Required correction (SSOT drift)** — §4.4/§4.9 |
+| Classification | **Approved required correction.** Rework fallback + `qmbti` SVG palette to warm-neutral/sage; couple with RC-W1W5-02 ratio redraw. |
 | Affected layers | visual/CSS (`landing-grid-card.tsx:165-170`), asset (`public/landing-card-media/qmbti/thumbnail.svg`), docs |
 | Change magnitude | Low–Medium (palette + font stack; structure unchanged) |
 | Improvement value | 1) n/a · 2) medium (removes off-system hardcoded colors) · 3) neutral · 4) low/medium (can assert absence of old hex) · 5) low (contrast must be checked) |
@@ -262,7 +316,7 @@ Improvement value rated 1–5: (1) modern React patterns · (2) simplicity/maint
 ### RC-W1W5-04 — Repoint current docs away from wave CSS as visual authority
 | Field | Value |
 |---|---|
-| Classification | **Required (docs)** for the untracked Wave 6 analysis before reuse; **Optional** annotation for historical Wave 3/5 plans |
+| Classification | **Approved, limited docs correction.** Repoint only the current Wave 6 analysis before reuse; avoid broad historical doc normalization. |
 | Affected layers | docs |
 | Change magnitude | Low |
 | Improvement value | 1) n/a · 2) high (prevents future prompt drift) · 3) none · 4) low · 5) none |
@@ -274,7 +328,7 @@ Improvement value rated 1–5: (1) modern React patterns · (2) simplicity/maint
 ### RC-W1W5-05 — Strip `vive-logo.svg` line-2 whitespace
 | Field | Value |
 |---|---|
-| Classification | **Optional** hygiene |
+| Classification | **Optional hygiene.** May include with the same docs/assets hygiene change set; not required. |
 | Affected layers | docs/asset |
 | Change magnitude | Low |
 | Improvement value | 1) n/a · 2) low · 3) none · 4) low (`git diff --check` once edited) · 5) none |
@@ -286,7 +340,7 @@ Improvement value rated 1–5: (1) modern React patterns · (2) simplicity/maint
 ### RC-W1W5-06 — (Optional, out-of-band) token-parity QA check
 | Field | Value |
 |---|---|
-| Classification | **Optional improvement** — **propose only** (`scripts/qa/*` is Ask-First; do not author) |
+| Classification | **Deferred / out of scope for this change set.** Do not touch `scripts/qa/*`. |
 | Affected layers | QA script, docs |
 | Change magnitude | Medium (Ask-First path; brittle-parse risk) |
 | Improvement value | 1) n/a · 2) high (machine-enforces RC-1 scoped-token ↔ design.md invariant) · 3) none · 4) high · 5) none |
@@ -297,29 +351,40 @@ Improvement value rated 1–5: (1) modern React patterns · (2) simplicity/maint
 
 ---
 
-## 12. Proposed Later-Implementation Validation Gates
+## 12. Required Validation for the Approved Implementation
 
-For any approved source / message / CSS / asset implementation:
-1. `npm run lint` → 2. `npm run typecheck` → 3. `npm test` → 4. `npm run build` (Basic Gates, in order — AGENTS.md §5).
-5. Scope-specific **functional** checks: focused `grid-smoke` (thumbnail ratio/geometry, src/presence), `state-smoke` (functional, not screenshots), `gnb-smoke` (functional).
+For RC-W1W5-02/-03:
+1. Basic Gates: `npm run lint` → `npm run typecheck` → `npm test` → `npm run build`.
+2. Focused `grid-smoke` update/check for the `16 / 6` thumbnail ratio.
+3. Static grep/assertion that old cold-blue hex values are removed from:
+   - inline fallback SVG in `landing-grid-card.tsx`
+   - `public/landing-card-media/qmbti/thumbnail.svg`
+4. Manual visual check for thumbnail composition, crop, and contrast.
 
-**Explicitly excluded:** `qa:visual:full`, screenshot baseline regeneration, snapshot approval (BQ-07). Docs-only candidates (RC-W1W5-04/-05, and the docs-clarification path of -01): `git diff --check` + markdown review only.
+For RC-W1W5-04 and optional RC-W1W5-05:
+- `git diff --check`
+- markdown/diff review
+
+Explicitly excluded:
+- `qa:visual:full`
+- screenshot baseline regeneration
+- new `scripts/qa/*` token parity script
 
 ---
 
-## 13. Candidate Register (for user approval)
+## 13. Candidate Register (user decision applied)
 
-| ID | Tag | Candidate | Status |
+| ID | Tag | Candidate | Decision / Status |
 |---|---|---|---|
-| RC-W1W5-01 | **Optional** | Meta `metaAttempts` casing: recommended **no change** ("Completed" complies with §4.2 + BQ-09 + row consistency). Optional only: clarify design.md §7.3 lowercase-notation wording. (Literal row-wide lowercasing is a larger voice decision, not recommended without explicit user intent.) | Pending |
-| RC-W1W5-02 | **Required (conflict-gated)** | Reconcile thumbnail `aspect-[6/1]` → design `16 / 6` **and** update `grid-smoke` ratio bound — unless user reaffirms `6/1` as a product/QA contract (then log BQ-21 exception). Visual delta is non-trivial (~2.25× taller). | Pending |
-| RC-W1W5-03 | **Required** | Replace cold-blue fallback + `qmbti` asset palette (and Avenir→Pretendard) with warm-neutral/sage-family values per §4.4/§4.9; verify text contrast. | Pending |
-| RC-W1W5-04 | **Required (docs) / Optional (historical)** | Repoint the untracked Wave 6 analysis off wave4/5 CSS to `docs/design/design.md`; optionally annotate Wave 3/5 historical plans as superseded. | Pending |
-| RC-W1W5-05 | **Optional** | Strip whitespace-only line at `vive-logo.svg:2`. | Pending |
-| RC-W1W5-06 | **Optional (propose-only)** | Propose `scripts/qa/check-design-token-parity.mjs` (Ask-First; do not author) to machine-enforce RC-1. | Pending |
+| RC-W1W5-01 | No-change | Meta `metaAttempts` casing | **Rejected / no-change.** Keep `Completed`; optional `design.md §7.3` clarification only. |
+| RC-W1W5-02 | Approved | Thumbnail ratio `6/1` → `16 / 6` | **Approved.** Implement ratio change and update `grid-smoke` in the same change set. |
+| RC-W1W5-03 | Approved | Replace cold-blue fallback + `qmbti` thumbnail SVG palette | **Approved.** Rework to warm-neutral/sage; redraw/rework assets with the approved `16 / 6` ratio. |
+| RC-W1W5-04 | Limited approved | Repoint current docs away from wave CSS as visual authority | **Approved if same small set.** Repoint current Wave 6 analysis before reuse; do not broadly rewrite historical plans. |
+| RC-W1W5-05 | Optional | Strip whitespace-only line at `vive-logo.svg:2` | **Optional.** May include with docs/assets hygiene; not required. |
+| RC-W1W5-06 | Deferred | Token-parity QA script | **Deferred.** Do not touch `scripts/qa/*` in this change set. |
 
-**Gate ends here.** This is the BQ-19 Analysis gate; no Plan and no Implementation follow until the user approves candidates. The subsequent implementation prompt must carry exactly one of the lines below — left blank for the user to confirm:
+**Gate status:** BQ-19 Analysis gate is cleared for the approved RC implementation scope. The next step may be a Plan Only or Implementation prompt, limited to RC-W1W5-02/-03 plus RC-W1W5-04 and optional RC-W1W5-05 hygiene. RC-W1W5-01 is no-change; RC-W1W5-06 is deferred.
 
-Logic Improvement: no candidates approved for this task — preserve existing logic.
+Logic Improvement: no business-logic candidates approved for this task — preserve existing resolver, storage, telemetry, transition, routing, test-entry, and i18n behavior.
 
-Approved RC corrections: RC-W1W5-02 and RC-W1W5-03 are approved as visual/QA reconciliation only. Apply `16 / 6` thumbnail ratio, update the matching `grid-smoke` ratio contract, and redraw/rework fallback + qmbti thumbnail SVG assets in the same change set. Do not change resolver, storage, telemetry, transition, routing, test entry, or i18n behavior.
+Approved RC corrections: RC-W1W5-02 and RC-W1W5-03 are approved as visual/asset/QA-contract reconciliation only. Apply the `16 / 6` thumbnail ratio, update the matching `grid-smoke` ratio contract, and redraw/rework fallback + `qmbti` thumbnail SVG assets in the same change set. RC-W1W5-04 is approved only for the current Wave 6 docs repoint before reuse. RC-W1W5-05 is optional hygiene. RC-W1W5-06 is deferred.

@@ -218,7 +218,7 @@ Layout spacing scale (reference rhythm for gaps, padding, and grid gutters):
 --space-2xl:     48px;   /* intent-only */
 --space-section: 96px;   /* intent-only — non-catalog editorial band rhythm */
 ```
-`--space-2xs … --space-lg` are realized in the catalog (24px is the desktop grid gutter and the desktop/tablet container side padding); `--space-xl` and larger are **intent-only** until a non-catalog surface uses them.; those are component-specific values and live with their components (§6.3, §6.4), not in this scale. These tokens document rhythm — the codebase may realize spacing via utility classes rather than consuming these names directly.
+`--space-2xs … --space-lg` are realized in the catalog (24px is the desktop grid gutter and the desktop/tablet container side padding); `--space-xl` and larger are **intent-only** until a non-catalog surface uses them. Some component paddings sit deliberately off this 4px grid (choice button `12px 14px`, tag `4px 9px`); those are component-specific values and live with their components (§6.3, §6.4), not in this scale. These tokens document rhythm — the codebase may realize spacing via utility classes rather than consuming these names directly.
 
 ### 5.11 Motion tokens
 ```css
@@ -294,6 +294,8 @@ Content order: **context label → preview question → choice A → choice B �
 - Meta label is **`completed`** (never `taken` / `have taken`); numbers are full-digit.
 - The expanded card edge uses `--sage` with `--shadow-expanded`.
 - **Height invariant:** the expanded card must be **at least the resting card height**. The realized mechanism measures the resting card's height in **explicit pixels** and applies it as a floor; surplus height is absorbed **only** between the last choice and the meta row (a single flex spacer). The card grows downward when content overflows. **Do not** express this invariant as `min-height: 100%`.
+- For the blog expanded card (which has no choices and ends with a `Read more →` CTA below the meta), the same single flex spacer sits between the subtitle block and the meta+CTA group, so the meta+CTA anchors to the card bottom. The floor mechanism (explicit-pixel resting height) is identical.
+- The floor/spacer affects only the expanded card's own height; it must not change any same-row card's track height (the row-isolation behavior is governed by the product requirements, not by this document).
 
 ### 7.4 Blog card
 - **No expanded state.** The card body navigates to the article on click/tap.

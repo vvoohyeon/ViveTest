@@ -21,11 +21,11 @@
     "comingSoon": "Скоро",
     "closeExpandedAria": "Закрыть раскрытую карточку",
     "close": "Закрыть",
-    "metaEstimated": "Прим. время",
-    "metaShares": "Репосты",
-    "metaAttempts": "Завершено",
-    "metaReadTime": "Время чтения",
-    "metaViews": "Просмотры",
+    "metaEstimated": "мин",
+    "metaShares": "репостов",
+    "metaAttempts": "завершено",
+    "metaReadTime": "мин чтения",
+    "metaViews": "просмотров",
     "readMore": "Читать далее"
   },
   "test": {

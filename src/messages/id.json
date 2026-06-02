@@ -21,11 +21,11 @@
     "comingSoon": "Segera hadir",
     "closeExpandedAria": "Tutup kartu yang diperluas",
     "close": "Tutup",
-    "metaEstimated": "Estimasi waktu",
-    "metaShares": "Dibagikan",
-    "metaAttempts": "Selesai",
-    "metaReadTime": "Waktu baca",
-    "metaViews": "Tampilan",
+    "metaEstimated": "menit",
+    "metaShares": "dibagikan",
+    "metaAttempts": "selesai",
+    "metaReadTime": "menit baca",
+    "metaViews": "dilihat",
     "readMore": "Baca selengkapnya"
   },
   "test": {

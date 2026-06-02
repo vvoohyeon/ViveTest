@@ -21,11 +21,11 @@
     "comingSoon": "近日公開",
     "closeExpandedAria": "展開したカードを閉じる",
     "close": "閉じる",
-    "metaEstimated": "所要時間",
-    "metaShares": "シェア数",
-    "metaAttempts": "完了数",
-    "metaReadTime": "読了時間",
-    "metaViews": "閲覧数",
+    "metaEstimated": "分",
+    "metaShares": "シェア",
+    "metaAttempts": "完了",
+    "metaReadTime": "分で読了",
+    "metaViews": "閲覧",
     "readMore": "続きを読む"
   },
   "test": {

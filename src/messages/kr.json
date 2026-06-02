@@ -21,11 +21,11 @@
     "comingSoon": "출시 예정",
     "closeExpandedAria": "확장 카드 닫기",
     "close": "닫기",
-    "metaEstimated": "예상 시간",
-    "metaShares": "공유 수",
-    "metaAttempts": "완료 수",
-    "metaReadTime": "읽기 시간",
-    "metaViews": "조회 수",
+    "metaEstimated": "분",
+    "metaShares": "공유",
+    "metaAttempts": "완료",
+    "metaReadTime": "분 읽기",
+    "metaViews": "조회",
     "readMore": "더 읽기"
   },
   "test": {

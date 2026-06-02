@@ -21,11 +21,11 @@
     "comingSoon": "Próximamente",
     "closeExpandedAria": "Cerrar tarjeta expandida",
     "close": "Cerrar",
-    "metaEstimated": "Tiempo est.",
-    "metaShares": "Compartidos",
-    "metaAttempts": "Completados",
-    "metaReadTime": "Tiempo de lectura",
-    "metaViews": "Visualizaciones",
+    "metaEstimated": "min",
+    "metaShares": "compartidos",
+    "metaAttempts": "completados",
+    "metaReadTime": "min de lectura",
+    "metaViews": "visualizaciones",
     "readMore": "Leer más"
   },
   "test": {

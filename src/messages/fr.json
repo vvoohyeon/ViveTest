@@ -21,11 +21,11 @@
     "comingSoon": "Bientôt disponible",
     "closeExpandedAria": "Fermer la carte développée",
     "close": "Fermer",
-    "metaEstimated": "Durée estimée",
-    "metaShares": "Partages",
-    "metaAttempts": "Terminés",
-    "metaReadTime": "Temps de lecture",
-    "metaViews": "Vues",
+    "metaEstimated": "min",
+    "metaShares": "partages",
+    "metaAttempts": "terminés",
+    "metaReadTime": "min de lecture",
+    "metaViews": "vues",
     "readMore": "Lire la suite"
   },
   "test": {

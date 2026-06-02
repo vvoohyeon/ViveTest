@@ -12,7 +12,7 @@ import type {
   RefObject,
   WheelEventHandler
 } from 'react';
-import {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {
@@ -162,9 +162,9 @@ function formatMetaValue(value: number): string {
   return metaValueFormatter.format(Math.max(0, Math.trunc(value)));
 }
 
-function createThumbnailFallbackDataUri(variant: string): string {
-  const safeToken = variant.replace(/[^a-z0-9-]/gi, '').slice(0, 12).toUpperCase() || 'CARD';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 100" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3B6EF5"/><stop offset="100%" stop-color="#17A789"/></linearGradient></defs><rect width="600" height="100" fill="url(#g)"/><text x="24" y="62" font-size="36" font-family="Avenir Next, Noto Sans KR, Segoe UI, sans-serif" fill="rgba(255,255,255,0.85)">${safeToken}</text></svg>`;
+function createThumbnailFallbackDataUri(): string {
+  // Calm abstract placeholder (design §4.9): warm-neutral → sage wash with soft circles, no text.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#g)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg>`;
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
@@ -180,7 +180,7 @@ function resolveVariantMediaSource(variant: string, hasAssetMedia: boolean): str
     return cached;
   }
 
-  const dataUri = createThumbnailFallbackDataUri(cacheKey);
+  const dataUri = createThumbnailFallbackDataUri();
   thumbnailDataUriCache.set(cacheKey, dataUri);
   return dataUri;
 }
@@ -208,11 +208,11 @@ const LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME =
 const LANDING_GRID_CARD_CONTENT_CLASSNAME =
   'landing-grid-card-content relative z-[1] flex min-w-0 flex-col justify-start';
 const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
-  'landing-grid-card-title relative z-[3] m-0 text-[1.04rem] leading-[1.35] [overflow-wrap:anywhere]';
+  'landing-grid-card-title relative z-[3] m-0 text-[20px] font-semibold leading-[1.3] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
   'landing-grid-card-subtitle min-w-0 overflow-hidden text-ellipsis text-[0.92rem] leading-[1.4] text-[var(--muted-ink)] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
-  'landing-grid-card-thumbnail-slot relative mt-[var(--landing-card-base-gap)] aspect-[6/1] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
+  'landing-grid-card-thumbnail-slot relative aspect-[16/6] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
 const LANDING_GRID_CARD_TAGS_CLASSNAME =
   'landing-grid-card-tags m-0 flex min-h-7 min-w-0 shrink-0 list-none items-center gap-2 overflow-hidden p-0';
 const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
@@ -228,13 +228,19 @@ const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
 const LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME =
   'landing-grid-card-answer-choice-text min-w-0 flex-1 text-[15px] font-normal leading-[1.45] text-[var(--expanded-choice-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME =
-  'landing-grid-card-answer-choice-arrow mt-[3px] shrink-0 text-[var(--expanded-choice-arrow-ink)] transition-colors duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/answerChoice:text-[var(--expanded-choice-accent)]';
-const LANDING_GRID_CARD_META_GRID_CLASSNAME = 'landing-grid-card-meta-grid m-0 grid grid-cols-3 gap-2';
-const LANDING_GRID_CARD_META_ITEM_CLASSNAME = 'landing-grid-card-meta-item m-0 grid min-w-0 gap-0.5';
-const LANDING_GRID_CARD_META_LABEL_CLASSNAME =
-  'landing-grid-card-meta-label m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.74rem] text-[var(--muted-ink)]';
-const LANDING_GRID_CARD_META_VALUE_CLASSNAME =
-  'landing-grid-card-meta-value m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.86rem] font-semibold';
+  'landing-grid-card-answer-choice-arrow shrink-0 text-[15px] leading-[1.45] text-[var(--expanded-choice-arrow-ink)] transition-colors duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/answerChoice:text-[var(--expanded-choice-accent)]';
+// design §6.10 quiet data row: horizontal wrapping row, dot separators, 13px/500/--muted,
+// leading value optionally emphasized. Inline value+label per item (no dt/dd stack).
+const LANDING_GRID_CARD_META_ROW_CLASSNAME =
+  'landing-grid-card-meta-row m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] font-medium leading-[1.35] text-[var(--muted-ink)]';
+const LANDING_GRID_CARD_META_ITEM_CLASSNAME =
+  'landing-grid-card-meta-item inline-flex items-baseline gap-1 whitespace-nowrap';
+const LANDING_GRID_CARD_META_SEPARATOR_CLASSNAME =
+  'landing-grid-card-meta-separator select-none [color:color-mix(in_srgb,var(--muted-ink)_55%,transparent)]';
+const LANDING_GRID_CARD_META_VALUE_CLASSNAME = 'landing-grid-card-meta-value';
+const LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME =
+  'landing-grid-card-meta-value landing-grid-card-meta-value-lead font-semibold text-[var(--text-strong)]';
+const LANDING_GRID_CARD_META_LABEL_CLASSNAME = 'landing-grid-card-meta-label';
 const LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME =
   'landing-grid-card-primary-cta inline-flex min-h-10 max-w-full min-w-0 self-start items-center justify-center overflow-hidden rounded-full border border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] px-4 py-2 text-[0.84rem] font-bold tracking-[0.01em] whitespace-nowrap text-[var(--text-strong)] text-ellipsis shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
 const LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME =
@@ -297,6 +303,9 @@ interface NormalCardTitleProps {
   card: LandingCard;
   isMobileViewport: boolean;
   exposePublicSlot: boolean;
+  // Pure base_gap above the title in the collapsed face (thumbnail → title rhythm, req-landing §6.7).
+  // Off in expandedTitleOnly, where the thumbnail is absent and the title sits at the content inset.
+  topGap: boolean;
   titleRef?: RefObject<HTMLHeadingElement | null>;
 }
 
@@ -348,13 +357,14 @@ function LandingCardSubtitleText({
   );
 }
 
-function NormalCardTitle({card, isMobileViewport, exposePublicSlot, titleRef}: NormalCardTitleProps) {
+function NormalCardTitle({card, isMobileViewport, exposePublicSlot, topGap, titleRef}: NormalCardTitleProps) {
   return (
     <h2
       ref={titleRef}
       className={joinClassNames(
         LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
         'landing-grid-card-title-normal min-w-0 overflow-hidden text-ellipsis',
+        topGap && 'mt-[var(--landing-card-base-gap)]',
         isMobileViewport ? 'block overflow-visible text-clip' : 'line-clamp-1',
         styles.normalTitle
       )}
@@ -444,6 +454,7 @@ function NormalCardFace({
       card={card}
       isMobileViewport={isMobileViewport}
       exposePublicSlot={exposePublicSlots}
+      topGap={presentation === 'collapsed'}
       titleRef={titleRef}
     />
   );
@@ -574,6 +585,41 @@ function ExpandedTestAnswerChoice({
   );
 }
 
+interface ExpandedMetaEntry {
+  label: string;
+  value: number;
+}
+
+// Quiet data row (design §6.10): inline "value label" items separated by decorative dots,
+// the leading (first) value emphasized. data-slot/data-motion-slot preserved for QA + expand motion.
+function ExpandedMetaRow({entries, interactive}: {entries: [ExpandedMetaEntry, ...ExpandedMetaEntry[]]; interactive: boolean}) {
+  return (
+    <p
+      className={joinClassNames(LANDING_GRID_CARD_META_ROW_CLASSNAME, styles.motionStageMiddle)}
+      data-slot={interactive ? 'meta' : undefined}
+      data-motion-slot="meta"
+    >
+      {entries.map((entry, index) => (
+        <Fragment key={entry.label}>
+          {index > 0 ? (
+            <span className={LANDING_GRID_CARD_META_SEPARATOR_CLASSNAME} aria-hidden="true">
+              ·
+            </span>
+          ) : null}
+          <span className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
+            <span
+              className={index === 0 ? LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME : LANDING_GRID_CARD_META_VALUE_CLASSNAME}
+            >
+              {formatMetaValue(entry.value)}
+            </span>
+            <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
+          </span>
+        </Fragment>
+      ))}
+    </p>
+  );
+}
+
 function ExpandedTestBody({card, locale, copy, interactive, onAnswerChoiceSelect}: ExpandedTestBodyProps) {
   // Preserve the registry resolver boundary; card UI must not read fixture source directly.
   const previewPayload = resolveTestPreviewPayload(card.variant, locale);
@@ -607,24 +653,14 @@ function ExpandedTestBody({card, locale, copy, interactive, onAnswerChoiceSelect
         />
       </div>
 
-      <dl
-        className={joinClassNames(LANDING_GRID_CARD_META_GRID_CLASSNAME, styles.motionStageMiddle)}
-        data-slot={interactive ? 'meta' : undefined}
-        data-motion-slot="meta"
-      >
-        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaEstimated}</dt>
-          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.test.meta.durationM)}</dd>
-        </div>
-        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaShares}</dt>
-          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.test.meta.sharedC)}</dd>
-        </div>
-        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaAttempts}</dt>
-          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.test.meta.engagedC)}</dd>
-        </div>
-      </dl>
+      <ExpandedMetaRow
+        interactive={interactive}
+        entries={[
+          {label: copy.metaEstimated, value: card.test.meta.durationM},
+          {label: copy.metaShares, value: card.test.meta.sharedC},
+          {label: copy.metaAttempts, value: card.test.meta.engagedC}
+        ]}
+      />
     </div>
   );
 }
@@ -660,24 +696,14 @@ function ExpandedBlogBody({
         />
       )}
 
-      <dl
-        className={joinClassNames(LANDING_GRID_CARD_META_GRID_CLASSNAME, styles.motionStageMiddle)}
-        data-slot={interactive ? 'meta' : undefined}
-        data-motion-slot="meta"
-      >
-        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaReadTime}</dt>
-          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.blog.meta.durationM)}</dd>
-        </div>
-        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaShares}</dt>
-          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.blog.meta.sharedC)}</dd>
-        </div>
-        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaViews}</dt>
-          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.blog.meta.engagedC)}</dd>
-        </div>
-      </dl>
+      <ExpandedMetaRow
+        interactive={interactive}
+        entries={[
+          {label: copy.metaReadTime, value: card.blog.meta.durationM},
+          {label: copy.metaShares, value: card.blog.meta.sharedC},
+          {label: copy.metaViews, value: card.blog.meta.engagedC}
+        ]}
+      />
 
       {interactive ? (
         <Link

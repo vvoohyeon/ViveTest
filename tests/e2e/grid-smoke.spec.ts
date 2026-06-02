@@ -505,7 +505,9 @@ test.describe('Phase 4 grid smoke', () => {
       expect(`${expandedTitle.line1Text}${expandedTitle.overflowText}`).toBe(normalFullText);
       expect(expandedTitle.line1Text.length).toBeGreaterThan(0);
       expect(expandedTitle.overflowText.length).toBeGreaterThan(0);
-      expect(expandedTitle.line1Height).toBeLessThanOrEqual(expandedTitle.line1LineHeight + 1);
+      // Single-line guard: line1 must not wrap (a 2-line wrap would be ~2× lineHeight). The 2px
+      // headroom absorbs sub-pixel glyph-box overshoot at the 20px/1.3 card title (design §5.1).
+      expect(expandedTitle.line1Height).toBeLessThanOrEqual(expandedTitle.line1LineHeight + 2);
 
       await collapseDesktopExpandedCard(page, card);
     }
@@ -823,8 +825,8 @@ test.describe('Phase 4 grid smoke', () => {
     const thumbnailRatio = await emptyTagsCard
       .locator('[data-slot="cardThumbnail"]')
       .evaluate((element) => element.clientWidth / Math.max(1, element.clientHeight));
-    expect(thumbnailRatio).toBeGreaterThan(5.5);
-    expect(thumbnailRatio).toBeLessThan(6.5);
+    expect(thumbnailRatio).toBeGreaterThan(2.4);
+    expect(thumbnailRatio).toBeLessThan(2.9);
 
     const assetThumbnailSrc = await assetBackedCard.locator('.landing-grid-card-thumbnail').getAttribute('src');
     const fallbackThumbnailSrc = await emptyTagsCard.locator('.landing-grid-card-thumbnail').getAttribute('src');

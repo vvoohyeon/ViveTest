@@ -145,7 +145,15 @@ describe('landing card slot contract', () => {
       (expandedChoiceA?.querySelector('.landing-grid-card-answer-choice-text')?.textContent ?? '').length
     ).toBeGreaterThan(0);
 
-    expect(expandedDoc.querySelectorAll('.landing-grid-card-meta-item')).toHaveLength(3);
+    // Inline quiet data row (design §6.10): three "value label" items in a single dot-separated
+    // row — each item carries a numeric value and an inline label, with decorative dot separators.
+    const expandedMetaItems = Array.from(expandedDoc.querySelectorAll('.landing-grid-card-meta-item'));
+    expect(expandedMetaItems).toHaveLength(3);
+    for (const item of expandedMetaItems) {
+      expect((item.querySelector('.landing-grid-card-meta-value')?.textContent ?? '').trim().length).toBeGreaterThan(0);
+      expect((item.querySelector('.landing-grid-card-meta-label')?.textContent ?? '').trim().length).toBeGreaterThan(0);
+    }
+    expect(expandedDoc.querySelectorAll('.landing-grid-card-meta-separator')).toHaveLength(2);
 
     expect(expandedDoc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
 
