@@ -4,11 +4,15 @@ import {useEffect, useLayoutEffect, useReducer, useRef, useState} from 'react';
 import type {LandingCard} from '@/features/variant-registry';
 import type {LandingCardSpacingContract} from '@/features/landing/grid/landing-grid-card';
 import {
+  captureRestingFloor,
+  clearRestingFloor,
+  emptyRestingFloorMap,
   freezeBaselineRows,
   initialLandingBaselineState,
   releaseBaselineRows,
   type BaselineSnapshot,
-  type LandingBaselineState
+  type LandingBaselineState,
+  type RestingFloorMap
 } from '@/features/landing/grid/baseline-manager';
 import type {
   LandingGridColumnMode,
@@ -41,6 +45,7 @@ interface UseGridGeometryControllerInput {
 interface UseGridGeometryControllerOutput {
   spacingModel: CardSpacingMap;
   baselineState: LandingBaselineState;
+  restingFloorMap: RestingFloorMap;
 }
 
 type BaselineAction =
@@ -141,6 +146,7 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
   } = input;
   const [spacingModel, setSpacingModel] = useState<CardSpacingMap>({});
   const [baselineState, dispatchBaseline] = useReducer(baselineReducer, initialLandingBaselineState);
+  const [restingFloorMap, setRestingFloorMap] = useState<RestingFloorMap>(emptyRestingFloorMap);
   const baselineReleaseTimerRef = useRef<number>(0);
 
   useLayoutEffect(() => {
@@ -248,6 +254,35 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
     viewportWidth // viewportWidth is intentionally listed as a deps re-trigger signal even though it is not read in the effect body.
   ]);
 
+  // Expanded height floor (BQ-24): capture the active card's resting outer height in explicit
+  // pixels. The placeholder stays in-flow at the stretched row-max height during expansion, so
+  // its offsetHeight is the floor. Measured in a layout effect (before first paint) so the
+  // expanded body never paints shorter than the resting cell. This is intentionally separate
+  // from the freeze/release effect below; it must not alter the BASELINE_READY/FROZEN order.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useLayoutEffect(() => {
+    if (plan.tier === 'mobile' || !activeVisualCardVariant) {
+      setRestingFloorMap((previous) => (previous === emptyRestingFloorMap ? previous : clearRestingFloor()));
+      return;
+    }
+
+    const shell = shellRef.current;
+    if (!shell) {
+      return;
+    }
+
+    const activeCardElement = shell.querySelector<HTMLElement>(
+      `[data-testid="landing-grid-card"][data-card-variant="${activeVisualCardVariant}"]`
+    );
+    if (!activeCardElement) {
+      return;
+    }
+
+    const restingOuterPx = activeCardElement.offsetHeight;
+    setRestingFloorMap((previous) => captureRestingFloor(previous, activeVisualCardVariant, restingOuterPx));
+  }, [activeVisualCardVariant, plan.tier, shellRef]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   useEffect(() => {
     let frameId = 0;
     const clearTimer = () => {
@@ -343,6 +378,7 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
 
   return {
     spacingModel,
-    baselineState
+    baselineState,
+    restingFloorMap
   };
 }

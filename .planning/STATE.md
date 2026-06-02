@@ -1,39 +1,56 @@
-# STATE.md — Wave 5 Expanded Test Visual Skin (COMPLETE, uncommitted)
+# STATE.md — Wave 6: Desktop expanded overlay isolation + Expanded height floor (COMPLETE, uncommitted)
 
 > Session continuity anchor only. Not executable, not an SSOT.
-> Approved analysis: `docs/plans/2026-05-31-wave-5-expanded-test-visual-skin-analysis.md`.
-> Visual authority: `design.md §6.5/§7.7/§7.8/§10` + `docs/design/resources/wave5-expanded-test-visual-skin-reference.css`.
-> Base commit `a6e0dd8` (wave-4), branch `main`. **Implementation complete + verified. Not committed (awaiting instruction).**
+> Plan SSOT: `docs/plans/2026-06-02-wave-6-overlay-isolation-height-floor.md`. Branch `main`. Uncommitted; nothing pushed.
+> Approved approach (user): scale 보정=card 측 · floor map=controller 분리 state + baseline-manager pure helper · spacer 구간 gap 비적용.
 
-## Outcome
+## Current Phase / Milestone
 
-Wave 5 = expanded test visual skin. Logic directive honored: no candidates — existing logic preserved.
-Basic Done gate GREEN; functional + geometry E2E green; gnb-smoke updated + green. Only the two pre-existing
-`*-shell` screenshot baselines diverge (deferred per BQ-07; not regenerated).
+Wave 6 implementation (BQ-24 height floor + §6.7(3) lower-row isolation). Task mode: Implementation. Logic Improvement W6-LI-01/02/03/04 approved. **Implementation complete; awaiting user review/commit instruction only.**
 
-## Files changed (17 tracked + 1 new doc)
+Units (plan §5): A=failing tests → B=floor 측정 → C=floor+spacer 적용 → D=functional 재검증.
 
-- Source: `landing-grid-card.module.css` (+7 scoped `--expanded-*` tokens), `landing-grid-card.tsx`
-  (question warm ink; choice button Replace skin: warm border/surface, sage hover, sage focus outline, padding 14×12,
-  `group/answerChoice`; choice text 15/400/ink-soft; arrow warm-muted + group-hover sage; `getDefaultCardCopy` metaAttempts→'Completed').
-- i18n: `src/messages/*.json` ×12 — metaAttempts value → localized "completed" (keys unchanged; metaShares untouched).
-- Tests: `gnb-smoke.spec.ts` (decoupled the "reuses landing answer hover" test → GNB-internal presence-level affordance; removed orphaned import);
-  `state-smoke.spec.ts` (:575 — box-shadow assertion now asserts no-handoff `.toBe`; added 180ms settle wait so the baseline samples the rested choice).
-- Docs (untracked): `wave5-expanded-test-visual-skin-reference.css` (user-added), `…wave-5-…-analysis.md`.
+- **Unit A — DONE.** `tests/e2e/grid-smoke.spec.ts`:
+  - B4-short-expanded: `beforeSourceRoot` 캡처 + `surfaceHeight >= beforeSourceRoot.height - 0.5` 신규(현재 floor 미적용이라 fail 예상 → Unit C에서 green).
+  - B4-geometry-active-frame: lower-row(egtt steady → ops-handbook handoff, build-metrics non-target) y/height/bottom Δ≤1px + 종료 잔류 Δ≤1px 추가.
+- **Unit B — DONE & VERIFIED.** (High-Risk 파일 2종)
+  - `baseline-manager.ts`: `RestingFloorMap` 타입 + `emptyRestingFloorMap`/`captureRestingFloor`/`clearRestingFloor` pure helper (row snapshot freeze/release와 분리, 시그니처 무변경).
+  - `use-grid-geometry-controller.ts`: 신규 `useLayoutEffect`(deps `[activeVisualCardVariant, plan.tier, shellRef]`)가 active card root `offsetHeight`(stretched row-max) 측정 → `restingFloorMap` state(첫 paint 전). freeze/release `useEffect` **무변경**. output에 `restingFloorMap` 추가.
+  - 검증: `typecheck` green; `landing-baseline-manager.test.ts` 6/6 green(floor helper 4 신규 포함).
+- **Unit C — DONE & VERIFIED.**
+  - `landing-catalog-grid.tsx`: `restingFloorMap`을 `expandedRestingFloorPx` prop으로 전달.
+  - `landing-grid-card.tsx`: `expandedRestingFloorPx / resolvedShellScale`를 desktop `expandedBody`에만 `minHeight`로 적용. shell/surface `min-height:0` 보존. `layoutMode='desktop-overlay-floor'`에서만 Test choices↔meta, Blog subtitle↔meta+CTA 사이 단일 flex spacer(`min-h 14px`) 적용. Mobile expanded/transient는 `flow` default로 기존 grid flow 보존.
+  - `landing-grid-card.module.css` 수정 불필요.
+- **Unit D — DONE & VERIFIED.**
+  - Basic Gates: `lint` ✅, `typecheck` ✅, `test` ✅, `build` ✅.
+  - Scope checks: full `grid-smoke` ✅ 18/18, functional-only `state-smoke` ✅ 13/13, `git diff --check` ✅.
 
-## Verification
+## Pending Verifications / Debt
 
-- lint ✓ · typecheck ✓ · test ✓ (73/479) · build ✓.
-- grid-smoke 18/18 ✓ (incl. B4 geometry isolation, short-expanded, B13 hover-collapse). gnb-smoke 23/23 ✓.
-- state-smoke functional ✓ (entry trigger focus/click/keyboard; :575 hover fill light+dark; :289 serial). 
-  Parallel run: :289 is a pre-existing worker-contention flake (passes in isolation; arrow is non-focusable).
-- Deferred (BQ-07, NOT regenerated): `state-smoke` screenshots `expanded-focus-shell.png`, `overlay-focus-shell.png`.
+- Full `state-smoke` still reports the two **BQ-07-deferred screenshot** mismatches:
+  - `expanded-focus-shell.png` expected 403×210, actual 403×292 after the intended height floor.
+  - `overlay-focus-shell.png` expected 298×193, actual 298×254 from pre-existing visual drift.
+  - Functional-only rerun excluding those two screenshot tests passed 13/13. **No baseline regeneration performed.**
+- Playwright/Next warnings observed only: `NO_COLOR` ignored because `FORCE_COLOR` is set; `qmbti/thumbnail.svg` LCP advisory. Both are pre-existing/no-op for this wave.
 
-## Commit readiness
+## Next Immediate Actionable Steps
 
-Ready. Suggested: `wave-5: expanded test visual skin`. Do not regenerate baselines. Not pushed.
+1. User review of the uncommitted diff.
+2. If accepted, commit. Suggested message: `wave6: explicit expanded height floor with overlay isolation regression coverage`.
+3. Do not run `qa:visual:full` or regenerate screenshot baselines unless the user explicitly approves a visual baseline update.
 
-## Follow-ups (later waves)
+## Key Decisions (user-approved)
 
-Shared meta layout + Blog (Wave 8) · Wave 6 geometry/spacer · Wave 15 GNB visual (then gnb-smoke can re-tighten to shared affordance) ·
-Wave 16 theme/dark (scoped tokens are fixed light/warm now, like Wave 3) · i18n "completed" translations best-effort (native review optional).
+- scale 보정 = card 측(`resolvedShellScale = reducedMotion ? 1 : 1.04`), controller는 raw outer px만 운반(모션-불가지).
+- floor map = controller 분리 `useState` + baseline-manager pure helper(freeze reducer 무경합 → §6.7(4) 순서 보존). `LandingBaselineState` 미확장.
+- floor = `expandedBody` min-height(px)에만; shell/surface 무변경(B4 `surfaceMinHeight==='0px'` 보존); `min-height:100%` 금지(design §7.3/§10).
+
+## Files to Revisit
+
+- `src/features/landing/grid/baseline-manager.ts`
+- `src/features/landing/grid/use-grid-geometry-controller.ts`
+- `src/features/landing/grid/landing-catalog-grid.tsx`
+- `src/features/landing/grid/landing-grid-card.tsx`
+- `tests/e2e/grid-smoke.spec.ts`
+- `tests/unit/landing-baseline-manager.test.ts`
+- `docs/plans/2026-06-02-wave-6-overlay-isolation-height-floor.md`

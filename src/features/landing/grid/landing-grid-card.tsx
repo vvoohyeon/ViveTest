@@ -95,6 +95,7 @@ interface LandingGridCardProps {
   mobileSnapshot?: LandingMobileSnapshotView | null;
   desktopTransformOriginX?: '0%' | '50%' | '100%';
   spacing?: LandingCardSpacingContract;
+  expandedRestingFloorPx?: number;
   copy: LandingCardCopy;
   sequence?: number;
   tabIndex?: number;
@@ -246,7 +247,15 @@ const LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME =
 const LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME =
   `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-pointer hover:border-[var(--interactive-accent-border-strong)] hover:bg-[var(--interactive-accent-bg-hover)] hover:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow-hover)] active:bg-[var(--interactive-accent-bg-pressed)] active:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
 const LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME = `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-default`;
-const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 grid min-w-0 gap-[10px] p-4';
+// Desktop overlay expandedBody is a flex column so the BQ-24 height-floor surplus can be absorbed
+// by a single spacer (design §7.3). Mobile expanded/transient bodies keep their own grid layout.
+const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4';
+// desktop-overlay-floor body chain: flex-1 body fills the floored expandedBody; the single spacer
+// (flex:1, min-height 14px) sits between the last choice / subtitle and the meta(+CTA) group so the
+// meta anchors to the bottom and the card grows downward (content-fit) when content overflows.
+const LANDING_GRID_CARD_EXPANDED_FLOOR_BODY_CLASSNAME = 'landing-grid-card-expanded-floor-body flex min-w-0 flex-1 flex-col';
+const LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME = 'landing-grid-card-expanded-floor-group flex min-w-0 flex-col gap-[10px]';
+const LANDING_GRID_CARD_EXPANDED_FLOOR_SPACER_CLASSNAME = 'landing-grid-card-expanded-floor-spacer min-h-[14px] flex-1';
 const LANDING_GRID_CARD_SHELL_GHOST_CLASSNAME = 'landing-grid-card-shell-ghost invisible';
 const LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME = 'landing-grid-card-desktop-stage absolute inset-0 z-[3] pointer-events-none';
 const LANDING_GRID_CARD_EXPANDED_LAYER_CLASSNAME =
@@ -288,6 +297,10 @@ type LandingTestCard = Extract<LandingCard, {type: 'test'}>;
 type LandingBlogCard = Extract<LandingCard, {type: 'blog'}>;
 
 type NormalCardFacePresentation = 'collapsed' | 'expandedTitleOnly';
+
+// 'desktop-overlay-floor' opts the expanded body into the BQ-24 floor layout (flex column + single
+// bottom spacer). 'flow' keeps the shared mobile expanded/transient grid layout untouched.
+type ExpandedBodyLayoutMode = 'flow' | 'desktop-overlay-floor';
 
 interface NormalCardFaceProps {
   card: LandingCard;
@@ -511,6 +524,7 @@ interface ExpandedCardBodyProps {
   locale: AppLocale;
   copy: LandingCardCopy;
   interactive: boolean;
+  layoutMode?: ExpandedBodyLayoutMode;
   blogSubtitlePresentation?: 'plain' | 'desktop-continuity';
   blogSubtitleSplit?: LandingCardSubtitleSplit;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
@@ -522,6 +536,7 @@ interface ExpandedTestBodyProps {
   locale: AppLocale;
   copy: LandingCardCopy;
   interactive: boolean;
+  layoutMode: ExpandedBodyLayoutMode;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -530,6 +545,7 @@ interface ExpandedBlogBodyProps {
   locale: AppLocale;
   copy: LandingCardCopy;
   interactive: boolean;
+  layoutMode: ExpandedBodyLayoutMode;
   subtitlePresentation: 'plain' | 'desktop-continuity';
   subtitleSplit?: LandingCardSubtitleSplit;
   onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
@@ -548,6 +564,8 @@ interface DesktopExpandedShellProps {
   card: LandingCard;
   locale: AppLocale;
   copy: LandingCardCopy;
+  // Layout floor in CSS pixels (resting outer height / shell scale), applied to expandedBody only.
+  floorPx?: number;
   titleSplit: LandingCardTitleSplit;
   blogSubtitleSplit?: LandingCardSubtitleSplit;
   onExpandedBodyKeyDown?: KeyboardEventHandler<HTMLElement>;
@@ -620,47 +638,72 @@ function ExpandedMetaRow({entries, interactive}: {entries: [ExpandedMetaEntry, .
   );
 }
 
-function ExpandedTestBody({card, locale, copy, interactive, onAnswerChoiceSelect}: ExpandedTestBodyProps) {
+function ExpandedTestBody({card, locale, copy, interactive, layoutMode, onAnswerChoiceSelect}: ExpandedTestBodyProps) {
   // Preserve the registry resolver boundary; card UI must not read fixture source directly.
   const previewPayload = resolveTestPreviewPayload(card.variant, locale);
+  const bodyDataSlot = interactive ? undefined : 'mobileTransientExpandedBody';
+
+  const previewQuestion = (
+    <p
+      className={joinClassNames(LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME, styles.motionStageEarly)}
+      data-slot={interactive ? 'previewQuestion' : undefined}
+      data-motion-slot="preview"
+    >
+      {previewPayload.previewQuestion}
+    </p>
+  );
+
+  const answerChoices = (
+    <div
+      className={joinClassNames(LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME, styles.motionStageMiddle)}
+      data-slot={interactive ? 'answerChoices' : undefined}
+      data-motion-slot="answerChoices"
+    >
+      <ExpandedTestAnswerChoice
+        choice="A"
+        label={previewPayload.answerChoiceA}
+        interactive={interactive}
+        onSelect={onAnswerChoiceSelect}
+      />
+      <ExpandedTestAnswerChoice
+        choice="B"
+        label={previewPayload.answerChoiceB}
+        interactive={interactive}
+        onSelect={onAnswerChoiceSelect}
+      />
+    </div>
+  );
+
+  const meta = (
+    <ExpandedMetaRow
+      interactive={interactive}
+      entries={[
+        {label: copy.metaEstimated, value: card.test.meta.durationM},
+        {label: copy.metaShares, value: card.test.meta.sharedC},
+        {label: copy.metaAttempts, value: card.test.meta.engagedC}
+      ]}
+    />
+  );
+
+  if (layoutMode === 'desktop-overlay-floor') {
+    // Single spacer between the last choice and the meta row (design §7.3).
+    return (
+      <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_BODY_CLASSNAME} data-slot={bodyDataSlot}>
+        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME}>
+          {previewQuestion}
+          {answerChoices}
+        </div>
+        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_SPACER_CLASSNAME} aria-hidden="true" />
+        {meta}
+      </div>
+    );
+  }
 
   return (
-    <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} data-slot={interactive ? undefined : 'mobileTransientExpandedBody'}>
-      <p
-        className={joinClassNames(LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME, styles.motionStageEarly)}
-        data-slot={interactive ? 'previewQuestion' : undefined}
-        data-motion-slot="preview"
-      >
-        {previewPayload.previewQuestion}
-      </p>
-
-      <div
-        className={joinClassNames(LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME, styles.motionStageMiddle)}
-        data-slot={interactive ? 'answerChoices' : undefined}
-        data-motion-slot="answerChoices"
-      >
-        <ExpandedTestAnswerChoice
-          choice="A"
-          label={previewPayload.answerChoiceA}
-          interactive={interactive}
-          onSelect={onAnswerChoiceSelect}
-        />
-        <ExpandedTestAnswerChoice
-          choice="B"
-          label={previewPayload.answerChoiceB}
-          interactive={interactive}
-          onSelect={onAnswerChoiceSelect}
-        />
-      </div>
-
-      <ExpandedMetaRow
-        interactive={interactive}
-        entries={[
-          {label: copy.metaEstimated, value: card.test.meta.durationM},
-          {label: copy.metaShares, value: card.test.meta.sharedC},
-          {label: copy.metaAttempts, value: card.test.meta.engagedC}
-        ]}
-      />
+    <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} data-slot={bodyDataSlot}>
+      {previewQuestion}
+      {answerChoices}
+      {meta}
     </div>
   );
 }
@@ -670,60 +713,80 @@ function ExpandedBlogBody({
   locale,
   copy,
   interactive,
+  layoutMode,
   subtitlePresentation,
   subtitleSplit,
   onPrimaryCtaClick
 }: ExpandedBlogBodyProps) {
-  return (
-    <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} data-slot={interactive ? undefined : 'mobileTransientExpandedBody'}>
-      {subtitlePresentation === 'desktop-continuity' ? (
-        <ExpandedBlogSubtitleContinuity
-          split={
-            subtitleSplit ?? {
-              line1Text: card.subtitle,
-              line2Text: '',
-              leadText: card.subtitle,
-              overflowText: ''
-            }
+  const bodyDataSlot = interactive ? undefined : 'mobileTransientExpandedBody';
+  const subtitle =
+    subtitlePresentation === 'desktop-continuity' ? (
+      <ExpandedBlogSubtitleContinuity
+        split={
+          subtitleSplit ?? {
+            line1Text: card.subtitle,
+            line2Text: '',
+            leadText: card.subtitle,
+            overflowText: ''
           }
-        />
-      ) : (
-        <LandingCardSubtitleText
-          text={card.subtitle}
-          clamp="expanded"
-          slot={interactive ? 'cardSubtitleExpanded' : undefined}
-          motionSlot="subtitle"
-        />
-      )}
-
-      <ExpandedMetaRow
-        interactive={interactive}
-        entries={[
-          {label: copy.metaReadTime, value: card.blog.meta.durationM},
-          {label: copy.metaShares, value: card.blog.meta.sharedC},
-          {label: copy.metaViews, value: card.blog.meta.engagedC}
-        ]}
+        }
       />
+    ) : (
+      <LandingCardSubtitleText
+        text={card.subtitle}
+        clamp="expanded"
+        slot={interactive ? 'cardSubtitleExpanded' : undefined}
+        motionSlot="subtitle"
+      />
+    );
+  const meta = (
+    <ExpandedMetaRow
+      interactive={interactive}
+      entries={[
+        {label: copy.metaReadTime, value: card.blog.meta.durationM},
+        {label: copy.metaShares, value: card.blog.meta.sharedC},
+        {label: copy.metaViews, value: card.blog.meta.engagedC}
+      ]}
+    />
+  );
+  const cta = interactive ? (
+    <Link
+      className={joinClassNames(LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME, styles.motionStageLate)}
+      href={buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale)}
+      data-slot="primaryCTA"
+      data-motion-slot="primaryCTA"
+      onClick={onPrimaryCtaClick}
+    >
+      {copy.readMore}
+    </Link>
+  ) : (
+    <span
+      className={joinClassNames(LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME, styles.motionStageLate)}
+      aria-hidden="true"
+      data-motion-slot="primaryCTA"
+    >
+      {copy.readMore}
+    </span>
+  );
 
-      {interactive ? (
-        <Link
-          className={joinClassNames(LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME, styles.motionStageLate)}
-          href={buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale)}
-          data-slot="primaryCTA"
-          data-motion-slot="primaryCTA"
-          onClick={onPrimaryCtaClick}
-        >
-          {copy.readMore}
-        </Link>
-      ) : (
-        <span
-          className={joinClassNames(LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME, styles.motionStageLate)}
-          aria-hidden="true"
-          data-motion-slot="primaryCTA"
-        >
-          {copy.readMore}
-        </span>
-      )}
+  if (layoutMode === 'desktop-overlay-floor') {
+    return (
+      <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_BODY_CLASSNAME} data-slot={bodyDataSlot}>
+        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME}>{subtitle}</div>
+        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_SPACER_CLASSNAME} aria-hidden="true" />
+        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME}>
+          {meta}
+          {cta}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} data-slot={bodyDataSlot}>
+      {subtitle}
+      {meta}
+      {cta}
     </div>
   );
 }
@@ -733,6 +796,7 @@ function ExpandedCardBody({
   locale,
   copy,
   interactive,
+  layoutMode = 'flow',
   blogSubtitlePresentation = 'plain',
   blogSubtitleSplit,
   onAnswerChoiceSelect,
@@ -745,6 +809,7 @@ function ExpandedCardBody({
         locale={locale}
         copy={copy}
         interactive={interactive}
+        layoutMode={layoutMode}
         onAnswerChoiceSelect={onAnswerChoiceSelect}
       />
     );
@@ -756,6 +821,7 @@ function ExpandedCardBody({
       locale={locale}
       copy={copy}
       interactive={interactive}
+      layoutMode={layoutMode}
       subtitlePresentation={blogSubtitlePresentation}
       subtitleSplit={blogSubtitleSplit}
       onPrimaryCtaClick={onPrimaryCtaClick}
@@ -786,12 +852,20 @@ function DesktopExpandedShell({
   card,
   locale,
   copy,
+  floorPx,
   titleSplit,
   blogSubtitleSplit,
   onExpandedBodyKeyDown,
   onAnswerChoiceSelect,
   onPrimaryCtaClick
 }: DesktopExpandedShellProps) {
+  const floorStyle =
+    typeof floorPx === 'number' && Number.isFinite(floorPx) && floorPx > 0
+      ? ({
+          minHeight: `${floorPx}px`
+        } as CSSProperties)
+      : undefined;
+
   return (
     <div
       className={stageClassName}
@@ -814,6 +888,7 @@ function DesktopExpandedShell({
                 <div
                   className={joinClassNames(LANDING_GRID_CARD_EXPANDED_CLASSNAME, styles.expandedBody)}
                   data-slot="expandedBody"
+                  style={floorStyle}
                   onKeyDown={onExpandedBodyKeyDown}
                 >
                   <h2
@@ -833,6 +908,7 @@ function DesktopExpandedShell({
                     locale={locale}
                     copy={copy}
                     interactive={isInteractive}
+                    layoutMode="desktop-overlay-floor"
                     blogSubtitlePresentation={card.type === 'blog' ? 'desktop-continuity' : 'plain'}
                     blogSubtitleSplit={card.type === 'blog' ? blogSubtitleSplit : undefined}
                     onAnswerChoiceSelect={onAnswerChoiceSelect}
@@ -883,6 +959,7 @@ export function LandingGridCard({
   mobileSnapshot = null,
   desktopTransformOriginX = '50%',
   spacing,
+  expandedRestingFloorPx,
   copy,
   sequence,
   tabIndex = 0,
@@ -936,6 +1013,14 @@ export function LandingGridCard({
   const resolvedShellScale = reducedMotion ? 1 : 1.04;
   const resolvedShellInlineScale = reducedMotion ? 1 : desktopShellInlineScale;
   const resolvedMotionDurationMs = reducedMotion ? 180 : 280;
+  const resolvedExpandedFloorPx =
+    showDesktopExpandedShell &&
+    typeof expandedRestingFloorPx === 'number' &&
+    Number.isFinite(expandedRestingFloorPx) &&
+    expandedRestingFloorPx > 0 &&
+    resolvedShellScale > 0
+      ? expandedRestingFloorPx / resolvedShellScale
+      : undefined;
   const isDesktopOverlayLayer = showDesktopExpandedShell;
   const isDesktopMotionEnter = desktopMotionRole === 'opening' || desktopMotionRole === 'handoff-target';
   const isDesktopMotionExit = desktopMotionRole === 'closing';
@@ -1108,6 +1193,7 @@ export function LandingGridCard({
           card={card}
           locale={locale}
           copy={copy}
+          floorPx={resolvedExpandedFloorPx}
           titleSplit={desktopTitleSplit}
           blogSubtitleSplit={desktopSubtitleSplit}
           onExpandedBodyKeyDown={onExpandedBodyKeyDown}

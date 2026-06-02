@@ -93,7 +93,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
       return beginBlogTransition(card);
     }
   });
-  const {spacingModel, baselineState} = useGridGeometryController({
+  const {spacingModel, baselineState, restingFloorMap} = useGridGeometryController({
     cards,
     shellRef,
     previousPlanKeyRef,
@@ -241,6 +241,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                       rowCardCount: row.cardCount
                     })}
                     spacing={spacingModel[card.variant]}
+                    expandedRestingFloorPx={restingFloorMap.get(card.variant)}
                     sequence={sequence}
                     copy={cardCopy}
                     hoverLockEnabled={interactionBindings.hoverLockEnabled}

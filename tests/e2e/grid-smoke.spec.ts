@@ -913,6 +913,46 @@ test.describe('Phase 4 grid smoke', () => {
     await page.mouse.move(0, 0);
     await expect(sourceCard).toHaveAttribute('data-card-state', 'normal');
     await expect.poll(() => shell.getAttribute('data-baseline-phase')).toBe('BASELINE_READY');
+
+    // §6.7(3): same-row non-target isolation that holds for row 0 must hold identically for
+    // lower rows (row index 2+). Expand a row-1 card and keep a row-1 sibling frozen across
+    // steady and pointer handoff, then confirm 0px residual height change after close.
+    const lowerTarget = page.locator('[data-card-variant="egtt"]');
+    const lowerHandoffTarget = page.locator('[data-card-variant="ops-handbook"]');
+    const lowerSibling = page.locator('[data-card-variant="build-metrics"]');
+    const lowerBefore = await lowerSibling.boundingBox();
+    expect(lowerBefore).not.toBeNull();
+
+    await lowerTarget.hover();
+    await expect(lowerTarget).toHaveAttribute('data-card-state', 'expanded');
+    await expect(lowerTarget).toHaveAttribute('data-desktop-motion-role', 'steady');
+    await expect(shell).toHaveAttribute('data-baseline-phase', 'BASELINE_FROZEN');
+
+    const lowerSteady = await lowerSibling.boundingBox();
+    expect(lowerSteady).not.toBeNull();
+    expect(Math.abs((lowerSteady?.y ?? 0) - (lowerBefore?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((lowerSteady?.height ?? 0) - (lowerBefore?.height ?? 0))).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs((lowerSteady?.y ?? 0) + (lowerSteady?.height ?? 0) - ((lowerBefore?.y ?? 0) + (lowerBefore?.height ?? 0)))
+    ).toBeLessThanOrEqual(1);
+
+    await lowerHandoffTarget.hover();
+    await expect(lowerHandoffTarget).toHaveAttribute('data-desktop-motion-role', 'handoff-target');
+    await expect(lowerHandoffTarget).toHaveAttribute('data-card-state', 'expanded');
+
+    const lowerHandoff = await lowerSibling.boundingBox();
+    expect(lowerHandoff).not.toBeNull();
+    expect(Math.abs((lowerHandoff?.y ?? 0) - (lowerBefore?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((lowerHandoff?.height ?? 0) - (lowerBefore?.height ?? 0))).toBeLessThanOrEqual(1);
+
+    await page.mouse.move(0, 0);
+    await expect(lowerHandoffTarget).toHaveAttribute('data-card-state', 'normal');
+    await expect.poll(() => shell.getAttribute('data-baseline-phase')).toBe('BASELINE_READY');
+
+    const lowerAfter = await lowerSibling.boundingBox();
+    expect(lowerAfter).not.toBeNull();
+    expect(Math.abs((lowerAfter?.y ?? 0) - (lowerBefore?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((lowerAfter?.height ?? 0) - (lowerBefore?.height ?? 0))).toBeLessThanOrEqual(1);
   });
 
   test('@smoke assertion:B4-short-expanded desktop short expanded overlay stays content-fit without leaking the in-flow shell', async ({
@@ -924,8 +964,11 @@ test.describe('Phase 4 grid smoke', () => {
     const sourceCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const siblingCard = page.locator('[data-card-variant="rhythm-b"]');
     const beforeSibling = await siblingCard.boundingBox();
+    // Resting (row-max stretched) outer height of the in-flow placeholder, captured before expand.
+    const beforeSourceRoot = await sourceCard.boundingBox();
 
     expect(beforeSibling).not.toBeNull();
+    expect(beforeSourceRoot).not.toBeNull();
     await sourceCard.hover();
     await expect(sourceCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(sourceCard).toHaveAttribute('data-desktop-motion-role', 'steady');
@@ -938,6 +981,10 @@ test.describe('Phase 4 grid smoke', () => {
     expect(overlayMetrics.surfaceBackgroundAlpha).toBeGreaterThan(0.9);
     expect(overlayMetrics.shellMinHeight).toBe('0px');
     expect(overlayMetrics.surfaceMinHeight).toBe('0px');
+    // Wave 6 BQ-24 height floor: the short card's expanded surface must reach at least the
+    // resting cell (row-max) height. Floor lives on expandedBody (px), never as shell/surface
+    // min-height (asserted 0px above) and never as min-height:100% (design §7.3/§10).
+    expect(overlayMetrics.surfaceHeight).toBeGreaterThanOrEqual((beforeSourceRoot?.height ?? 0) - 0.5);
     expect(afterSibling).not.toBeNull();
     expect(Math.abs((afterSibling?.y ?? 0) - (beforeSibling?.y ?? 0))).toBeLessThanOrEqual(1);
     expect(Math.abs((afterSibling?.height ?? 0) - (beforeSibling?.height ?? 0))).toBeLessThanOrEqual(1);
