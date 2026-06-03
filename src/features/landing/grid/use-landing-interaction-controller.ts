@@ -85,6 +85,10 @@ function resolveInteractionCard(
   return cardByVariant.get(variant) ?? null;
 }
 
+function isModifiedBlogActivation(event: ReactMouseEvent<HTMLElement>): boolean {
+  return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+}
+
 export function useLandingInteractionController({
   cards,
   viewportWidth,
@@ -350,6 +354,19 @@ export function useLandingInteractionController({
         return;
       }
 
+      if (card.type === 'blog') {
+        if (isModifiedBlogActivation(event)) {
+          return;
+        }
+
+        const shouldBeginTransition = onPrimaryCtaSelect?.(card) !== false;
+        if (shouldBeginTransition) {
+          beginTransition(card.variant);
+        }
+        event.preventDefault();
+        return;
+      }
+
       if (isMobileViewport) {
         if (mobileLifecycleState.phase === 'NORMAL' && mobileLifecycleState.cardVariant !== card.variant) {
           beginMobileOpen(card.variant);
@@ -368,6 +385,7 @@ export function useLandingInteractionController({
     },
     [
       beginMobileOpen,
+      beginTransition,
       cardByVariant,
       desktopTransitionReasonRef,
       dispatchInteraction,
@@ -375,7 +393,8 @@ export function useLandingInteractionController({
       interactionState.pageState,
       isMobileViewport,
       mobileLifecycleState.cardVariant,
-      mobileLifecycleState.phase
+      mobileLifecycleState.phase,
+      onPrimaryCtaSelect
     ]
   );
 
@@ -393,22 +412,6 @@ export function useLandingInteractionController({
       event.preventDefault();
     },
     [beginTransition, cardByVariant, onAnswerChoiceSelect]
-  );
-
-  const handlePrimaryCtaClick = useCallback(
-    (event: ReactMouseEvent<HTMLAnchorElement>) => {
-      const card = resolveInteractionCard(event.currentTarget, cardByVariant);
-      if (!card || card.type !== 'blog') {
-        return;
-      }
-
-      const shouldBeginTransition = onPrimaryCtaSelect?.(card) !== false;
-      if (shouldBeginTransition) {
-        beginTransition(card.variant);
-      }
-      event.preventDefault();
-    },
-    [beginTransition, cardByVariant, onPrimaryCtaSelect]
   );
 
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
@@ -500,7 +503,6 @@ export function useLandingInteractionController({
       onMouseLeave: hoverHandlers.onMouseLeave,
       onExpandedBodyKeyDown: keyboardHandlers.onExpandedBodyKeyDown,
       onAnswerChoiceSelect: handleAnswerChoiceSelect,
-      onPrimaryCtaClick: handlePrimaryCtaClick,
       onMobileClose: handleMobileClose
     };
   };

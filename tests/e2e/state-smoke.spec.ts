@@ -1,7 +1,11 @@
 import {expect, type Locator, type Page, test} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_VARIANT, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
+import {
+  PRIMARY_AVAILABLE_TEST_VARIANT,
+  PRIMARY_BLOG_VARIANT,
+  buildLocalizedPrimaryTestRoute
+} from './helpers/landing-fixture';
 import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
@@ -434,7 +438,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     const shell = page.getByTestId('landing-grid-shell');
     const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const secondCard = page.locator('[data-card-variant="rhythm-b"]');
-    const lowerRowCard = page.locator('[data-card-variant="ops-handbook"]');
+    const lowerRowCard = page.locator('[data-card-variant="egtt"]');
     const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
@@ -528,47 +532,35 @@ test.describe('Phase 7 state + capability smoke', () => {
     expect(answerChoiceCursor).toBe('pointer');
 
     await availableBlogCard.hover();
-    await expect(availableBlogCard).toHaveAttribute('data-card-state', 'expanded');
-    const primaryCtaCursor = await availableBlogCard
-      .locator('[data-slot="primaryCTA"]')
+    await expect(availableBlogCard).toHaveAttribute('data-card-state', 'normal');
+    const blogTriggerCursor = await availableBlogCard
+      .getByTestId('landing-grid-card-trigger')
       .evaluate((element) => getComputedStyle(element).cursor);
-    expect(primaryCtaCursor).toBe('pointer');
+    expect(blogTriggerCursor).toBe('pointer');
+    await expect(availableBlogCard.locator('[data-slot="primaryCTA"]')).toHaveCount(0);
   });
 
-  test('@smoke blog Read more hover keeps CTA geometry and adjacent layout stable', async ({page}) => {
+  test('@smoke hovering from an expanded test card to a blog card collapses test without expanding blog', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const blogCard = page.locator('[data-card-variant="ops-handbook"]');
+    const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const blogCard = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+
+    await movePointerToCenter(page, testCard.getByTestId('landing-grid-card-trigger'));
+    await expect(testCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(testCard).toHaveAttribute('data-desktop-motion-role', 'steady');
+
     await movePointerToCenter(page, blogCard.getByTestId('landing-grid-card-trigger'));
-    await expect(blogCard).toHaveAttribute('data-card-state', 'expanded');
-    await expect(blogCard).toHaveAttribute('data-desktop-motion-role', 'steady');
-
-    await movePointerToCenter(page, blogCard.locator('[data-slot="cardTitleExpanded"]'));
-
-    const cta = blogCard.locator('[data-slot="primaryCTA"]');
-    const meta = blogCard.locator('[data-slot="meta"]');
-    const beforeCta = await readInteractiveMetrics(cta);
-    const beforeMeta = await readInteractiveMetrics(meta);
-
-    expect(beforeCta.hovered).toBe(false);
-
-    await cta.hover();
-    await page.waitForTimeout(180);
-
-    const afterCta = await readInteractiveMetrics(cta);
-    const afterMeta = await readInteractiveMetrics(meta);
-
-    expect(afterCta.hovered).toBe(true);
-    expect(afterCta.transform).toBe('none');
-    expect(afterCta.boxShadow).not.toBe(beforeCta.boxShadow);
-    expect(afterCta.backgroundColor).not.toBe(beforeCta.backgroundColor);
-    expect(Math.abs(afterCta.x - beforeCta.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(afterCta.y - beforeCta.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(afterCta.width - beforeCta.width)).toBeLessThanOrEqual(1);
-    expect(Math.abs(afterCta.height - beforeCta.height)).toBeLessThanOrEqual(1);
-    expect(Math.abs(afterMeta.top - beforeMeta.top)).toBeLessThanOrEqual(1);
-    expect(Math.abs(afterMeta.height - beforeMeta.height)).toBeLessThanOrEqual(1);
+    // The test card must run the standard close motion (req-landing §8.3), not a 0ms snap —
+    // hovering onto a non-expanding blog card is a plain collapse, never a handoff source.
+    await expect(testCard).toHaveAttribute('data-desktop-motion-role', 'closing');
+    await expect(testCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(blogCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(blogCard).toHaveAttribute('data-desktop-motion-role', 'idle');
+    await expect(blogCard.locator('[data-slot="expandedShell"]')).toHaveCount(0);
+    await expect(blogCard.locator('[data-slot="expandedBody"]')).toHaveCount(0);
+    await expect(blogCard.locator('[data-slot="primaryCTA"]')).toHaveCount(0);
   });
 
   for (const theme of ['light', 'dark'] as const) {

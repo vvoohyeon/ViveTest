@@ -145,6 +145,24 @@ export function useHoverIntentController({
             return;
           }
 
+          if (card.type === 'blog') {
+            // Blog never expands, so hovering onto it is a plain collapse of any prior
+            // test card — not a handoff. 'collapse' keeps the standard close motion
+            // (req-landing §8.3 forbids the 0ms exit outside a real handoff source).
+            pointerWithinCardVariantRef.current = null;
+            clearHoverTimer();
+            if (state.expandedCardVariant) {
+              setDesktopTransitionReason('collapse');
+              dispatch({
+                type: 'CARD_COLLAPSE',
+                nowMs: event.timeStamp,
+                interactionMode,
+                cardVariant: state.expandedCardVariant
+              });
+            }
+            return;
+          }
+
           pointerWithinCardVariantRef.current = cardEnterable ? card.variant : null;
           const handoff = isEnterableHandoffCandidate({
             previousExpandedCardVariant: state.expandedCardVariant,
@@ -206,6 +224,10 @@ export function useHoverIntentController({
         },
         onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => {
           if (interactionMode !== 'hover' || isMobileViewport) {
+            return;
+          }
+
+          if (card.type === 'blog') {
             return;
           }
 

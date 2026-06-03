@@ -171,6 +171,30 @@ export function useCardKeyboardHandler({
 
       return {
         onFocus: (event: ReactFocusEvent<HTMLElement>) => {
+          if (card.type === 'blog') {
+            // Blog focuses without expanding. Collapse any prior test card, then mark
+            // focus via CARD_FOCUS with available:false — the reducer's existing lever for
+            // "focus, do not expand, clear hover-lock" (interaction-state.ts), so the
+            // reducer stays unchanged. Navigation happens on native <a> Enter, not focus.
+            onFocusTransitionIntent('collapse');
+            if (state.expandedCardVariant) {
+              dispatch({
+                type: 'CARD_COLLAPSE',
+                nowMs: event.timeStamp,
+                interactionMode,
+                cardVariant: state.expandedCardVariant
+              });
+            }
+            dispatch({
+              type: 'CARD_FOCUS',
+              nowMs: event.timeStamp,
+              interactionMode,
+              cardVariant: card.variant,
+              available: false
+            });
+            return;
+          }
+
           onFocusTransitionIntent(
             resolveOnFocusTransitionIntent(
               state.expandedCardVariant,
@@ -275,6 +299,10 @@ export function useCardKeyboardHandler({
           if (event.key === 'Escape') {
             event.preventDefault();
             collapseExpandedCard();
+            return;
+          }
+
+          if (card.type === 'blog' && (event.key === 'Enter' || event.key === ' ')) {
             return;
           }
 

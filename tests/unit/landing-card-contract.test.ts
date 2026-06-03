@@ -186,7 +186,7 @@ describe('landing card slot contract', () => {
     expect(doc.querySelector('[data-slot="unavailableOverlay"]')).not.toBeNull();
   });
 
-  it('renders Blog Expanded subtitle/meta/primaryCTA contract and formats numbers with comma separators', () => {
+  it('renders Blog cards as whole-card navigation links without an Expanded surface', () => {
     const catalog = resolveLandingCatalog('en');
     const card = catalog.find((candidate) => candidate.variant === 'ops-handbook');
 
@@ -195,47 +195,15 @@ describe('landing card slot contract', () => {
     }
 
     const doc = renderDesktopExpandedCardDocument({card});
+    const primaryTrigger = doc.querySelector('[data-slot="primaryTrigger"]');
 
-    expect(doc.querySelector('[data-slot="expandedSurface"]')).not.toBeNull();
-    expect(doc.querySelector('[data-slot="cardSubtitleExpanded"]')).not.toBeNull();
-    expect(doc.querySelector('[data-slot="cardSubtitle"]')).toBeNull();
-    expect(doc.querySelector('[data-slot="cardThumbnail"]')).toBeNull();
-    expect(doc.querySelector('[data-slot="tags"]')).toBeNull();
-
-    expect(doc.querySelectorAll('.landing-grid-card-meta-item')).toHaveLength(3);
-
-    const cta = doc.querySelector('[data-slot="primaryCTA"]');
-    expect(cta).not.toBeNull();
-    expect(cta?.getAttribute('href')).toBe('/en/blog/ops-handbook');
-
-    const metaValues = Array.from(doc.querySelectorAll('.landing-grid-card-meta-value')).map((element) =>
-      element.textContent?.trim() ?? ''
-    );
-
-    expect(metaValues.some((value) => value.includes(','))).toBe(true);
-    for (const value of metaValues) {
-      expect(value).not.toMatch(/[km]$/iu);
-    }
-  });
-
-  it('keeps desktop blog expanded subtitle continuity as lead + overflow === source subtitle', () => {
-    const catalog = resolveLandingCatalog('en');
-    const card = catalog.find((candidate) => candidate.variant === 'ops-handbook');
-
-    if (!card || card.type !== 'blog') {
-      throw new Error('Expected ops-handbook as a blog card fixture');
-    }
-
-    const doc = renderDesktopExpandedCardDocument({card});
-    const expandedSubtitle = doc.querySelector('[data-slot="cardSubtitleExpanded"]');
-    const lead = expandedSubtitle?.querySelector('[data-subtitle-layer="lead"]');
-    const overflow = expandedSubtitle?.querySelector('[data-subtitle-layer="overflow"]');
-
-    expect(expandedSubtitle).not.toBeNull();
-    expect(expandedSubtitle?.className).toContain('landing-grid-card-subtitle-expanded');
-    expect(lead).not.toBeNull();
-    expect(overflow).not.toBeNull();
-    expect(`${lead?.textContent ?? ''}${overflow?.textContent ?? ''}`).toBe(card.subtitle);
+    expect(primaryTrigger?.tagName.toLowerCase()).toBe('a');
+    expect(primaryTrigger?.getAttribute('href')).toBe('/en/blog/ops-handbook');
+    expect(doc.querySelector('.landing-grid-card')?.getAttribute('data-card-state')).toBe('normal');
+    expect(doc.querySelector('[data-slot="expandedShell"]')).toBeNull();
+    expect(doc.querySelector('[data-slot="expandedBody"]')).toBeNull();
+    expect(doc.querySelector('[data-slot="cardSubtitleExpanded"]')).toBeNull();
+    expect(doc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
   });
 
   it('renders desktop expanded title continuity markers while preserving the full title text', () => {

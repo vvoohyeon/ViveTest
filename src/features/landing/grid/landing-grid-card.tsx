@@ -17,8 +17,6 @@ import {Fragment, useRef} from 'react';
 import type {AppLocale} from '@/config/site';
 import {
   type LandingCardTitleSplit,
-  type LandingCardSubtitleSplit,
-  useLandingCardSubtitleSplit,
   useLandingCardTitleSplit
 } from '@/features/landing/grid/landing-card-title-continuity';
 import {
@@ -114,7 +112,6 @@ interface LandingGridCardProps {
   onMouseDown?: MouseEventHandler<HTMLElement>;
   onWheel?: WheelEventHandler<HTMLElement>;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-  onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
   onMobileClose?: MouseEventHandler<HTMLButtonElement>;
 }
 
@@ -242,11 +239,6 @@ const LANDING_GRID_CARD_META_VALUE_CLASSNAME = 'landing-grid-card-meta-value';
 const LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME =
   'landing-grid-card-meta-value landing-grid-card-meta-value-lead font-semibold text-[var(--text-strong)]';
 const LANDING_GRID_CARD_META_LABEL_CLASSNAME = 'landing-grid-card-meta-label';
-const LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME =
-  'landing-grid-card-primary-cta inline-flex min-h-10 max-w-full min-w-0 self-start items-center justify-center overflow-hidden rounded-full border border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] px-4 py-2 text-[0.84rem] font-bold tracking-[0.01em] whitespace-nowrap text-[var(--text-strong)] text-ellipsis shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
-const LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME =
-  `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-pointer hover:border-[var(--interactive-accent-border-strong)] hover:bg-[var(--interactive-accent-bg-hover)] hover:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow-hover)] active:bg-[var(--interactive-accent-bg-pressed)] active:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
-const LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME = `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-default`;
 // Desktop overlay expandedBody is a flex column so the BQ-24 height-floor surplus can be absorbed
 // by a single spacer (design §7.3). Mobile expanded/transient bodies keep their own grid layout.
 const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4';
@@ -294,7 +286,6 @@ const LANDING_GRID_CARD_UNAVAILABLE_BADGE_CLASSNAME =
   'landing-grid-card-unavailable-badge rounded-full border border-[var(--unavailable-badge-border)] bg-[var(--unavailable-badge-bg)] px-[10px] py-1 text-[0.72rem] leading-[1.2] tracking-[0.01em] text-[var(--unavailable-badge-ink)]';
 
 type LandingTestCard = Extract<LandingCard, {type: 'test'}>;
-type LandingBlogCard = Extract<LandingCard, {type: 'blog'}>;
 
 type NormalCardFacePresentation = 'collapsed' | 'expandedTitleOnly';
 
@@ -486,49 +477,13 @@ function NormalCardFace({
   );
 }
 
-function ExpandedBlogSubtitleContinuity({
-  split
-}: {
-  split: LandingCardSubtitleSplit;
-}) {
-  return (
-    <p
-      className={joinClassNames(
-        LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME,
-        'landing-grid-card-subtitle-expanded landing-grid-card-subtitle-expanded-continuity m-0 grid gap-0 text-clip',
-        styles.motionStageEarly
-      )}
-      data-slot="cardSubtitleExpanded"
-      data-motion-slot="subtitle"
-    >
-      <span className="landing-grid-card-subtitle-expanded-lead grid gap-0" data-subtitle-layer="lead">
-        <span className="landing-grid-card-subtitle-expanded-line block min-w-0" data-subtitle-line="1">
-          {split.line1Text}
-        </span>
-        <span className="landing-grid-card-subtitle-expanded-line block min-w-0" data-subtitle-line="2">
-          {split.line2Text}
-        </span>
-      </span>
-      <span
-        className="landing-grid-card-subtitle-expanded-overflow min-w-0 [overflow-wrap:anywhere] line-clamp-2 empty:hidden"
-        data-subtitle-layer="overflow"
-      >
-        {split.overflowText}
-      </span>
-    </p>
-  );
-}
-
 interface ExpandedCardBodyProps {
-  card: LandingCard;
+  card: LandingTestCard;
   locale: AppLocale;
   copy: LandingCardCopy;
   interactive: boolean;
   layoutMode?: ExpandedBodyLayoutMode;
-  blogSubtitlePresentation?: 'plain' | 'desktop-continuity';
-  blogSubtitleSplit?: LandingCardSubtitleSplit;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-  onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
 }
 
 interface ExpandedTestBodyProps {
@@ -538,17 +493,6 @@ interface ExpandedTestBodyProps {
   interactive: boolean;
   layoutMode: ExpandedBodyLayoutMode;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-}
-
-interface ExpandedBlogBodyProps {
-  card: LandingBlogCard;
-  locale: AppLocale;
-  copy: LandingCardCopy;
-  interactive: boolean;
-  layoutMode: ExpandedBodyLayoutMode;
-  subtitlePresentation: 'plain' | 'desktop-continuity';
-  subtitleSplit?: LandingCardSubtitleSplit;
-  onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
 }
 
 interface UnavailableCardStatusOverlayProps {
@@ -561,16 +505,14 @@ interface DesktopExpandedShellProps {
   phase: LandingCardDesktopShellPhase;
   isVisible: boolean;
   isInteractive: boolean;
-  card: LandingCard;
+  card: LandingTestCard;
   locale: AppLocale;
   copy: LandingCardCopy;
   // Layout floor in CSS pixels (resting outer height / shell scale), applied to expandedBody only.
   floorPx?: number;
   titleSplit: LandingCardTitleSplit;
-  blogSubtitleSplit?: LandingCardSubtitleSplit;
   onExpandedBodyKeyDown?: KeyboardEventHandler<HTMLElement>;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-  onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
 }
 
 function ExpandedTestAnswerChoice({
@@ -708,123 +650,22 @@ function ExpandedTestBody({card, locale, copy, interactive, layoutMode, onAnswer
   );
 }
 
-function ExpandedBlogBody({
-  card,
-  locale,
-  copy,
-  interactive,
-  layoutMode,
-  subtitlePresentation,
-  subtitleSplit,
-  onPrimaryCtaClick
-}: ExpandedBlogBodyProps) {
-  const bodyDataSlot = interactive ? undefined : 'mobileTransientExpandedBody';
-  const subtitle =
-    subtitlePresentation === 'desktop-continuity' ? (
-      <ExpandedBlogSubtitleContinuity
-        split={
-          subtitleSplit ?? {
-            line1Text: card.subtitle,
-            line2Text: '',
-            leadText: card.subtitle,
-            overflowText: ''
-          }
-        }
-      />
-    ) : (
-      <LandingCardSubtitleText
-        text={card.subtitle}
-        clamp="expanded"
-        slot={interactive ? 'cardSubtitleExpanded' : undefined}
-        motionSlot="subtitle"
-      />
-    );
-  const meta = (
-    <ExpandedMetaRow
-      interactive={interactive}
-      entries={[
-        {label: copy.metaReadTime, value: card.blog.meta.durationM},
-        {label: copy.metaShares, value: card.blog.meta.sharedC},
-        {label: copy.metaViews, value: card.blog.meta.engagedC}
-      ]}
-    />
-  );
-  const cta = interactive ? (
-    <Link
-      className={joinClassNames(LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME, styles.motionStageLate)}
-      href={buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale)}
-      data-slot="primaryCTA"
-      data-motion-slot="primaryCTA"
-      onClick={onPrimaryCtaClick}
-    >
-      {copy.readMore}
-    </Link>
-  ) : (
-    <span
-      className={joinClassNames(LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME, styles.motionStageLate)}
-      aria-hidden="true"
-      data-motion-slot="primaryCTA"
-    >
-      {copy.readMore}
-    </span>
-  );
-
-  if (layoutMode === 'desktop-overlay-floor') {
-    return (
-      <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_BODY_CLASSNAME} data-slot={bodyDataSlot}>
-        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME}>{subtitle}</div>
-        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_SPACER_CLASSNAME} aria-hidden="true" />
-        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME}>
-          {meta}
-          {cta}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} data-slot={bodyDataSlot}>
-      {subtitle}
-      {meta}
-      {cta}
-    </div>
-  );
-}
-
 function ExpandedCardBody({
   card,
   locale,
   copy,
   interactive,
   layoutMode = 'flow',
-  blogSubtitlePresentation = 'plain',
-  blogSubtitleSplit,
-  onAnswerChoiceSelect,
-  onPrimaryCtaClick
+  onAnswerChoiceSelect
 }: ExpandedCardBodyProps) {
-  if (card.type === 'test') {
-    return (
-      <ExpandedTestBody
-        card={card}
-        locale={locale}
-        copy={copy}
-        interactive={interactive}
-        layoutMode={layoutMode}
-        onAnswerChoiceSelect={onAnswerChoiceSelect}
-      />
-    );
-  }
-
   return (
-    <ExpandedBlogBody
+    <ExpandedTestBody
       card={card}
       locale={locale}
       copy={copy}
       interactive={interactive}
       layoutMode={layoutMode}
-      subtitlePresentation={blogSubtitlePresentation}
-      subtitleSplit={blogSubtitleSplit}
-      onPrimaryCtaClick={onPrimaryCtaClick}
+      onAnswerChoiceSelect={onAnswerChoiceSelect}
     />
   );
 }
@@ -854,10 +695,8 @@ function DesktopExpandedShell({
   copy,
   floorPx,
   titleSplit,
-  blogSubtitleSplit,
   onExpandedBodyKeyDown,
-  onAnswerChoiceSelect,
-  onPrimaryCtaClick
+  onAnswerChoiceSelect
 }: DesktopExpandedShellProps) {
   const floorStyle =
     typeof floorPx === 'number' && Number.isFinite(floorPx) && floorPx > 0
@@ -909,10 +748,7 @@ function DesktopExpandedShell({
                     copy={copy}
                     interactive={isInteractive}
                     layoutMode="desktop-overlay-floor"
-                    blogSubtitlePresentation={card.type === 'blog' ? 'desktop-continuity' : 'plain'}
-                    blogSubtitleSplit={card.type === 'blog' ? blogSubtitleSplit : undefined}
                     onAnswerChoiceSelect={onAnswerChoiceSelect}
-                    onPrimaryCtaClick={onPrimaryCtaClick}
                   />
                 </div>
               </div>
@@ -978,18 +814,19 @@ export function LandingGridCard({
   onMouseDown,
   onWheel,
   onAnswerChoiceSelect,
-  onPrimaryCtaClick,
   onMobileClose
 }: LandingGridCardProps) {
   const isUnavailable = isUnavailablePresentation(card);
-  const resolvedState: LandingCardVisualState = isUnavailable && state === 'expanded' ? 'normal' : state;
+  const isBlogCard = card.type === 'blog';
+  const isTestCard = card.type === 'test';
+  const resolvedState: LandingCardVisualState = (isUnavailable || isBlogCard) && state === 'expanded' ? 'normal' : state;
   const isMobileViewport = viewportTier === 'mobile';
-  const isMobileOpening = isMobileViewport && mobileTransientMode === 'OPENING' && !isUnavailable;
-  const isMobileClosing = isMobileViewport && mobileTransientMode === 'CLOSING' && !isUnavailable;
-  const isMobileExpanded = isMobileViewport && mobilePhase === 'OPEN' && !isUnavailable;
-  const desktopStagePhase = !isMobileViewport && !isUnavailable ? desktopShellPhase : 'idle';
+  const isMobileOpening = isMobileViewport && isTestCard && mobileTransientMode === 'OPENING' && !isUnavailable;
+  const isMobileClosing = isMobileViewport && isTestCard && mobileTransientMode === 'CLOSING' && !isUnavailable;
+  const isMobileExpanded = isMobileViewport && isTestCard && mobilePhase === 'OPEN' && !isUnavailable;
+  const desktopStagePhase = !isMobileViewport && isTestCard && !isUnavailable ? desktopShellPhase : 'idle';
   const showDesktopExpandedShell =
-    !isMobileViewport && !isUnavailable && shouldRenderDesktopStageShell(desktopStagePhase);
+    !isMobileViewport && isTestCard && !isUnavailable && shouldRenderDesktopStageShell(desktopStagePhase);
   const isExpanded = showDesktopExpandedShell || isMobileExpanded;
   const isDesktopExpanded = showDesktopExpandedShell;
   const showMobileExpandedBody = isMobileExpanded;
@@ -1002,12 +839,6 @@ export function LandingGridCard({
     freeze: !isMobileViewport && desktopStagePhase !== 'idle',
     text: card.title,
     titleRef: normalTitleRef
-  });
-  const desktopSubtitleSplit = useLandingCardSubtitleSplit({
-    enabled: !isMobileViewport && card.type === 'blog',
-    freeze: !isMobileViewport && desktopStagePhase !== 'idle',
-    text: card.type === 'blog' ? card.subtitle : '',
-    subtitleRef: normalSubtitleRef
   });
   const transformOriginClassName = resolveTransformOriginClassName(desktopTransformOriginX);
   const resolvedShellScale = reducedMotion ? 1 : 1.04;
@@ -1073,12 +904,31 @@ export function LandingGridCard({
     LANDING_GRID_CARD_CONTENT_CLASSNAME,
     isMobileExpanded ? '[height:0] [min-height:0] overflow-hidden' : 'h-full min-h-full'
   );
-  const forwardBlogDestinationCtaClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
-    // Destination transition and telemetry side effects stay in the parent callback.
-    if (onPrimaryCtaClick) {
-      onPrimaryCtaClick(event);
-    }
-  };
+  const triggerContent = (
+    <div className={resolvedContentClassName}>
+      {isMobileExpanded ? null : (
+        <NormalCardFace
+          card={card}
+          hasAssetMedia={hasAssetMedia}
+          isMobileViewport={isMobileViewport}
+          presentation={isDesktopExpanded ? 'expandedTitleOnly' : 'collapsed'}
+          exposePublicSlots
+          titleRef={normalTitleRef}
+          subtitleRef={normalSubtitleRef}
+        />
+      )}
+
+      {isDesktopExpanded ? (
+        <div className={LANDING_GRID_CARD_SHELL_GHOST_CLASSNAME} aria-hidden="true">
+          <NormalCardGhostBody
+            card={card}
+            hasAssetMedia={hasAssetMedia}
+            subtitleRef={normalSubtitleRef}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
 
   return (
     <div
@@ -1146,45 +996,41 @@ export function LandingGridCard({
         } as CSSProperties
       }
     >
-      <button
-        type="button"
-        className={resolvedTriggerClassName}
-        data-testid="landing-grid-card-trigger"
-        data-slot="primaryTrigger"
-        data-trigger-state={isExpanded ? 'expanded' : 'collapsed'}
-        tabIndex={tabIndex}
-        aria-disabled={ariaDisabled ? 'true' : undefined}
-        aria-label={isMobileExpanded ? card.title : undefined}
-        onFocus={onFocus}
-        onKeyDown={onKeyDown}
-        onClick={onClick}
-      >
-        <div className={resolvedContentClassName}>
-          {isMobileExpanded ? null : (
-            <NormalCardFace
-              card={card}
-              hasAssetMedia={hasAssetMedia}
-              isMobileViewport={isMobileViewport}
-              presentation={isDesktopExpanded ? 'expandedTitleOnly' : 'collapsed'}
-              exposePublicSlots
-              titleRef={normalTitleRef}
-              subtitleRef={normalSubtitleRef}
-            />
-          )}
+      {isBlogCard ? (
+        <Link
+          className={resolvedTriggerClassName}
+          href={buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale)}
+          data-testid="landing-grid-card-trigger"
+          data-slot="primaryTrigger"
+          data-trigger-state={isExpanded ? 'expanded' : 'collapsed'}
+          tabIndex={tabIndex}
+          aria-disabled={ariaDisabled ? 'true' : undefined}
+          aria-label={card.title}
+          onFocus={onFocus}
+          onKeyDown={onKeyDown}
+          onClick={onClick}
+        >
+          {triggerContent}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          className={resolvedTriggerClassName}
+          data-testid="landing-grid-card-trigger"
+          data-slot="primaryTrigger"
+          data-trigger-state={isExpanded ? 'expanded' : 'collapsed'}
+          tabIndex={tabIndex}
+          aria-disabled={ariaDisabled ? 'true' : undefined}
+          aria-label={isMobileExpanded ? card.title : undefined}
+          onFocus={onFocus}
+          onKeyDown={onKeyDown}
+          onClick={onClick}
+        >
+          {triggerContent}
+        </button>
+      )}
 
-          {isDesktopExpanded ? (
-            <div className={LANDING_GRID_CARD_SHELL_GHOST_CLASSNAME} aria-hidden="true">
-              <NormalCardGhostBody
-                card={card}
-                hasAssetMedia={hasAssetMedia}
-                subtitleRef={normalSubtitleRef}
-              />
-            </div>
-          ) : null}
-        </div>
-      </button>
-
-      {!isMobileViewport && !isUnavailable ? (
+      {!isMobileViewport && !isUnavailable && isTestCard ? (
         <DesktopExpandedShell
           stageClassName={resolvedDesktopStageClassName}
           phase={desktopStagePhase}
@@ -1195,14 +1041,12 @@ export function LandingGridCard({
           copy={copy}
           floorPx={resolvedExpandedFloorPx}
           titleSplit={desktopTitleSplit}
-          blogSubtitleSplit={desktopSubtitleSplit}
           onExpandedBodyKeyDown={onExpandedBodyKeyDown}
           onAnswerChoiceSelect={onAnswerChoiceSelect}
-          onPrimaryCtaClick={forwardBlogDestinationCtaClick}
         />
       ) : null}
 
-      {showMobileExpandedBody ? (
+      {showMobileExpandedBody && isTestCard ? (
         <div
           className={joinClassNames(LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME, styles.mobileExpanded, styles.expandedBody)}
           data-slot="expandedBody"
@@ -1229,12 +1073,11 @@ export function LandingGridCard({
             copy={copy}
             interactive
             onAnswerChoiceSelect={onAnswerChoiceSelect}
-            onPrimaryCtaClick={forwardBlogDestinationCtaClick}
           />
         </div>
       ) : null}
 
-      {showMobileTransientShell ? (
+      {showMobileTransientShell && isTestCard ? (
         <div
           className={resolvedTransientShellClassName}
           data-slot="mobileTransientShell"
@@ -1263,7 +1106,6 @@ export function LandingGridCard({
               copy={copy}
               interactive={false}
               onAnswerChoiceSelect={onAnswerChoiceSelect}
-              onPrimaryCtaClick={forwardBlogDestinationCtaClick}
             />
           </div>
         </div>

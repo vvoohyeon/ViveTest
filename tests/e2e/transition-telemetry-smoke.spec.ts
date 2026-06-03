@@ -387,7 +387,6 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     const blogCard = page.locator('[data-card-variant="ops-handbook"]');
     await blogCard.getByTestId('landing-grid-card-trigger').click();
-    await blogCard.locator('[data-slot="primaryCTA"]').click();
     await expect(page).toHaveURL(new RegExp(`${buildLocalizedBlogDetailRoute('en', 'ops-handbook')}$`, 'u'));
 
     await page.waitForTimeout(300);
@@ -408,7 +407,6 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     const blogCard = page.locator('[data-card-variant="build-metrics"]');
     await blogCard.getByTestId('landing-grid-card-trigger').click();
-    await blogCard.locator('[data-slot="primaryCTA"]').click();
 
     await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
     await expectSourceGnbOverlay(page, 'blog');
@@ -418,6 +416,31 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     const transitionSignals = await readTransitionSignals(page);
     expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(1);
     expect(transitionSignals.filter((signal) => signal.signal === 'transition_complete')).toHaveLength(1);
+  });
+
+  test('@smoke modified blog card activation leaves landing transition state untouched', async ({
+    page
+  }) => {
+    await installTransitionSignalCollector(page);
+    await page.setViewportSize({width: 1440, height: 900});
+    await page.goto('/en');
+
+    const trigger = page.locator('[data-card-variant="build-metrics"]').getByTestId('landing-grid-card-trigger');
+    const popupPromise = page.context().waitForEvent('page', {timeout: 1000}).catch(() => null);
+    await trigger.click({modifiers: ['Meta']});
+    const popup = await popupPromise;
+
+    if (popup) {
+      await popup.close();
+    }
+
+    await page.waitForTimeout(150);
+    await expect(page).toHaveURL(/\/en$/u);
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('vivetest-landing-pending-transition')))
+      .toBeNull();
+    const transitionSignals = await readTransitionSignals(page);
+    expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(0);
   });
 
   test('@smoke assertion:B15-transition-correlation assertion:B17-return-restore blog transition keeps source GNB until destination-ready and landing return restores scroll once', async ({
@@ -458,11 +481,10 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     const sourceCardRestoreCandidate = await blogCard.evaluate((element) =>
       Math.max(0, Math.round(element.getBoundingClientRect().top + window.scrollY - 96))
     );
-    await blogCard.getByTestId('landing-grid-card-trigger').click();
     const scrollBefore = await page.evaluate(() => window.scrollY);
     expect(Math.abs(scrollBefore - preparedScrollY)).toBeLessThanOrEqual(1);
     expect(Math.abs(sourceCardRestoreCandidate - scrollBefore)).toBeGreaterThan(40);
-    await blogCard.locator('[data-slot="primaryCTA"]').click();
+    await blogCard.getByTestId('landing-grid-card-trigger').click();
 
     await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
     await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
@@ -501,7 +523,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBeGreaterThanOrEqual(Math.max(1, Math.round(expectedRestoredScroll) - 1));
 
     const restoredScroll = await page.evaluate(() => window.scrollY);
-    expect(Math.round(restoredScroll)).toBeGreaterThanOrEqual(Math.max(0, Math.round(scrollBefore) - 1));
+    expect(Math.abs(restoredScroll - scrollBefore)).toBeLessThanOrEqual(2);
     expect(Math.abs(restoredScroll - expectedRestoredScroll)).toBeLessThanOrEqual(2);
     const restoredSourceAnchor = await page.locator('[data-card-variant="build-metrics"]').evaluate((element) =>
       Math.max(0, Math.round(element.getBoundingClientRect().top + window.scrollY - 96))
@@ -860,7 +882,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
-    const card = page.locator('[data-card-variant="ops-handbook"]');
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await card.getByTestId('landing-grid-card-trigger').click();
 
     const expandedBody = card.locator('[data-slot="expandedBody"]');
@@ -876,44 +898,53 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(Math.abs(headerTopAfter - headerTopBefore)).toBeLessThanOrEqual(1);
   });
 
-  test('@smoke blog mobile open and close keep subtitle continuity across transient shell and expanded body', async ({
+  test('@smoke mobile blog tap navigates directly without entering the expanded lifecycle', async ({
     page
   }) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator('[data-card-variant="ops-handbook"]');
-    const rootSubtitleText = ((await card.locator('[data-slot="cardSubtitle"]').textContent()) ?? '').trim();
-
-    expect(rootSubtitleText.length).toBeGreaterThan(0);
-
     await card.getByTestId('landing-grid-card-trigger').click();
 
-    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'OPENING');
-    await expect(card.locator('[data-slot="mobileTransientShell"] [data-motion-slot="subtitle"]')).toContainText(
-      rootSubtitleText
-    );
+    await expect(page).toHaveURL(new RegExp(`${buildLocalizedBlogDetailRoute('en', 'ops-handbook')}$`, 'u'));
+    await expect(page.getByTestId('blog-selected-article')).toContainText('Operational Handbook for Stable Releases');
+  });
 
-    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-    await expect(card.locator('[data-slot="cardSubtitleExpanded"]')).toContainText(rootSubtitleText);
+  test('@smoke mobile scroll gesture starting on a blog card does not navigate', async ({page}) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
 
-    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
-    await backdrop.dispatchEvent('pointerdown', {
+    const card = page.locator('[data-card-variant="ops-handbook"]');
+    const trigger = card.getByTestId('landing-grid-card-trigger');
+    const box = await trigger.boundingBox();
+    if (!box) {
+      throw new Error('Expected blog card trigger to have a bounding box');
+    }
+    const clientX = Math.round(box.x + box.width / 2);
+    const clientY = Math.round(box.y + box.height / 2);
+
+    await trigger.dispatchEvent('pointerdown', {
       pointerType: 'touch',
-      clientX: 18,
-      clientY: 18
+      clientX,
+      clientY
     });
-    await backdrop.dispatchEvent('pointerup', {
+    await trigger.dispatchEvent('pointermove', {
       pointerType: 'touch',
-      clientX: 18,
-      clientY: 18
+      clientX,
+      clientY: clientY + 80
+    });
+    await trigger.dispatchEvent('pointerup', {
+      pointerType: 'touch',
+      clientX,
+      clientY: clientY + 80
     });
 
-    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'CLOSING');
-    await expect(card.locator('[data-slot="mobileTransientShell"] [data-motion-slot="subtitle"]')).toContainText(
-      rootSubtitleText
-    );
+    await page.waitForTimeout(150);
+    await expect(page).toHaveURL(/\/en$/u);
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
     await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
+    await expect(card.locator('[data-slot="mobileTransientShell"]')).toHaveCount(0);
   });
 
   test('@smoke assertion:B16-timeout stale pending transitions fail closed on non-destination routes', async ({page}) => {

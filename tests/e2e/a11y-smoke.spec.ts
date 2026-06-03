@@ -163,12 +163,30 @@ test.describe('Canonical accessibility smoke', () => {
 
     const blogCard = page.locator('[data-card-variant="build-metrics"]');
     await blogCard.getByTestId('landing-grid-card-trigger').click();
-    await blogCard.locator('[data-slot="primaryCTA"]').click();
 
     await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
-    await expect(page).toHaveTitle(/Build Metrics That Actually Matter/u);
     await expectSourceGnbOverlay(page, 'blog');
+    await expect(page).toHaveTitle(/Build Metrics That Actually Matter/u);
     await expectPageToBeAxeClean(page);
+  });
+
+  test('@smoke blog card trigger is a semantic link with native keyboard activation', async ({page}) => {
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+
+    const blogCard = page.locator('[data-card-variant="build-metrics"]');
+    const trigger = blogCard.getByTestId('landing-grid-card-trigger');
+
+    await expect(trigger).toHaveAttribute('href', buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT));
+    await trigger.focus();
+    await expect(trigger).toBeFocused();
+
+    await page.keyboard.press('Space');
+    await expect(page).toHaveURL(/\/en$/u);
+    await expect(blogCard).not.toHaveAttribute('data-card-state', 'expanded');
+
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
   });
 
   test('@smoke assertion:B5-axe-canonical KR representative landing states remain axe-clean', async ({page}) => {

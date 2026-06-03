@@ -89,9 +89,17 @@ function renderController(initialProps: ControllerHookProps) {
   );
 }
 
-function createMouseEvent<T extends HTMLElement>(currentTarget: T) {
+function createMouseEvent<T extends HTMLElement>(
+  currentTarget: T,
+  init: Partial<Pick<ReactMouseEvent<T>, 'altKey' | 'button' | 'ctrlKey' | 'metaKey' | 'shiftKey'>> = {}
+) {
   return {
     currentTarget,
+    button: init.button ?? 0,
+    altKey: init.altKey ?? false,
+    ctrlKey: init.ctrlKey ?? false,
+    metaKey: init.metaKey ?? false,
+    shiftKey: init.shiftKey ?? false,
     timeStamp: 100,
     preventDefault: vi.fn(),
     stopPropagation: vi.fn()
@@ -133,7 +141,6 @@ describe('landing interaction controller handlers', () => {
 
     expect(second.onClick).toBe(first.onClick);
     expect(second.onAnswerChoiceSelect).toBe(first.onAnswerChoiceSelect);
-    expect(second.onPrimaryCtaClick).toBe(first.onPrimaryCtaClick);
     expect(second.onMobileClose).toBe(first.onMobileClose);
   });
 
@@ -173,7 +180,7 @@ describe('landing interaction controller handlers', () => {
     expect(onAnswerChoiceSelect.mock.calls[0]?.[1]).toBe('A');
   });
 
-  it('passes the latest blog card object to primary CTA callbacks after cards rerender', () => {
+  it('passes the latest blog card object to whole-card activation callbacks after cards rerender', () => {
     const {testCard, blogCard} = selectFixtureCards();
     const updatedBlogCard: LandingCard = {
       ...blogCard,
@@ -197,12 +204,69 @@ describe('landing interaction controller handlers', () => {
       onPrimaryCtaSelect
     });
 
-    const cta = findCardChild<HTMLAnchorElement>(shell, blogCard.variant, '[data-slot="primaryCTA"]');
+    const trigger = findCardChild<HTMLElement>(shell, blogCard.variant, '[data-testid="landing-grid-card-trigger"]');
+    const event = createMouseEvent(trigger);
     act(() => {
-      hook.result.current.resolveCardInteractionBindings(updatedBlogCard).onPrimaryCtaClick(createMouseEvent(cta));
+      hook.result.current.resolveCardInteractionBindings(updatedBlogCard).onClick(event);
     });
 
     expect(onPrimaryCtaSelect.mock.calls[0]?.[0]).toBe(updatedBlogCard);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets modified and middle-click blog activations pass through without mutating landing transition state', () => {
+    const {testCard, blogCard} = selectFixtureCards();
+    const shell = mountShell([testCard, blogCard]);
+    const onPrimaryCtaSelect = vi.fn<NonNullable<ControllerHookProps['onPrimaryCtaSelect']>>();
+    const {result} = renderController({
+      cards: [testCard, blogCard],
+      viewportWidth: 1280,
+      viewportTier: 'desktop',
+      shellRef: {current: shell},
+      onPrimaryCtaSelect
+    });
+    const trigger = findCardChild<HTMLElement>(shell, blogCard.variant, '[data-testid="landing-grid-card-trigger"]');
+
+    for (const event of [
+      createMouseEvent(trigger, {metaKey: true}),
+      createMouseEvent(trigger, {ctrlKey: true}),
+      createMouseEvent(trigger, {shiftKey: true}),
+      createMouseEvent(trigger, {altKey: true}),
+      createMouseEvent(trigger, {button: 1})
+    ]) {
+      act(() => {
+        result.current.resolveCardInteractionBindings(blogCard).onClick(event);
+      });
+      expect(event.preventDefault).not.toHaveBeenCalled();
+    }
+
+    expect(onPrimaryCtaSelect).not.toHaveBeenCalled();
+    expect(result.current.interactionState.pageState).toBe('ACTIVE');
+    expect(result.current.interactionState.expandedCardVariant).toBeNull();
+  });
+
+  it('routes mobile blog taps to navigation without opening the mobile expanded lifecycle', () => {
+    const {testCard, blogCard} = selectFixtureCards();
+    const shell = mountShell([testCard, blogCard]);
+    const onPrimaryCtaSelect = vi.fn<NonNullable<ControllerHookProps['onPrimaryCtaSelect']>>(() => false);
+    const {result} = renderController({
+      cards: [testCard, blogCard],
+      viewportWidth: 390,
+      viewportTier: 'mobile',
+      shellRef: {current: shell},
+      onPrimaryCtaSelect
+    });
+    const trigger = findCardChild<HTMLElement>(shell, blogCard.variant, '[data-testid="landing-grid-card-trigger"]');
+    const event = createMouseEvent(trigger);
+
+    act(() => {
+      result.current.resolveCardInteractionBindings(blogCard).onClick(event);
+    });
+
+    expect(onPrimaryCtaSelect.mock.calls[0]?.[0]).toBe(blogCard);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(result.current.mobileLifecycleState.phase).toBe('NORMAL');
+    expect(result.current.mobileLifecycleState.cardVariant).toBeNull();
   });
 
   it('prevents default and starts mobile close from the X-button handler', () => {

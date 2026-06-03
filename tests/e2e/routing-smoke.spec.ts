@@ -208,7 +208,7 @@ test.describe('Phase 1 routing smoke', () => {
     await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
   });
 
-  test('@smoke blog detail list navigation and landing CTA stay aligned to the route variant', async ({page}) => {
+  test('@smoke blog detail list navigation and landing whole-card navigation stay aligned to the route variant', async ({page}) => {
     await page.goto(buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT));
     await page.locator('.blog-article-list-item').first().getByRole('link').click();
     await expect(page).toHaveURL(new RegExp(`/en/blog/${PRIMARY_BLOG_VARIANT}$`, 'u'));
@@ -217,7 +217,6 @@ test.describe('Phase 1 routing smoke', () => {
     await page.goto('/en');
     const blogCard = page.locator(`[data-card-variant="${SECONDARY_BLOG_VARIANT}"]`);
     await blogCard.getByTestId('landing-grid-card-trigger').click();
-    await blogCard.locator('[data-slot="primaryCTA"]').click();
 
     await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
     await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');

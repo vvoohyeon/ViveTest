@@ -9,8 +9,8 @@
 | 3 | Normal card visual skin | Wave 2 + Logic Improvement Analysis gate cleared | Medium | ✅ 완료 |
 | 4 | Expanded test content contract | Wave 1 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
 | 5 | Expanded test visual skin; motion implementation candidate if separately approved | Wave 4 + Logic Improvement Analysis gate cleared | Medium | ✅ 완료 |
-| 6 | Desktop expanded overlay sibling isolation; motion implementation candidate if separately approved | Wave 4–5 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
-| 7 | Blog direct navigation behavior | Wave 2 + controller coupling 확인 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
+| 6 | Desktop expanded overlay sibling isolation; motion implementation candidate if separately approved | Wave 4–5 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
+| 7 | Blog direct navigation behavior via whole-card trigger | Wave 2 + controller coupling 확인 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
 | 8 | Blog normal/active visual | Wave 7 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
 | 9 | Unavailable behavior and visual | Wave 2–3 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
 | 10 | Landing grid height rhythm | Wave 2–9 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
@@ -21,6 +21,16 @@
 | 15 | Desktop GNB visual shell | Landing waves stable + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
 | 16 | Light-only theme cleanup + scoped visual-token consolidation | Wave 15 + theme-bootstrap risk plan | High | ⬜ 미완료 |
 | 17 | Mobile menu overlay visual | Wave 15–16 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
+
+### Inter-wave completed checkpoints
+
+Wave 번호 체계 밖에서 진행된 정합 작업이며, Wave 번호를 밀지 않는다.
+
+| Checkpoint | Position | Purpose | Status |
+| --- | --- | --- | --- |
+| BQ-21 design authority + W1–W5 visual reconciliation | Wave 5 ↔ Wave 6 | `docs/design/design.md`를 시각 SSOT로 확정하고 구현된 Wave 1–5를 현재 Claude Design 기준·운영 모델에 재정합 | ✅ 완료 |
+
+상세는 Wave Details의 "Inter-wave Reconciliation — BQ-21 design authority and W1–W5 visual reconciliation" 항목 참조.
 
 ---
 
@@ -180,33 +190,137 @@ Deferred candidates are logged in the Decision Register.
 - **Prerequisites:** Wave 4 완료; Logic Improvement Analysis gate cleared
 - **Validation / tests:** `lint`, `typecheck`, `test`, `build` green; `grid-smoke.spec.ts` 18/18; `gnb-smoke.spec.ts` 23/23; state-smoke 기능 체크 green (기존 parallel-worker contention 케이스 1건 기록); `git diff --check` clean
 - **Risk:** Medium
-- **Handoff:** Wave 6 overlay behavior
+- **Handoff:** Wave 6 overlay behavior. 단, Wave 6 진입 전 Wave 5↔6 사이에 BQ-21 design.md 시각 권위 확정 + W1–W5 visual reconciliation(아래 Inter-wave Reconciliation 항목)이 먼저 완료되었다
+
+### Inter-wave Reconciliation — BQ-21 design authority and W1–W5 visual reconciliation
+
+- **Status:** ✅ 완료
+- **Position:** Wave 5(`571eb0c`) 완료 후 ~ Wave 6 구현 전. Wave 번호 체계 밖의 inter-wave 정합 작업이며 Wave 번호를 변경하지 않는다.
+- **Commits:** 2-commit 시퀀스 — `cc78257`(design authority 선언 + design.md 재구성) → `f3acb9f`(승인된 W1–W5 reconciliation 구현 적용).
+- **Purpose:** `docs/design/design.md`를 시각 단일 출처(SSOT)로 확정하고(BQ-21), 이미 구현된 Wave 1–5 결과를 현재 Claude Design 기준과 운영 모델에 재정합한다. 특정 wave 구현이 아니라 wave 사이의 시각 권위·정합성 정리 작업이다.
+- **Scope / Include:**
+  - **Design authority 선언(BQ-21):** `docs/design/design.md`를 VIVE/ViveTest design-system foundation + ViveTest catalog application layer로 운용하는 시각 SSOT로 확정. 위치를 `docs/design/design.md`로 고정.
+  - **Visual precedence 정리:** 시각 방향은 `design.md`, product behavior(행위·scope·QA·routing·telemetry·storage·i18n·test-flow·a11y)는 requirements/decision-register/roadmap/repo가 계속 지배. 충돌 우선순위 `decision-register.md` → product requirements/active rules → `design.md` → patterns/application layer → mockup resources → 기존 구현 evidence → wave-specific CSS(예외 한정). `AGENTS.md §2` 및 `project-rules.md §Visual-Design`에 명문화.
+  - **운영 원칙:** per-wave CSS 추출은 기본 시각 입력에서 퇴역. 보충 CSS는 BQ-19 Analysis gate가 design.md 공백을 입증·승인한 경우에만 예외 발행. Wave가 신규 시각 결정을 확정하면 wave-specific CSS가 아니라 `design.md`(patterns/application layer)에 환류.
+  - **Superseded reference CSS 이동:** `wave3-normal-card-reference.css`, `wave4-expanded-test-content-reference.css`, `wave5-expanded-test-visual-skin-reference.css`를 `docs/design/resources/superseded/`로 이동(R100, 내용 무변화).
+  - **CLAY/VIVE design-system 문서화:** `design.md`를 CLAY 구조 기반·VIVE 적응형 design-system 문서로 재구성·확장(foundations, tokens, components, application guidance). superseded 원본은 `docs/design/resources/superseded/design.md`로 보존.
+  - **W1–W5 reconciliation 반영(BQ-22):** landing thumbnail slot ratio `aspect-[6/1]` → `aspect-[16/6]` 채택. 동시에 thumbnail slot의 `mt-[var(--landing-card-base-gap)]` 제거(normal spacing 정합).
+  - **qmbti thumbnail SVG 재작업(BQ-22 / RC-W1W5-03):** viewBox `600×100` → `640×240`, warm-neutral/sage palette(`#E8F0EC`, `#5C8E78`) abstract-only 구성으로 재작도.
+  - **Grid smoke ratio assertion 갱신:** `cardThumbnail` ratio 단언 `>5.5 && <6.5` → `>2.4 && <2.9`. 추가로 expanded title single-line guard headroom `+1` → `+2`(design §5.1 20px/1.3 sub-pixel 흡수).
+  - **Expanded meta inline row 재구성(design §6.10):** meta 행을 `label/value`(dt/dd) 구조에서 단일 점-구분 인라인 "value label" 행으로 전환(`landing-grid-card-meta-separator` ×2, `landing-grid-card-meta-value-lead`). 그 결과 12개 locale meta 라벨 카피가 leading-label에서 trailing inline-unit lowercase로 변경(`Est. time / Shares / Completed / Read time / Views` → `min / shared / completed / min read / views`). `landing-card-contract.test.ts`를 신규 markup(separator 2건 + value/label 비어있지 않음)에 맞춰 갱신. *(이 항목은 제공된 commit summary에는 없고 실제 diff에서만 확인됨 — 아래 Note 참조.)*
+  - **Related docs/plans 갱신:** RC W1–W5 reconciliation analysis(BQ-19 gate) 및 implementation plan, normal spacing/title-arrow, thumbnail-abstract-only, expanded-meta-inline-row, expanded-height-floor plan 문서 추가/갱신. 임시 BQ-21 reconciliation plan(`docs/2026-05-31-bq21-design-authority-reconciliation.md`)은 `cc78257`에서 추가 후 `f3acb9f`에서 obsolete로 제거.
+  - **Hygiene:** `docs/design/resources/assets/vive-logo.svg` trailing whitespace 제거; `design.md` spacing wording 소폭 조정.
+- **Exclude / Preservation:**
+  - 전역 theme token migration 미수행 — `globals.css` 전역 적용·namespace 정착은 Wave 16(BQ-04 gating)로 유지. design.md 전역 토큰값은 target intent.
+  - High-risk runtime logic 미수정(의도적 보존): controller/hooks/storage/telemetry/transition/routing/test-entry.
+  - storage / telemetry / transition / routing / test-flow / variant-registry behavior 계약 변경 없음. i18n은 meta 라벨 **카피**만 변경했고 메시지 key·구조·behavior는 보존.
+  - visual baseline regeneration / snapshot 등록 / `qa:visual:full` 없음 — BQ-07 deferral 유지.
+  - Wave 6 overlay isolation 구현 자체는 본 항목에 포함하지 않음(별도 Wave 6).
+  - 화살표 글리프 광학 보정(BQ-25), 랜딩 hero 제거(BQ-23) 등은 후속 분리 작업으로 defer.
+- **Files changed (실제 diff 기준):**
+  - Design authority / docs: `AGENTS.md`, `docs/agent-guides/project-rules.md`(신규 §Visual-Design), `docs/decision-register.md`(`cc78257`: BQ-21·BQ-22 추가 + BQ-07·BQ-12 design-authority 단서 보완 / `f3acb9f`: BQ-23·BQ-24·BQ-25 추가), `docs/design/design.md`
+  - Design resources / superseded assets: `docs/design/resources/superseded/design.md`(신규 보존본), `docs/design/resources/superseded/wave{3,4,5}-*-reference.css`(이동), `docs/design/resources/assets/vive-logo.svg`(hygiene)
+  - Landing visual reconciliation: `src/features/landing/grid/landing-grid-card.tsx`(thumbnail ratio + meta inline row + normal spacing), `public/landing-card-media/qmbti/thumbnail.svg`
+  - Tests / contracts: `tests/e2e/grid-smoke.spec.ts`, `tests/unit/landing-card-contract.test.ts`
+  - i18n / messages: `src/messages/{de,en,es,fr,hi,id,ja,kr,pt,ru,zs,zt}.json`(meta 라벨 카피)
+  - Plans / analysis: `docs/plans/2026-06-01-rc-w1-w5-reconciliation-analysis.md` 외 reconciliation/implementation/spacing/thumbnail/meta-inline/height-floor plan 문서; (제거) `docs/2026-05-31-bq21-design-authority-reconciliation.md`
+- **Validation / tests:** test contract 동기화가 evidence로 확인됨 — `grid-smoke.spec.ts`의 ratio·single-line guard 단언과 `landing-card-contract.test.ts`의 meta inline row 단언이 신규 markup/asset에 맞춰 갱신(테스트 파일 diff). 단, 이 두 commit의 메시지/STATE에는 명시적 `lint`/`typecheck`/`test`/`build` green 로그가 기록돼 있지 않아 게이트 실행 결과는 추정하지 않는다(후속 Wave 6 commit/STATE에서 Basic Gates green이 별도 기록됨).
+- **Risk:** Medium — design authority + visual asset/test-contract reconciliation. runtime behavior 영향은 낮음(High-risk logic 미수정). 단 `AGENTS.md`·`decision-register.md`·design SSOT 등 권위 문서를 변경한 점에서 process/documentation 영향은 Medium-High 수준.
+- **Handoff:** Wave 6는 본 reconciliation으로 확정된 `design.md` 시각 권위와 운영 모델 위에서 desktop expanded overlay isolation + height floor를 진행한다(BQ-24가 Wave 6 BQ-19 Analysis 입력으로 연결). Wave 16 global token migration은 계속 deferred/gated. BQ-07 visual baseline deferral 유지.
 
 ### Wave 6 — Desktop expanded overlay sibling isolation + height floor
 
-- **Status:** ⬜ 미완료
-- **Purpose:** 데스크톱 Expanded overlay 형제 요소 격리 및 Expanded 높이 floor(Normal ≥) 구현
+- **Status:** ✅ 완료
+- **Purpose:** 데스크톱 Expanded overlay 형제 요소 격리 및 Expanded 높이 floor(Normal ≥) 구현. 완료된 해법은 resting-cell 높이를 explicit pixel floor로 측정·전달하고, desktop overlay body에만 floor와 단일 flex spacer를 적용해 lower-row/sibling geometry를 격리한다.
 - **Include:**
-  - invisible Normal placeholder, absolute Expanded, z-index layering, row height stability
-  - **Expanded height floor (BQ-24):** resting-cell 높이를 explicit pixel로 측정해 floor로 주입; 잉여 높이는 last-choice↔meta 단일 flex spacer에만 흡수; content 초과 시 spacer 접힘(content-fit). `min-height:100%`/CSS-only flex floor 금지
-  - §6.7(3) same-row non-target 카드 top/bottom/outer height 0px 격리; §6.7(4) baseline freeze/release 상태모델; §6.7(5) clipping 금지
-- **Exclude:** mobile expanded, Blog behavior, **motion(별도 승인 시에만), 화살표 글리프 광학(BQ-25, Wave 16 이후), 전역 토큰(Wave 16)**
-- **Mockup divergence note (expected):** current_status에서 짧은 콘텐츠 Expanded가 same-row Normal보다 짧아지는 floor 회귀는 본 Wave에서 해소한다.
+  - invisible Normal placeholder + absolute `DesktopExpandedShell` seam 보존
+  - `RestingFloorMap` 기반 explicit px floor 측정/전달: active card root `offsetHeight`를 `useLayoutEffect`에서 측정하고, `expandedRestingFloorPx`로 활성 카드에 전달
+  - desktop expanded body에만 `expandedRestingFloorPx / resolvedShellScale` 기반 `minHeight` 적용; shell/surface `min-height:0` 보존
+  - `layoutMode='desktop-overlay-floor'`에서만 Test choices↔meta, Blog subtitle↔meta+CTA 사이에 단일 flex spacer 적용
+  - §6.7(3) lower-row 포함 non-target top/height/bottom isolation; §6.7(4) baseline freeze/release 상태모델 보존; §6.7(5) clipping 금지
+- **Exclude:**
+  - mobile expanded
+  - Blog behavior / direct navigation
+  - unrelated transition/storage/telemetry/routing/test-entry behavior
+  - motion(별도 승인 시에만)
+  - 화살표 글리프 광학(BQ-25, Wave 16 이후)
+  - 전역 토큰(Wave 16)
+  - visual baseline regeneration / `qa:visual:full`
+- **Logic Improvement:** W6-LI-01/02/03/04 approved and applied. W6-LI-05 behavior layers preserved as no-change.
+- **구현 결과:**
+  - `baseline-manager.ts`: `RestingFloorMap` 타입과 `emptyRestingFloorMap`, `captureRestingFloor`, `clearRestingFloor` pure helper 추가. 기존 baseline snapshot freeze/release reducer 및 `LandingBaselineState`는 확장하지 않고 분리 state로 보존
+  - `use-grid-geometry-controller.ts`: desktop active card root의 `offsetHeight`를 `useLayoutEffect`에서 측정해 `restingFloorMap`에 저장하고 controller output으로 노출. 기존 freeze/release `useEffect`와 32ms release lock 순서는 변경하지 않음
+  - `landing-catalog-grid.tsx`: `restingFloorMap` 값을 활성 카드의 `expandedRestingFloorPx` prop으로 전달
+  - `landing-grid-card.tsx`: desktop overlay expanded body에만 floor px를 shell scale로 보정한 `minHeight`로 적용. `DesktopExpandedShell`/surface의 `min-height:0` content-fit 계약은 유지하고, `desktop-overlay-floor` layout mode에서만 단일 spacer를 삽입
+  - Mobile expanded/transient는 `flow` default path로 유지되어 desktop floor/spacer가 전파되지 않음
+  - `landing-grid-card.module.css` 수정 없이 Tailwind class-only로 구현
+  - BQ-24의 짧은 콘텐츠 Expanded가 same-row Normal보다 짧아지던 floor 회귀 해소
+- **Files changed:**
+  - `src/features/landing/grid/baseline-manager.ts`
+  - `src/features/landing/grid/use-grid-geometry-controller.ts`
+  - `src/features/landing/grid/landing-catalog-grid.tsx`
+  - `src/features/landing/grid/landing-grid-card.tsx`
+  - `tests/e2e/grid-smoke.spec.ts`
+  - `tests/unit/landing-baseline-manager.test.ts`
+- **Known deferred visual baseline debt:**
+  - `expanded-focus-shell.png` expected 403×210, actual 403×292 after intended height floor
+  - `overlay-focus-shell.png` expected 298×193, actual 298×254 from pre-existing visual drift
+  - BQ-07에 따라 visual baselines were not regenerated; `qa:visual:full` was not run
 - **Prerequisites:** Wave 4–5 완료; **RC W1–W5 Unit 5 핸드오프(`docs/plans/2026-06-02-expanded-height-floor.md`) 검토**; Logic Improvement Analysis gate cleared
-- **Validation / tests:** grid/state smoke, row height check; **신규: Expanded ≥ same-row Normal 높이 geometry 단언(스크린샷 아님); B4 `surfaceMinHeight==='0px'` 보존 확인**
+- **Validation / tests:** `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` green; full `grid-smoke` 18/18 green; functional-only `state-smoke` 13/13 green; `git diff --check` clean. Expanded ≥ same-row Normal 높이 geometry 단언과 lower-row isolation 단언 추가; B4 `surfaceMinHeight==='0px'` 보존 확인
 - **Risk:** High
 - **Handoff:** Wave 7 Blog behavior
 
 ### Wave 7 — Blog direct navigation behavior
 
-- **Status:** ⬜ 미완료
-- **Purpose:** Blog 카드 직접 내비게이션 동작 구현
-- **Include:** remove Blog Expanded path, whole-card navigation, no test-like expansion
-- **Exclude:** Blog visual CTA styling
-- **Prerequisites:** Wave 2 완료; current controller coupling 확인; Logic Improvement Analysis gate cleared
-- **Validation / tests:** routing smoke, transition telemetry smoke
+- **Status:** ✅ 완료
+- **Purpose:** Blog 카드를 Expanded / Read more CTA 경로가 아니라 Normal card whole-card trigger(`<Link>`)에서 직접 article navigation을 시작하도록 재배선했다. 완료된 해법은 기존 `beginBlogTransition` → `beginLandingTransition` path를 재사용하면서, Blog가 desktop/mobile/keyboard/hover 어디에서도 Test-like Expanded state에 진입하지 않도록 card-type gate를 추가한다.
+- **Include:**
+  - Blog-level semantic `<Link>` / whole-card navigation trigger
+  - Blog Expanded render branch 제거: `ExpandedBlogBody`, `ExpandedBlogSubtitleContinuity`, blog `primaryCTA(Read more)`, blog subtitle split/plumbing 제거
+  - `landing-grid-card.tsx`에서 Blog는 requested expanded state를 Normal로 강제하고, desktop/mobile expanded/transient shell은 Test card 전용으로 제한
+  - `use-landing-interaction-controller.ts` Blog branch: R1 modifier/middle-click passthrough, normal click/tap은 `onPrimaryCtaSelect` → existing `beginBlogTransition` 경로로 진입 후 landing visual lock
+  - `use-hover-intent-controller.ts` / `use-card-keyboard-handler.ts` Blog gate: hover/focus는 기존 Test expanded를 collapse하되 Blog를 expand하지 않음; Enter는 native link activation, Space는 no hijack
+  - mobile Blog tap direct navigation; Blog never enters `use-mobile-card-lifecycle` (file unchanged)
+  - `src/features/transition/**` unchanged: existing `beginBlogTransition`/`beginLandingTransition`/storage/telemetry side effects reused; Blog still no landing ingress / no `card_answered`
+  - unit + e2e smoke specs updated from two-step Read-more CTA to single whole-card nav; mobile scroll/no-nav and modified-click guards added
+  - `docs/req-landing.md` §8.6 and §14.4 transition trigger wording synced; §13.3 side-effect wording preserved
+- **Exclude:**
+  - Blog visual CTA styling / tag-row `Read more →` label / desktop hover reveal / mobile always-visible CTA — Wave 8
+  - new Blog visual skin, sage border/focus-ring hover skin, `READ` eyebrow cleanup — Wave 8
+  - transition runtime/storage/telemetry redesign
+  - test card expansion/answer behavior changes
+  - unavailable card behavior changes
+  - `src/features/transition/**`, `use-mobile-card-lifecycle.ts`, `globals.css`, theme-token work
+  - visual baseline regeneration / `qa:visual:full` / snapshot updates
+- **Logic Improvement:** [W7-LI-01, W7-LI-02, W7-LI-03, W7-LI-04, W7-LI-05] approved — apply per Wave 7 analysis/plan. R1(modifier/middle-click passthrough), R2(link-semantic keyboard activation; Enter-only, no Space hijack), R3(mobile scroll-on-blog-card must-not-navigate) included.
+- **구현 결과:**
+  - `landing-grid-card.tsx`: Blog primary trigger is now `<Link href={buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale)} data-slot="primaryTrigger">`; Test/unavailable triggers remain `<button>`. Blog requested expanded state resolves to Normal; desktop expanded shell/mobile expanded body/mobile transient shell are Test-only.
+  - Blog Expanded subtree and CTA removed: `ExpandedBlogBody`, `ExpandedBlogSubtitleContinuity`, `data-slot="primaryCTA"` Blog Link, blog meta/subtitle expanded branch, `useLandingCardSubtitleSplit` call and `blogSubtitleSplit` plumbing removed.
+  - `landing-card-interaction-bindings.ts` / `landing-catalog-grid.tsx`: removed `onPrimaryCtaClick` binding/prop; `onPrimaryCtaSelect` still routes to `beginBlogTransition(card)`.
+  - `use-landing-interaction-controller.ts`: whole-card Blog activation reuses existing blog transition path and prevents default only for ordinary left-click/tap; modified/middle-click returns without transition mutation.
+  - `use-hover-intent-controller.ts`: Blog hover clears pending hover intent and collapses any expanded Test card without scheduling Blog expand; Blog mouseleave no-op.
+  - `use-card-keyboard-handler.ts`: Blog focus records non-expanding focus and collapses prior Test; Blog Enter/Space no longer dispatches `CARD_EXPAND`.
+  - `src/features/transition/**` and `src/features/landing/grid/use-mobile-card-lifecycle.ts` have no diff; transition pending state, return-scroll, internal `transition_start`, and no-`card_answered` Blog contract are preserved via reuse.
+  - Test contract changed from Blog Expanded/read-more CTA to semantic whole-card link + no expanded slots. E2E changed routing/a11y/transition/state/grid smoke to single Blog trigger click, no-expanded Blog guards, modified click pass-through, mobile tap navigation, and mobile scroll no-nav.
+- **Post-impl 정합(2026-06-03, code-review 후속 3건):**
+  - hover로 Test→Blog 진입 시 collapse reason을 `handoff`→`collapse`로 교정 — Test 카드 표준 닫힘 모션(280ms) 보존, 0ms snap 제거(req-landing §8.3). keyboard `onFocus` 경로와 일관화.
+  - 회귀 가드로 `state-smoke`에 Test 카드 `data-desktop-motion-role="closing"` 단언 추가(buggy 0ms 경로면 timeout).
+  - Blog `<Link>`에 `aria-label`(=card.title) 추가, keyboard Blog `onFocus`의 `available:false` 의도 주석화.
+  - 검증: `lint`/`typecheck`/`test`(484) /`build` green, Blog collapse 가드 E2E green. 3건 모두 Blog 경로 한정 — 기존 deferred 시각 baseline(BQ-07) 및 `state-smoke` `energy-check` 키보드 debt와 무관.
+- **Files changed (actual current diff/status basis):**
+  - Plans / docs: `docs/plans/2026-06-03-wave-7-blog-direct-navigation-analysis.md`, `docs/plans/2026-06-03-wave-7-blog-direct-navigation.md`, `docs/req-landing.md`
+  - Landing render/controller: `src/features/landing/grid/landing-grid-card.tsx`, `src/features/landing/grid/landing-card-interaction-bindings.ts`, `src/features/landing/grid/landing-catalog-grid.tsx`, `src/features/landing/grid/use-landing-interaction-controller.ts`, `src/features/landing/grid/use-hover-intent-controller.ts`, `src/features/landing/grid/use-card-keyboard-handler.ts`
+  - Tests / contracts: `tests/unit/landing-card-contract.test.ts`, `tests/unit/landing-data-contract.test.ts`, `tests/unit/landing-interaction-controller-handlers.test.ts`, `tests/e2e/a11y-smoke.spec.ts`, `tests/e2e/grid-smoke.spec.ts`, `tests/e2e/routing-smoke.spec.ts`, `tests/e2e/state-smoke.spec.ts`, `tests/e2e/transition-telemetry-smoke.spec.ts`
+- **Validation / tests:** Implementation-session evidence: `npm run lint`, `npm run typecheck`, `npm test` (73 files / 484 tests), `npm run build` all green; Wave 7 targeted E2E slice 17/17 green; `git diff --check` clean before roadmap update. Full `npm run test:e2e:smoke` was run and is not green: 291 passed, 2 skipped, 108 failed, dominated by deferred visual/theme-matrix baseline debt and stale `landing-blog-expanded` / `mobile-landing-blog-expanded` manifest states. The two non-visual full-run failures observed (`consent-smoke` opt_out and grid B13 hover-collapse) passed when rerun individually.
+- **Known deferred / debt:**
+  - Wave 8 remains responsible for Blog normal/active visual: tag-row `Read more →`, desktop hover reveal, mobile always-visible CTA, blog visual skin/focus treatment.
+  - `tests/e2e/theme-matrix-manifest.json` still contains `landing-blog-expanded` and `mobile-landing-blog-expanded`; it is an Ask-First path and was not changed in Wave 7.
+  - `docs/req-landing.md` still has stale Read-more/Blog Expanded references outside the in-wave §8.6/§14.4 trigger wording sync; these were listed in the Wave 7 plan §11 and deferred unless scope is reopened.
+  - Visual baselines / Safari/theme-matrix snapshots remain deferred under BQ-07; no baseline regeneration was performed.
+- **Prerequisites:** Wave 2 완료; current controller coupling 확인; Wave 7 BQ-19 Analysis + implementation plan gate authorization confirmed
 - **Risk:** High
-- **Handoff:** Wave 8 Blog visual
+- **Handoff:** Wave 8 Blog normal/active visual. Wave 8 should add the visual affordance without reintroducing Blog Expanded behavior or changing the preserved transition runtime/storage/telemetry contract.
 
 ### Wave 8 — Blog normal/active visual
 

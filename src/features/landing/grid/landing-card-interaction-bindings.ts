@@ -36,6 +36,5 @@ export interface LandingCardInteractionBindings {
   onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => void;
   onExpandedBodyKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   onAnswerChoiceSelect: (choice: 'A' | 'B', event: ReactMouseEvent<HTMLButtonElement>) => void;
-  onPrimaryCtaClick: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
   onMobileClose: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }

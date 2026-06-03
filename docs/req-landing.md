@@ -626,10 +626,10 @@
 13. Automated: 모바일 반복 open-close에서 누적 높이 오차 `0px`를 검증한다.
 
 ### 8.6 Transition Start Trigger (Landing→Destination)
-**Rule**: 라우팅 전환 시작은 Expanded의 유효 CTA 활성화 시점에만 허용한다.
-- Test: answerChoiceA/B
-- Blog: Read more
-- Blog CTA 전환은 선택된 article 식별자를 목적지로 전달해야 하며, 목적지는 해당 식별자 기준으로 콘텐츠 컨텍스트를 결정해야 한다.
+**Rule**: 라우팅 전환 시작은 카드 타입별 유효 trigger 활성화 시점에만 허용한다.
+- Test: Expanded answerChoiceA/B
+- Blog: Normal card 전체 링크 trigger
+- Blog 전환은 선택된 article 식별자를 목적지로 전달해야 하며, 목적지는 해당 식별자 기준으로 콘텐츠 컨텍스트를 결정해야 한다.
 - Test CTA 전환은 선택된 A/B 값을 landing ingress로 저장하고 목적지는 runtime entry commit 경계에서 canonical binding을 수행한다.
 - article 식별자 누락/무효 시에는 문서에 정의된 안전 fallback으로 처리해야 한다.
 - Mobile에서도 CTA 입력(마우스 클릭/터치 탭)은 닫기 동작보다 우선하며 반드시 `transition_start`로 귀결되어야 한다.
@@ -1046,7 +1046,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 ### 14.4 Visual Redesign Preservation Contract
 
 **Rule**: 시각 스타일 또는 디자인 시스템을 재구현하더라도 아래 interaction contract는 변경하면 안 된다.
-- Normal/front 상태에는 entry CTA를 추가하지 않는다. Test A/B와 Blog Read more는 Expanded에서만 활성화한다.
+- Normal/front 상태에는 별도 entry CTA를 추가하지 않는다. Test A/B는 Expanded에서만 활성화하고, Blog는 별도 Read more CTA 없이 Normal card 전체 링크 trigger에서 활성화한다.
 - enterable 기준은 `available|opt_out`이며, unavailable은 catalog에 보이지만 Expanded/CTA/transition 진입을 허용하지 않는다.
 - end-user catalog는 `hide|debug`를 숨기고, `OPTED_OUT`에서는 `available`을 숨기며, `opt_out|unavailable`은 유지한다.
 - landing preview는 first scoring question만 사용한다. profile/qualifier row를 landing preview source로 사용하지 않는다.

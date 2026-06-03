@@ -8,7 +8,7 @@ import {
   type LandingGridColumnMode
 } from '../../src/features/landing/grid/layout-plan';
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_VARIANT, PRIMARY_OPT_OUT_TEST_VARIANT} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_VARIANT, PRIMARY_BLOG_VARIANT, PRIMARY_OPT_OUT_TEST_VARIANT} from './helpers/landing-fixture';
 
 const COLUMN_MODE_ORDER: Record<LandingGridColumnMode, number> = {
   'desktop-wide': 0,
@@ -513,7 +513,7 @@ test.describe('Phase 4 grid smoke', () => {
     }
   });
 
-  test('@smoke blog subtitle continuity keeps the normal copy stable while expanded overflow stays capped on desktop and tablet', async ({
+  test('@smoke blog hover keeps the card normal without rendering Expanded slots on desktop and tablet', async ({
     page
   }) => {
     const scenarios = [
@@ -527,51 +527,15 @@ test.describe('Phase 4 grid smoke', () => {
 
       await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-column-mode', scenario.columnMode);
 
-      const card = page.locator('[data-card-variant="ops-handbook"]');
-      const normalSubtitle = card.locator('[data-slot="cardSubtitle"]');
-      const normalClamp = await normalSubtitle.evaluate((element) =>
-        getComputedStyle(element).getPropertyValue('-webkit-line-clamp').trim()
-      );
-      const normalSubtitleText = (await normalSubtitle.textContent()) ?? '';
+      const card = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+      await card.getByTestId('landing-grid-card-trigger').hover();
 
-      expect(normalClamp).toBe('2');
-
-      await hoverDesktopExpandedCard(card);
-
-      const expandedSubtitle = await card.evaluate((element) => {
-        const expandedSubtitleElement = element.querySelector<HTMLElement>('[data-slot="cardSubtitleExpanded"]');
-        const lead = expandedSubtitleElement?.querySelector<HTMLElement>('[data-subtitle-layer="lead"]');
-        const overflow = expandedSubtitleElement?.querySelector<HTMLElement>('[data-subtitle-layer="overflow"]');
-        const line1 = lead?.querySelector<HTMLElement>('[data-subtitle-line="1"]');
-        const line2 = lead?.querySelector<HTMLElement>('[data-subtitle-line="2"]');
-
-        if (!expandedSubtitleElement || !lead || !overflow || !line1 || !line2) {
-          throw new Error('Expected expanded subtitle continuity markers to be present.');
-        }
-
-        const expandedStyle = getComputedStyle(expandedSubtitleElement);
-        const overflowStyle = getComputedStyle(overflow);
-
-        return {
-          fullText: expandedSubtitleElement.textContent ?? '',
-          leadText: lead.textContent ?? '',
-          overflowText: overflow.textContent ?? '',
-          overflowClamp: overflowStyle.getPropertyValue('-webkit-line-clamp').trim(),
-          totalHeight: expandedSubtitleElement.getBoundingClientRect().height,
-          lineHeight: Number.parseFloat(expandedStyle.lineHeight),
-          line1Height: line1.getBoundingClientRect().height,
-          line2Height: line2.getBoundingClientRect().height
-        };
-      });
-
-      expect(expandedSubtitle.fullText).toBe(normalSubtitleText);
-      expect(`${expandedSubtitle.leadText}${expandedSubtitle.overflowText}`).toBe(normalSubtitleText);
-      expect(expandedSubtitle.overflowClamp).toBe('2');
-      expect(expandedSubtitle.line1Height).toBeLessThanOrEqual(expandedSubtitle.lineHeight + 1);
-      expect(expandedSubtitle.line2Height).toBeLessThanOrEqual(expandedSubtitle.lineHeight + 1);
-      expect(expandedSubtitle.totalHeight).toBeLessThanOrEqual(expandedSubtitle.lineHeight * 4 + 4);
-
-      await collapseDesktopExpandedCard(page, card);
+      await expect(card).toHaveAttribute('data-card-state', 'normal');
+      await expect(card).toHaveAttribute('data-desktop-motion-role', 'idle');
+      await expect(card.locator('[data-slot="expandedShell"]')).toHaveCount(0);
+      await expect(card.locator('[data-slot="expandedBody"]')).toHaveCount(0);
+      await expect(card.locator('[data-slot="cardSubtitleExpanded"]')).toHaveCount(0);
+      await expect(card.locator('[data-slot="primaryCTA"]')).toHaveCount(0);
     }
   });
 
@@ -609,7 +573,7 @@ test.describe('Phase 4 grid smoke', () => {
     expect(Math.abs(rowClientWidth - rowScrollWidth)).toBeLessThanOrEqual(1);
   });
 
-  test('@smoke lower-row shell frame widening preserves inset and inward anchor across desktop wide, medium, and two-column layouts', async ({
+  test('@smoke lower-row shell frame widening preserves inset for the remaining lower-row test target', async ({
     page
   }) => {
     const scenarios = [
@@ -618,9 +582,7 @@ test.describe('Phase 4 grid smoke', () => {
         columnMode: 'desktop-wide' as const,
         cards: [
           {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'center' as const},
-          {variant: 'ops-handbook', targetRatio: 1.1, anchor: 'center' as const},
-          {variant: 'build-metrics', targetRatio: 1.1, anchor: 'end' as const},
-          {variant: 'release-gate', targetRatio: 1.1, anchor: 'start' as const}
+          {variant: 'egtt', targetRatio: 1.1, anchor: 'center' as const}
         ]
       },
       {
@@ -628,9 +590,7 @@ test.describe('Phase 4 grid smoke', () => {
         columnMode: 'desktop-medium' as const,
         cards: [
           {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
-          {variant: 'ops-handbook', targetRatio: 1.1, anchor: 'start' as const},
-          {variant: 'build-metrics', targetRatio: 1.1, anchor: 'center' as const},
-          {variant: 'release-gate', targetRatio: 1.1, anchor: 'end' as const}
+          {variant: 'egtt', targetRatio: 1.1, anchor: 'end' as const}
         ]
       },
       {
@@ -638,8 +598,7 @@ test.describe('Phase 4 grid smoke', () => {
         columnMode: 'two-column' as const,
         cards: [
           {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
-          {variant: 'build-metrics', targetRatio: 1.04, anchor: 'start' as const},
-          {variant: 'release-gate', targetRatio: 1.04, anchor: 'end' as const}
+          {variant: 'egtt', targetRatio: 1.04, anchor: 'start' as const}
         ]
       }
     ];
@@ -915,10 +874,9 @@ test.describe('Phase 4 grid smoke', () => {
     await expect.poll(() => shell.getAttribute('data-baseline-phase')).toBe('BASELINE_READY');
 
     // §6.7(3): same-row non-target isolation that holds for row 0 must hold identically for
-    // lower rows (row index 2+). Expand a row-1 card and keep a row-1 sibling frozen across
-    // steady and pointer handoff, then confirm 0px residual height change after close.
+    // lower rows. Blog cards no longer expand in Wave 7, so the lower-row handoff leg is
+    // limited to the remaining expandable test card and a normal-state sibling.
     const lowerTarget = page.locator('[data-card-variant="egtt"]');
-    const lowerHandoffTarget = page.locator('[data-card-variant="ops-handbook"]');
     const lowerSibling = page.locator('[data-card-variant="build-metrics"]');
     const lowerBefore = await lowerSibling.boundingBox();
     expect(lowerBefore).not.toBeNull();
@@ -936,17 +894,8 @@ test.describe('Phase 4 grid smoke', () => {
       Math.abs((lowerSteady?.y ?? 0) + (lowerSteady?.height ?? 0) - ((lowerBefore?.y ?? 0) + (lowerBefore?.height ?? 0)))
     ).toBeLessThanOrEqual(1);
 
-    await lowerHandoffTarget.hover();
-    await expect(lowerHandoffTarget).toHaveAttribute('data-desktop-motion-role', 'handoff-target');
-    await expect(lowerHandoffTarget).toHaveAttribute('data-card-state', 'expanded');
-
-    const lowerHandoff = await lowerSibling.boundingBox();
-    expect(lowerHandoff).not.toBeNull();
-    expect(Math.abs((lowerHandoff?.y ?? 0) - (lowerBefore?.y ?? 0))).toBeLessThanOrEqual(1);
-    expect(Math.abs((lowerHandoff?.height ?? 0) - (lowerBefore?.height ?? 0))).toBeLessThanOrEqual(1);
-
     await page.mouse.move(0, 0);
-    await expect(lowerHandoffTarget).toHaveAttribute('data-card-state', 'normal');
+    await expect(lowerTarget).toHaveAttribute('data-card-state', 'normal');
     await expect.poll(() => shell.getAttribute('data-baseline-phase')).toBe('BASELINE_READY');
 
     const lowerAfter = await lowerSibling.boundingBox();

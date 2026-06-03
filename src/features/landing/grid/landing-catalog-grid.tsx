@@ -257,7 +257,6 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     onMouseLeave={interactionBindings.onMouseLeave}
                     onExpandedBodyKeyDown={interactionBindings.onExpandedBodyKeyDown}
                     onAnswerChoiceSelect={interactionBindings.onAnswerChoiceSelect}
-                    onPrimaryCtaClick={interactionBindings.onPrimaryCtaClick}
                     onMobileClose={interactionBindings.onMobileClose}
                   />
                 );
