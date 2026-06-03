@@ -204,6 +204,30 @@ describe('landing card slot contract', () => {
     expect(doc.querySelector('[data-slot="expandedBody"]')).toBeNull();
     expect(doc.querySelector('[data-slot="cardSubtitleExpanded"]')).toBeNull();
     expect(doc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
+
+    const readMore = doc.querySelector('[data-slot="blogReadMore"]');
+    expect(readMore).not.toBeNull();
+    expect(readMore?.getAttribute('aria-hidden')).toBe('true');
+    expect(readMore?.getAttribute('tabindex')).toBeNull();
+    expect(readMore?.textContent?.trim()).toBe('Read more →');
+  });
+
+  it('keeps Read more affordance blog-only and out of primary CTA slots', () => {
+    const catalog = resolveLandingCatalog('en');
+    const testCard = catalog.find((candidate) => candidate.type === 'test' && candidate.availability === 'available');
+    const unavailableCard = catalog.find((candidate) => candidate.variant === 'creativity-profile');
+
+    if (!testCard || !unavailableCard) {
+      throw new Error('Expected available test and unavailable fixture cards');
+    }
+
+    const testDoc = renderCardDocument({card: testCard, state: 'normal'});
+    const unavailableDoc = renderCardDocument({card: unavailableCard, state: 'normal'});
+
+    expect(testDoc.querySelector('[data-slot="blogReadMore"]')).toBeNull();
+    expect(unavailableDoc.querySelector('[data-slot="blogReadMore"]')).toBeNull();
+    expect(testDoc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
+    expect(unavailableDoc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
   });
 
   it('renders desktop expanded title continuity markers while preserving the full title text', () => {

@@ -259,10 +259,10 @@
 ### 6.5 Card Slot Order Contract
 **Rule**: 슬롯 순서와 존재 규칙은 고정한다.
 - Normal 순서: `cardThumbnail -> cardTitle -> cardSubtitle -> tags`
-- Normal/front 상태에서는 Start, Read more, A/B answerChoice 같은 entry CTA를 렌더링하지 않는다. Normal 카드의 1차 트리거는 확장 또는 unavailable overlay 확인만 담당한다.
+- Normal/front 상태에서는 Start, A/B answerChoice 같은 entry CTA를 렌더링하지 않는다. Blog의 `Read more`는 whole-card article link 내부의 비상호작용 시각 affordance로만 허용하며 별도 CTA가 아니다.
 - Expanded 공통 헤더: `cardTitle`만 유지
 - Expanded Test에서는 `subtitle/thumbnail/tags`를 제거한다(숨김 아님, 비노출).
-- Expanded Blog에서는 `thumbnail/tags`만 제거하고 같은 `subtitle`을 유지한다.
+- Blog는 Expanded 슬롯을 렌더링하지 않는다.
 - `cardThumbnail`은 UI slot 이름일 뿐이며, thumbnail asset 결정 입력은 오직 `variant`다.
 - fallback thumbnail도 `variant` 기반 규칙 안에서만 결정한다.
 - Test Expanded: `previewQuestion`, `answerChoiceA/B`, `meta(3)`
@@ -271,8 +271,7 @@
 - 현재 Test Expanded preview source는 Questions의 **first scoring question (`scoring1`)** projection이다. UI는 이를 source detail로 인식하지 않고 resolver가 주입한 landing projection으로만 소비해야 한다.
 - Questions fixture 기반 `scoring1` projection은 registry builder가 `testPreviewPayloadByVariant`에 반영한다. `resolveTestPreviewPayload()`는 이 registry store를 읽어 동일 consumer shape로 반환한다.
 - preview payload 접근 로직을 랜딩 UI 컴포넌트 내부에 분산시키는 것을 금지한다. raw fixture shape 직접 참조도 금지한다.
-- Blog Expanded: `cardSubtitleExpanded(최대 4줄)`, `meta(3)`, `primaryCTA(Read more)`
-- Blog entry는 Expanded의 `primaryCTA(Read more)`에서만 시작할 수 있다.
+- Blog entry는 Normal card의 whole-card article link에서만 시작할 수 있다.
 
 **Verification**:
 1. Manual: Normal/Expanded 전환 시 슬롯 제거/등장 순서를 확인한다.
@@ -381,9 +380,7 @@
 - Test Expanded는 별도 Start CTA를 허용하지 않는다.
 - Test Expanded의 preview/answer CTA는 generic first row가 아니라 canonical preview payload만 사용한다. 해당 payload는 Questions **first scoring question (`scoring1`)** 에서 파생되며 consumer shape는 유지되어야 한다.
 - Test Expanded의 A/B 선택은 landing pre-answer와 landing ingress를 생성하는 유일한 landing-side test entry 액션이다.
-- Blog Expanded `meta`는 3개 고정이며 runtime data key는 `durationM`, `sharedC`, `engagedC`만 사용한다. 표시 라벨만 `읽기 시간`, `공유`, `조회`로 분기하며 non-interactive 정보 슬롯으로 렌더링한다.
-- Blog Expanded `primaryCTA`는 1개 고정(`Read more`, i18n).
-- Blog Expanded `primaryCTA`는 pending transition과 return restoration만 생성한다. landing ingress, pre-answer, `card_answered`는 Blog entry에서 생성하지 않는다.
+- Blog는 Expanded `meta`/`primaryCTA`를 렌더링하지 않는다. `Read more`는 Normal tag row의 비상호작용 시각 affordance이며, Blog entry는 pending transition과 return restoration만 생성한다. landing ingress, pre-answer, `card_answered`는 Blog entry에서 생성하지 않는다.
 - Expanded `meta` 수치값은 축약 표기(`k`/`m` 등)를 금지하고 3자리마다 `,` 구분자를 적용한다.
 - 카드에 노출되는 텍스트(제목/부제/질문/선택지/메타 레이블)는 활성 locale에 맞춰 표시해야 하며, locale 값 누락 시 default locale fallback을 적용한다.
 

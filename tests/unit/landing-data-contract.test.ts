@@ -349,7 +349,7 @@ describe('landing registry and resolver contract', () => {
     expect(new Set(instructions).size).toBe(instructions.length);
   });
 
-  it('ignores legacy blog CTA fields because blog entry is the whole-card article link', () => {
+  it('ignores legacy blog CTA fields while rendering copy readMore as a visual affordance', () => {
     const blogCard = resolveLandingCatalog('kr').find((card) => card.variant === 'release-gate');
 
     if (!blogCard || blogCard.type !== 'blog') {
@@ -385,7 +385,8 @@ describe('landing registry and resolver contract', () => {
 
     expect(html).toContain('href="/kr/blog/release-gate"');
     expect(html).not.toContain('data-slot="primaryCTA"');
-    expect(html).not.toContain('CTA_FROM_COPY');
+    expect(html).toContain('data-slot="blogReadMore"');
+    expect(html).toContain('CTA_FROM_COPY');
     expect(html).not.toContain('LEGACY_FIXTURE_CTA');
   });
 });

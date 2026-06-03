@@ -9,6 +9,10 @@
   --normal-tag-ink: #4a4a55;
   --normal-tag-radius: 5px;
 
+  /* Wave 8 Blog hover skin tokens; scoped here until Wave 16 global token migration. */
+  --blog-hover-border: #5c8e78;
+  --blog-hover-shadow: 0 4px 14px rgb(92 142 120 / 22%);
+
   /* Wave 5 expanded-test skin tokens (design.md §6.5/§7). Strategy A: consumed only by
      expanded-test selectors (question/choice/arrow), so no shared global token is mutated. */
   --expanded-question-ink: #1a1a1f;
@@ -26,6 +30,25 @@
 .root:not(.desktopOverlayLayer):has(:focus-visible) {
   outline: 2px solid var(--normal-focus-ring);
   outline-offset: 2px;
+}
+
+.root.blogCard {
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .root.blogCard:hover {
+    border-color: var(--blog-hover-border);
+    box-shadow: var(--blog-hover-shadow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root.blogCard {
+    transition: none;
+  }
 }
 
 /* Semantic style classes are the CSS contract; data-* stays on the DOM as QA/debug anchors only. */

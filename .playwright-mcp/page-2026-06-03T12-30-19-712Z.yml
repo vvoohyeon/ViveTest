@@ -1,0 +1,112 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - link "ViveTest" [ref=e7] [cursor=pointer]:
+          - /url: /en
+        - navigation "Primary" [ref=e9]:
+          - link "History" [ref=e10] [cursor=pointer]:
+            - /url: /en/history
+          - link "Blog" [ref=e11] [cursor=pointer]:
+            - /url: /en/blog
+        - button "Settings" [ref=e14] [cursor=pointer]:
+          - img [ref=e15]
+    - main [ref=e21]:
+      - region "Landing Hero" [ref=e22]:
+        - heading "Find your working rhythm in one pass" [level=1] [ref=e23]
+        - paragraph [ref=e24]: Available tests and engineering blog notes live in a single catalog. Expand a card, choose an action, and move forward with one deterministic handoff.
+      - region "Landing Catalog Grid" [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - button "10m MBTI test Find your default deep-work cadence. Card tags" [ref=e29] [cursor=pointer]:
+              - generic [ref=e30]:
+                - heading "10m MBTI test" [level=2] [ref=e32]
+                - paragraph [ref=e33]: Find your default deep-work cadence.
+                - list "Card tags" [ref=e35]:
+                  - listitem [ref=e36]:
+                    - generic [ref=e37]: Rapid
+                  - listitem [ref=e38]:
+                    - generic [ref=e39]: ipsum
+                  - listitem [ref=e40]:
+                    - generic [ref=e41]: Lorem
+            - button "Focus Rhythm B Long String example here goes ipsum lorem varaint string edge case here example LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT Card tags" [ref=e43] [cursor=pointer]:
+              - generic [ref=e44]:
+                - heading "Focus Rhythm B Long String example here goes ipsum lorem varaint string edge case here example" [level=2] [ref=e46]
+                - paragraph [ref=e47]: LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT
+                - list "Card tags" [ref=e49]:
+                  - listitem [ref=e50]:
+                    - generic [ref=e51]: workflow
+                  - listitem [ref=e52]:
+                    - generic [ref=e53]: ipsum lorem long tag
+                  - listitem [ref=e54]:
+                    - generic [ref=e55]: Lorem long tag example
+            - button "Energy Allocation Check Identify where your mental load leaks each day. Card tags" [ref=e57] [cursor=pointer]:
+              - generic [ref=e58]:
+                - heading "Energy Allocation Check" [level=2] [ref=e60]
+                - paragraph [ref=e61]: Identify where your mental load leaks each day.
+                - list "Card tags" [ref=e63]:
+                  - listitem [ref=e64]:
+                    - generic [ref=e65]: energy
+                  - listitem [ref=e66]:
+                    - generic [ref=e67]: planning
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - button "Creativity Profile (Soon) Upcoming variant under editorial review. Card tags" [disabled] [ref=e70]:
+                - generic [ref=e71]:
+                  - heading "Creativity Profile (Soon)" [level=2] [ref=e73]
+                  - paragraph [ref=e74]: Upcoming variant under editorial review.
+                  - list "Card tags" [ref=e76]:
+                    - listitem [ref=e77]:
+                      - generic [ref=e78]: coming-soon
+              - generic:
+                - generic: Coming Soon
+            - button "Estrogen vs Testosterone Test Temporarily removed from the public catalog while content is being reworked. Card tags" [ref=e80] [cursor=pointer]:
+              - generic [ref=e81]:
+                - heading "Estrogen vs Testosterone Test" [level=2] [ref=e83]
+                - paragraph [ref=e84]: Temporarily removed from the public catalog while content is being reworked.
+                - list "Card tags" [ref=e86]:
+                  - listitem [ref=e87]:
+                    - generic [ref=e88]: Estrogen
+                  - listitem [ref=e89]:
+                    - generic [ref=e90]: Testosterone
+                  - listitem [ref=e91]:
+                    - generic [ref=e92]: Hormone Test
+            - link "Operational Handbook for Stable Releases" [ref=e94] [cursor=pointer]:
+              - /url: /en/blog/ops-handbook
+              - generic [ref=e95]:
+                - heading "Operational Handbook for Stable Releases" [level=2] [ref=e97]
+                - paragraph [ref=e98]: This long-form article walks through incident posture, deployment sequencing, rollback ergonomics, observability baselines, and a practical checklist for reducing mean-time-to-detect and mean-time-to-recover. It intentionally includes extended prose so subtitle clamp and overflow rules can be validated against realistic payload sizes in both desktop and mobile layouts.
+                - generic [ref=e100]:
+                  - list "Card tags" [ref=e101]:
+                    - listitem [ref=e102]:
+                      - generic [ref=e103]: operations
+                    - listitem [ref=e104]:
+                      - generic [ref=e105]: release
+                  - generic [ref=e106]: Read more →
+            - link "Build Metrics That Actually Matter" [ref=e108] [cursor=pointer]:
+              - /url: /en/blog/build-metrics
+              - generic [ref=e109]:
+                - heading "Build Metrics That Actually Matter" [level=2] [ref=e111]
+                - paragraph [ref=e112]: A compact field guide to selecting build-time, test-time, and runtime quality indicators that correlate with user outcomes.
+                - generic [ref=e114]:
+                  - list "Card tags" [ref=e115]
+                  - generic [ref=e116]: Read more →
+          - link "Designing a Reliable Release Gate" [ref=e119] [cursor=pointer]:
+            - /url: /en/blog/release-gate
+            - generic [ref=e120]:
+              - heading "Designing a Reliable Release Gate" [level=2] [ref=e122]
+              - paragraph [ref=e123]: A practical implementation strategy for layering static checks, deterministic state assertions, and e2e smoke contracts into one release boundary.
+              - generic [ref=e125]:
+                - list "Card tags" [ref=e126]:
+                  - listitem [ref=e127]:
+                    - generic [ref=e128]: qa
+                  - listitem [ref=e129]:
+                    - generic [ref=e130]: gate
+                - generic [ref=e131]: Read more →
+    - region "Cookie consent" [ref=e133]:
+      - paragraph [ref=e134]: We use cookies and similar technologies to help the service work properly and to understand how it is used. You can choose whether to allow optional cookies, and you can change your choice at any time.
+      - generic [ref=e135]:
+        - button "Accept all" [ref=e136] [cursor=pointer]
+        - button "Deny" [ref=e137] [cursor=pointer]
+        - button "Preferences" [ref=e138] [cursor=pointer]
+  - alert [ref=e139]

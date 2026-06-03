@@ -1,56 +1,64 @@
-# STATE.md — Wave 6: Desktop expanded overlay isolation + Expanded height floor (COMPLETE, uncommitted)
+# STATE.md — Wave 8: Blog normal/active visual (COMPLETE, uncommitted)
 
 > Session continuity anchor only. Not executable, not an SSOT.
-> Plan SSOT: `docs/plans/2026-06-02-wave-6-overlay-isolation-height-floor.md`. Branch `main`. Uncommitted; nothing pushed.
-> Approved approach (user): scale 보정=card 측 · floor map=controller 분리 state + baseline-manager pure helper · spacer 구간 gap 비적용.
+> Plan SSOT: `docs/plans/2026-06-03-wave-8-blog-visual.md`. Branch `main`. Uncommitted; nothing pushed.
+> Approved approach (user): Logic Improvement = no candidates approved; preserve logic. Use CSS/markup-only Blog visual affordance and hover skin; default Decision 1/2 document sync accepted.
 
 ## Current Phase / Milestone
 
-Wave 6 implementation (BQ-24 height floor + §6.7(3) lower-row isolation). Task mode: Implementation. Logic Improvement W6-LI-01/02/03/04 approved. **Implementation complete; awaiting user review/commit instruction only.**
+Wave 8 implementation (Blog normal/active visual) is complete. Task mode: Implementation. No branch/push/merge/checkpoint work was performed.
 
-Units (plan §5): A=failing tests → B=floor 측정 → C=floor+spacer 적용 → D=functional 재검증.
+Units (plan §5):
 
-- **Unit A — DONE.** `tests/e2e/grid-smoke.spec.ts`:
-  - B4-short-expanded: `beforeSourceRoot` 캡처 + `surfaceHeight >= beforeSourceRoot.height - 0.5` 신규(현재 floor 미적용이라 fail 예상 → Unit C에서 green).
-  - B4-geometry-active-frame: lower-row(egtt steady → ops-handbook handoff, build-metrics non-target) y/height/bottom Δ≤1px + 종료 잔류 Δ≤1px 추가.
-- **Unit B — DONE & VERIFIED.** (High-Risk 파일 2종)
-  - `baseline-manager.ts`: `RestingFloorMap` 타입 + `emptyRestingFloorMap`/`captureRestingFloor`/`clearRestingFloor` pure helper (row snapshot freeze/release와 분리, 시그니처 무변경).
-  - `use-grid-geometry-controller.ts`: 신규 `useLayoutEffect`(deps `[activeVisualCardVariant, plan.tier, shellRef]`)가 active card root `offsetHeight`(stretched row-max) 측정 → `restingFloorMap` state(첫 paint 전). freeze/release `useEffect` **무변경**. output에 `restingFloorMap` 추가.
-  - 검증: `typecheck` green; `landing-baseline-manager.test.ts` 6/6 green(floor helper 4 신규 포함).
+- **Unit A — DONE.** Added red tests:
+  - `tests/unit/landing-card-contract.test.ts`: Blog `blogReadMore` present, `aria-hidden`, non-focusable, not `primaryCTA`; test/unavailable cards have no `blogReadMore`.
+  - `tests/e2e/grid-smoke.spec.ts`: desktop rest/hover/focus reveal, mobile tap always-visible, whole-card navigation preserved.
+  - Red evidence: targeted unit and E2E checks failed on missing `blogReadMore` before implementation.
+- **Unit B — DONE & VERIFIED.**
+  - `landing-grid-card.tsx`: threaded optional `readMoreLabel` through `NormalCardFace` -> `NormalCardTagRow`, rendering Blog-only non-interactive `Read more →` span. Test/unavailable paths do not receive the prop; `NormalCardGhostBody` unchanged.
+  - Updated stale `tests/unit/landing-data-contract.test.ts` so legacy `blog.primaryCTA` is still ignored while `copy.readMore` is allowed as the new visual affordance.
 - **Unit C — DONE & VERIFIED.**
-  - `landing-catalog-grid.tsx`: `restingFloorMap`을 `expandedRestingFloorPx` prop으로 전달.
-  - `landing-grid-card.tsx`: `expandedRestingFloorPx / resolvedShellScale`를 desktop `expandedBody`에만 `minHeight`로 적용. shell/surface `min-height:0` 보존. `layoutMode='desktop-overlay-floor'`에서만 Test choices↔meta, Blog subtitle↔meta+CTA 사이 단일 flex spacer(`min-h 14px`) 적용. Mobile expanded/transient는 `flow` default로 기존 grid flow 보존.
-  - `landing-grid-card.module.css` 수정 불필요.
+  - `landing-grid-card.module.css`: added scoped `--blog-hover-*` tokens and Blog-only hover selector. Resting state/focus ring remain intact; no `globals.css`.
 - **Unit D — DONE & VERIFIED.**
-  - Basic Gates: `lint` ✅, `typecheck` ✅, `test` ✅, `build` ✅.
-  - Scope checks: full `grid-smoke` ✅ 18/18, functional-only `state-smoke` ✅ 13/13, `git diff --check` ✅.
+  - `docs/design/design.md`: added `--shadow-blog-hover`, cross-referenced §7.4, removed stale Blog-expanded floor sentence.
+  - `docs/req-landing.md`: synced §6.5/§6.6 Blog Expanded/primaryCTA rows to the whole-card-link contract.
+  - `docs/wave-roadmap.md` and plan outcome updated to reflect completion.
+- **Unit E — DONE & VERIFIED.**
+  - Basic gates green: `npm run lint`, `npm run typecheck`, `npm test` (73 files / 485 tests), `npm run build`.
+  - Scope checks green: `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/grid-smoke.spec.ts --workers=1` (20/20), Browser mobile computed check, Browser desktop rest/hover computed check, `git diff --check`.
+- **Improvement pass — DONE & VERIFIED.**
+  - Source: `docs/plans/2026-06-03-wave-8-improvement-candidates.md`.
+  - Adopted IC-1/2/3/5 and IC-4 default: Blog hover skin now uses `styles.blogCard`, is gated to `@media (hover: hover) and (pointer: fine)`, transitions border/shadow over 140ms with reduced-motion disabled, and uses a single sage border plus soft glow (no extra 1px shadow ring).
+  - IC-6 added as QA guard: longest Read-more locales (`id`, `ru`, `fr`, `de`) stay single-line on narrow mobile cards.
+  - Targeted verification green: red computed-style guard first failed on missing transition; after implementation, targeted hover-skin and localized-label E2E checks passed.
+  - Final post-improvement gates green: `npm run lint`, `npm run typecheck`, `npm test` (73 files / 485 tests), `npm run build`, `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/grid-smoke.spec.ts --workers=1` (21/21), Browser desktop computed check.
 
 ## Pending Verifications / Debt
 
-- Full `state-smoke` still reports the two **BQ-07-deferred screenshot** mismatches:
-  - `expanded-focus-shell.png` expected 403×210, actual 403×292 after the intended height floor.
-  - `overlay-focus-shell.png` expected 298×193, actual 298×254 from pre-existing visual drift.
-  - Functional-only rerun excluding those two screenshot tests passed 13/13. **No baseline regeneration performed.**
-- Playwright/Next warnings observed only: `NO_COLOR` ignored because `FORCE_COLOR` is set; `qmbti/thumbnail.svg` LCP advisory. Both are pre-existing/no-op for this wave.
+- `tests/e2e/theme-matrix-manifest.json` still contains stale Blog-expanded entries; unchanged because it is Ask-First and BQ-07 keeps visual baseline work deferred.
+- No visual baseline regeneration was performed; `qa:visual:full` was not run.
+- Broader stale `docs/req-landing.md` §1.3 / §8.5 prose remains Wave 14 scope per the approved Wave 8 plan.
 
 ## Next Immediate Actionable Steps
 
-1. User review of the uncommitted diff.
-2. If accepted, commit. Suggested message: `wave6: explicit expanded height floor with overlay isolation regression coverage`.
-3. Do not run `qa:visual:full` or regenerate screenshot baselines unless the user explicitly approves a visual baseline update.
+1. User review of the uncommitted Wave 8 diff.
+2. If accepted, commit. Suggested message: `wave8: blog read-more affordance and hover skin`.
+3. Continue with Wave 9 unavailable behavior/visual only after review/commit instruction.
 
-## Key Decisions (user-approved)
+## Key Decisions
 
-- scale 보정 = card 측(`resolvedShellScale = reducedMotion ? 1 : 1.04`), controller는 raw outer px만 운반(모션-불가지).
-- floor map = controller 분리 `useState` + baseline-manager pure helper(freeze reducer 무경합 → §6.7(4) 순서 보존). `LandingBaselineState` 미확장.
-- floor = `expandedBody` min-height(px)에만; shell/surface 무변경(B4 `surfaceMinHeight==='0px'` 보존); `min-height:100%` 금지(design §7.3/§10).
+- `Read more →` is a Blog-only, non-interactive visual affordance inside the existing whole-card `<Link>`, never `primaryCTA`, never focusable, never a separate navigation trigger.
+- Reveal is CSS-only via `group-hover` / `group-focus-within` plus existing `interactionMode`; no controller, state, routing, storage, telemetry, i18n, GNB, or mobile lifecycle changes.
+- Blog hover skin uses scoped module tokens (`--blog-hover-border`, `--blog-hover-shadow`) and records the durable visual token in `docs/design/design.md`; the improved token is single-edge border + glow, with the hover trigger limited to fine-pointer hover. `globals.css` remains Wave 16 scope.
 
 ## Files to Revisit
 
-- `src/features/landing/grid/baseline-manager.ts`
-- `src/features/landing/grid/use-grid-geometry-controller.ts`
-- `src/features/landing/grid/landing-catalog-grid.tsx`
 - `src/features/landing/grid/landing-grid-card.tsx`
+- `src/features/landing/grid/landing-grid-card.module.css`
+- `tests/unit/landing-card-contract.test.ts`
+- `tests/unit/landing-data-contract.test.ts`
 - `tests/e2e/grid-smoke.spec.ts`
-- `tests/unit/landing-baseline-manager.test.ts`
-- `docs/plans/2026-06-02-wave-6-overlay-isolation-height-floor.md`
+- `docs/design/design.md`
+- `docs/req-landing.md`
+- `docs/wave-roadmap.md`
+- `docs/plans/2026-06-03-wave-8-blog-visual.md`

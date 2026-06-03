@@ -189,6 +189,7 @@ Realized type roles (size / weight / line-height):
 --shadow-rest:     0 1px 2px rgba(26,26,31,0.04);
 --shadow-hover:    0 4px 14px rgba(26,26,31,0.06),
                    0 0 0 1px var(--hairline-strong);
+--shadow-blog-hover: 0 4px 14px var(--focus-ring-soft);
 --shadow-expanded: 0 12px 32px rgba(26,26,31,0.08),
                    0 0 0 1px var(--hairline-strong);
 --shadow-overlay:  0 24px 64px rgba(26,26,31,0.18);
@@ -294,7 +295,6 @@ Content order: **context label → preview question → choice A → choice B �
 - Meta label is **`completed`** (never `taken` / `have taken`); numbers are full-digit.
 - The expanded card edge uses `--sage` with `--shadow-expanded`.
 - **Height invariant:** the expanded card must be **at least the resting card height**. The realized mechanism measures the resting card's height in **explicit pixels** and applies it as a floor; surplus height is absorbed **only** between the last choice and the meta row (a single flex spacer). The card grows downward when content overflows. **Do not** express this invariant as `min-height: 100%`.
-- For the blog expanded card (which has no choices and ends with a `Read more →` CTA below the meta), the same single flex spacer sits between the subtitle block and the meta+CTA group, so the meta+CTA anchors to the card bottom. The floor mechanism (explicit-pixel resting height) is identical.
 - The floor/spacer affects only the expanded card's own height; it must not change any same-row card's track height (the row-isolation behavior is governed by the product requirements, not by this document).
 
 ### 7.4 Blog card
@@ -302,7 +302,7 @@ Content order: **context label → preview question → choice A → choice B �
 - **`Read more →`** sits at the right end of the tags row: revealed on hover at desktop, always visible on mobile.
 - **Never underlined**, and its color does not change on its own hover.
 - **No `READ` eyebrow** (no eyebrow on any card).
-- Blog is the one card with a hover skin: a `--sage` border plus the `--focus-ring-soft` glow, signalling navigability.
+- Blog is the one card with a hover skin: a `--sage` border plus `--shadow-blog-hover` (using the `--focus-ring-soft` glow), signalling navigability.
 
 ### 7.5 Unavailable card
 - Warm **`--surface-soft`** surface, slightly distinct from available cards.

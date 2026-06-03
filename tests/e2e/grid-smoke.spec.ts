@@ -172,6 +172,23 @@ async function collapseDesktopExpandedCard(page: Page, card: Locator) {
   await expect(card).toHaveAttribute('data-card-state', 'normal');
 }
 
+async function readOpacity(locator: Locator): Promise<number> {
+  return locator.evaluate((element) => Number.parseFloat(getComputedStyle(element).getPropertyValue('opacity')));
+}
+
+async function readBlogCardSkin(card: Locator) {
+  return card.evaluate((element) => {
+    const style = getComputedStyle(element);
+
+    return {
+      borderTopColor: style.borderTopColor,
+      boxShadow: style.boxShadow,
+      transitionDuration: style.transitionDuration,
+      transitionProperty: style.transitionProperty
+    };
+  });
+}
+
 async function expectDesktopClosingSnapshot(card: Locator) {
   await expect
     .poll(() =>
@@ -539,6 +556,101 @@ test.describe('Phase 4 grid smoke', () => {
     }
   });
 
+  test('@smoke blog Read more affordance reveals on desktop hover and focus without adding CTA slots', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+    const trigger = card.getByTestId('landing-grid-card-trigger');
+    const readMore = card.locator('[data-slot="blogReadMore"]');
+
+    await expect(card).toHaveAttribute('data-interaction-mode', 'hover');
+    await expect(readMore).toHaveCount(1);
+    await expect(readMore).toHaveAttribute('aria-hidden', 'true');
+    await expect(readMore).not.toHaveAttribute('tabindex', /.+/);
+    await expect(card.locator('[data-slot="primaryCTA"]')).toHaveCount(0);
+
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(180);
+    const restingSkin = await readBlogCardSkin(card);
+    expect(restingSkin.borderTopColor).toBe('rgba(0, 0, 0, 0)');
+    expect(restingSkin.boxShadow).toContain('rgba(26, 26, 31, 0.04)');
+    expect(restingSkin.transitionProperty).toBe('border-color, box-shadow');
+    expect(restingSkin.transitionDuration).toBe('0.14s, 0.14s');
+    expect(await readOpacity(readMore)).toBeLessThanOrEqual(0.05);
+
+    await trigger.hover();
+    await page.waitForTimeout(180);
+    const hoverSkin = await readBlogCardSkin(card);
+    expect(hoverSkin.borderTopColor).toBe('rgb(92, 142, 120)');
+    expect(hoverSkin.boxShadow).toBe('rgba(92, 142, 120, 0.22) 0px 4px 14px 0px');
+    expect(hoverSkin.boxShadow).not.toContain('0px 0px 0px 1px');
+    expect(await readOpacity(readMore)).toBeGreaterThanOrEqual(0.95);
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
+    await expect(card.locator('[data-slot="expandedShell"]')).toHaveCount(0);
+
+    await page.mouse.move(0, 0);
+    await trigger.focus();
+    await page.waitForTimeout(180);
+    expect(await readOpacity(readMore)).toBeGreaterThanOrEqual(0.95);
+    await expect(card.locator('[data-slot="expandedBody"]')).toHaveCount(0);
+  });
+
+  test('@smoke blog Read more affordance stays visible in mobile tap mode and whole card still navigates', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: MOBILE_MAX_VIEWPORT_WIDTH, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+    const readMore = card.locator('[data-slot="blogReadMore"]');
+
+    await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', 'mobile');
+    await expect(card).toHaveAttribute('data-interaction-mode', 'tap');
+    await expect(readMore).toHaveCount(1);
+    expect(await readOpacity(readMore)).toBeGreaterThanOrEqual(0.95);
+
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(page).toHaveURL(`/en/blog/${PRIMARY_BLOG_VARIANT}`);
+  });
+
+  test('@smoke localized Blog Read more labels stay single-line on narrow mobile cards', async ({page}) => {
+    const longestReadMoreLocales = ['id', 'ru', 'fr', 'de'] as const;
+
+    await page.setViewportSize({width: MOBILE_MAX_VIEWPORT_WIDTH, height: 844});
+
+    for (const locale of longestReadMoreLocales) {
+      await page.goto(`/${locale}`);
+
+      const card = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+      const readMore = card.locator('[data-slot="blogReadMore"]');
+      await expect(card).toHaveAttribute('data-interaction-mode', 'tap');
+      await expect(readMore).toHaveCount(1);
+      await expect(readMore).toBeVisible();
+
+      const metrics = await readMore.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const cardRect = element.closest('[data-card-variant]')?.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const fontSize = Number.parseFloat(style.fontSize);
+        const lineHeight = style.lineHeight === 'normal' ? fontSize * 1.35 : Number.parseFloat(style.lineHeight);
+
+        return {
+          cardRight: cardRect?.right ?? 0,
+          height: rect.height,
+          lineHeight,
+          right: rect.right,
+          whiteSpace: style.whiteSpace
+        };
+      });
+
+      expect(metrics.whiteSpace).toBe('nowrap');
+      expect(metrics.height).toBeGreaterThan(0);
+      expect(metrics.height).toBeLessThanOrEqual(metrics.lineHeight + 2);
+      expect(metrics.right).toBeLessThanOrEqual(metrics.cardRight);
+    }
+  });
+
   test('@smoke assertion:B4-inline-size subtitle overflow does not contaminate card or sibling slot inline sizes', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
@@ -762,7 +874,7 @@ test.describe('Phase 4 grid smoke', () => {
     const emptyTagsCard = page.locator('[data-card-variant="build-metrics"]');
     await expect(emptyTagsCard).toHaveAttribute('data-card-state', 'normal');
 
-    const orderedSlots = await emptyTagsCard.evaluate((element) => {
+    const orderedSlots = await assetBackedCard.evaluate((element) => {
       const content = element.querySelector('.landing-grid-card-content');
       if (!content) {
         return [];
@@ -774,7 +886,9 @@ test.describe('Phase 4 grid smoke', () => {
     });
 
     expect(orderedSlots).toEqual(['cardThumbnail', 'cardTitle', 'cardSubtitle', 'tags']);
+    await expect(assetBackedCard.locator('[data-slot="blogReadMore"]')).toHaveCount(0);
     await expect(emptyTagsCard.locator('[data-slot="tags"] .landing-grid-card-tag-item')).toHaveCount(0);
+    await expect(emptyTagsCard.locator('[data-slot="blogReadMore"]')).toHaveCount(1);
 
     const minHeight = await emptyTagsCard
       .locator('[data-slot="tags"]')

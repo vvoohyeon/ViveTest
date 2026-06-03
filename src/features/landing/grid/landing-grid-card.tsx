@@ -296,9 +296,11 @@ type ExpandedBodyLayoutMode = 'flow' | 'desktop-overlay-floor';
 interface NormalCardFaceProps {
   card: LandingCard;
   hasAssetMedia: boolean;
+  interactionMode?: LandingCardInteractionMode;
   isMobileViewport: boolean;
   exposePublicSlots: boolean;
   presentation: NormalCardFacePresentation;
+  readMoreLabel?: string;
   titleRef?: RefObject<HTMLHeadingElement | null>;
   subtitleRef?: RefObject<HTMLParagraphElement | null>;
 }
@@ -328,6 +330,8 @@ interface NormalCardSubtitleProps {
 interface NormalCardTagRowProps {
   card: LandingCard;
   exposePublicSlot: boolean;
+  interactionMode?: LandingCardInteractionMode;
+  readMoreLabel?: string;
 }
 
 function LandingCardSubtitleText({
@@ -409,23 +413,53 @@ function NormalCardSubtitle({card, exposePublicSlot, subtitleRef}: NormalCardSub
   );
 }
 
-function NormalCardTagRow({card, exposePublicSlot}: NormalCardTagRowProps) {
+function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', readMoreLabel}: NormalCardTagRowProps) {
+  const tags = (
+    <ul
+      className={joinClassNames(
+        LANDING_GRID_CARD_TAGS_CLASSNAME,
+        styles.normalTags,
+        readMoreLabel && 'flex-1 [flex-shrink:1]'
+      )}
+      data-slot={exposePublicSlot ? 'tags' : undefined}
+      data-tag-count={card.tags.length}
+      aria-label="Card tags"
+    >
+      {card.tags.map((tag) => (
+        <li key={`${card.variant}-${tag}`} className={LANDING_GRID_CARD_TAG_ITEM_CLASSNAME}>
+          <span className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME}>{tag}</span>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const readMore = readMoreLabel ? (
+    <span
+      className={joinClassNames(
+        'landing-grid-card-blog-read-more ml-auto shrink-0 whitespace-nowrap text-[13px] font-medium leading-[1.35] text-[var(--muted-ink)] no-underline',
+        interactionMode === 'hover'
+          ? 'opacity-0 transition-opacity duration-[140ms] group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none'
+          : 'opacity-100'
+      )}
+      data-slot="blogReadMore"
+      aria-hidden="true"
+    >
+      {readMoreLabel} →
+    </span>
+  ) : null;
+
   return (
     <>
       <div className={joinClassNames(LANDING_GRID_CARD_TAGS_GAP_CLASSNAME, styles.normalTagsGap)} aria-hidden="true" />
 
-      <ul
-        className={joinClassNames(LANDING_GRID_CARD_TAGS_CLASSNAME, styles.normalTags)}
-        data-slot={exposePublicSlot ? 'tags' : undefined}
-        data-tag-count={card.tags.length}
-        aria-label="Card tags"
-      >
-        {card.tags.map((tag) => (
-          <li key={`${card.variant}-${tag}`} className={LANDING_GRID_CARD_TAG_ITEM_CLASSNAME}>
-            <span className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME}>{tag}</span>
-          </li>
-        ))}
-      </ul>
+      {readMore ? (
+        <div className="landing-grid-card-tag-row flex min-h-7 min-w-0 shrink-0 items-center gap-3">
+          {tags}
+          {readMore}
+        </div>
+      ) : (
+        tags
+      )}
     </>
   );
 }
@@ -447,9 +481,11 @@ function NormalCardGhostBody({
 function NormalCardFace({
   card,
   hasAssetMedia,
+  interactionMode,
   isMobileViewport,
   exposePublicSlots,
   presentation,
+  readMoreLabel,
   titleRef,
   subtitleRef
 }: NormalCardFaceProps) {
@@ -472,7 +508,12 @@ function NormalCardFace({
       <NormalCardThumbnail card={card} hasAssetMedia={hasAssetMedia} exposePublicSlot={exposePublicSlots} />
       {title}
       <NormalCardSubtitle card={card} exposePublicSlot={exposePublicSlots} subtitleRef={subtitleRef} />
-      <NormalCardTagRow card={card} exposePublicSlot={exposePublicSlots} />
+      <NormalCardTagRow
+        card={card}
+        exposePublicSlot={exposePublicSlots}
+        interactionMode={interactionMode}
+        readMoreLabel={readMoreLabel}
+      />
     </>
   );
 }
@@ -869,6 +910,7 @@ export function LandingGridCard({
   const resolvedRootClassName = joinClassNames(
     LANDING_GRID_CARD_ROOT_CLASSNAME,
     styles.root,
+    isBlogCard && styles.blogCard,
     isDesktopOverlayLayer && styles.desktopOverlayLayer,
     isDesktopMotionEnter && styles.desktopMotionEnter,
     isDesktopMotionExit && styles.desktopMotionExit,
@@ -910,9 +952,11 @@ export function LandingGridCard({
         <NormalCardFace
           card={card}
           hasAssetMedia={hasAssetMedia}
+          interactionMode={interactionMode}
           isMobileViewport={isMobileViewport}
           presentation={isDesktopExpanded ? 'expandedTitleOnly' : 'collapsed'}
           exposePublicSlots
+          readMoreLabel={isBlogCard ? copy.readMore : undefined}
           titleRef={normalTitleRef}
           subtitleRef={normalSubtitleRef}
         />

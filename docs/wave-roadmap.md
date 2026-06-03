@@ -324,12 +324,32 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 8 — Blog normal/active visual
 
-- **Status:** ⬜ 미완료
-- **Purpose:** Blog 카드 시각 스타일 적용
+- **Status:** ✅ 완료
+- **Purpose:** Blog 카드를 Expanded/CTA 재도입 없이 Normal whole-card link 위에 시각 affordance와 active skin만 얹었다.
 - **Include:** no `READ` eyebrow, `Read more →` in tag row, desktop hover reveal, mobile always visible
 - **Exclude:** GNB/mobile menu
+- **Logic Improvement:** `no candidates approved — preserve existing logic.` State/hooks/routing/storage/telemetry/i18n layers were kept; reveal and skin are CSS/markup-only.
+- **구현 결과:**
+  - `landing-grid-card.tsx`: Blog collapsed face에서만 `copy.readMore`를 `data-slot="blogReadMore"` 비상호작용 span으로 렌더링. `aria-hidden="true"`, no `tabindex`, no `primaryCTA`; decorative arrow is appended in-component. Test/unavailable rows do not receive the affordance.
+  - Desktop hover/focus reveal uses `group-hover`/`group-focus-within` + `interactionMode`; mobile tap mode keeps the affordance visible. Blog still resolves to Normal and renders no Expanded shell/body.
+  - `landing-grid-card.module.css`: scoped `--blog-hover-*` tokens and `[data-card-content-type='blog']:hover` selector added. Hover skin is sage border + soft glow; collapsed focus ring remains additive. `globals.css` was not touched.
+  - `docs/design/design.md`: `--shadow-blog-hover` recorded in §5.8, §7.4 cross-referenced, and the stale Blog-expanded floor sentence removed.
+  - `docs/req-landing.md`: §6.5/§6.6 Blog Expanded/primaryCTA rows synced to the whole-card-link contract; broader stale prose remains deferred as planned.
+  - Post-impl 보완: hover skin을 `styles.blogCard` + fine-pointer media gate로 이동, 140ms reduced-motion-safe transition 적용, single-edge border+glow token으로 정리, computed-style/long-locale guards 추가.
+- **Files changed:**
+  - `src/features/landing/grid/landing-grid-card.tsx`
+  - `src/features/landing/grid/landing-grid-card.module.css`
+  - `tests/unit/landing-card-contract.test.ts`
+  - `tests/unit/landing-data-contract.test.ts`
+  - `tests/e2e/grid-smoke.spec.ts`
+  - `docs/design/design.md`
+  - `docs/req-landing.md`
 - **Prerequisites:** Wave 7 완료; Logic Improvement Analysis gate cleared
-- **Validation / tests:** landing interaction smoke, mobile browse check
+- **Validation / tests:** `npm run lint`, `npm run typecheck`, `npm test` (73 files / 485 tests), `npm run build` all green; full `grid-smoke` 21/21 green in preview mode with one worker; Browser checks confirmed mobile Read-more opacity `1` / `primaryCTA=0` and desktop hover single-edge sage border + `rgba(92, 142, 120, 0.22)` glow + opacity `1`.
+- **Known deferred / debt:**
+  - `tests/e2e/theme-matrix-manifest.json` stale Blog-expanded entries remain deferred (Ask-First + BQ-07).
+  - Visual baselines / Safari/theme-matrix snapshots remain deferred under BQ-07; no baseline regeneration was performed.
+  - Broader stale `docs/req-landing.md` §1.3 / §8.5 prose remains Wave 14 scope per approved Wave 8 plan.
 - **Risk:** Medium
 - **Handoff:** Wave 9 unavailable
 
