@@ -357,7 +357,7 @@ Deferred candidates are logged in the Decision Register.
 
 - **Status:** ⬜ 미완료
 - **Purpose:** 비활성 카드 동작 및 시각 처리
-- **Include:** no hover/click/tap, `tabIndex=-1`, muted surface, dashed Coming Soon pill, no dot
+- **Include:** no hover/click/tap, `tabIndex=-1` (HOVER_LOCK non-target) / keyboard-skipped, `--surface-soft` surface, standard coming-soon tag in tags-row (always visible, no dashed pill, no dot), subtle thumbnail dim (0.72), full-opacity title/subtitle.
 - **Exclude:** test/blog behavior
 - **Prerequisites:** Wave 2–3 완료; Logic Improvement Analysis gate cleared
 - **Validation / tests:** a11y, card contract
