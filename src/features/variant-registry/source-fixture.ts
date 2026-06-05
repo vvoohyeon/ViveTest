@@ -112,17 +112,17 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
       variant: "creativity-profile",
       attribute: "unavailable",
       title: {
-        en: "Creativity Profile (Soon)",
-        kr: "창의성 프로필 (곧 공개)",
+        // D3/BQ-26: no "(Soon)" suffix — the unavailable signal is the tags-row tag + dim only.
+        en: "Creativity Profile",
+        kr: "창의성 프로필",
       },
       subtitle: {
         en: "Upcoming variant under editorial review.",
         kr: "에디토리얼 검토 중인 예정 변형입니다.",
       },
-      tags: {
-        en: ["coming-soon"],
-        kr: ["출시예정"],
-      },
+      // D3/BQ-26: the coming-soon signal is the localized tags-row tag (copy.comingSoon); the
+      // fixture carries no redundant raw coming-soon chip and has no topical tags to retain.
+      tags: {},
       instruction: {
         en: "Creativity Profile preview is a placeholder for the upcoming editorial release.",
         kr: "창의성 프로필은 곧 공개될 에디토리얼 버전용 임시 안내문을 사용합니다.",

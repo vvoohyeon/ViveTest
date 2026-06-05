@@ -491,7 +491,7 @@ export function useLandingInteractionController({
       keyboardModeBlocked,
       interactionBlocked: isTransitioning ? true : mobileInteractionLocked,
       ariaDisabled: isTransitioning ? true : !cardEnterable || mobileInteractionLocked,
-      tabIndex: isTransitioning || mobileInteractionLocked ? -1 : resolveCardTabIndex(interactionState, card.variant),
+      tabIndex: isTransitioning || mobileInteractionLocked ? -1 : resolveCardTabIndex(interactionState, card.variant, cardEnterable),
       mobilePhase,
       mobileTransientMode,
       mobileRestoreReady: resolvedRestoreReady,

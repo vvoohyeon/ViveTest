@@ -79,7 +79,38 @@ describe('landing interaction state machine', () => {
     expect(hoverLocked.hoverLock.cardVariant).toBe('qmbti');
     expect(hoverLocked.hoverLock.keyboardMode).toBe(true);
     expect(isKeyboardModeBlocked(hoverLocked, 'rhythm-b')).toBe(true);
-    expect(resolveCardTabIndex(hoverLocked, 'rhythm-b')).toBe(0);
+    expect(resolveCardTabIndex(hoverLocked, 'rhythm-b', true)).toBe(0);
+  });
+
+  it('removes the unavailable card from the tab order in every state (D1/BQ-26)', () => {
+    // Neutral browse: enterable cards are tab-reachable (0) but unavailable is -1.
+    expect(resolveCardTabIndex(initialLandingInteractionState, 'qmbti', true)).toBe(0);
+    expect(resolveCardTabIndex(initialLandingInteractionState, 'creativity-profile', false)).toBe(-1);
+
+    // Keyboard-mode HOVER_LOCK on another card: unavailable stays -1.
+    const keyboardLocked = replay([
+      {
+        type: 'CARD_FOCUS',
+        nowMs: 1,
+        interactionMode: 'hover',
+        cardVariant: 'qmbti',
+        available: true
+      },
+      {type: 'KEYBOARD_MODE_ENTER'}
+    ]);
+    expect(resolveCardTabIndex(keyboardLocked, 'creativity-profile', false)).toBe(-1);
+
+    // Pointer hover-lock on another card: unavailable stays -1.
+    const pointerLocked = replay([
+      {
+        type: 'CARD_HOVER_ENTER',
+        nowMs: 10,
+        interactionMode: 'hover',
+        cardVariant: 'qmbti',
+        available: true
+      }
+    ]);
+    expect(resolveCardTabIndex(pointerLocked, 'creativity-profile', false)).toBe(-1);
   });
 
   it('collapses hover-lock state when keyboard focus moves onto an unavailable card', () => {
@@ -114,7 +145,7 @@ describe('landing interaction state machine', () => {
 
     expect(state.hoverLock.keyboardMode).toBe(false);
     expect(isKeyboardModeBlocked(state, 'rhythm-b')).toBe(false);
-    expect(resolveCardTabIndex(state, 'rhythm-b')).toBe(-1);
+    expect(resolveCardTabIndex(state, 'rhythm-b', true)).toBe(-1);
   });
 
   it('keeps non-target cards pointer-reachable during pointer hover lock for desktop handoff', () => {

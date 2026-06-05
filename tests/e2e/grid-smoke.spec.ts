@@ -864,7 +864,7 @@ test.describe('Phase 4 grid smoke', () => {
     }
   });
 
-  test('@smoke normal card slot order and unavailable overlay contract', async ({page}) => {
+  test('@smoke normal card slot order and unavailable coming-soon tag contract', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -909,24 +909,35 @@ test.describe('Phase 4 grid smoke', () => {
     const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await expect(unavailableCard).toHaveAttribute('data-card-availability', 'unavailable');
     await expect(unavailableCard).toHaveAttribute('data-interaction-mode', 'hover');
-    await expect(unavailableCard.locator('[data-slot="unavailableOverlay"]')).toHaveCount(1);
+
+    // D2/BQ-26: the top-right overlay pill is gone; a standard coming-soon tag sits in the tags row
+    // and is always visible (no hover gating).
+    await expect(unavailableCard.locator('[data-slot="unavailableOverlay"]')).toHaveCount(0);
+    const comingSoonTag = unavailableCard.locator('[data-slot="comingSoonTag"]');
+    await expect(comingSoonTag).toHaveCount(1);
+    await expect(comingSoonTag).toHaveText('Coming soon');
+    await expect(unavailableCard.locator('[data-slot="tags"]')).toContainText('Coming soon');
+
     await page.mouse.move(0, 0);
     await page.waitForTimeout(180);
-    const overlay = unavailableCard.locator('[data-slot="unavailableOverlay"]');
-    const defaultOpacity = parseFloat(
-      await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
+    const restingTagOpacity = parseFloat(
+      await comingSoonTag.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
     );
-    expect(defaultOpacity).toBeLessThanOrEqual(0.05);
-    await unavailableCard.hover();
-    await page.waitForTimeout(180);
-    const hoveredOpacity = parseFloat(
-      await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
+    expect(restingTagOpacity).toBeGreaterThanOrEqual(0.95);
+
+    // design.md §7.5/§10: title and subtitle keep full opacity (the dim is on the thumbnail only).
+    const titleOpacity = parseFloat(
+      await unavailableCard.locator('[data-slot="cardTitle"]').evaluate((element) => getComputedStyle(element).opacity)
     );
-    expect(hoveredOpacity).toBeGreaterThanOrEqual(0.95);
+    const subtitleOpacity = parseFloat(
+      await unavailableCard.locator('[data-slot="cardSubtitle"]').evaluate((element) => getComputedStyle(element).opacity)
+    );
+    expect(titleOpacity).toBe(1);
+    expect(subtitleOpacity).toBe(1);
     await expect(unavailableCard.locator('[data-slot="cardTitle"]')).toBeVisible();
   });
 
-  test('@smoke unavailable overlay is always visible in tap mode', async ({page}) => {
+  test('@smoke unavailable coming-soon tag is always visible in tap mode', async ({page}) => {
     await page.addInitScript(() => {
       const originalMatchMedia = window.matchMedia.bind(window);
       window.matchMedia = (query: string) => {
@@ -952,11 +963,13 @@ test.describe('Phase 4 grid smoke', () => {
 
     const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await expect(unavailableCard).toHaveAttribute('data-interaction-mode', 'tap');
-    const overlay = unavailableCard.locator('[data-slot="unavailableOverlay"]');
-    await expect(overlay).toHaveCount(1);
+    await expect(unavailableCard.locator('[data-slot="unavailableOverlay"]')).toHaveCount(0);
+    const comingSoonTag = unavailableCard.locator('[data-slot="comingSoonTag"]');
+    await expect(comingSoonTag).toHaveCount(1);
+    await expect(comingSoonTag).toHaveText('Coming soon');
     await expect
       .poll(async () =>
-        parseFloat(await overlay.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim()))
+        parseFloat(await comingSoonTag.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim()))
       )
       .toBeGreaterThanOrEqual(0.95);
   });
@@ -1100,7 +1113,7 @@ test.describe('Phase 4 grid smoke', () => {
       .poll(async () =>
         parseFloat(
           await unavailableCard
-            .locator('[data-slot="unavailableOverlay"]')
+            .locator('[data-slot="comingSoonTag"]')
             .evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim())
         )
       )

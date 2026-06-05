@@ -13,6 +13,11 @@
   --blog-hover-border: #5c8e78;
   --blog-hover-shadow: 0 4px 14px rgb(92 142 120 / 22%);
 
+  /* Wave 9 unavailable-card skin (design.md §7.5). Strategy A: values = design.md §5 semantic
+     tokens; scoped here until Wave 16 global migration. The coming-soon tag reuses --normal-tag-*. */
+  --unavailable-surface: #f4f1ea; /* = design.md §5.2 --surface-soft */
+  --unavailable-thumb-opacity: 0.72; /* design.md §7.5 "subtle dim"; concrete value per BQ-26/§8 */
+
   /* Wave 5 expanded-test skin tokens (design.md §6.5/§7). Strategy A: consumed only by
      expanded-test selectors (question/choice/arrow), so no shared global token is mutated. */
   --expanded-question-ink: #1a1a1f;
@@ -49,6 +54,18 @@
   .root.blogCard {
     transition: none;
   }
+}
+
+/* Wave 9 unavailable card (design.md §7.5): warm --surface-soft surface + subtle thumbnail dim.
+   The `.root.unavailableCard` (0,2,0) selector outranks the inline Tailwind normal background (0,1,0),
+   so only the surface changes; title/subtitle keep full opacity (design.md §10) and the coming-soon
+   tag reuses the standard --normal-tag-* chip. No globals.css change (Wave 16). */
+.root.unavailableCard {
+  background: var(--unavailable-surface);
+}
+
+.root.unavailableCard .normalThumbnail {
+  opacity: var(--unavailable-thumb-opacity);
 }
 
 /* Semantic style classes are the CSS contract; data-* stays on the DOM as QA/debug anchors only. */

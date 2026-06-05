@@ -434,7 +434,7 @@
 
 ### 7.5 HOVER_LOCK Contract (Hover-capable only)
 **Rule**: HOVER_LOCK은 hover-capable 모드 전용이며 입력 모드 분기와 handoff 안전성 규칙을 따른다.
-- 활성 조건: available 카드 Expanded 또는 unavailable 카드 오버레이 활성.
+- 활성 조건: available 카드 Expanded 또는 unavailable 카드 hover.
 - 비대상 카드: NORMAL 강제, dim/backdrop 금지, opacity `1.0` 고정.
 - 비대상 카드: 마우스 입력 기반 반응(`hover/click/pointer`)을 차단한다.
 - 키보드 모드 아님: 비대상 카드 `tabIndex=-1`.
@@ -465,6 +465,7 @@
 - Landing 컨텍스트에서는 중립 페이지 상태에서 첫 forward `Tab`이 첫 번째 available 카드로 진입해야 하며, 첫 번째 available 카드 trigger에서 `Shift+Tab`은 마지막 visible GNB control(Desktop settings / Mobile menu)로 복귀해야 한다.
 - 위 landing 진입/복귀 규칙은 landing에만 적용하며, Blog/History/Test 컨텍스트의 기본 GNB 순회 규칙은 그대로 유지한다.
 - unavailable 카드는 본 override의 Expanded 대상이 아니다.
+- unavailable 카드는 tab order에서 제외된다(`tabIndex=-1`, 모든 상태). 키보드 순차 탐색과 카드 간 handoff는 unavailable 카드를 건너뛰고 다음 enterable 카드로 이동하며, 직전 카드의 Normal 복귀(collapse-prior)는 유지한다. (BQ-26/D1)
 - 본 규칙은 기존 키보드 관련 카드 전이 규칙을 override한다.
 
 **Verification**:
@@ -652,19 +653,17 @@
 - 카드 확장/진입을 유발하는 1차 트리거는 반드시 시맨틱 컨트롤(`<button>`, `<a>`)이어야 한다.
 - 비시맨틱 컨테이너 단독 활성화 트리거를 금지한다.
 - unavailable Test 카드의 진입 불가는 시맨틱으로 표현해야 한다.
-- `<button>` 기반 진입 컨트롤은 `disabled`를 우선 사용한다.
-- 포커스는 허용하되 활성만 차단해야 하는 경우에만 `aria-disabled="true"`를 사용한다.
+- unavailable Test 카드의 1차 트리거는 semantic `<button aria-disabled="true" tabindex="-1">`로 표현한다. native `disabled`는 사용하지 않는다 — `disabled`는 카드를 접근성 트리에서 과도하게 제거해 "coming soon" 인지(design.md §4.10)를 해치기 때문이다. `tabIndex=-1`로 tab order에서 제외하되 semantic `<button>`과 a11y/reading tree 노출은 유지하고 `role` 대체는 금지한다. (BQ-26/D1)
 - `aria-disabled="true"` 대상은 click/keydown(`Enter/Space`)에서 기본 동작을 차단해야 한다.
 - HOVER_LOCK 키보드 모드 비대상 카드는 `aria-disabled`가 아니라 `inert`로 포커스/접근성 트리/활성화를 차단한다.
 - GNB-to-landing keyboard focus transfer must skip card triggers with `aria-disabled="true"` and any card triggers whose ancestor card root carries the `inert` attribute.
 - `role="button"` 대체 구현은 금지하며, 불가피한 경우 Section 15 Exception Registry 등록 후에만 허용한다.
 
-### 9.3 Overlay Readability
-**Rule**:
-- Coming Soon 오버레이는 텍스트 가독성을 보장해야 하며 원본 카드 정보를 완전히 차단하면 안 된다.
-- 포커스 표시가 오버레이에서 소실되면 안 된다.
-- 오버레이가 활성화되어도 키보드 포커스 링(또는 동등한 focus 스타일)은 시각적으로 식별 가능해야 한다.
-- 오버레이 활성 상태에서도 `cardTitle`은 항상 식별 가능해야 한다.
+### 9.3 Coming-soon Indicator Readability
+**Rule** (BQ-26/D2 — 우상단 오버레이 제거):
+- coming-soon 표준 태그는 tags-row에 상시 표시되며 텍스트 가독성을 보장한다(`aria-hidden` 금지 — AT에 노출).
+- unavailable 카드의 title/subtitle은 full opacity를 유지하고(opacity 감소 금지, design.md §10) 항상 식별 가능해야 한다. dim은 thumbnail에만 적용한다.
+- `--surface-soft` 표면 위에서도 키보드 포커스 링(또는 동등한 focus 스타일)은 시각적으로 식별 가능해야 한다.
 
 **Verification**:
 1. Manual: 키보드-only 탐색으로 focus 이동/활성화 차단을 확인한다.
@@ -803,8 +802,7 @@
 **Rule**: unavailable Test 카드는 진입 차단 + Coming Soon 표시를 적용한다.
 - unavailable Blog 카드는 존재하면 안 된다.
 - unavailable Test 카드는 Expanded/CTA/전환을 허용하지 않는다.
-- Hover-capable 모드에서는 hover/focus 시에만 오버레이 노출
-- Tap Mode에서는 오버레이 상시 노출
+- coming-soon 표준 태그는 모든 입력 모드(hover/tap)에서 tags-row에 상시 표시된다(우상단 오버레이 제거, BQ-26/D2).
 
 **Adapter 레이어 책임 (Landing-side 계약)**: `unavailable` 판정의 단일 소스는 generated runtime registry의 `attribute` 필드다. `loadVariantRegistry()` + `resolveLandingCatalog()`가 카드 attribute를 반영해 카탈로그를 구성하며, 렌더링/상호작용 레이어는 이 값을 그대로 사용한다. 직접 URL 접근 차단은 req-test.md §2.5/§6.1이 소유한다.
 

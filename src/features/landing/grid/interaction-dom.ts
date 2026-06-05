@@ -31,6 +31,29 @@ export function resolveAdjacentCardVariant(
   return cardVariants[nextIndex] ?? null;
 }
 
+// D1/BQ-26: keyboard handoff은 unavailable(non-enterable) 카드를 건너뛰고 같은 방향의 다음 enterable
+// 카드로 이동한다. 해당 방향에 enterable 카드가 없으면 null을 반환해 GNB-return / self 폴백을 보존한다.
+export function resolveAdjacentEnterableCardVariant(
+  cardVariants: readonly string[],
+  currentCardVariant: string,
+  step: 1 | -1,
+  isEnterable: (cardVariant: string) => boolean
+): string | null {
+  const index = cardVariants.indexOf(currentCardVariant);
+  if (index < 0) {
+    return null;
+  }
+
+  for (let nextIndex = index + step; nextIndex >= 0 && nextIndex < cardVariants.length; nextIndex += step) {
+    const candidate = cardVariants[nextIndex];
+    if (candidate && isEnterable(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 export function focusCardByVariant(shellElement: HTMLElement | null, cardVariant: string | null): boolean {
   if (!shellElement || !cardVariant) {
     return false;

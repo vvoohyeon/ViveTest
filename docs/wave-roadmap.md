@@ -12,7 +12,7 @@
 | 6 | Desktop expanded overlay sibling isolation; motion implementation candidate if separately approved | Wave 4–5 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
 | 7 | Blog direct navigation behavior via whole-card trigger | Wave 2 + controller coupling 확인 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
 | 8 | Blog normal/active visual | Wave 7 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
-| 9 | Unavailable behavior and visual | Wave 2–3 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
+| 9 | Unavailable behavior and visual | Wave 2–3 + Logic Improvement Analysis gate cleared | Medium | ✅ 완료 |
 | 10 | Landing grid height rhythm | Wave 2–9 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
 | 11 | Landing desktop a11y/keyboard hardening | Wave 4–10 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
 | 12 | Mobile browse card visual | Wave 2–3, 8–9 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
@@ -355,13 +355,29 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 9 — Unavailable behavior and visual
 
-- **Status:** ⬜ 미완료
+- **Status:** ✅ 완료
 - **Purpose:** 비활성 카드 동작 및 시각 처리
 - **Include:** no hover/click/tap, `tabIndex=-1` (HOVER_LOCK non-target) / keyboard-skipped, `--surface-soft` surface, standard coming-soon tag in tags-row (always visible, no dashed pill, no dot), subtle thumbnail dim (0.72), full-opacity title/subtitle.
 - **Exclude:** test/blog behavior
+- **Logic Improvement:** [W9-LI-01, W9-LI-03, W9-LI-04, W9-LI-05] approved (W9-LI-02 satisfied by D2). User decisions D1–D3 / BQ-26.
+- **구현 결과:**
+  - D1/BQ-26 keyboard a11y: `resolveCardTabIndex(state, variant, enterable)`가 unavailable에 대해 모든 상태에서 `-1` 반환(`model/interaction-state.ts`); `use-landing-interaction-controller.ts`가 `cardEnterable` 전달. 새 pure helper `resolveAdjacentEnterableCardVariant`(`interaction-dom.ts`)로 키보드 handoff이 unavailable을 건너뛰고 다음 enterable 카드로 이동(desktop+mobile 6개 site, `use-card-keyboard-handler.ts`). semantic `<button aria-disabled tabindex=-1>` 유지(native `disabled` 미사용, `role` 대체 없음).
+  - D2/BQ-26 visual: `UnavailableCardStatusOverlay`(우상단 다크 pill) 및 `data-slot="unavailableOverlay"` 제거; coming-soon을 tags-row 표준 태그(`data-slot="comingSoonTag"`, `copy.comingSoon`, 비 `aria-hidden`, 상시 표시)로 렌더(`landing-grid-card.tsx`). `module.css`에 scoped `--unavailable-surface`(=`--surface-soft` `#f4f1ea`) + `--unavailable-thumb-opacity`(0.72); `.root.unavailableCard` 표면 + `.normalThumbnail` dim. title/subtitle full opacity. `globals.css` 미변경(Wave 16). 태그는 기존 `--normal-tag-*` 표준 chip 재사용.
+  - D3 fixture: `creativity-profile` 제목 "(Soon)"/"(곧 공개)" 접미사 제거, tags `{}`로 정리(`source-fixture.ts`); `variant-registry.generated.ts` 재생성(`attribute:unavailable`·meta·consumer shape 보존, `unavailableCount===1` 유지).
+  - W9-LI-01 i18n: `en.json` `comingSoon` `"Coming Soon"`→`"Coming soon"`(design.md §4.2).
+  - 환류: req-landing §7.5/§7.6/§9.2/§9.3/§13.2, design.md §7.5(dim 0.72), project-rules 대표 anchor(`creativity-profile`).
+- **Files changed:**
+  - 소스: `src/features/landing/model/interaction-state.ts`, `src/features/landing/grid/use-landing-interaction-controller.ts`, `src/features/landing/grid/interaction-dom.ts`, `src/features/landing/grid/use-card-keyboard-handler.ts`, `src/features/landing/grid/landing-grid-card.tsx`, `src/features/landing/grid/landing-grid-card.module.css`
+  - fixture/생성/i18n: `src/features/variant-registry/source-fixture.ts`, `src/features/variant-registry/variant-registry.generated.ts`(재생성), `src/messages/en.json`
+  - 테스트/QA: `tests/unit/landing-interaction-state.test.ts`, `tests/unit/landing-interaction-dom.test.ts`, `tests/unit/landing-card-contract.test.ts`, `tests/e2e/a11y-smoke.spec.ts`, `tests/e2e/state-smoke.spec.ts`, `tests/e2e/grid-smoke.spec.ts`, `scripts/qa/check-phase5-card-contracts.mjs`
+  - 문서: `docs/req-landing.md`, `docs/design/design.md`, `docs/agent-guides/project-rules.md`, `docs/wave-roadmap.md`, `docs/decision-register.md`(BQ-26, `74a1361`에서 선커밋)
 - **Prerequisites:** Wave 2–3 완료; Logic Improvement Analysis gate cleared
-- **Validation / tests:** a11y, card contract
-- **Risk:** Medium
+- **Validation / tests:** `npm run lint`, `npm run typecheck`, `npm test`(488), `npm run build` green; registry 재생성 + `registry-serializer`/`landing-data-contract` green; `check-variant-registry`/`check-variant-only`/`check-phase5`(coming-soon 태그 grep) green; Wave E2E `a11y-smoke`+`state-smoke`(키보드 skip 양방향+landing edge)+`grid-smoke`(coming-soon 태그 상시표시) green (preview, `--workers=1`). BQ-07: `qa:visual:full`/baseline 재생성 미실행, `overlay-focus-shell.png` 이연.
+- **Known deferred / debt:**
+  - `check-phase5-card-contracts.mjs`의 Blog-expanded marker 검사(`cardSubtitleExpanded`/"Blog Expanded")는 Wave 7 Blog expanded 제거로 stale — Wave 9 이전부터 실패하던 pre-existing QA debt이며 Wave 9 범위 밖.
+  - `expanded-focus-shell.png` snapshot은 Wave 6 이후 이연(BQ-07); 미재생성.
+  - legacy global `--unavailable-*` 토큰(`globals.css`)은 dead → Wave 16 정리.
+- **Risk:** Medium (단, D1 키보드/a11y 변경분은 High-Risk로 취급해 Playwright E2E 회귀 강제)
 - **Handoff:** Wave 10 grid rhythm
 
 ### Wave 10 — Landing grid height rhythm

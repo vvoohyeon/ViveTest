@@ -306,7 +306,7 @@ Content order: **context label → preview question → choice A → choice B �
 
 ### 7.5 Unavailable card
 - Warm **`--surface-soft`** surface, slightly distinct from available cards.
-- Thumbnail may dim **subtly only**; **title and subtitle keep normal opacity.**
+- Thumbnail may dim **subtly only** (realized: thumbnail `opacity 0.72`); **title and subtitle keep normal opacity.**
 - A **standard `coming soon` tag** in the tags-row position — **no dashed pill, no dot.**
 - Visually inert and removed from the tab order, but **not** styled like a broken disabled button.
 

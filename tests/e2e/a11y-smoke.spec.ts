@@ -113,9 +113,46 @@ test.describe('Canonical accessibility smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
     await expectPageToBeAxeClean(page);
+  });
 
-    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
-    await unavailableCard.getByTestId('landing-grid-card-trigger').focus();
+  test('@smoke unavailable card is removed from the keyboard tab order yet stays AT-perceivable', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+    await page.locator('body').click({position: {x: 1, y: 1}});
+
+    // D1/BQ-26: the unavailable card is skipped by Tab in every state. Sweep the grid and confirm
+    // focus never lands on the unavailable trigger, while the first enterable card stays reachable.
+    const focusedVariants = new Set<string>();
+    for (let attempts = 0; attempts < 18; attempts += 1) {
+      await page.keyboard.press('Tab');
+      const variant = await page.evaluate(() => {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLElement)) {
+          return null;
+        }
+        return active.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-variant') ?? null;
+      });
+      if (variant) {
+        focusedVariants.add(variant);
+      }
+    }
+
+    expect(focusedVariants.has(PRIMARY_AVAILABLE_TEST_VARIANT)).toBe(true);
+    expect(focusedVariants.has('creativity-profile')).toBe(false);
+
+    // The trigger stays a semantic <button aria-disabled> removed from the tab order — kept in the
+    // a11y/reading tree (not native `disabled`), so AT can still perceive it as "coming soon".
+    const unavailableTrigger = page
+      .locator('[data-card-variant="creativity-profile"]')
+      .getByTestId('landing-grid-card-trigger');
+    await expect(unavailableTrigger).toHaveJSProperty('tagName', 'BUTTON');
+    await expect(unavailableTrigger).toHaveAttribute('aria-disabled', 'true');
+    await expect(unavailableTrigger).toHaveAttribute('tabindex', '-1');
+
+    // Focus remains valid/readable when reached programmatically (not a keyboard path).
+    await unavailableTrigger.focus();
     await expectPageToBeAxeClean(page);
   });
 

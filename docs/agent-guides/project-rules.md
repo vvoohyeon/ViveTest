@@ -109,7 +109,7 @@
   (`src/features/telemetry/consent-source.ts`).
 - Preferences button in consent banner is currently a visible no-op.
   Do not add behavior before requirements change.
-- Representative anchors: available test `qmbti` · opt-out test `energy-check` · primary blog `ops-handbook`.
+- Representative anchors: available test `qmbti` · opt-out test `energy-check` · unavailable test `creativity-profile` · primary blog `ops-handbook`.
 - Theme-matrix QA uses only representative `en` and `kr` matrix rows — not all locales.
 - Theme-matrix screenshot baselines are local ignored files under `tests/e2e/*-snapshots/`.
   Record the shared latest regeneration and gate verification result in

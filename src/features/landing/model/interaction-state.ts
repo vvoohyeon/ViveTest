@@ -483,8 +483,14 @@ export function isKeyboardModeBlocked(
 
 export function resolveCardTabIndex(
   state: LandingInteractionState,
-  cardVariant: string
+  cardVariant: string,
+  enterable: boolean
 ): number {
+  // D1/BQ-26: unavailable(non-enterable) 카드는 모든 상태에서 tab order에서 제외한다.
+  if (!enterable) {
+    return -1;
+  }
+
   if (!state.hoverLock.enabled) {
     return 0;
   }

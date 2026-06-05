@@ -290,19 +290,25 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstCard).toHaveAttribute('data-keyboard-mode', 'false');
   });
 
-  test('@smoke assertion:B5-keyboard-sequential unavailable keyboard target collapses the previous expanded card after internal CTA traversal completes', async ({
+  test('@smoke assertion:B5-keyboard-sequential keyboard handoff skips the unavailable card in both directions while collapsing the prior card', async ({
     page
   }) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
-    await tabUntilCardFocused(page, 'energy-check');
 
     const sourceCard = page.locator('[data-card-variant="energy-check"]');
+    const sourceTrigger = sourceCard.getByTestId('landing-grid-card-trigger');
     const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     const unavailableTrigger = unavailableCard.getByTestId('landing-grid-card-trigger');
+    const nextEnterableCard = page.locator('[data-card-variant="egtt"]');
+    const nextEnterableTrigger = nextEnterableCard.getByTestId('landing-grid-card-trigger');
 
+    // Position keyboard focus on the enterable card immediately before the unavailable one
+    // (energy-check → creativity-profile → egtt). Direct focus avoids the multi-handoff
+    // settle race in the older Tab-sweep helper; the skip itself is exercised by real Tab below.
+    await sourceTrigger.focus();
     await expect(sourceCard).toHaveAttribute('data-card-state', 'expanded');
 
     await page.keyboard.press('Tab');
@@ -311,10 +317,41 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.keyboard.press('Tab');
     await expect(page.locator('[data-card-variant="energy-check"] [data-slot="answerChoiceB"]:focus')).toHaveCount(1);
 
+    // Forward (D1/BQ-26): Tab out of the last choice SKIPS the unavailable card and lands on the
+    // next enterable card (egtt); the prior card collapses (collapse-prior intact).
     await page.keyboard.press('Tab');
-    await expect(unavailableTrigger).toBeFocused();
-    await expect(unavailableCard).toHaveAttribute('data-card-state', 'focused');
+    await expect(nextEnterableTrigger).toBeFocused();
+    await expect(unavailableTrigger).not.toBeFocused();
+    await expect(unavailableCard).not.toHaveAttribute('data-card-state', 'focused');
     await expect(sourceCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(nextEnterableCard).toHaveAttribute('data-card-state', 'expanded');
+
+    // Reverse: Shift+Tab from the next enterable trigger also skips the unavailable card and
+    // returns focus to the source card, which re-expands.
+    await page.keyboard.press('Shift+Tab');
+    await expect(sourceTrigger).toBeFocused();
+    await expect(unavailableTrigger).not.toBeFocused();
+    await expect(sourceCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(nextEnterableCard).toHaveAttribute('data-card-state', 'normal');
+  });
+
+  test('@smoke assertion:B5-keyboard-sequential neutral landing keyboard edges are preserved alongside the unavailable skip', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    // req-landing §7.6: first forward Tab enters the FIRST enterable card (not the unavailable one),
+    // and Shift+Tab from that first card returns to the last GNB control. The unavailable-skip
+    // helper must not alter this GNB-return branch.
+    await page.locator('body').click({position: {x: 1, y: 1}});
+    await page.keyboard.press('Tab');
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByTestId('gnb-settings-trigger')).toBeFocused();
   });
 
   test('@smoke desktop short expanded overlay keeps the root shell transparent while the surface settles content-fit', async ({
@@ -365,15 +402,6 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
     await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
     await expectLocatorToMatchLocalSnapshot(firstCard, 'expanded-focus-shell.png', testInfo);
-  });
-
-  test('@smoke assertion:B5-overlay-focus shell-aligned focus remains readable above unavailable overlay', async ({page}, testInfo) => {
-    await page.setViewportSize({width: 1440, height: 980});
-    await page.goto('/en');
-
-    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
-    await unavailableCard.getByTestId('landing-grid-card-trigger').focus();
-    await expectLocatorToMatchLocalSnapshot(unavailableCard, 'overlay-focus-shell.png', testInfo);
   });
 
   test('@smoke assertion:B5-mobile-keyboard-handoff mobile keyboard CTA traversal collapses the previous expanded card before focusing the next trigger', async ({

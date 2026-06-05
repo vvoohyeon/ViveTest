@@ -57,16 +57,16 @@ if (fileExists('tests/unit/landing-card-contract.test.ts')) {
 if (fileExists(e2e.gridSmoke)) {
   const e2eSpec = read(e2e.gridSmoke);
 
-  if (!/normal card slot order and unavailable overlay contract/u.test(e2eSpec)) {
-    fail('Grid smoke spec must include normal slot + unavailable overlay contract assertion.');
+  if (!/normal card slot order and unavailable coming-soon tag contract/u.test(e2eSpec)) {
+    fail('Grid smoke spec must include normal slot + unavailable coming-soon tag contract assertion.');
   }
 
   if (!/subtitle overflow does not contaminate card or sibling slot inline sizes/u.test(e2eSpec)) {
     fail('Grid smoke spec must include subtitle overflow contamination assertion.');
   }
 
-  if (!/unavailable overlay is always visible in tap mode/u.test(e2eSpec)) {
-    fail('Grid smoke spec must include unavailable overlay behavior assertion for tap mode.');
+  if (!/unavailable coming-soon tag is always visible in tap mode/u.test(e2eSpec)) {
+    fail('Grid smoke spec must include unavailable coming-soon tag behavior assertion for tap mode.');
   }
 }
 

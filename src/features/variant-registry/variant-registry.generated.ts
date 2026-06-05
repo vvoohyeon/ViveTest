@@ -146,14 +146,7 @@ export const variantRegistryGenerated: VariantRegistry = {
         "en": "Upcoming variant under editorial review.",
         "kr": "에디토리얼 검토 중인 예정 변형입니다."
       },
-      "tags": {
-        "en": [
-          "coming-soon"
-        ],
-        "kr": [
-          "출시예정"
-        ]
-      },
+      "tags": {},
       "test": {
         "instruction": {
           "en": "Creativity Profile preview is a placeholder for the upcoming editorial release.",
@@ -166,8 +159,8 @@ export const variantRegistryGenerated: VariantRegistry = {
         }
       },
       "title": {
-        "en": "Creativity Profile (Soon)",
-        "kr": "창의성 프로필 (곧 공개)"
+        "en": "Creativity Profile",
+        "kr": "창의성 프로필"
       },
       "type": "test",
       "variant": "creativity-profile"

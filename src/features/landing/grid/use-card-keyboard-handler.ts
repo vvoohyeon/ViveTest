@@ -14,7 +14,7 @@ import {
   getCardRootElement,
   getExpandedFocusableElements,
   queueFocusCardByVariant,
-  resolveAdjacentCardVariant
+  resolveAdjacentEnterableCardVariant
 } from '@/features/landing/grid/interaction-dom';
 import type {
   LandingInteractionEvent,
@@ -137,7 +137,7 @@ export function useCardKeyboardHandler({
             event.preventDefault();
             beginMobileKeyboardHandoff(
               card.variant,
-              resolveAdjacentCardVariant(cardVariants, card.variant, -1) ?? card.variant,
+              resolveAdjacentEnterableCardVariant(cardVariants, card.variant, -1, isCardEnterableByVariant) ?? card.variant,
               event.timeStamp
             );
             return;
@@ -157,7 +157,7 @@ export function useCardKeyboardHandler({
           return;
         }
 
-        const nextCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, 1);
+        const nextCardVariant = resolveAdjacentEnterableCardVariant(cardVariants, card.variant, 1, isCardEnterableByVariant);
         if (isMobileViewport) {
           event.preventDefault();
           beginMobileKeyboardHandoff(card.variant, nextCardVariant, event.timeStamp);
@@ -230,7 +230,7 @@ export function useCardKeyboardHandler({
             }
 
             if (!event.shiftKey && lastFocusable && target === lastFocusable) {
-              const nextCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, 1);
+              const nextCardVariant = resolveAdjacentEnterableCardVariant(cardVariants, card.variant, 1, isCardEnterableByVariant);
               if (queueCardHandoff(nextCardVariant, event.timeStamp)) {
                 event.preventDefault();
               }
@@ -243,13 +243,13 @@ export function useCardKeyboardHandler({
                 event.preventDefault();
                 beginMobileKeyboardHandoff(
                   card.variant,
-                  resolveAdjacentCardVariant(cardVariants, card.variant, -1) ?? card.variant,
+                  resolveAdjacentEnterableCardVariant(cardVariants, card.variant, -1, isCardEnterableByVariant) ?? card.variant,
                   event.timeStamp
                 );
                 return;
               }
 
-              const previousCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, -1);
+              const previousCardVariant = resolveAdjacentEnterableCardVariant(cardVariants, card.variant, -1, isCardEnterableByVariant);
               if (queueCardHandoff(previousCardVariant, event.timeStamp)) {
                 event.preventDefault();
               }
@@ -258,7 +258,7 @@ export function useCardKeyboardHandler({
             }
 
             if (event.shiftKey && target === event.currentTarget) {
-              const previousCardVariant = resolveAdjacentCardVariant(cardVariants, card.variant, -1);
+              const previousCardVariant = resolveAdjacentEnterableCardVariant(cardVariants, card.variant, -1, isCardEnterableByVariant);
               if (isMobileViewport) {
                 event.preventDefault();
                 if (previousCardVariant) {
@@ -341,6 +341,7 @@ export function useCardKeyboardHandler({
       collapseExpandedCard,
       dispatch,
       interactionMode,
+      isCardEnterableByVariant,
       isMobileViewport,
       mobileLifecycleState.cardVariant,
       mobileLifecycleState.phase,

@@ -280,11 +280,6 @@ const LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME =
   'landing-grid-card-mobile-transient-surface relative z-[1] grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-hidden px-4 pb-4';
 const LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME =
   `${LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} landing-grid-card-mobile-transient-header relative z-[1] bg-transparent`;
-const LANDING_GRID_CARD_UNAVAILABLE_OVERLAY_BASE_CLASSNAME =
-  'landing-grid-card-unavailable-overlay pointer-events-none absolute inset-0 z-[2] flex items-start justify-end rounded-[inherit] p-3 [background:var(--unavailable-overlay-gradient)] [transition:opacity_140ms_ease]';
-const LANDING_GRID_CARD_UNAVAILABLE_BADGE_CLASSNAME =
-  'landing-grid-card-unavailable-badge rounded-full border border-[var(--unavailable-badge-border)] bg-[var(--unavailable-badge-bg)] px-[10px] py-1 text-[0.72rem] leading-[1.2] tracking-[0.01em] text-[var(--unavailable-badge-ink)]';
-
 type LandingTestCard = Extract<LandingCard, {type: 'test'}>;
 
 type NormalCardFacePresentation = 'collapsed' | 'expandedTitleOnly';
@@ -301,6 +296,7 @@ interface NormalCardFaceProps {
   exposePublicSlots: boolean;
   presentation: NormalCardFacePresentation;
   readMoreLabel?: string;
+  comingSoonLabel?: string;
   titleRef?: RefObject<HTMLHeadingElement | null>;
   subtitleRef?: RefObject<HTMLParagraphElement | null>;
 }
@@ -332,6 +328,7 @@ interface NormalCardTagRowProps {
   exposePublicSlot: boolean;
   interactionMode?: LandingCardInteractionMode;
   readMoreLabel?: string;
+  comingSoonLabel?: string;
 }
 
 function LandingCardSubtitleText({
@@ -413,7 +410,7 @@ function NormalCardSubtitle({card, exposePublicSlot, subtitleRef}: NormalCardSub
   );
 }
 
-function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', readMoreLabel}: NormalCardTagRowProps) {
+function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', readMoreLabel, comingSoonLabel}: NormalCardTagRowProps) {
   const tags = (
     <ul
       className={joinClassNames(
@@ -425,6 +422,15 @@ function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', read
       data-tag-count={card.tags.length}
       aria-label="Card tags"
     >
+      {/* design.md §7.5: the unavailable signal is a single always-visible standard tag (no overlay,
+          no dashed pill, no dot). Real text inside the labelled tag list — perceivable to AT. */}
+      {comingSoonLabel ? (
+        <li className={LANDING_GRID_CARD_TAG_ITEM_CLASSNAME}>
+          <span className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME} data-slot={exposePublicSlot ? 'comingSoonTag' : undefined}>
+            {comingSoonLabel}
+          </span>
+        </li>
+      ) : null}
       {card.tags.map((tag) => (
         <li key={`${card.variant}-${tag}`} className={LANDING_GRID_CARD_TAG_ITEM_CLASSNAME}>
           <span className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME}>{tag}</span>
@@ -486,6 +492,7 @@ function NormalCardFace({
   exposePublicSlots,
   presentation,
   readMoreLabel,
+  comingSoonLabel,
   titleRef,
   subtitleRef
 }: NormalCardFaceProps) {
@@ -513,6 +520,7 @@ function NormalCardFace({
         exposePublicSlot={exposePublicSlots}
         interactionMode={interactionMode}
         readMoreLabel={readMoreLabel}
+        comingSoonLabel={comingSoonLabel}
       />
     </>
   );
@@ -534,11 +542,6 @@ interface ExpandedTestBodyProps {
   interactive: boolean;
   layoutMode: ExpandedBodyLayoutMode;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-}
-
-interface UnavailableCardStatusOverlayProps {
-  interactionMode: LandingCardInteractionMode;
-  label: string;
 }
 
 interface DesktopExpandedShellProps {
@@ -708,21 +711,6 @@ function ExpandedCardBody({
       layoutMode={layoutMode}
       onAnswerChoiceSelect={onAnswerChoiceSelect}
     />
-  );
-}
-
-function UnavailableCardStatusOverlay({interactionMode, label}: UnavailableCardStatusOverlayProps) {
-  const statusOverlayClassName = joinClassNames(
-    LANDING_GRID_CARD_UNAVAILABLE_OVERLAY_BASE_CLASSNAME,
-    interactionMode === 'hover'
-      ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
-      : 'opacity-100'
-  );
-
-  return (
-    <div className={statusOverlayClassName} data-slot="unavailableOverlay" aria-hidden="true">
-      <span className={LANDING_GRID_CARD_UNAVAILABLE_BADGE_CLASSNAME}>{label}</span>
-    </div>
   );
 }
 
@@ -911,6 +899,7 @@ export function LandingGridCard({
     LANDING_GRID_CARD_ROOT_CLASSNAME,
     styles.root,
     isBlogCard && styles.blogCard,
+    isUnavailable && styles.unavailableCard,
     isDesktopOverlayLayer && styles.desktopOverlayLayer,
     isDesktopMotionEnter && styles.desktopMotionEnter,
     isDesktopMotionExit && styles.desktopMotionExit,
@@ -957,6 +946,7 @@ export function LandingGridCard({
           presentation={isDesktopExpanded ? 'expandedTitleOnly' : 'collapsed'}
           exposePublicSlots
           readMoreLabel={isBlogCard ? copy.readMore : undefined}
+          comingSoonLabel={isUnavailable ? copy.comingSoon : undefined}
           titleRef={normalTitleRef}
           subtitleRef={normalSubtitleRef}
         />
@@ -1155,9 +1145,6 @@ export function LandingGridCard({
         </div>
       ) : null}
 
-      {isUnavailable ? (
-        <UnavailableCardStatusOverlay interactionMode={interactionMode} label={copy.comingSoon} />
-      ) : null}
     </div>
   );
 }

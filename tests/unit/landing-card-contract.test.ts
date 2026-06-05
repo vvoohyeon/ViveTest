@@ -19,7 +19,9 @@ function renderCardDocument({
   interactionMode = 'tap',
   hasAssetMedia = false,
   desktopMotionRole = 'idle',
-  desktopShellPhase = 'idle'
+  desktopShellPhase = 'idle',
+  tabIndex,
+  ariaDisabled
 }: {
   card: ReturnType<typeof resolveLandingCatalog>[number];
   state: LandingCardVisualState;
@@ -28,6 +30,8 @@ function renderCardDocument({
   hasAssetMedia?: boolean;
   desktopMotionRole?: LandingCardDesktopMotionRole;
   desktopShellPhase?: LandingCardDesktopShellPhase;
+  tabIndex?: number;
+  ariaDisabled?: boolean;
 }): Document {
   const html = renderToStaticMarkup(
     createElement(LandingGridCard, {
@@ -40,7 +44,9 @@ function renderCardDocument({
       desktopMotionRole,
       desktopShellPhase,
       copy: getDefaultCardCopy(),
-      sequence: 0
+      sequence: 0,
+      tabIndex,
+      ariaDisabled
     })
   );
 
@@ -183,7 +189,60 @@ describe('landing card slot contract', () => {
     expect(doc.querySelector('[data-slot="previewQuestion"]')).toBeNull();
     expect(doc.querySelector('[data-slot="cardSubtitleExpanded"]')).toBeNull();
     expect(doc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
-    expect(doc.querySelector('[data-slot="unavailableOverlay"]')).not.toBeNull();
+    // D2/BQ-26: the legacy top-right overlay pill is removed.
+    expect(doc.querySelector('[data-slot="unavailableOverlay"]')).toBeNull();
+  });
+
+  it('renders the unavailable card as a semantic disabled button with a standard coming-soon tag and full-opacity title/subtitle', () => {
+    const catalog = resolveLandingCatalog('en');
+    const unavailableCard = catalog.find((candidate) => candidate.variant === 'creativity-profile');
+
+    if (!unavailableCard) {
+      throw new Error('Expected creativity-profile unavailable card fixture');
+    }
+
+    const doc = renderCardDocument({
+      card: unavailableCard,
+      state: 'normal',
+      interactionMode: 'hover',
+      ariaDisabled: true,
+      tabIndex: -1
+    });
+
+    // req-landing §9.2 / §14.4: semantic <button aria-disabled>, removed from the tab order, not a
+    // native `disabled` element and not a role override.
+    const trigger = doc.querySelector('[data-slot="primaryTrigger"]');
+    expect(trigger?.tagName.toLowerCase()).toBe('button');
+    expect(trigger?.getAttribute('aria-disabled')).toBe('true');
+    expect(trigger?.getAttribute('tabindex')).toBe('-1');
+    expect(trigger?.hasAttribute('disabled')).toBe(false);
+    expect(trigger?.getAttribute('role')).toBeNull();
+
+    // D2: a single standard coming-soon tag in the tags row — text-only chip, not a dashed pill,
+    // not pill-rounded, no dot, and perceivable to AT (not inside an aria-hidden subtree).
+    const comingSoonTag = doc.querySelector('[data-slot="comingSoonTag"]');
+    expect(comingSoonTag).not.toBeNull();
+    expect(comingSoonTag?.textContent?.trim()).toBe('Coming soon');
+    const tagClass = comingSoonTag?.getAttribute('class') ?? '';
+    expect(tagClass).toContain('landing-grid-card-tag-chip');
+    expect(tagClass).not.toContain('rounded-full');
+    expect(tagClass).not.toContain('dashed');
+    expect(comingSoonTag?.children.length ?? 0).toBe(0); // no dot/glyph child
+    expect(comingSoonTag?.closest('[aria-hidden="true"]')).toBeNull();
+    expect(doc.querySelector('[data-slot="tags"]')?.contains(comingSoonTag ?? null)).toBe(true);
+
+    // design.md §10: no opacity reduction on the unavailable card's title / subtitle.
+    const title = doc.querySelector('[data-slot="cardTitle"]');
+    const subtitle = doc.querySelector('[data-slot="cardSubtitle"]');
+    for (const element of [title, subtitle]) {
+      const className = element?.getAttribute('class') ?? '';
+      expect(className).not.toMatch(/\bopacity-(0|[1-9]0?)\b/u);
+      expect(element?.getAttribute('style') ?? '').not.toContain('opacity');
+    }
+
+    // D3: the unavailable signal is the tag + dim only — the production title never carries a
+    // "(Soon)" suffix.
+    expect(title?.textContent ?? '').not.toContain('(Soon)');
   });
 
   it('renders Blog cards as whole-card navigation links without an Expanded surface', () => {

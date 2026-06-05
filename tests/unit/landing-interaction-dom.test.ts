@@ -12,6 +12,7 @@ import {
   queueFocusCallback,
   queueFocusCardByVariant,
   resolveAdjacentCardVariant,
+  resolveAdjacentEnterableCardVariant,
   resolveCardBoundaryElement
 } from '../../src/features/landing/grid/interaction-dom';
 import {useKeyboardHandoff} from '../../src/features/landing/grid/use-keyboard-handoff';
@@ -53,6 +54,22 @@ describe('landing interaction DOM helpers', () => {
     expect(getExpandedFocusableElements(card).map((element) => element.textContent)).toEqual(['Answer A', 'Start']);
     expect(resolveAdjacentCardVariant(['qmbti', 'energy-check'], 'qmbti', 1)).toBe('energy-check');
     expect(resolveAdjacentCardVariant(['qmbti', 'energy-check'], 'qmbti', -1)).toBeNull();
+  });
+
+  it('resolves the adjacent ENTERABLE card variant, skipping non-enterable neighbors (D1/BQ-26)', () => {
+    const order = ['qmbti', 'energy-check', 'creativity-profile', 'egtt'];
+    const isEnterable = (variant: string) => variant !== 'creativity-profile';
+
+    // Forward/back from the cards flanking the unavailable card skip over it.
+    expect(resolveAdjacentEnterableCardVariant(order, 'energy-check', 1, isEnterable)).toBe('egtt');
+    expect(resolveAdjacentEnterableCardVariant(order, 'egtt', -1, isEnterable)).toBe('energy-check');
+
+    // No enterable neighbor in a direction returns null (preserves the GNB-return / self fallbacks).
+    expect(resolveAdjacentEnterableCardVariant(order, 'qmbti', -1, isEnterable)).toBeNull();
+    expect(resolveAdjacentEnterableCardVariant(order, 'egtt', 1, isEnterable)).toBeNull();
+
+    // An unknown current variant returns null.
+    expect(resolveAdjacentEnterableCardVariant(order, 'missing', 1, isEnterable)).toBeNull();
   });
 
   it('focuses card triggers by variant and reports document-level focus targets', () => {
