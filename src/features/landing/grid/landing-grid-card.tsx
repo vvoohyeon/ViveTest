@@ -206,9 +206,9 @@ const LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME =
 const LANDING_GRID_CARD_CONTENT_CLASSNAME =
   'landing-grid-card-content relative z-[1] flex min-w-0 flex-col justify-start';
 const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
-  'landing-grid-card-title relative z-[3] m-0 text-[20px] font-semibold leading-[1.3] [overflow-wrap:anywhere]';
+  'landing-grid-card-title relative z-[3] m-0 text-[20px] font-semibold leading-[1.3] tracking-[-0.01em] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
-  'landing-grid-card-subtitle min-w-0 overflow-hidden text-ellipsis text-[0.92rem] leading-[1.4] text-[var(--muted-ink)] [overflow-wrap:anywhere]';
+  'landing-grid-card-subtitle min-w-0 overflow-hidden text-ellipsis text-[15px] font-normal leading-[1.45] text-[var(--normal-subtitle-ink)] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
   'landing-grid-card-thumbnail-slot relative aspect-[16/6] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
 const LANDING_GRID_CARD_TAGS_CLASSNAME =
@@ -217,7 +217,7 @@ const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
   'landing-grid-card-tags-gap h-[calc(var(--landing-card-base-gap)_+_var(--landing-card-comp-gap))]';
 const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
 const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
-  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] border border-transparent bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium leading-[1.2] text-[var(--normal-tag-ink)]';
+  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] border border-[var(--normal-tag-border)] bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium leading-[1.2] text-[var(--normal-tag-ink)]';
 const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME =
   'landing-grid-card-preview-question m-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--expanded-question-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
@@ -228,17 +228,21 @@ const LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME =
 const LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME =
   'landing-grid-card-answer-choice-arrow shrink-0 text-[15px] leading-[1.45] text-[var(--expanded-choice-arrow-ink)] transition-colors duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/answerChoice:text-[var(--expanded-choice-accent)]';
 // design §6.10 quiet data row: horizontal wrapping row, dot separators, 13px/500/--muted,
-// leading value optionally emphasized. Inline value+label per item (no dt/dd stack).
+// with the complete duration item emphasized. Inline value+label per item (no dt/dd stack).
 const LANDING_GRID_CARD_META_ROW_CLASSNAME =
-  'landing-grid-card-meta-row m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] font-medium leading-[1.35] text-[var(--muted-ink)]';
+  'landing-grid-card-meta-row m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] font-medium leading-[1.35] text-[var(--expanded-context-ink)]';
 const LANDING_GRID_CARD_META_ITEM_CLASSNAME =
   'landing-grid-card-meta-item inline-flex items-baseline gap-1 whitespace-nowrap';
+const LANDING_GRID_CARD_META_ITEM_LEAD_CLASSNAME =
+  'landing-grid-card-meta-item landing-grid-card-meta-item-lead inline-flex items-baseline gap-1 whitespace-nowrap font-semibold text-[var(--expanded-meta-strong)]';
 const LANDING_GRID_CARD_META_SEPARATOR_CLASSNAME =
-  'landing-grid-card-meta-separator select-none [color:color-mix(in_srgb,var(--muted-ink)_55%,transparent)]';
+  'landing-grid-card-meta-separator select-none [color:color-mix(in_srgb,var(--expanded-context-ink)_55%,transparent)]';
 const LANDING_GRID_CARD_META_VALUE_CLASSNAME = 'landing-grid-card-meta-value';
 const LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME =
-  'landing-grid-card-meta-value landing-grid-card-meta-value-lead font-semibold text-[var(--text-strong)]';
+  'landing-grid-card-meta-value landing-grid-card-meta-value-lead';
 const LANDING_GRID_CARD_META_LABEL_CLASSNAME = 'landing-grid-card-meta-label';
+const LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME =
+  'landing-grid-card-title text-[14px] font-medium leading-[1.4] text-[var(--expanded-context-ink)] [overflow-wrap:anywhere]';
 // Desktop overlay expandedBody is a flex column so the BQ-24 height-floor surplus can be absorbed
 // by a single spacer (design §7.3). Mobile expanded/transient bodies keep their own grid layout.
 const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4';
@@ -257,9 +261,9 @@ const LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME =
 const LANDING_GRID_CARD_EXPANDED_SHELL_CLASSNAME =
   'landing-grid-card-expanded-shell relative min-h-full min-w-0 w-full pointer-events-none [transform:scale(var(--landing-card-shell-scale))] [transform-origin:var(--landing-card-origin-x)_var(--landing-card-origin-y)] will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden]';
 const LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME =
-  'landing-grid-card-expanded-shadow pointer-events-none absolute inset-0 z-0 rounded-[var(--landing-card-radius)] [box-shadow:var(--card-shadow-expanded-mid),var(--card-shadow-expanded-far)]';
+  'landing-grid-card-expanded-shadow pointer-events-none absolute inset-0 z-0 rounded-[var(--landing-card-radius)] [box-shadow:var(--expanded-card-shadow)]';
 const LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME =
-  'landing-grid-card-expanded-surface relative z-[1] min-h-full w-full rounded-[var(--landing-card-radius)] [background:color-mix(in_srgb,var(--panel-solid)_96%,transparent)] [box-shadow:0_0_0_1px_color-mix(in_srgb,var(--surface-divider)_92%,transparent)] pointer-events-auto';
+  'landing-grid-card-expanded-surface relative z-[1] min-h-full w-full rounded-[var(--landing-card-radius)] [background:var(--expanded-card-surface)] [box-shadow:0_0_0_1px_var(--expanded-card-border)] pointer-events-auto';
 const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
   'landing-grid-card-mobile-close relative inline-flex min-h-10 min-w-10 shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--chip-border)] bg-[var(--interactive-neutral-bg-strong)] p-0 font-semibold [color:var(--link-ink)]';
 const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
@@ -269,13 +273,14 @@ const LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME =
 const LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME =
   'landing-grid-card-mobile-expanded grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-auto overscroll-contain px-4 pb-4';
 const LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME =
-  'landing-grid-card-mobile-header sticky top-0 z-[4] flex items-start justify-between gap-3 bg-[color-mix(in_srgb,var(--panel-solid)_96%,transparent)] pt-4 pb-[14px]';
-const LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME = 'landing-grid-card-title landing-grid-card-mobile-title flex-1 min-w-0';
+  'landing-grid-card-mobile-header sticky top-0 z-[4] flex items-start justify-between gap-3 bg-[var(--expanded-card-surface)] pt-4 pb-[14px]';
+const LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME =
+  `${LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME} landing-grid-card-mobile-title min-w-0 flex-1`;
 const LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME = 'landing-grid-card-mobile-body grid min-w-0 gap-[10px]';
 const LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME =
-  'landing-grid-card-mobile-transient-shell fixed left-[var(--landing-mobile-card-left,0px)] top-[var(--landing-mobile-anchor-top,0px)] z-[21] max-h-[calc(100dvh-116px)] max-w-full w-[var(--landing-mobile-card-width,100vw)] overflow-hidden rounded-[var(--landing-card-radius)] [box-shadow:var(--card-shadow-expanded-mid),var(--card-shadow-expanded-far)] pointer-events-none isolate';
+  'landing-grid-card-mobile-transient-shell fixed left-[var(--landing-mobile-card-left,0px)] top-[var(--landing-mobile-anchor-top,0px)] z-[21] max-h-[calc(100dvh-116px)] max-w-full w-[var(--landing-mobile-card-width,100vw)] overflow-hidden rounded-[var(--landing-card-radius)] [box-shadow:var(--expanded-card-shadow)] pointer-events-none isolate';
 const LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME =
-  'landing-grid-card-mobile-transient-panel pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[var(--panel-solid)]';
+  'landing-grid-card-mobile-transient-panel pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[var(--expanded-card-surface)]';
 const LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME =
   'landing-grid-card-mobile-transient-surface relative z-[1] grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-hidden px-4 pb-4';
 const LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME =
@@ -368,9 +373,9 @@ function NormalCardTitle({card, isMobileViewport, exposePublicSlot, topGap, titl
       ref={titleRef}
       className={joinClassNames(
         LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
-        'landing-grid-card-title-normal min-w-0 overflow-hidden text-ellipsis',
+        'landing-grid-card-title-normal min-w-0',
         topGap && 'mt-[var(--landing-card-base-gap)]',
-        isMobileViewport ? 'block overflow-visible text-clip' : 'line-clamp-1',
+        isMobileViewport ? 'block overflow-visible text-clip' : 'overflow-hidden text-ellipsis line-clamp-1',
         styles.normalTitle
       )}
       data-slot={exposePublicSlot ? 'cardTitle' : undefined}
@@ -442,15 +447,16 @@ function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', read
   const readMore = readMoreLabel ? (
     <span
       className={joinClassNames(
-        'landing-grid-card-blog-read-more ml-auto shrink-0 whitespace-nowrap text-[13px] font-medium leading-[1.35] text-[var(--muted-ink)] no-underline',
+        'landing-grid-card-blog-read-more ml-auto inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap text-[13px] font-medium leading-[1.35] text-[var(--muted-ink)] no-underline',
         interactionMode === 'hover'
-          ? 'opacity-0 transition-opacity duration-[140ms] group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none'
+          ? 'invisible opacity-0 transition-opacity duration-[140ms] group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 motion-reduce:transition-none'
           : 'opacity-100'
       )}
       data-slot="blogReadMore"
       aria-hidden="true"
     >
-      {readMoreLabel} →
+      <span data-slot="blogReadMoreLabel">{readMoreLabel}</span>
+      <span data-slot="blogReadMoreArrow">→</span>
     </span>
   ) : null;
 
@@ -595,7 +601,7 @@ interface ExpandedMetaEntry {
 }
 
 // Quiet data row (design §6.10): inline "value label" items separated by decorative dots,
-// the leading (first) value emphasized. data-slot/data-motion-slot preserved for QA + expand motion.
+// with the complete duration item emphasized. data-slot/data-motion-slot preserved for QA + motion.
 function ExpandedMetaRow({entries, interactive}: {entries: [ExpandedMetaEntry, ...ExpandedMetaEntry[]]; interactive: boolean}) {
   return (
     <p
@@ -610,14 +616,17 @@ function ExpandedMetaRow({entries, interactive}: {entries: [ExpandedMetaEntry, .
               ·
             </span>
           ) : null}
-          <span className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-            <span
-              className={index === 0 ? LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME : LANDING_GRID_CARD_META_VALUE_CLASSNAME}
-            >
-              {formatMetaValue(entry.value)}
+          {index === 0 ? (
+            <strong className={LANDING_GRID_CARD_META_ITEM_LEAD_CLASSNAME}>
+              <span className={LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME}>{formatMetaValue(entry.value)}</span>
+              <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
+            </strong>
+          ) : (
+            <span className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
+              <span className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(entry.value)}</span>
+              <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
             </span>
-            <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
-          </span>
+          )}
         </Fragment>
       ))}
     </p>
@@ -761,8 +770,8 @@ function DesktopExpandedShell({
                 >
                   <h2
                     className={joinClassNames(
-                      LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
-                      'landing-grid-card-expanded-title grid min-w-0 gap-0'
+                      LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME,
+                      'landing-grid-card-expanded-title m-0 grid min-w-0 gap-0'
                     )}
                     data-slot="cardTitleExpanded"
                   >
@@ -891,10 +900,10 @@ export function LandingGridCard({
   const resolvedRootVisualClassName = showDesktopExpandedShell
     ? '[background:transparent] [box-shadow:none]'
     : isMobileExpanded
-      ? '[background:var(--panel-solid)] [box-shadow:none]'
+      ? '[background:var(--expanded-card-surface)] [box-shadow:none]'
       : isMobileOpening || isMobileClosing
         ? '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:none]'
-        : '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--normal-card-shadow)] [border:1px_solid_var(--normal-card-border)]';
+        : '[background:var(--normal-card-surface)] [box-shadow:var(--normal-card-shadow)] [border:1px_solid_var(--normal-card-border)]';
   const resolvedRootClassName = joinClassNames(
     LANDING_GRID_CARD_ROOT_CLASSNAME,
     styles.root,
@@ -1151,7 +1160,7 @@ export function LandingGridCard({
 
 export function getDefaultCardCopy(): LandingCardCopy {
   return {
-    comingSoon: 'Coming soon',
+    comingSoon: 'coming soon',
     close: 'Close',
     closeExpandedAria: 'Close expanded card',
     metaEstimated: 'Est. time',

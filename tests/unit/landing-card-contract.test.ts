@@ -8,7 +8,13 @@ import type {
   LandingCardDesktopMotionRole,
   LandingCardDesktopShellPhase
 } from '../../src/features/landing/grid/desktop-shell-phase';
-import type {LandingCardInteractionMode, LandingCardVisualState} from '../../src/features/landing/grid/landing-grid-card';
+import type {
+  LandingCardInteractionMode,
+  LandingCardMobilePhase,
+  LandingCardMobileTransientMode,
+  LandingCardViewportTier,
+  LandingCardVisualState
+} from '../../src/features/landing/grid/landing-grid-card';
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
 import {resolveLandingCatalog} from '../../src/features/variant-registry';
 
@@ -20,6 +26,9 @@ function renderCardDocument({
   hasAssetMedia = false,
   desktopMotionRole = 'idle',
   desktopShellPhase = 'idle',
+  viewportTier = 'desktop',
+  mobilePhase = 'NORMAL',
+  mobileTransientMode = 'NONE',
   tabIndex,
   ariaDisabled
 }: {
@@ -30,6 +39,9 @@ function renderCardDocument({
   hasAssetMedia?: boolean;
   desktopMotionRole?: LandingCardDesktopMotionRole;
   desktopShellPhase?: LandingCardDesktopShellPhase;
+  viewportTier?: LandingCardViewportTier;
+  mobilePhase?: LandingCardMobilePhase;
+  mobileTransientMode?: LandingCardMobileTransientMode;
   tabIndex?: number;
   ariaDisabled?: boolean;
 }): Document {
@@ -40,7 +52,9 @@ function renderCardDocument({
       locale,
       state,
       interactionMode,
-      viewportTier: 'desktop',
+      viewportTier,
+      mobilePhase,
+      mobileTransientMode,
       desktopMotionRole,
       desktopShellPhase,
       copy: getDefaultCardCopy(),
@@ -152,13 +166,19 @@ describe('landing card slot contract', () => {
     ).toBeGreaterThan(0);
 
     // Inline quiet data row (design §6.10): three "value label" items in a single dot-separated
-    // row — each item carries a numeric value and an inline label, with decorative dot separators.
+    // row, with the complete duration item emphasized and decorative dot separators.
     const expandedMetaItems = Array.from(expandedDoc.querySelectorAll('.landing-grid-card-meta-item'));
     expect(expandedMetaItems).toHaveLength(3);
     for (const item of expandedMetaItems) {
       expect((item.querySelector('.landing-grid-card-meta-value')?.textContent ?? '').trim().length).toBeGreaterThan(0);
       expect((item.querySelector('.landing-grid-card-meta-label')?.textContent ?? '').trim().length).toBeGreaterThan(0);
     }
+    expect(expandedMetaItems[0]?.tagName.toLowerCase()).toBe('strong');
+    expect(expandedMetaItems[0]?.className).toContain('landing-grid-card-meta-item-lead');
+    expect(expandedMetaItems[1]?.tagName.toLowerCase()).toBe('span');
+    expect(expandedMetaItems[2]?.tagName.toLowerCase()).toBe('span');
+    expect(expandedMetaItems[1]?.className).not.toContain('landing-grid-card-meta-item-lead');
+    expect(expandedMetaItems[2]?.className).not.toContain('landing-grid-card-meta-item-lead');
     expect(expandedDoc.querySelectorAll('.landing-grid-card-meta-separator')).toHaveLength(2);
 
     expect(expandedDoc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
@@ -222,11 +242,14 @@ describe('landing card slot contract', () => {
     // not pill-rounded, no dot, and perceivable to AT (not inside an aria-hidden subtree).
     const comingSoonTag = doc.querySelector('[data-slot="comingSoonTag"]');
     expect(comingSoonTag).not.toBeNull();
-    expect(comingSoonTag?.textContent?.trim()).toBe('Coming soon');
+    expect(comingSoonTag?.textContent?.trim()).toBe('coming soon');
     const tagClass = comingSoonTag?.getAttribute('class') ?? '';
     expect(tagClass).toContain('landing-grid-card-tag-chip');
+    expect(tagClass).toContain('border-[var(--normal-tag-border)]');
+    expect(tagClass).toContain('whitespace-nowrap');
     expect(tagClass).not.toContain('rounded-full');
     expect(tagClass).not.toContain('dashed');
+    expect(tagClass).not.toContain('text-transform');
     expect(comingSoonTag?.children.length ?? 0).toBe(0); // no dot/glyph child
     expect(comingSoonTag?.closest('[aria-hidden="true"]')).toBeNull();
     expect(doc.querySelector('[data-slot="tags"]')?.contains(comingSoonTag ?? null)).toBe(true);
@@ -268,7 +291,15 @@ describe('landing card slot contract', () => {
     expect(readMore).not.toBeNull();
     expect(readMore?.getAttribute('aria-hidden')).toBe('true');
     expect(readMore?.getAttribute('tabindex')).toBeNull();
-    expect(readMore?.textContent?.trim()).toBe('Read more →');
+    expect(readMore?.textContent?.replace(/\s+/gu, '')).toBe('Readmore→');
+    expect(readMore?.className).toContain('inline-flex');
+    expect(readMore?.className).toContain('gap-[6px]');
+    expect(readMore?.className).toContain('invisible');
+    expect(readMore?.className).toContain('group-hover:visible');
+    expect(readMore?.className).toContain('group-focus-within:visible');
+    expect(readMore?.querySelector('[data-slot="blogReadMoreLabel"]')?.textContent).toBe('Read more');
+    expect(readMore?.querySelector('[data-slot="blogReadMoreArrow"]')?.textContent).toBe('→');
+    expect(readMore?.querySelector('a, button, [tabindex]')).toBeNull();
   });
 
   it('keeps Read more affordance blog-only and out of primary CTA slots', () => {
@@ -305,7 +336,50 @@ describe('landing card slot contract', () => {
     expect(expandedTitle).not.toBeNull();
     expect(line1).not.toBeNull();
     expect(overflow).not.toBeNull();
+    expect(expandedTitle?.className).toContain('text-[14px]');
+    expect(expandedTitle?.className).toContain('font-medium');
+    expect(expandedTitle?.className).toContain('leading-[1.4]');
+    expect(expandedTitle?.className).toContain('text-[var(--expanded-context-ink)]');
     expect(expandedTitle?.textContent).toBe(card.title);
     expect(doc.querySelector('[data-slot="cardTitle"]')?.textContent).toBe(card.title);
+  });
+
+  it('uses the same full-text muted context typography for settled and transient mobile expanded titles', () => {
+    const catalog = resolveLandingCatalog('en');
+    const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
+
+    if (!card || card.type !== 'test') {
+      throw new Error('Expected rhythm-b as a test card fixture');
+    }
+
+    const settledDoc = renderCardDocument({
+      card,
+      state: 'expanded',
+      interactionMode: 'tap',
+      viewportTier: 'mobile',
+      mobilePhase: 'OPEN'
+    });
+    const transientDoc = renderCardDocument({
+      card,
+      state: 'expanded',
+      interactionMode: 'tap',
+      viewportTier: 'mobile',
+      mobilePhase: 'OPENING',
+      mobileTransientMode: 'OPENING'
+    });
+
+    for (const title of [
+      settledDoc.querySelector('[data-slot="cardTitle"]'),
+      transientDoc.querySelector('[data-slot="cardTitleTransient"]')
+    ]) {
+      const className = title?.getAttribute('class') ?? '';
+      expect(title?.textContent).toBe(card.title);
+      expect(className).toContain('text-[14px]');
+      expect(className).toContain('font-medium');
+      expect(className).toContain('leading-[1.4]');
+      expect(className).toContain('text-[var(--expanded-context-ink)]');
+      expect(className).not.toContain('line-clamp');
+      expect(className).not.toContain('truncate');
+    }
   });
 });

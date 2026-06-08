@@ -460,7 +460,7 @@ test.describe('Phase 4 grid smoke', () => {
     expect(mainClamp).toBe('2');
   });
 
-  test('@smoke title clamp and expanded title continuity keep the first line stable on desktop and tablet while normal tag outline stays hidden', async ({
+  test('@smoke title clamp and expanded title continuity keep the first line stable on desktop and tablet with the shared tag hairline', async ({
     page
   }) => {
     const scenarios = [
@@ -480,23 +480,13 @@ test.describe('Phase 4 grid smoke', () => {
         getComputedStyle(element).getPropertyValue('-webkit-line-clamp').trim()
       );
       const normalFullText = (await normalTitle.textContent()) ?? '';
-      const tagBorderAlpha = await card.locator('.landing-grid-card-tag-chip').first().evaluate((element) => {
-        const color = getComputedStyle(element).borderTopColor;
-        if (color === 'transparent') {
-          return 0;
-        }
-
-        const rgbaMatch = color.match(/rgba?\((.*)\)/u);
-        if (!rgbaMatch) {
-          return 1;
-        }
-
-        const parts = rgbaMatch[1].split(',');
-        return parts.length === 4 ? Number.parseFloat(parts[3]) : 1;
-      });
+      const tagBorderColor = await card
+        .locator('.landing-grid-card-tag-chip')
+        .first()
+        .evaluate((element) => getComputedStyle(element).borderTopColor);
 
       expect(normalClamp).toBe('1');
-      expect(tagBorderAlpha).toBeLessThanOrEqual(0.05);
+      expect(tagBorderColor).toBe('rgb(214, 209, 196)');
 
       await hoverDesktopExpandedCard(card);
 
@@ -528,6 +518,229 @@ test.describe('Phase 4 grid smoke', () => {
 
       await collapseDesktopExpandedCard(page, card);
     }
+  });
+
+  test('@smoke visual reconciliation R1 normal surface, type, shared tags, and unavailable casing use exact values', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const availableCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
+    const normalMetrics = await availableCard.evaluate((element) => {
+      const title = element.querySelector<HTMLElement>('[data-slot="cardTitle"]');
+      const subtitle = element.querySelector<HTMLElement>('[data-slot="cardSubtitle"]');
+      const tag = element.querySelector<HTMLElement>('.landing-grid-card-tag-chip');
+
+      if (!title || !subtitle || !tag) {
+        throw new Error('Expected Normal title, subtitle, and tag.');
+      }
+
+      const rootStyle = getComputedStyle(element);
+      const titleStyle = getComputedStyle(title);
+      const subtitleStyle = getComputedStyle(subtitle);
+      const tagStyle = getComputedStyle(tag);
+
+      return {
+        backgroundColor: rootStyle.backgroundColor,
+        borderTopColor: rootStyle.borderTopColor,
+        titleFontSize: titleStyle.fontSize,
+        titleFontWeight: titleStyle.fontWeight,
+        titleLetterSpacing: titleStyle.letterSpacing,
+        titleLineHeight: titleStyle.lineHeight,
+        subtitleColor: subtitleStyle.color,
+        subtitleFontSize: subtitleStyle.fontSize,
+        subtitleFontWeight: subtitleStyle.fontWeight,
+        subtitleLineClamp: subtitleStyle.getPropertyValue('-webkit-line-clamp').trim(),
+        subtitleLineHeight: subtitleStyle.lineHeight,
+        tagBackgroundColor: tagStyle.backgroundColor,
+        tagBorderTopColor: tagStyle.borderTopColor
+      };
+    });
+
+    expect(normalMetrics).toEqual({
+      backgroundColor: 'rgb(255, 255, 255)',
+      borderTopColor: 'rgb(230, 226, 216)',
+      titleFontSize: '20px',
+      titleFontWeight: '600',
+      titleLetterSpacing: '-0.2px',
+      titleLineHeight: '26px',
+      subtitleColor: 'rgb(74, 74, 85)',
+      subtitleFontSize: '15px',
+      subtitleFontWeight: '400',
+      subtitleLineClamp: '2',
+      subtitleLineHeight: '21.75px',
+      tagBackgroundColor: 'rgb(236, 232, 223)',
+      tagBorderTopColor: 'rgb(214, 209, 196)'
+    });
+
+    const unavailableTag = unavailableCard.locator('[data-slot="comingSoonTag"]');
+    await expect(unavailableTag).toHaveText('coming soon');
+    await expect(unavailableTag).toHaveCSS('background-color', 'rgb(236, 232, 223)');
+    await expect(unavailableTag).toHaveCSS('border-top-color', 'rgb(214, 209, 196)');
+    await expect(unavailableCard).toHaveCSS('border-top-color', 'rgb(230, 226, 216)');
+  });
+
+  test('@smoke visual reconciliation R1 expanded sub-surfaces preserve context, choices, and duration-item emphasis', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const normalTitleText = (await card.locator('[data-slot="cardTitle"]').textContent()) ?? '';
+    await hoverDesktopExpandedCard(card);
+
+    const expandedMetrics = await card.evaluate((element) => {
+      const shadow = element.querySelector<HTMLElement>('[data-slot="expandedShadowPlate"]');
+      const surface = element.querySelector<HTMLElement>('[data-slot="expandedSurface"]');
+      const context = element.querySelector<HTMLElement>('[data-slot="cardTitleExpanded"]');
+      const question = element.querySelector<HTMLElement>('[data-slot="previewQuestion"]');
+      const choice = element.querySelector<HTMLElement>('[data-slot="answerChoiceA"]');
+      const choiceText = choice?.querySelector<HTMLElement>('.landing-grid-card-answer-choice-text');
+      const metaItems = Array.from(element.querySelectorAll<HTMLElement>('.landing-grid-card-meta-item'));
+
+      if (!shadow || !surface || !context || !question || !choice || !choiceText || metaItems.length !== 3) {
+        throw new Error('Expected all R1 expanded validation anchors.');
+      }
+
+      const shadowStyle = getComputedStyle(shadow);
+      const surfaceStyle = getComputedStyle(surface);
+      const contextStyle = getComputedStyle(context);
+      const questionStyle = getComputedStyle(question);
+      const choiceStyle = getComputedStyle(choice);
+      const choiceTextStyle = getComputedStyle(choiceText);
+
+      return {
+        choice: {
+          alignItems: choiceStyle.alignItems,
+          lineClamp: choiceTextStyle.getPropertyValue('-webkit-line-clamp').trim(),
+          overflowWrap: choiceTextStyle.overflowWrap,
+          textOverflow: choiceTextStyle.textOverflow,
+          whiteSpace: choiceTextStyle.whiteSpace
+        },
+        context: {
+          color: contextStyle.color,
+          fontSize: contextStyle.fontSize,
+          fontWeight: contextStyle.fontWeight,
+          lineHeight: contextStyle.lineHeight,
+          text: context.textContent ?? ''
+        },
+        meta: metaItems.map((item) => {
+          const style = getComputedStyle(item);
+          return {
+            color: style.color,
+            fontWeight: style.fontWeight,
+            tagName: item.tagName.toLowerCase(),
+            text: item.textContent?.trim() ?? ''
+          };
+        }),
+        question: {
+          fontSize: questionStyle.fontSize,
+          fontWeight: questionStyle.fontWeight,
+          lineHeight: questionStyle.lineHeight
+        },
+        shadow: shadowStyle.boxShadow,
+        surface: {
+          backgroundColor: surfaceStyle.backgroundColor,
+          boxShadow: surfaceStyle.boxShadow
+        }
+      };
+    });
+
+    expect(expandedMetrics.surface).toEqual({
+      backgroundColor: 'rgb(255, 255, 255)',
+      boxShadow: 'rgb(92, 142, 120) 0px 0px 0px 1px'
+    });
+    expect(expandedMetrics.shadow).toContain('rgba(26, 26, 31, 0.08) 0px 12px 32px 0px');
+    expect(expandedMetrics.shadow).toContain('rgb(214, 209, 196) 0px 0px 0px 1px');
+    expect(expandedMetrics.context).toEqual({
+      color: 'rgb(117, 117, 128)',
+      fontSize: '14px',
+      fontWeight: '500',
+      lineHeight: '19.6px',
+      text: normalTitleText
+    });
+    expect(expandedMetrics.meta[0]?.tagName).toBe('strong');
+    expect(expandedMetrics.meta[0]?.fontWeight).toBe('600');
+    expect(expandedMetrics.meta[0]?.color).toBe('rgb(74, 74, 85)');
+    expect(expandedMetrics.meta[1]?.tagName).toBe('span');
+    expect(expandedMetrics.meta[1]?.fontWeight).toBe('500');
+    expect(expandedMetrics.meta[1]?.color).toBe('rgb(117, 117, 128)');
+    expect(expandedMetrics.meta[2]?.tagName).toBe('span');
+    expect(expandedMetrics.meta[2]?.fontWeight).toBe('500');
+    expect(expandedMetrics.meta[2]?.color).toBe('rgb(117, 117, 128)');
+    expect(expandedMetrics.meta[2]?.text.toLowerCase()).toContain('completed');
+    expect(expandedMetrics.question).toEqual({fontSize: '21px', fontWeight: '600', lineHeight: '27.3px'});
+    expect(expandedMetrics.choice).toEqual({
+      alignItems: 'flex-start',
+      lineClamp: 'none',
+      overflowWrap: 'anywhere',
+      textOverflow: 'clip',
+      whiteSpace: 'normal'
+    });
+  });
+
+  test('@smoke visual reconciliation R1 mobile Normal and Expanded titles keep full text with muted expanded context type', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator('[data-card-variant="rhythm-b"]');
+    const normalTitle = card.locator('[data-slot="cardTitle"]');
+    await expect(card).toHaveAttribute('data-interaction-mode', 'tap');
+    await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
+    await expect(normalTitle).toBeVisible();
+    const fullText = (await normalTitle.textContent()) ?? '';
+    const normalStyle = await normalTitle.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        lineClamp: style.getPropertyValue('-webkit-line-clamp').trim(),
+        overflow: style.overflow,
+        textOverflow: style.textOverflow,
+        whiteSpace: style.whiteSpace
+      };
+    });
+
+    expect(fullText.length).toBeGreaterThan(0);
+    expect(normalStyle).toEqual({
+      lineClamp: 'none',
+      overflow: 'visible',
+      textOverflow: 'clip',
+      whiteSpace: 'normal'
+    });
+
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+
+    const expandedTitle = card.locator('[data-slot="cardTitle"]');
+    await expect(expandedTitle).toHaveText(fullText);
+    const expandedStyle = await expandedTitle.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        color: style.color,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        lineClamp: style.getPropertyValue('-webkit-line-clamp').trim(),
+        lineHeight: style.lineHeight,
+        overflow: style.overflow,
+        textOverflow: style.textOverflow,
+        whiteSpace: style.whiteSpace
+      };
+    });
+
+    expect(expandedStyle).toEqual({
+      color: 'rgb(117, 117, 128)',
+      fontSize: '14px',
+      fontWeight: '500',
+      lineClamp: 'none',
+      lineHeight: '19.6px',
+      overflow: 'visible',
+      textOverflow: 'clip',
+      whiteSpace: 'normal'
+    });
   });
 
   test('@smoke blog hover keeps the card normal without rendering Expanded slots on desktop and tablet', async ({
@@ -569,15 +782,20 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(readMore).toHaveAttribute('aria-hidden', 'true');
     await expect(readMore).not.toHaveAttribute('tabindex', /.+/);
     await expect(card.locator('[data-slot="primaryCTA"]')).toHaveCount(0);
+    await expect(readMore.locator('[data-slot="blogReadMoreLabel"]')).toHaveText('Read more');
+    await expect(readMore.locator('[data-slot="blogReadMoreArrow"]')).toHaveText('→');
+    await expect(readMore.locator('a, button, [tabindex]')).toHaveCount(0);
+    await expect(readMore).toHaveCSS('column-gap', '6px');
 
     await page.mouse.move(0, 0);
     await page.waitForTimeout(180);
     const restingSkin = await readBlogCardSkin(card);
-    expect(restingSkin.borderTopColor).toBe('rgba(0, 0, 0, 0)');
+    expect(restingSkin.borderTopColor).toBe('rgb(230, 226, 216)');
     expect(restingSkin.boxShadow).toContain('rgba(26, 26, 31, 0.04)');
     expect(restingSkin.transitionProperty).toBe('border-color, box-shadow');
     expect(restingSkin.transitionDuration).toBe('0.14s, 0.14s');
     expect(await readOpacity(readMore)).toBeLessThanOrEqual(0.05);
+    await expect(readMore).toHaveCSS('visibility', 'hidden');
 
     await trigger.hover();
     await page.waitForTimeout(180);
@@ -586,6 +804,7 @@ test.describe('Phase 4 grid smoke', () => {
     expect(hoverSkin.boxShadow).toBe('rgba(92, 142, 120, 0.22) 0px 4px 14px 0px');
     expect(hoverSkin.boxShadow).not.toContain('0px 0px 0px 1px');
     expect(await readOpacity(readMore)).toBeGreaterThanOrEqual(0.95);
+    await expect(readMore).toHaveCSS('visibility', 'visible');
     await expect(card).toHaveAttribute('data-card-state', 'normal');
     await expect(card.locator('[data-slot="expandedShell"]')).toHaveCount(0);
 
@@ -915,8 +1134,8 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(unavailableCard.locator('[data-slot="unavailableOverlay"]')).toHaveCount(0);
     const comingSoonTag = unavailableCard.locator('[data-slot="comingSoonTag"]');
     await expect(comingSoonTag).toHaveCount(1);
-    await expect(comingSoonTag).toHaveText('Coming soon');
-    await expect(unavailableCard.locator('[data-slot="tags"]')).toContainText('Coming soon');
+    await expect(comingSoonTag).toHaveText('coming soon');
+    await expect(unavailableCard.locator('[data-slot="tags"]')).toContainText('coming soon');
 
     await page.mouse.move(0, 0);
     await page.waitForTimeout(180);
@@ -966,7 +1185,7 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(unavailableCard.locator('[data-slot="unavailableOverlay"]')).toHaveCount(0);
     const comingSoonTag = unavailableCard.locator('[data-slot="comingSoonTag"]');
     await expect(comingSoonTag).toHaveCount(1);
-    await expect(comingSoonTag).toHaveText('Coming soon');
+    await expect(comingSoonTag).toHaveText('coming soon');
     await expect
       .poll(async () =>
         parseFloat(await comingSoonTag.evaluate((element) => getComputedStyle(element).getPropertyValue('opacity').trim()))

@@ -73,7 +73,7 @@ For ViveTest specifically, the **card catalog is the primary visual identity**. 
 ### 4.2 Product voice
 - **Tone:** quiet and competent; reassuring without being chirpy. No urgency, no sales language, no exclamation marks in product UI.
 - **Person:** address the user as **"you."** Refer to the product by name or as the neutral subject, never "I."
-- **Casing:** **sentence case everywhere** — buttons, headings, menus, labels. ALL CAPS only for the small tracked overline.
+- **Casing:** **sentence case everywhere** — buttons, headings, menus, labels. ALL CAPS only for the small tracked overline. Catalog tag labels are the deliberate exception: use lowercase in writing systems with case, while caseless scripts preserve their localized source value.
 - **Length:** short. Buttons are verbs or verb-nouns. Helper text is one sentence.
 - **No emoji**, no gamified or congratulatory copy. Confirmation is calm.
 - **Numbers:** in dense catalog UI, use numerals paired with their noun; **full-digit counts only** (no `k` / `m` abbreviations) where the realized catalog displays them.
@@ -81,7 +81,9 @@ For ViveTest specifically, the **card catalog is the primary visual identity**. 
 ### 4.3 Typography foundation
 - **One family does everything: Pretendard Variable** (covers Korean + Latin with matched metrics, so bilingual layouts stay even). Weights 400 / 500 / 600 / 700.
 - The display stack falls back gracefully through system bilingual faces (see `--font-sans` in Section 5).
-- **Global text rule (realized, foundation fact):** `word-break: keep-all; overflow-wrap: anywhere;` and **text is never truncated** — titles, subtitles, and choice text wrap freely. This holds across all components and breakpoints.
+- **Global wrapping rule:** wrapping text uses `word-break: keep-all; overflow-wrap: anywhere;`.
+- **Catalog title matrix:** Desktop/Tablet Normal is single-line ellipsis; Mobile Normal is full text with no ellipsis; Mobile Expanded and transient titles are full text with no ellipsis; Desktop/Tablet Expanded preserves the measured Normal first-line split and reveals the full overflow text.
+- Normal catalog subtitles use a two-line ellipsis clamp. Expanded choice text wraps without a line limit or truncation.
 
 ### 4.4 Color philosophy
 - **Atmosphere:** warm-neutral, low-contrast calm. The page floor is a warm off-white, never cool grey or pure white. Cards sit one step brighter than the canvas.
@@ -112,7 +114,7 @@ Thumbnails and imagery stay in the warm-neutral / sage family at low saturation,
 - Unavailable cards are removed from the tab order; they are visually inert but not styled like a broken disabled button.
 
 ### 4.11 Localization
-Korean and English string lengths differ; **all text containers wrap freely and never truncate.** Keep labels short so they don't overflow when localized. `word-break: keep-all` protects Korean line-breaking; `overflow-wrap: anywhere` is the Latin fallback.
+Korean and English string lengths differ. Keep labels short, use `word-break: keep-all` for Korean line-breaking, and use `overflow-wrap: anywhere` as the Latin fallback. Catalog text follows the state/breakpoint exceptions in §4.3: Desktop/Tablet Normal titles use one-line ellipsis, Mobile Normal/Expanded/transient titles show full text, Desktop/Tablet Expanded preserves the Normal first-line split while showing the full title, Normal subtitles use two-line ellipsis, and Expanded choices wrap without truncation. Case-bearing catalog tag labels are lowercase in localized source values; caseless scripts remain unchanged.
 
 ---
 
@@ -172,10 +174,10 @@ Realized type roles (size / weight / line-height):
 
 ### 5.6 Tag tokens
 ```css
---tag-bg: #F0ECE2;
+--tag-bg: #ECE8DF;
 --tag-fg: #4A4A55;
 ```
-**No `color` property exists in catalog tag data** — tags are text-only; no color dots.
+Catalog tags use a `1px solid var(--hairline-strong)` edge. **No `color` property exists in catalog tag data** — tags are text-only; no color dots.
 
 ### 5.7 Focus & scrim tokens
 ```css
@@ -238,13 +240,13 @@ Layout spacing scale (reference rhythm for gaps, padding, and grid gutters):
 These primitives are built from tokens and kept general enough to reuse beyond the catalog. Catalog-specific behavior lives in Section 7.
 
 ### 6.1 Base card
-Warm elevated fill, 1px **transparent** border at rest (reserves layout so a later colored border doesn't shift anything), large radius, resting shadow, **16px** padding, vertical flex with gap. The 16px padding is intentional and creates the thumbnail's outer margin on all sides — do not remove it or apply negative thumbnail margins.
+Warm elevated fill, `1px solid var(--hairline)` border at rest, large radius, resting shadow, **16px** padding, vertical flex with gap. The 1px border box already exists, so the structural hairline introduces no layout shift. The 16px padding is intentional and creates the thumbnail's outer margin on all sides — do not remove it or apply negative thumbnail margins.
 
 ### 6.2 Thumbnail
 A `16 / 6` aspect-ratio block at medium radius, full width, clipped. It sits inside the card's 16px padding and therefore has a natural outer margin on every side.
 
 ### 6.3 Tag / chip
-Text-only chip at `--radius-xs` (5px), `--tag-bg` fill, `--tag-fg` text, 13px / 500, ~`4px 9px` padding, no wrap. **No color dot, ever.**
+Text-only lowercase chip at `--radius-xs` (5px), `--tag-bg` fill, `1px solid var(--hairline-strong)` edge, `--tag-fg` text, 13px / 500, `4px 9px` padding, and no wrap. Long labels may ellipsize inside the fixed one-line tags slot. Test, Blog, and Unavailable use one shared treatment with no per-type exception. **No color dot, ever.**
 
 ### 6.4 Button / choice-button primitive
 The realized choice button: elevated fill, 1px `--hairline-strong` edge, `--radius-md`, **`12px 14px`** padding, left-aligned, full width, top-aligned icon. Hover deepens the edge to `--sage` with a `--sage-muted` fill — a calm deepening, not a color change. This is the reusable interactive-row primitive; it carries no letter badges by default.
@@ -265,7 +267,7 @@ A full-width overlay panel on `--canvas` with bottom corners at `--radius-xl` an
 A 2px `--focus-ring` outline with a 2px offset on `:focus-visible`. Always visible; never removed.
 
 ### 6.10 Meta row / quiet data row
-A horizontal, wrapping row of small (13px / 500) `--muted` items separated by thin dot separators, with the leading value optionally emphasized. A general low-emphasis data line, reusable anywhere a quiet stat row is needed.
+A horizontal, wrapping row of small (13px / 500) `--muted` items separated by thin dot separators, with the complete leading duration item (value and label) optionally emphasized at 600 / `--body`. A general low-emphasis data line, reusable anywhere a quiet stat row is needed.
 
 ---
 
@@ -282,24 +284,29 @@ ViveTest-specific composition of the primitives above.
 
 ### 7.2 Normal test card
 Content order: **Thumbnail → Title → Subtitle → Tags.**
+- Available cards use exact `--canvas-elevated` (`#FFFFFF`) with a resting `--hairline` structural edge.
+- Title typography is 20px / 600 / 1.3 / `-0.01em`; subtitle typography is 15px / 400 / 1.45 / `--body`.
+- Apply the §4.3 title matrix and the two-line Normal subtitle ellipsis clamp.
 - **No Start CTA** on the front face.
 - **No direct navigation** from the front face.
 - **No independent hover** border, shadow, or background — **expansion is the hover response.** Adding a hover border would contradict the immediate expansion.
 
 ### 7.3 Expanded test card
 Content order: **context label → preview question → choice A → choice B → meta row.** Thumbnail, subtitle, and tags are removed in this state.
+- Desktop and mobile context typography is 14px / 500 / 1.4 in the muted role. On exact white card surfaces, the scoped card value is `#757580` (the nearest AA-compliant adjustment to `--muted`); the global token remains unchanged until Wave 16.
+- The full title remains available. Desktop/Tablet preserves the measured Normal first-line split and reveals overflow text beneath it; Mobile and transient states wrap the full title without ellipsis.
 - **No `PREVIEW QUESTION` label.**
 - **No A/B letter badges** — choices are **text + `→` only.**
 - **No divider** between choices and meta.
 - Choice text **wraps freely; never truncated.** Equal top/bottom choice padding; no `minHeight` on choices.
-- Meta label is **`completed`** (never `taken` / `have taken`); numbers are full-digit.
-- The expanded card edge uses `--sage` with `--shadow-expanded`.
+- Meta label is **`completed`** (never `taken` / `have taken`); numbers are full-digit. Emphasize the complete duration item only; shared and completed remain plain `--muted`.
+- The expanded card uses exact `--canvas-elevated`, a `--sage` edge, and `--shadow-expanded`.
 - **Height invariant:** the expanded card must be **at least the resting card height**. The realized mechanism measures the resting card's height in **explicit pixels** and applies it as a floor; surplus height is absorbed **only** between the last choice and the meta row (a single flex spacer). The card grows downward when content overflows. **Do not** express this invariant as `min-height: 100%`.
 - The floor/spacer affects only the expanded card's own height; it must not change any same-row card's track height (the row-isolation behavior is governed by the product requirements, not by this document).
 
 ### 7.4 Blog card
 - **No expanded state.** The card body navigates to the article on click/tap.
-- **`Read more →`** sits at the right end of the tags row: revealed on hover at desktop, always visible on mobile.
+- **`Read more →`** sits at the right end of the tags row: revealed on hover at desktop, always visible on mobile. Its label and arrow are separate visual children with an explicit 6px gap inside the same non-interactive affordance.
 - **Never underlined**, and its color does not change on its own hover.
 - **No `READ` eyebrow** (no eyebrow on any card).
 - Blog is the one card with a hover skin: a `--sage` border plus `--shadow-blog-hover` (using the `--focus-ring-soft` glow), signalling navigability.
@@ -307,7 +314,7 @@ Content order: **context label → preview question → choice A → choice B �
 ### 7.5 Unavailable card
 - Warm **`--surface-soft`** surface, slightly distinct from available cards.
 - Thumbnail may dim **subtly only** (realized: thumbnail `opacity 0.72`); **title and subtitle keep normal opacity.**
-- A **standard `coming soon` tag** in the tags-row position — **no dashed pill, no dot.**
+- A lowercase **standard `coming soon` tag** in the tags-row position, using the shared `--tag-bg` + `--hairline-strong` treatment with no Unavailable-specific exception — **no dashed pill, no dot.**
 - Visually inert and removed from the tab order, but **not** styled like a broken disabled button.
 
 ### 7.6 Navigation
