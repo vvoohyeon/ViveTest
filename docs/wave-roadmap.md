@@ -453,6 +453,7 @@ Deferred candidates are logged in the Decision Register.
   - **Include:**
     - light-first visible state cleanup, dark/system controls not active
     - **Scoped visual-token consolidation:** `landing-grid-card.module.css`의 `--normal-*` / `--expanded-*` scoped 토큰을 `globals.css`의 warm-neutral / sage / Pretendard semantic namespace로 승격·통합하고, 컴포넌트 측 중복 선언을 제거한다. (대상 토큰 인벤토리: `project-rules.md §Visual-Design`)
+  - [ ] `--muted` AA 대비 보정 (system-wide, ref BQ-29): light surface normal-text가 전부 ≥4.5:1(WCAG AA)이 되도록 `--muted`를 revalue/명명한다. R1의 잠정 scoped `#757580`(expanded card module)을 제거하고, eyebrow(§7.1)·expanded context/meta(§7.3) 등 모든 `--muted`-on-light normal-text가 AA를 통과하는지 검증한다. CSS `text-transform` 금지, casing/behavior 불변.
   - **Exclude:** result pipeline, baseline
   - **Prerequisites:** Wave 15 완료, `theme-bootstrap` risk plan, **W3/W5 이후 도입된 scoped 토큰 전수 + design.md §5 값 패리티 확인 완료**
   - **Validation / tests:** theme matrix smoke suggestion only; **이관 전후 시각 동일성(스크린샷 기능 체크) 및 token 패리티 재확인**
