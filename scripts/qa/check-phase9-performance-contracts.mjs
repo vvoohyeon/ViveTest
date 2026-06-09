@@ -51,11 +51,17 @@ if (fileExists(landing.grid.gridCard)) {
   const cardFile = read(landing.grid.gridCard);
 
   if (
-    !/LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME[\s\S]*cursor-pointer/u.test(cardFile) ||
-    !/LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME[\s\S]*cursor-pointer/u.test(cardFile) ||
-    !/LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME[\s\S]*cursor-default/u.test(cardFile)
+    !/LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME\s*=\s*[^;]*cursor-pointer[^;]*aria-\[disabled=true\]:cursor-default[^;]*;/u.test(
+      cardFile
+    ) ||
+    !/LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME\s*=\s*[^;]*cursor-pointer[^;]*disabled:cursor-default[^;]*;/u.test(
+      cardFile
+    ) ||
+    !/LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME\s*=\s*[^;]*cursor-pointer[^;]*disabled:cursor-default[^;]*;/u.test(
+      cardFile
+    )
   ) {
-    fail('LandingGridCard must keep CTA cursor policy explicit in component-owned class sources.');
+    fail('LandingGridCard must keep interactive cursor policy explicit in component-owned class sources.');
   }
 
   if (!/styles\.reducedMotion/u.test(cardFile) || !/desktopShellInlineScale/u.test(cardFile)) {

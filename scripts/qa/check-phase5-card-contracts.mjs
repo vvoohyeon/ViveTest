@@ -29,8 +29,13 @@ if (fileExists(landing.grid.gridCard)) {
     fail('LandingGridCard must define normal slot markers.');
   }
 
-  if (!/previewQuestion/u.test(cardFile) || !/cardSubtitleExpanded/u.test(cardFile)) {
-    fail('LandingGridCard must define expanded slot markers for both content types.');
+  if (
+    !/data-slot=\{interactive \? 'previewQuestion' : undefined\}/u.test(cardFile) ||
+    !/\(isUnavailable \|\| isBlogCard\) && state === 'expanded' \? 'normal' : state/u.test(cardFile) ||
+    !/\{isBlogCard \? \([\s\S]*<Link[\s\S]*data-slot="primaryTrigger"/u.test(cardFile) ||
+    /cardSubtitleExpanded/u.test(cardFile)
+  ) {
+    fail('LandingGridCard must keep Test-only expanded slots and Blog whole-card Normal navigation.');
   }
 
   if (!/data-card-state/u.test(cardFile) || !/data-interaction-mode/u.test(cardFile)) {
@@ -45,8 +50,11 @@ if (fileExists('tests/unit/landing-card-contract.test.ts')) {
     fail('Phase 5 unit spec must cover Normal slot order contract.');
   }
 
-  if (!/Test Expanded slots/u.test(unitSpec) || !/Blog Expanded/u.test(unitSpec)) {
-    fail('Phase 5 unit spec must cover Expanded contracts for both test and blog cards.');
+  if (
+    !/Test Expanded slots without subtitle\/thumbnail\/tags/u.test(unitSpec) ||
+    !/Blog cards as whole-card navigation links without an Expanded surface/u.test(unitSpec)
+  ) {
+    fail('Phase 5 unit spec must cover Test Expanded slots and the Blog whole-card no-Expanded contract.');
   }
 
   if (!/forces unavailable cards to stay normal/u.test(unitSpec)) {
