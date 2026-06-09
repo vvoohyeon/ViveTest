@@ -29,8 +29,9 @@ Wave 번호 체계 밖에서 진행된 정합 작업이며, Wave 번호를 밀�
 | Checkpoint | Position | Purpose | Status |
 | --- | --- | --- | --- |
 | BQ-21 design authority + W1–W5 visual reconciliation | Wave 5 ↔ Wave 6 | `docs/design/design.md`를 시각 SSOT로 확정하고 구현된 Wave 1–5를 현재 Claude Design 기준·운영 모델에 재정합 | ✅ 완료 |
+| Visual Reconciliation R1 + Claude Design SSOT 단일화 | Wave 9 ↔ Wave 10 | 잠금된 rev4 카탈로그 결정(BQ-27/28/29)으로 시각 SSOT를 재정합하고 완료된 Wave 1–9 카드 표면을 정합. Claude Design `design.md`를 코드베이스본으로 단일화하고 mockup/screenshot 재생성 | ✅ 완료 |
 
-상세는 Wave Details의 "Inter-wave Reconciliation — BQ-21 design authority and W1–W5 visual reconciliation" 항목 참조.
+상세는 Wave Details의 "Inter-wave Reconciliation — BQ-21 design authority and W1–W5 visual reconciliation", "Inter-wave Reconciliation — Visual Reconciliation R1" 항목 참조.
 
 ---
 
@@ -380,11 +381,48 @@ Deferred candidates are logged in the Decision Register.
 - **Risk:** Medium (단, D1 키보드/a11y 변경분은 High-Risk로 취급해 Playwright E2E 회귀 강제)
 - **Handoff:** Wave 10 grid rhythm
 
+### Inter-wave Reconciliation — Visual Reconciliation R1 (rev4 catalog) + Claude Design SSOT 단일화
+
+- **Status:** ✅ 완료
+- **Position:** Wave 9 ↔ Wave 10 (Wave 번호 밖 정합 작업이며 Wave 번호를 밀지 않는다)
+- **Purpose:** 잠금된 rev4 카탈로그 시각 결정으로 `docs/design/design.md`(시각 SSOT)를 재정합하고, 이미 완료된 Wave 1–9 카드 시각 표면을 그 기준에 맞춘다. 동시에 Claude Design이 보유하던 CLAY 기반 `design.md`를 코드베이스본으로 단일화해 도구 간 SSOT 갭을 제거한다. 행위/로직 변경 없이 visual-only로 수행하며 Wave 10을 열지 않는다.
+- **Scope / Include:**
+  - **R1-V-01 (BQ-27):** resting Test/Blog/Unavailable card border `transparent` → `1px solid --hairline`(#E6E2D8). 기존 1px box 유지, layout shift 없음. scoped `--normal-card-border` 값만 변경.
+  - **R1-V-02 (BQ-28):** shared tag chip fill `#F0ECE2` → `--surface-muted`(#ECE8DF) + `1px solid --hairline-strong`(#D6D1C4). radius 5/nowrap/ellipsis/no-dot 보존, unavailable 동일 treatment.
+  - **R1-V-03 (BQ-28 casing):** case-bearing 7개 locale(`de,en,es,fr,id,pt,ru`) `comingSoon` 및 `getDefaultCardCopy()` lowercase화; caseless(`hi,ja,kr,zs,zt`) byte-identical, CSS `text-transform` 미사용.
+  - **R1-V-04:** Normal resting surface 정확히 `#fff`; title `-0.01em`; subtitle 15/400/1.45/`--body`. clamp 규칙 불변.
+  - **R1-V-05:** expanded scoped white surface + `--sage` edge + `--shadow-expanded`; context 14/500/1.4 muted(title 클래스 재사용 중단); 전체 leading duration item emphasize(600/`--body`), shared/completed plain muted; floor/spacer/choices/continuity 보존.
+  - **R1-V-06:** Blog `Read more →` 라벨/화살표를 명시적 6px gap의 2개 visual child(단일 `aria-hidden` 비인터랙티브 parent)로 분리. 동작 불변.
+  - **BQ-29 (AA 분기):** `--muted` #7A7A85가 흰 배경 4.24:1로 AA normal-text 미달 → expanded context/meta에 한해 scoped `#757580`(4.55:1) 잠정 적용, design.md §7.3 기록. 전역 `--muted` 보정은 Wave 16.
+  - **design.md 재정합:** §4.2/4.3/4.11/5.6/6.1/6.3/6.10/7.2–7.5 — 반응형 title 매트릭스(데스크톱·태블릿 Normal 1줄 ellipsis / 모바일·Expanded 전체 wrap), Normal subtitle 2줄 clamp, Expanded choices 무제한, tag/border/casing, complete duration-item emphasis 등.
+  - **decision-register:** BQ-27, BQ-28, BQ-29 등재.
+  - **Claude Design SSOT 단일화:** 코드베이스 `design.md`를 단일 시각 SSOT로 확정하고 Claude Design의 CLAY 기반 `design.md`를 운영 권위에서 폐기(VIVE-base 매핑은 Wave 16 참고용으로만 보존). mockup을 SSOT에 정합하고 전체 screenshot 세트 재생성(mockup-fix rev2 → rev3에서 grid 회귀 복구 + 검토 타깃 렌더).
+  - **Static QA adjunct(Ask-First 승인):** Wave 7/8에서 제거된 아키텍처를 가리키던 stale 단언(`check-phase5`/`check-phase9`)을 현행 아키텍처로 갱신해 phase 5/9 green화. product code 무변경.
+  - **focus-shell 확인:** `expanded-focus-shell.png`(403×210 expected vs 403×295 actual)는 BQ-07로 동결된 baseline의 pre-existing drift이며 R1 회귀 아님으로 확인. baseline 미재생성.
+- **Exclude / Preservation:**
+  - 행위/로직 무변경: resolver/controller/hooks/storage/telemetry/transition/routing/test-entry/state/a11y logic 보존.
+  - `src/app/globals.css` 및 전역 token promotion 미수행(Wave 16).
+  - visual baseline regeneration / `qa:visual:full` 없음(BQ-07).
+  - **Wave 10으로 이연된 mockup 검토 타깃(BQ-31):** same-row 균일 폭, 데스크톱 hover 확장 폭 체감 증대, row 균일 높이 + description↔tags 단일 flex slack(bottom-anchored tags), title D/T ellipsis·모바일 전체, description D/T 2줄 ellipsis·모바일 전체, tags+CTA 1줄 고정(CTA 우선·우측 태그부터 숨김).
+  - **태그 treatment 후속 개정(BQ-30):** 태그 보더 제거 + unavailable 1단계 진한 fill 예외는 Wave 10에서 구현(현재 코드는 R1의 BQ-28 보더 상태).
+  - W13 mobile expand, BQ-23 hero, BQ-25 arrow nudge, Wave 16 token consolidation/VIVE-base snap 모두 이연.
+- **Files changed:**
+  - 문서/SSOT: `docs/design/design.md`, `docs/decision-register.md`(BQ-27/28/29)
+  - 소스: `src/features/landing/grid/landing-grid-card.module.css`, `landing-grid-card.tsx`, `src/messages/{de,en,es,fr,id,pt,ru}.json`, `getDefaultCardCopy()`
+  - 테스트: `tests/unit/landing-card-contract.test.ts`, `tests/unit/landing-message-labels.test.ts`(신규), `tests/e2e/grid-smoke.spec.ts`
+  - QA adjunct: `scripts/qa/check-phase5-card-contracts.mjs`, `scripts/qa/check-phase9-performance-contracts.mjs`
+  - Claude Design resources: mockup + 전체 screenshot 재생성(rev3)
+  - plans/analysis: `docs/plans/2026-06-08-visual-reconciliation-r1-analysis-rev2.md`, `…-r1.md`(refine)
+- **Validation / tests:** `lint`/`typecheck`/`test`(490)/`build` green; static phase 4/6/7/8/10 green; QA adjunct 적용 후 phase 5/9 green; functional non-baseline E2E 68 green; `git diff --check` clean; commit 완료. BQ-07 baseline 미재생성, focus-shell drift pre-existing 확인.
+- **Risk:** Medium — 시각 + SSOT/QA 정합. runtime behavior 영향 낮음(High-risk logic 미수정). 단 design SSOT·decision-register·도구 간 SSOT 단일화로 process/documentation 영향 Medium.
+- **Handoff:** Wave 10 grid height rhythm은 본 정합으로 확정된 SSOT 위에서 진행하며, mockup으로 확정된 검토 타깃(BQ-31)과 태그 treatment 개정(BQ-30)을 Wave 10 BQ-19 Analysis를 거쳐 함께 구현한다.
+
 ### Wave 10 — Landing grid height rhythm
 
 - **Status:** ⬜ 미완료
 - **Purpose:** 그리드 높이 리듬 안정화
 - **Include:** content-driven height, row stretch, bottom-anchored tags/CTA, no fixed card minHeight
+- [ ] 태그 fit / CTA 우선순위 계약 (BQ-32, W10-LI-02): 앞쪽 태그 전체 표시 + 마지막 태그만 `--tag-min-width:56px`까지 말줄임 + 미만 시 우측우선 숨김(0개 유효), Blog CTA 우선·여유 시 최대 3개, 호버 폭 변화에 걸쳐 정체성 유지(마지막 태그 CSS 전개·신규 태그 이산 mount), Test/Blog/Unavailable 동일·예외 없음. 코드(req-landing)가 SSOT.
 - **Exclude:** expanded overlay internals already done, baseline update
 - **Prerequisites:** Waves 2–9 완료; Logic Improvement Analysis gate cleared
 - **Validation / tests:** grid/state smoke, breakpoint checks
