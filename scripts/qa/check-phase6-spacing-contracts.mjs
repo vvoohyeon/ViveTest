@@ -13,7 +13,8 @@ const requiredFiles = [
   landing.grid.spacingPlan,
   landing.grid.geometryController,
   'tests/unit/landing-spacing-plan.test.ts',
-  e2e.gridSmoke
+  e2e.gridSmoke,
+  e2e.stateSmoke
 ];
 
 for (const relativePath of requiredFiles) {
@@ -23,6 +24,7 @@ for (const relativePath of requiredFiles) {
 }
 
 {
+  const geometryController = read(landing.grid.geometryController);
   const gridFiles = readExisting([
     landing.grid.catalogGrid,
     landing.grid.geometryController
@@ -39,6 +41,18 @@ for (const relativePath of requiredFiles) {
 
   if (!/data-base-gap/u.test(gridFiles) && !/spacing=/u.test(gridFiles)) {
     fail('LandingCatalogGrid must pass spacing contract props to card renderer in Phase 6.');
+  }
+
+  if (
+    !/ResizeObserver/u.test(geometryController) ||
+    !/requestAnimationFrame/u.test(geometryController) ||
+    !/document\.fonts/u.test(geometryController) ||
+    !/\.ready/u.test(geometryController) ||
+    !/isSameSpacingModel\(previous,\s*nextSpacingModel\)\s*\?\s*previous\s*:\s*nextSpacingModel/u.test(
+      geometryController
+    )
+  ) {
+    fail('Geometry controller must keep observer/RAF/font invalidation with equality-guarded spacing state.');
   }
 }
 
@@ -92,6 +106,13 @@ if (fileExists('tests/unit/landing-spacing-plan.test.ts')) {
   if (!/row-local decision rule/u.test(unitSpec) || !/comp gap only/u.test(unitSpec)) {
     fail('Phase 6 unit test must cover row-local compensation and non-comp zero-gap contracts.');
   }
+  if (
+    !/keeps non-comp compensation at zero for repeated normalized measurements/u.test(unitSpec) ||
+    !/resolves tag tail ellipsis with right-first hiding and growth reappearance/u.test(unitSpec) ||
+    !/keeps mandatory status-first prefix visible/u.test(unitSpec)
+  ) {
+    fail('Phase 6 unit test must cover normalized stability plus tag-tail and status-priority contracts.');
+  }
 }
 
 if (fileExists(e2e.gridSmoke)) {
@@ -104,6 +125,16 @@ if (fileExists(e2e.gridSmoke)) {
   }
   if (!/rowBaseGapFromGeometry/u.test(e2eSpec)) {
     fail('Grid smoke must derive base gap from geometry instead of only data attributes in Phase 6.');
+  }
+  if (!/font-ready and resize remeasure preserve settled compensation/u.test(e2eSpec)) {
+    fail('Grid smoke must cover font-ready and resize invalidation for settled compensation.');
+  }
+}
+
+if (fileExists(e2e.stateSmoke)) {
+  const stateSpec = read(e2e.stateSmoke);
+  if (!/transition frames keep non-comp gap at zero through mobile and desktop lifecycle states/u.test(stateSpec)) {
+    fail('State smoke must keep non-comp compensation at zero through Mobile and desktop lifecycle frames.');
   }
 }
 

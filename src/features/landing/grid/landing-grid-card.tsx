@@ -27,6 +27,7 @@ import {
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 import {LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
+import {useCardExpandedScale, useCardInlineGeometry} from '@/features/landing/grid/use-card-inline-geometry';
 import type {LandingCardVisualState} from '@/features/landing/model/interaction-state';
 import {
   isUnavailablePresentation,
@@ -88,7 +89,6 @@ interface LandingGridCardProps {
   mobileRestoreReady?: boolean;
   desktopMotionRole?: LandingCardDesktopMotionRole;
   desktopShellPhase?: LandingCardDesktopShellPhase;
-  desktopShellInlineScale?: number;
   reducedMotion?: boolean;
   mobileSnapshot?: LandingMobileSnapshotView | null;
   desktopTransformOriginX?: '0%' | '50%' | '100%';
@@ -200,7 +200,7 @@ function joinClassNames(...classNames: Array<string | false | null | undefined>)
 }
 
 const LANDING_GRID_CARD_ROOT_CLASSNAME =
-  'landing-grid-card group relative isolate min-h-44 min-w-0 overflow-visible rounded-[var(--landing-card-radius)] [--landing-card-radius:16px] [--landing-card-stage-shadow-bleed-x:72px] [--landing-card-stage-shadow-bleed-top:56px] [--landing-card-stage-shadow-bleed-bottom:192px] [--landing-card-origin-y:0%] [--landing-card-shell-scale:1.04] [--landing-card-shell-inline-scale:1] [--landing-card-shell-extra-start:0%] [--landing-card-shell-extra-end:0%] [--landing-card-motion-ms:280ms]';
+  'landing-grid-card group relative isolate min-w-0 overflow-visible rounded-[var(--landing-card-radius)] [--landing-card-radius:16px] [--landing-card-stage-shadow-bleed-x:72px] [--landing-card-stage-shadow-bleed-top:56px] [--landing-card-stage-shadow-bleed-bottom:192px] [--landing-card-origin-y:0%] [--landing-card-shell-scale:1.04] [--landing-card-shell-inline-scale:1] [--landing-card-shell-extra-start:0%] [--landing-card-shell-extra-end:0%] [--landing-card-motion-ms:280ms]';
 const LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME =
   'landing-grid-card-trigger relative block w-full rounded-[inherit] [border:0] bg-transparent text-left [color:inherit] cursor-pointer focus:outline-none aria-[disabled=true]:cursor-default';
 const LANDING_GRID_CARD_CONTENT_CLASSNAME =
@@ -208,7 +208,7 @@ const LANDING_GRID_CARD_CONTENT_CLASSNAME =
 const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
   'landing-grid-card-title relative z-[3] m-0 text-[20px] font-semibold leading-[1.3] tracking-[-0.01em] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
-  'landing-grid-card-subtitle min-w-0 overflow-hidden text-ellipsis text-[15px] font-normal leading-[1.45] text-[var(--normal-subtitle-ink)] [overflow-wrap:anywhere]';
+  'landing-grid-card-subtitle min-w-0 text-[15px] font-normal leading-[1.45] text-[var(--normal-subtitle-ink)] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
   'landing-grid-card-thumbnail-slot relative aspect-[16/6] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
 const LANDING_GRID_CARD_TAGS_CLASSNAME =
@@ -217,7 +217,7 @@ const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
   'landing-grid-card-tags-gap h-[calc(var(--landing-card-base-gap)_+_var(--landing-card-comp-gap))]';
 const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
 const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
-  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] border border-[var(--normal-tag-border)] bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium leading-[1.2] text-[var(--normal-tag-ink)]';
+  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium leading-[1.2] text-[var(--normal-tag-ink)]';
 const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME =
   'landing-grid-card-preview-question m-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--expanded-question-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
@@ -324,6 +324,7 @@ interface NormalCardThumbnailProps {
 
 interface NormalCardSubtitleProps {
   card: LandingCard;
+  isMobileViewport: boolean;
   exposePublicSlot: boolean;
   subtitleRef?: RefObject<HTMLParagraphElement | null>;
 }
@@ -341,13 +342,15 @@ function LandingCardSubtitleText({
   clamp,
   textRef,
   slot,
-  motionSlot
+  motionSlot,
+  isMobileViewport = false
 }: {
   text: string;
   clamp: 'normal' | 'expanded';
   textRef?: RefObject<HTMLParagraphElement | null>;
   slot?: string;
   motionSlot?: string;
+  isMobileViewport?: boolean;
 }) {
   return (
     <p
@@ -356,8 +359,12 @@ function LandingCardSubtitleText({
         LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME,
         `landing-grid-card-subtitle-${clamp}`,
         clamp === 'normal'
-          ? joinClassNames('mt-[var(--landing-card-base-gap)] shrink-0 line-clamp-2', styles.normalSubtitle)
-          : joinClassNames('m-0 line-clamp-4', styles.motionStageEarly)
+          ? joinClassNames(
+              'mt-[var(--landing-card-base-gap)] shrink-0',
+              isMobileViewport ? 'overflow-visible text-clip' : 'overflow-hidden text-ellipsis line-clamp-2',
+              styles.normalSubtitle
+            )
+          : joinClassNames('m-0 overflow-hidden text-ellipsis line-clamp-4', styles.motionStageEarly)
       )}
       data-slot={slot}
       data-motion-slot={motionSlot}
@@ -404,41 +411,58 @@ function NormalCardThumbnail({card, hasAssetMedia, exposePublicSlot}: NormalCard
   );
 }
 
-function NormalCardSubtitle({card, exposePublicSlot, subtitleRef}: NormalCardSubtitleProps) {
+function NormalCardSubtitle({card, isMobileViewport, exposePublicSlot, subtitleRef}: NormalCardSubtitleProps) {
   return (
     <LandingCardSubtitleText
       text={card.subtitle}
       clamp="normal"
       textRef={subtitleRef}
       slot={exposePublicSlot ? 'cardSubtitle' : undefined}
+      isMobileViewport={isMobileViewport}
     />
   );
 }
 
 function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', readMoreLabel, comingSoonLabel}: NormalCardTagRowProps) {
+  const rowRef = useRef<HTMLElement | null>(null);
+  const probeRef = useRef<HTMLDivElement | null>(null);
+  const normalizedTags = comingSoonLabel ? [comingSoonLabel] : card.tags;
+  const {decision} = useCardInlineGeometry({
+    rowRef,
+    probeRef,
+    tagCount: normalizedTags.length,
+    requiredVisiblePrefixCount: comingSoonLabel ? 1 : 0,
+    ctaVisibility: readMoreLabel ? (interactionMode === 'hover' ? 'hover-focus' : 'always') : 'never'
+  });
+  const visibleTags = normalizedTags.slice(0, decision.visibleCount);
   const tags = (
     <ul
+      ref={readMoreLabel ? undefined : (rowRef as RefObject<HTMLUListElement | null>)}
       className={joinClassNames(
         LANDING_GRID_CARD_TAGS_CLASSNAME,
         styles.normalTags,
         readMoreLabel && 'flex-1 [flex-shrink:1]'
       )}
       data-slot={exposePublicSlot ? 'tags' : undefined}
-      data-tag-count={card.tags.length}
+      data-tag-count={normalizedTags.length}
+      data-visible-tag-count={decision.visibleCount}
+      data-tag-tail-ellipsis={decision.tailMayEllipsize ? 'true' : 'false'}
       aria-label="Card tags"
     >
-      {/* design.md §7.5: the unavailable signal is a single always-visible standard tag (no overlay,
-          no dashed pill, no dot). Real text inside the labelled tag list — perceivable to AT. */}
-      {comingSoonLabel ? (
-        <li className={LANDING_GRID_CARD_TAG_ITEM_CLASSNAME}>
-          <span className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME} data-slot={exposePublicSlot ? 'comingSoonTag' : undefined}>
-            {comingSoonLabel}
+      {visibleTags.map((tag, index) => (
+        <li
+          key={`${card.variant}-${tag}`}
+          className={joinClassNames(
+            LANDING_GRID_CARD_TAG_ITEM_CLASSNAME,
+            decision.tailMayEllipsize && index === decision.tailIndex ? styles.flexibleTagItem : styles.fixedTagItem
+          )}
+        >
+          <span
+            className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME}
+            data-slot={comingSoonLabel && exposePublicSlot ? 'comingSoonTag' : undefined}
+          >
+            {tag}
           </span>
-        </li>
-      ) : null}
-      {card.tags.map((tag) => (
-        <li key={`${card.variant}-${tag}`} className={LANDING_GRID_CARD_TAG_ITEM_CLASSNAME}>
-          <span className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME}>{tag}</span>
         </li>
       ))}
     </ul>
@@ -448,8 +472,12 @@ function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', read
     <span
       className={joinClassNames(
         'landing-grid-card-blog-read-more ml-auto inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap text-[13px] font-medium leading-[1.35] text-[var(--muted-ink)] no-underline',
+        styles.blogReadMore,
         interactionMode === 'hover'
-          ? 'invisible opacity-0 transition-opacity duration-[140ms] group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 motion-reduce:transition-none'
+          ? joinClassNames(
+              styles.blogReadMoreHover,
+              'invisible opacity-0 transition-opacity duration-[140ms] group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 motion-reduce:transition-none'
+            )
           : 'opacity-100'
       )}
       data-slot="blogReadMore"
@@ -459,18 +487,49 @@ function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', read
       <span data-slot="blogReadMoreArrow">→</span>
     </span>
   ) : null;
+  const probe = (
+    <div
+      ref={probeRef}
+      className={styles.tagMeasurementProbe}
+      data-slot="tagMeasurementProbe"
+      aria-hidden="true"
+      inert
+    >
+      {normalizedTags.map((tag) => (
+        <span key={`${card.variant}-${tag}-probe`} className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME} data-inline-probe-tag>
+          {tag}
+        </span>
+      ))}
+      {readMoreLabel ? (
+        <span
+          className={joinClassNames(
+            styles.blogReadMore,
+            'inline-flex items-center gap-[6px] whitespace-nowrap text-[13px] font-medium leading-[1.35]'
+          )}
+          data-slot="blogReadMoreProbe"
+        >
+          <span>{readMoreLabel}</span>
+          <span>→</span>
+        </span>
+      ) : null}
+    </div>
+  );
 
   return (
     <>
       <div className={joinClassNames(LANDING_GRID_CARD_TAGS_GAP_CLASSNAME, styles.normalTagsGap)} aria-hidden="true" />
 
       {readMore ? (
-        <div className="landing-grid-card-tag-row flex min-h-7 min-w-0 shrink-0 items-center gap-3">
+        <div ref={rowRef as RefObject<HTMLDivElement | null>} className="landing-grid-card-tag-row relative flex min-h-7 min-w-0 shrink-0 items-center gap-3">
           {tags}
           {readMore}
+          <div className={styles.tagMeasurementProbeAnchor}>{probe}</div>
         </div>
       ) : (
-        tags
+        <>
+          {tags}
+          <div className={styles.tagMeasurementProbeAnchor}>{probe}</div>
+        </>
       )}
     </>
   );
@@ -484,7 +543,12 @@ function NormalCardGhostBody({
   return (
     <>
       <NormalCardThumbnail card={card} hasAssetMedia={hasAssetMedia} exposePublicSlot={false} />
-      <NormalCardSubtitle card={card} exposePublicSlot={false} subtitleRef={subtitleRef} />
+      <NormalCardSubtitle
+        card={card}
+        isMobileViewport={false}
+        exposePublicSlot={false}
+        subtitleRef={subtitleRef}
+      />
       <NormalCardTagRow card={card} exposePublicSlot={false} />
     </>
   );
@@ -520,7 +584,12 @@ function NormalCardFace({
     <>
       <NormalCardThumbnail card={card} hasAssetMedia={hasAssetMedia} exposePublicSlot={exposePublicSlots} />
       {title}
-      <NormalCardSubtitle card={card} exposePublicSlot={exposePublicSlots} subtitleRef={subtitleRef} />
+      <NormalCardSubtitle
+        card={card}
+        isMobileViewport={isMobileViewport}
+        exposePublicSlot={exposePublicSlots}
+        subtitleRef={subtitleRef}
+      />
       <NormalCardTagRow
         card={card}
         exposePublicSlot={exposePublicSlots}
@@ -828,7 +897,6 @@ export function LandingGridCard({
   mobileRestoreReady = false,
   desktopMotionRole = 'idle',
   desktopShellPhase = 'idle',
-  desktopShellInlineScale = 1,
   reducedMotion = false,
   mobileSnapshot = null,
   desktopTransformOriginX = '50%',
@@ -870,6 +938,7 @@ export function LandingGridCard({
   const showMobileExpandedBody = isMobileExpanded;
   const showMobileTransientShell = isMobileOpening || isMobileClosing;
   const resolvedSpacing = resolveSpacingContract(spacing);
+  const cardRootRef = useRef<HTMLDivElement | null>(null);
   const normalTitleRef = useRef<HTMLHeadingElement | null>(null);
   const normalSubtitleRef = useRef<HTMLParagraphElement | null>(null);
   const desktopTitleSplit = useLandingCardTitleSplit({
@@ -879,8 +948,14 @@ export function LandingGridCard({
     titleRef: normalTitleRef
   });
   const transformOriginClassName = resolveTransformOriginClassName(desktopTransformOriginX);
+  const expandedScale = useCardExpandedScale({
+    rootRef: cardRootRef,
+    viewportTier,
+    transformOriginX: desktopTransformOriginX,
+    reducedMotion
+  });
   const resolvedShellScale = reducedMotion ? 1 : 1.04;
-  const resolvedShellInlineScale = reducedMotion ? 1 : desktopShellInlineScale;
+  const resolvedShellInlineScale = expandedScale.frameInlineScale;
   const resolvedMotionDurationMs = reducedMotion ? 180 : 280;
   const resolvedExpandedFloorPx =
     showDesktopExpandedShell &&
@@ -975,6 +1050,7 @@ export function LandingGridCard({
 
   return (
     <div
+      ref={cardRootRef}
       className={resolvedRootClassName}
       data-testid="landing-grid-card"
       data-card-variant={card.variant}
@@ -992,6 +1068,11 @@ export function LandingGridCard({
       data-needs-comp={resolvedSpacing.needsComp ? 'true' : 'false'}
       data-natural-height={resolvedSpacing.naturalHeightPx}
       data-row-natural-max={resolvedSpacing.rowMaxNaturalHeightPx}
+      data-expanded-desired-scale={expandedScale.desiredFinalScale}
+      data-expanded-max-scale={expandedScale.maxSurfaceScale}
+      data-expanded-resolved-scale={expandedScale.resolvedFinalScale}
+      data-expanded-frame-scale={expandedScale.frameInlineScale}
+      data-expanded-resting-floor={expandedRestingFloorPx}
       data-card-viewport-tier={viewportTier}
       data-mobile-phase={isMobileViewport ? mobilePhase : undefined}
       data-mobile-transient-mode={isMobileViewport ? mobileTransientMode : undefined}

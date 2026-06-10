@@ -100,6 +100,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
     previousColumnModeRef,
     plan,
     viewportWidth,
+    mobileLifecyclePhase: mobileLifecycleState.phase,
     activeVisualCardVariant,
     collapseExpandedCard
   });
@@ -233,7 +234,6 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     mobileRestoreReady={interactionBindings.mobileRestoreReady}
                     desktopMotionRole={interactionBindings.desktopMotionRole}
                     desktopShellPhase={interactionBindings.desktopShellPhase}
-                    desktopShellInlineScale={row.expandedShellInlineScale}
                     reducedMotion={prefersReducedMotion}
                     mobileSnapshot={interactionBindings.mobileSnapshot}
                     desktopTransformOriginX={resolveDesktopTransformOriginX({

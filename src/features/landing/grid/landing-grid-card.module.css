@@ -8,17 +8,18 @@
   --normal-thumb-radius: 12px;
   --normal-subtitle-ink: #4a4a55;
   --normal-tag-bg: #ece8df;
-  --normal-tag-border: #d6d1c4;
   --normal-tag-ink: #4a4a55;
   --normal-tag-radius: 5px;
+  --tag-min-width: 56px;
 
   /* Wave 8 Blog hover skin tokens; scoped here until Wave 16 global token migration. */
   --blog-hover-border: #5c8e78;
   --blog-hover-shadow: 0 4px 14px rgb(92 142 120 / 22%);
 
-  /* Wave 9 unavailable-card skin (design.md §7.5). Strategy A: values = design.md §5 semantic
-     tokens; scoped here until Wave 16 global migration. The coming-soon tag reuses --normal-tag-*. */
+  /* Wave 9 unavailable-card skin (design.md §7.5). Strategy A: values are scoped here until
+     Wave 16 global migration. */
   --unavailable-surface: #f4f1ea; /* = design.md §5.2 --surface-soft */
+  --unavailable-tag-bg: #e6e2d8;
   --unavailable-thumb-opacity: 0.72; /* design.md §7.5 "subtle dim"; concrete value per BQ-26/§8 */
 
   /* Wave 5 expanded-test skin tokens (design.md §6.5/§7). Strategy A: consumed only by
@@ -66,16 +67,64 @@
   }
 }
 
-/* Wave 9 unavailable card (design.md §7.5): warm --surface-soft surface + subtle thumbnail dim.
+/* Unavailable card (design.md §7.5): warm --surface-soft surface + subtle thumbnail dim.
    The `.root.unavailableCard` (0,2,0) selector outranks the inline Tailwind normal background (0,1,0),
-   so only the surface changes; title/subtitle keep full opacity (design.md §10) and the coming-soon
-   tag reuses the standard --normal-tag-* chip. No globals.css change (Wave 16). */
+   so only the surface changes; title/subtitle keep full opacity (design.md §10). */
 .root.unavailableCard {
   background: var(--unavailable-surface);
 }
 
+.root.unavailableCard :global(.landing-grid-card-tag-chip) {
+  background: var(--unavailable-tag-bg);
+}
+
 .root.unavailableCard .normalThumbnail {
   opacity: var(--unavailable-thumb-opacity);
+}
+
+.fixedTagItem {
+  flex: 0 0 auto;
+}
+
+.flexibleTagItem {
+  min-width: min(100%, var(--tag-min-width));
+  flex: 0 1 auto;
+}
+
+.flexibleTagItem > * {
+  width: 100%;
+}
+
+.tagMeasurementProbe {
+  position: absolute;
+  inset: 0 auto auto 0;
+  display: flex;
+  gap: 8px;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+  contain: layout paint style;
+}
+
+.tagMeasurementProbeAnchor {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 0;
+  height: 0;
+  overflow: clip;
+}
+
+.blogReadMore {
+  width: max-content;
+}
+
+.blogReadMoreHover {
+  display: none;
+}
+
+.root.blogCard:hover .blogReadMoreHover,
+.root.blogCard:focus-within .blogReadMoreHover {
+  display: inline-flex;
 }
 
 /* Semantic style classes are the CSS contract; data-* stays on the DOM as QA/debug anchors only. */

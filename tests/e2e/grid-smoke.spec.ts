@@ -1,5 +1,6 @@
 import {expect, test, type Locator, type Page} from '@playwright/test';
 
+import {locales} from '../../src/config/site';
 import {
   DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE,
   DESKTOP_WIDE_MIN_GRID_INLINE_SIZE,
@@ -211,6 +212,7 @@ async function expectDesktopClosingSnapshot(card: Locator) {
 
 async function readExpandedWidthContract(card: Locator) {
   return card.evaluate((element) => {
+    const stage = element.querySelector<HTMLElement>('[data-slot="desktopStage"]');
     const surface = element.querySelector<HTMLElement>('[data-slot="expandedSurface"]');
     const title = element.querySelector<HTMLElement>('[data-slot="cardTitleExpanded"]');
     const line1 = title?.querySelector<HTMLElement>('[data-title-layer="line1"]');
@@ -219,11 +221,12 @@ async function readExpandedWidthContract(card: Locator) {
       element.querySelector<HTMLElement>('[data-slot="meta"]') ??
       element.querySelector<HTMLElement>('[data-slot="answerChoices"]');
 
-    if (!surface || !title || !line1 || !overflow || !detailBlock) {
+    if (!stage || !surface || !title || !line1 || !overflow || !detailBlock) {
       throw new Error('Expected expanded width-contract nodes to be present.');
     }
 
     const rootRect = element.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
     const surfaceRect = surface.getBoundingClientRect();
     const titleRect = title.getBoundingClientRect();
     const detailRect = detailBlock.getBoundingClientRect();
@@ -234,8 +237,16 @@ async function readExpandedWidthContract(card: Locator) {
       shellInlineScale: Number.parseFloat(
         getComputedStyle(element).getPropertyValue('--landing-card-shell-inline-scale').trim()
       ),
+      desiredScale: Number(element.getAttribute('data-expanded-desired-scale') ?? '0'),
+      maxScale: Number(element.getAttribute('data-expanded-max-scale') ?? '0'),
+      resolvedScale: Number(element.getAttribute('data-expanded-resolved-scale') ?? '0'),
+      frameScale: Number(element.getAttribute('data-expanded-frame-scale') ?? '0'),
       rootWidth: rootRect.width,
       surfaceWidth: surfaceRect.width,
+      stageLeft: stageRect.left,
+      stageRight: stageRect.right,
+      surfaceLeft: surfaceRect.left,
+      surfaceRight: surfaceRect.right,
       expandLeft: rootRect.left - surfaceRect.left,
       expandRight: surfaceRect.right - rootRect.right,
       titleLeftInset: titleRect.left - surfaceRect.left,
@@ -460,7 +471,62 @@ test.describe('Phase 4 grid smoke', () => {
     expect(mainClamp).toBe('2');
   });
 
-  test('@smoke title clamp and expanded title continuity keep the first line stable on desktop and tablet with the shared tag hairline', async ({
+  test('@smoke mobile full subtitle preserves tag-row geometry across all 12 locales', async ({page}) => {
+    await page.setViewportSize({width: 390, height: 844});
+
+    for (const locale of locales) {
+      await page.goto(`/${locale}`);
+
+      const card = page.locator('[data-card-variant="ops-handbook"]');
+      await expect(card).toHaveAttribute('data-card-viewport-tier', 'mobile');
+      await expect(card).toHaveAttribute('data-natural-height', /[1-9]\d*(?:\.\d+)?/);
+
+      const metrics = await card.evaluate((element) => {
+        const row = element.closest<HTMLElement>('[data-testid^="landing-grid-row-"]');
+        const subtitle = element.querySelector<HTMLElement>('[data-slot="cardSubtitle"]');
+        const tags = element.querySelector<HTMLElement>('[data-slot="tags"]');
+
+        if (!row || !subtitle || !tags) {
+          throw new Error('Expected Mobile row, subtitle, and tags anchors.');
+        }
+
+        const subtitleStyle = getComputedStyle(subtitle);
+        const subtitleRect = subtitle.getBoundingClientRect();
+        const tagsRect = tags.getBoundingClientRect();
+        const lineHeight = Number.parseFloat(subtitleStyle.lineHeight);
+
+        return {
+          columnCount: Number(row.getAttribute('data-columns') ?? '0'),
+          cardCount: Number(row.getAttribute('data-card-count') ?? '0'),
+          lineClamp: subtitleStyle.getPropertyValue('-webkit-line-clamp').trim(),
+          textOverflow: subtitleStyle.textOverflow,
+          overflow: subtitleStyle.overflow,
+          clientHeight: subtitle.clientHeight,
+          scrollHeight: subtitle.scrollHeight,
+          lineHeight,
+          gap: tagsRect.top - subtitleRect.bottom,
+          baseGap: Number(element.getAttribute('data-base-gap') ?? '0'),
+          compGap: Number(element.getAttribute('data-comp-gap') ?? '0'),
+          needsComp: element.getAttribute('data-needs-comp')
+        };
+      });
+
+      expect(metrics.columnCount).toBe(1);
+      expect(metrics.cardCount).toBe(1);
+      expect(metrics.lineClamp).toBe('none');
+      expect(metrics.textOverflow).toBe('clip');
+      expect(metrics.overflow).toBe('visible');
+      expect(metrics.clientHeight).toBeGreaterThan(metrics.lineHeight * 2);
+      expect(Math.abs(metrics.scrollHeight - metrics.clientHeight)).toBeLessThanOrEqual(1);
+      expect(metrics.gap).toBeGreaterThan(0);
+      expect(metrics.baseGap).toBeGreaterThan(0);
+      expect(Math.abs(metrics.gap - metrics.baseGap)).toBeLessThanOrEqual(1);
+      expect(metrics.compGap).toBe(0);
+      expect(metrics.needsComp).toBe('false');
+    }
+  });
+
+  test('@smoke title clamp and expanded title continuity keep the first line stable on desktop and tablet with borderless tags', async ({
     page
   }) => {
     const scenarios = [
@@ -480,13 +546,13 @@ test.describe('Phase 4 grid smoke', () => {
         getComputedStyle(element).getPropertyValue('-webkit-line-clamp').trim()
       );
       const normalFullText = (await normalTitle.textContent()) ?? '';
-      const tagBorderColor = await card
+      const tagBorderWidth = await card
         .locator('.landing-grid-card-tag-chip')
         .first()
-        .evaluate((element) => getComputedStyle(element).borderTopColor);
+        .evaluate((element) => getComputedStyle(element).borderWidth);
 
       expect(normalClamp).toBe('1');
-      expect(tagBorderColor).toBe('rgb(214, 209, 196)');
+      expect(tagBorderWidth).toBe('0px');
 
       await hoverDesktopExpandedCard(card);
 
@@ -555,7 +621,7 @@ test.describe('Phase 4 grid smoke', () => {
         subtitleLineClamp: subtitleStyle.getPropertyValue('-webkit-line-clamp').trim(),
         subtitleLineHeight: subtitleStyle.lineHeight,
         tagBackgroundColor: tagStyle.backgroundColor,
-        tagBorderTopColor: tagStyle.borderTopColor
+        tagBorderWidth: tagStyle.borderWidth
       };
     });
 
@@ -572,14 +638,62 @@ test.describe('Phase 4 grid smoke', () => {
       subtitleLineClamp: '2',
       subtitleLineHeight: '21.75px',
       tagBackgroundColor: 'rgb(236, 232, 223)',
-      tagBorderTopColor: 'rgb(214, 209, 196)'
+      tagBorderWidth: '0px'
     });
 
     const unavailableTag = unavailableCard.locator('[data-slot="comingSoonTag"]');
     await expect(unavailableTag).toHaveText('coming soon');
-    await expect(unavailableTag).toHaveCSS('background-color', 'rgb(236, 232, 223)');
-    await expect(unavailableTag).toHaveCSS('border-top-color', 'rgb(214, 209, 196)');
+    await expect(unavailableTag).toHaveCSS('background-color', 'rgb(230, 226, 216)');
+    await expect(unavailableTag).toHaveCSS('border-width', '0px');
     await expect(unavailableCard).toHaveCSS('border-top-color', 'rgb(230, 226, 216)');
+  });
+
+  test('@smoke BQ-30 tag visuals stay borderless with available and unavailable fills', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const cases = [
+      {
+        card: page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`),
+        expectedBackground: 'rgb(236, 232, 223)'
+      },
+      {
+        card: page.locator('[data-card-variant="ops-handbook"]'),
+        expectedBackground: 'rgb(236, 232, 223)'
+      },
+      {
+        card: page.locator('[data-card-variant="creativity-profile"]'),
+        expectedBackground: 'rgb(230, 226, 216)'
+      }
+    ];
+
+    for (const {card, expectedBackground} of cases) {
+      const tag = card.locator('.landing-grid-card-tag-chip').first();
+      await expect(tag).toBeVisible();
+
+      const metrics = await tag.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          backgroundColor: style.backgroundColor,
+          borderWidth: style.borderWidth,
+          borderRadius: style.borderRadius,
+          paddingLeft: style.paddingLeft,
+          paddingRight: style.paddingRight,
+          whiteSpace: style.whiteSpace,
+          textTransform: style.textTransform,
+          childElementCount: element.childElementCount
+        };
+      });
+
+      expect.soft(metrics.backgroundColor).toBe(expectedBackground);
+      expect.soft(metrics.borderWidth).toBe('0px');
+      expect.soft(metrics.borderRadius).toBe('5px');
+      expect.soft(metrics.paddingLeft).toBe('9px');
+      expect.soft(metrics.paddingRight).toBe('9px');
+      expect.soft(metrics.whiteSpace).toBe('nowrap');
+      expect.soft(metrics.textTransform).toBe('none');
+      expect.soft(metrics.childElementCount).toBe(0);
+    }
   });
 
   test('@smoke visual reconciliation R1 expanded sub-surfaces preserve context, choices, and duration-item emphasis', async ({
@@ -870,6 +984,139 @@ test.describe('Phase 4 grid smoke', () => {
     }
   });
 
+  test('@smoke tag tail ellipsis hides right-first and reappears on widen across all 12 locales', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 900, height: 980});
+
+    for (const locale of locales) {
+      await page.goto(`/${locale}`);
+
+      const container = page.getByTestId('landing-grid-container');
+      const testCard = page.locator('[data-card-variant="rhythm-b"]');
+      const tags = testCard.locator('[data-slot="tags"]');
+
+      await expect(tags).toHaveAttribute('data-visible-tag-count', /[1-3]/u);
+      const widePrefix = await tags.locator('.landing-grid-card-tag-chip').allTextContents();
+
+      await testCard.evaluate((element) => {
+        const tagsElement = element.querySelector('[data-slot="tags"]');
+        if (!tagsElement) {
+          throw new Error('Expected public tags list');
+        }
+
+        const changes: string[] = [];
+        const observer = new MutationObserver(() => {
+          changes.push(tagsElement.getAttribute('data-visible-tag-count') ?? '');
+        });
+        observer.observe(tagsElement, {attributes: true, attributeFilter: ['data-visible-tag-count']});
+        Object.assign(window, {
+          __wave10VisibleTagChanges: changes,
+          __wave10VisibleTagObserver: observer
+        });
+      });
+
+      await container.evaluate((element) => {
+        const htmlElement = element as HTMLElement;
+        htmlElement.style.width = `${htmlElement.getBoundingClientRect().width}px`;
+        htmlElement.style.transition = 'width 160ms linear';
+        requestAnimationFrame(() => {
+          htmlElement.style.width = '540px';
+        });
+      });
+      await page.waitForTimeout(280);
+
+      const narrowPrefix = await tags.locator('.landing-grid-card-tag-chip').allTextContents();
+      expect(narrowPrefix.length).toBeLessThan(widePrefix.length);
+      expect(narrowPrefix).toEqual(widePrefix.slice(0, narrowPrefix.length));
+      const shrinkChanges = await page.evaluate(
+        () => (window as Window & {__wave10VisibleTagChanges?: string[]}).__wave10VisibleTagChanges ?? []
+      );
+      expect(shrinkChanges.length).toBeLessThanOrEqual(1);
+
+      await page.evaluate(() => {
+        const state = window as Window & {
+          __wave10VisibleTagChanges?: string[];
+        };
+        if (state.__wave10VisibleTagChanges) {
+          state.__wave10VisibleTagChanges.length = 0;
+        }
+      });
+      await container.evaluate((element) => {
+        (element as HTMLElement).style.width = '';
+      });
+      await page.waitForTimeout(280);
+
+      const restoredPrefix = await tags.locator('.landing-grid-card-tag-chip').allTextContents();
+      expect(restoredPrefix).toEqual(widePrefix);
+      const widenChanges = await page.evaluate(
+        () => (window as Window & {__wave10VisibleTagChanges?: string[]}).__wave10VisibleTagChanges ?? []
+      );
+      expect(widenChanges.length).toBeLessThanOrEqual(1);
+      await page.evaluate(() => {
+        const state = window as Window & {
+          __wave10VisibleTagObserver?: MutationObserver;
+        };
+        state.__wave10VisibleTagObserver?.disconnect();
+      });
+    }
+
+    await page.goto('/id');
+    const container = page.getByTestId('landing-grid-container');
+    await container.evaluate((element) => {
+      (element as HTMLElement).style.width = '540px';
+    });
+
+    const blogCard = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+    const blogTags = blogCard.locator('[data-slot="tags"]');
+    const readMore = blogCard.locator('[data-slot="blogReadMore"]');
+    const blogTagRow = blogCard.locator('.landing-grid-card-tag-row');
+    await expect(blogCard).toHaveAttribute('data-card-viewport-tier', 'tablet');
+    await expect(blogCard).toHaveAttribute('data-interaction-mode', 'hover');
+    const restCount = Number(await blogTags.getAttribute('data-visible-tag-count'));
+    const restPrefix = await blogTags.locator('.landing-grid-card-tag-chip').allTextContents();
+
+    await blogCard.getByTestId('landing-grid-card-trigger').hover();
+    await expect(readMore).toHaveCSS('visibility', 'visible');
+    await expect
+      .poll(async () => Number(await blogTags.getAttribute('data-visible-tag-count')))
+      .toBeLessThan(restCount);
+    const hoverPrefix = await blogTags.locator('.landing-grid-card-tag-chip').allTextContents();
+    expect(hoverPrefix).toEqual(restPrefix.slice(0, hoverPrefix.length));
+    const [tagRowBox, readMoreBox] = await Promise.all([blogTagRow.boundingBox(), readMore.boundingBox()]);
+    expect(tagRowBox).not.toBeNull();
+    expect(readMoreBox).not.toBeNull();
+    expect(
+      Math.abs(
+        (tagRowBox?.x ?? 0) +
+          (tagRowBox?.width ?? 0) -
+          ((readMoreBox?.x ?? 0) + (readMoreBox?.width ?? 0))
+      )
+    ).toBeLessThanOrEqual(1);
+
+    await container.evaluate((element) => {
+      (element as HTMLElement).style.width = '';
+    });
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+    await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', 'mobile');
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const landingContainer = document.querySelector<HTMLElement>('[data-testid="landing-grid-container"]');
+          if (!landingContainer) {
+            throw new Error('Expected landing grid container.');
+          }
+
+          return {
+            document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            container: landingContainer.scrollWidth - landingContainer.clientWidth
+          };
+        })
+      )
+      .toEqual({document: 0, container: 0});
+  });
+
   test('@smoke assertion:B4-inline-size subtitle overflow does not contaminate card or sibling slot inline sizes', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
@@ -904,32 +1151,48 @@ test.describe('Phase 4 grid smoke', () => {
     expect(Math.abs(rowClientWidth - rowScrollWidth)).toBeLessThanOrEqual(1);
   });
 
-  test('@smoke lower-row shell frame widening preserves inset for the remaining lower-row test target', async ({
+  test('@smoke active expanded width and zero horizontal overflow cover edge and center cards across all column modes', async ({
     page
   }) => {
     const scenarios = [
       {
         viewport: {width: 1440, height: 980},
         columnMode: 'desktop-wide' as const,
+        desiredScale: 1.1,
         cards: [
-          {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'center' as const},
-          {variant: 'egtt', targetRatio: 1.1, anchor: 'center' as const}
+          {variant: 'qmbti', anchor: 'start' as const},
+          {variant: 'rhythm-b', anchor: 'center' as const},
+          {variant: 'energy-check', anchor: 'end' as const},
+          {variant: 'egtt', anchor: 'center' as const}
         ]
       },
       {
         viewport: {width: 1180, height: 980},
         columnMode: 'desktop-medium' as const,
+        desiredScale: 1.1,
         cards: [
-          {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
-          {variant: 'egtt', targetRatio: 1.1, anchor: 'end' as const}
+          {variant: 'qmbti', anchor: 'start' as const},
+          {variant: 'rhythm-b', anchor: 'end' as const},
+          {variant: 'egtt', anchor: 'end' as const}
         ]
       },
       {
         viewport: {width: 1024, height: 980},
         columnMode: 'two-column' as const,
+        desiredScale: 1.1,
         cards: [
-          {variant: 'rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
-          {variant: 'egtt', targetRatio: 1.04, anchor: 'start' as const}
+          {variant: 'qmbti', anchor: 'start' as const},
+          {variant: 'rhythm-b', anchor: 'end' as const},
+          {variant: 'egtt', anchor: 'start' as const}
+        ]
+      },
+      {
+        viewport: {width: 1023, height: 980},
+        columnMode: 'two-column' as const,
+        desiredScale: 1.04,
+        cards: [
+          {variant: 'qmbti', anchor: 'start' as const},
+          {variant: 'rhythm-b', anchor: 'end' as const}
         ]
       }
     ];
@@ -944,7 +1207,6 @@ test.describe('Phase 4 grid smoke', () => {
       const measurements: Array<
         Awaited<ReturnType<typeof readExpandedWidthContract>> & {
           variant: string;
-          targetRatio: number;
           anchor: 'start' | 'center' | 'end';
         }
       > = [];
@@ -957,19 +1219,17 @@ test.describe('Phase 4 grid smoke', () => {
         await collapseDesktopExpandedCard(page, card);
       }
 
-      const baselineMeasurement = measurements.find((measurement) => measurement.targetRatio === 1.04);
-      expect(baselineMeasurement).toBeDefined();
-
       for (const measurement of measurements) {
         const widthRatio = measurement.surfaceWidth / measurement.rootWidth;
-        expect(Math.abs(widthRatio - measurement.targetRatio)).toBeLessThanOrEqual(0.02);
+        expect(measurement.originX).toBe(
+          measurement.anchor === 'start' ? '0%' : measurement.anchor === 'end' ? '100%' : '50%'
+        );
+        expect(measurement.desiredScale).toBe(scenario.desiredScale);
+        expect(measurement.resolvedScale).toBeLessThanOrEqual(measurement.desiredScale);
+        expect(measurement.resolvedScale).toBeLessThanOrEqual(measurement.maxScale);
+        expect(Math.abs(widthRatio - measurement.resolvedScale)).toBeLessThanOrEqual(0.02);
         expect(Math.abs(measurement.shellScale - 1.04)).toBeLessThanOrEqual(0.001);
-
-        if (measurement.targetRatio > 1.04) {
-          expect(Math.abs(measurement.shellInlineScale - 1.0576923077)).toBeLessThanOrEqual(0.001);
-        } else {
-          expect(Math.abs(measurement.shellInlineScale - 1)).toBeLessThanOrEqual(0.001);
-        }
+        expect(Math.abs(measurement.shellInlineScale - measurement.frameScale)).toBeLessThanOrEqual(0.001);
 
         switch (measurement.anchor) {
           case 'start':
@@ -986,13 +1246,21 @@ test.describe('Phase 4 grid smoke', () => {
             expect(Math.abs(measurement.expandRight)).toBeLessThanOrEqual(1.5);
             break;
         }
+        expect(measurement.titleLeftInset).toBeGreaterThan(0);
+        expect(measurement.titleRightInset).toBeGreaterThan(0);
+        expect(measurement.detailLeftInset).toBeGreaterThan(0);
+        expect(measurement.detailRightInset).toBeGreaterThan(0);
+        expect(measurement.line1Text.length).toBeGreaterThan(0);
+        expect(measurement.stageLeft).toBeLessThanOrEqual(measurement.surfaceLeft);
+        expect(measurement.stageRight).toBeGreaterThanOrEqual(measurement.surfaceRight);
       }
 
-      for (const measurement of measurements.filter((item) => item.targetRatio > 1.04)) {
-        expect(Math.abs(measurement.titleLeftInset - (baselineMeasurement?.titleLeftInset ?? 0))).toBeLessThanOrEqual(1);
-        expect(Math.abs(measurement.titleRightInset - (baselineMeasurement?.titleRightInset ?? 0))).toBeLessThanOrEqual(1);
-        expect(Math.abs(measurement.detailLeftInset - (baselineMeasurement?.detailLeftInset ?? 0))).toBeLessThanOrEqual(1);
-        expect(Math.abs(measurement.detailRightInset - (baselineMeasurement?.detailRightInset ?? 0))).toBeLessThanOrEqual(1);
+      for (const locator of [
+        page.getByTestId('landing-grid-container'),
+        page.getByTestId('landing-grid-shell'),
+        page.locator('html')
+      ]) {
+        expect(await locator.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
       }
     }
   });
@@ -1083,6 +1351,74 @@ test.describe('Phase 4 grid smoke', () => {
     }
   });
 
+  test('@smoke font-ready and resize remeasure preserve settled compensation', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const targetCard = page.locator('[data-card-variant="rhythm-b"]');
+    await expect(targetCard).toHaveAttribute('data-natural-height', /[1-9]\d*(?:\.\d+)?/);
+    const initialNaturalHeight = Number(await targetCard.getAttribute('data-natural-height'));
+
+    await targetCard.locator('[data-slot="cardSubtitle"]').evaluate((element) => {
+      const subtitle = element as HTMLElement;
+      subtitle.style.fontSize = '32px';
+      subtitle.style.lineHeight = '1.5';
+      subtitle.style.setProperty('-webkit-line-clamp', 'unset');
+      subtitle.style.overflow = 'visible';
+      void document.fonts.ready.then(() => {
+        document.fonts.dispatchEvent(new Event('loadingdone'));
+      });
+    });
+
+    await expect
+      .poll(async () => Number(await targetCard.getAttribute('data-natural-height')))
+      .toBeGreaterThan(initialNaturalHeight + 10);
+
+    for (const width of [1180, 1440]) {
+      await page.setViewportSize({width, height: 980});
+      await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-inline-size', /\d+/);
+      await expect
+        .poll(async () =>
+          page.locator('[data-testid="landing-grid-card"]').evaluateAll((cards) =>
+            cards.every((card) => {
+              const naturalHeight = Number(card.getAttribute('data-natural-height') ?? '0');
+              const compGap = Number(card.getAttribute('data-comp-gap') ?? '0');
+              const needsComp = card.getAttribute('data-needs-comp') === 'true';
+              return naturalHeight > 0 && (needsComp || compGap === 0);
+            })
+          )
+        )
+        .toBe(true);
+    }
+
+    const rows = page.locator('[data-testid^="landing-grid-row-"]');
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(2);
+    await expect(rows.last()).toHaveAttribute('data-underfilled', 'true');
+
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+      const decisions = await rows
+        .nth(rowIndex)
+        .locator('[data-testid="landing-grid-card"]')
+        .evaluateAll((cards) =>
+          cards.map((card) => ({
+            naturalHeight: Number(card.getAttribute('data-natural-height') ?? '0'),
+            rowMax: Number(card.getAttribute('data-row-natural-max') ?? '0'),
+            needsComp: card.getAttribute('data-needs-comp') === 'true',
+            compGap: Number(card.getAttribute('data-comp-gap') ?? '0')
+          }))
+        );
+
+      for (const decision of decisions) {
+        expect(decision.naturalHeight).toBeGreaterThan(0);
+        expect(decision.rowMax).toBeGreaterThanOrEqual(decision.naturalHeight);
+        if (!decision.needsComp) {
+          expect(decision.compGap).toBe(0);
+        }
+      }
+    }
+  });
+
   test('@smoke normal card slot order and unavailable coming-soon tag contract', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
@@ -1154,6 +1490,131 @@ test.describe('Phase 4 grid smoke', () => {
     expect(titleOpacity).toBe(1);
     expect(subtitleOpacity).toBe(1);
     await expect(unavailableCard.locator('[data-slot="cardTitle"]')).toBeVisible();
+  });
+
+  test('@smoke root minimum removal preserves Normal row stretch and desktop placeholder cleanup geometry', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const normalCards = [
+      page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`),
+      page.locator('[data-card-variant="ops-handbook"]'),
+      page.locator('[data-card-variant="creativity-profile"]')
+    ];
+    const rootMinimums: string[] = [];
+
+    for (const card of normalCards) {
+      const metrics = await card.evaluate((element) => {
+        const row = element.closest<HTMLElement>('[data-testid^="landing-grid-row-"]');
+        const trigger = element.querySelector<HTMLElement>('[data-slot="primaryTrigger"]');
+        if (!row || !trigger) {
+          throw new Error('Expected Normal row and primary trigger.');
+        }
+
+        const rootRect = element.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        const triggerRect = trigger.getBoundingClientRect();
+        return {
+          minHeight: getComputedStyle(element).minHeight,
+          rootHeight: rootRect.height,
+          rowHeight: rowRect.height,
+          triggerHeight: triggerRect.height,
+          triggerTopDelta: triggerRect.top - rootRect.top,
+          triggerBottomDelta: triggerRect.bottom - rootRect.bottom
+        };
+      });
+
+      rootMinimums.push(metrics.minHeight);
+      expect(Math.abs(metrics.rootHeight - metrics.rowHeight)).toBeLessThanOrEqual(1);
+      expect(metrics.triggerHeight).toBeGreaterThanOrEqual(44);
+      expect(Math.abs(metrics.triggerTopDelta)).toBeLessThanOrEqual(1);
+      expect(Math.abs(metrics.triggerBottomDelta)).toBeLessThanOrEqual(1);
+    }
+
+    const sourceCard = normalCards[0];
+    const siblingCard = page.locator('[data-card-variant="rhythm-b"]');
+    const before = await Promise.all([sourceCard.boundingBox(), siblingCard.boundingBox()]);
+    expect(before[0]).not.toBeNull();
+    expect(before[1]).not.toBeNull();
+
+    await sourceCard.evaluate((element) => {
+      const sibling = element.parentElement?.querySelector<HTMLElement>('[data-card-variant="rhythm-b"]');
+      const samples: Array<{
+        phase: string;
+        sourceHeight: number;
+        siblingTop: number;
+        siblingHeight: number;
+      }> = [];
+      const observer = new MutationObserver(() => {
+        const phase = element.getAttribute('data-desktop-shell-phase') ?? '';
+        if (phase !== 'cleanup-pending' || !sibling) {
+          return;
+        }
+
+        const sourceRect = element.getBoundingClientRect();
+        const siblingRect = sibling.getBoundingClientRect();
+        samples.push({
+          phase,
+          sourceHeight: sourceRect.height,
+          siblingTop: siblingRect.top,
+          siblingHeight: siblingRect.height
+        });
+      });
+      observer.observe(element, {attributes: true, attributeFilter: ['data-desktop-shell-phase']});
+      Object.assign(window, {
+        __wave10RootMinimumCleanupSamples: samples,
+        __wave10RootMinimumCleanupObserver: observer
+      });
+    });
+
+    await hoverDesktopExpandedCard(sourceCard);
+    const active = await Promise.all([sourceCard.boundingBox(), siblingCard.boundingBox()]);
+    expect(Math.abs((active[0]?.height ?? 0) - (before[0]?.height ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((active[1]?.y ?? 0) - (before[1]?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((active[1]?.height ?? 0) - (before[1]?.height ?? 0))).toBeLessThanOrEqual(1);
+
+    await page.mouse.move(1, 1);
+    await expect(sourceCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
+
+    const cleanupSamples = await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __wave10RootMinimumCleanupSamples?: Array<{
+              phase: string;
+              sourceHeight: number;
+              siblingTop: number;
+              siblingHeight: number;
+            }>;
+            __wave10RootMinimumCleanupObserver?: MutationObserver;
+          }
+        ).__wave10RootMinimumCleanupSamples ?? []
+    );
+    expect(cleanupSamples).not.toHaveLength(0);
+    for (const sample of cleanupSamples) {
+      expect(sample.phase).toBe('cleanup-pending');
+      expect(Math.abs(sample.sourceHeight - (before[0]?.height ?? 0))).toBeLessThanOrEqual(1);
+      expect(Math.abs(sample.siblingTop - (before[1]?.y ?? 0))).toBeLessThanOrEqual(1);
+      expect(Math.abs(sample.siblingHeight - (before[1]?.height ?? 0))).toBeLessThanOrEqual(1);
+    }
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __wave10RootMinimumCleanupObserver?: MutationObserver;
+        }
+      ).__wave10RootMinimumCleanupObserver?.disconnect();
+    });
+
+    const restored = await Promise.all([sourceCard.boundingBox(), siblingCard.boundingBox()]);
+    expect(Math.abs((restored[0]?.height ?? 0) - (before[0]?.height ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((restored[1]?.y ?? 0) - (before[1]?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((restored[1]?.height ?? 0) - (before[1]?.height ?? 0))).toBeLessThanOrEqual(1);
+
+    for (const minHeight of rootMinimums) {
+      expect(['auto', '0px']).toContain(minHeight);
+    }
   });
 
   test('@smoke unavailable coming-soon tag is always visible in tap mode', async ({page}) => {

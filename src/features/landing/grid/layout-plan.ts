@@ -7,7 +7,8 @@ export const TABLET_DESKTOP_SIDE_PADDING = 24;
 export const NARROW_PADDING_MAX_VIEWPORT_WIDTH = 899;
 export const DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE = 1040;
 export const DESKTOP_WIDE_MIN_GRID_INLINE_SIZE = 1160;
-export const DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE = 1.0576923077;
+export const DESKTOP_EXPANDED_DESIRED_FINAL_SCALE = 1.1;
+export const TABLET_EXPANDED_DESIRED_FINAL_SCALE = 1.04;
 
 export type LandingGridTier = 'mobile' | 'tablet' | 'desktop';
 export type LandingGridColumnMode = 'desktop-wide' | 'desktop-medium' | 'two-column' | 'mobile';
@@ -26,7 +27,6 @@ export interface LandingGridRowPlan {
   endIndex: number;
   cardCount: number;
   isUnderfilled: boolean;
-  expandedShellInlineScale: number;
 }
 
 export interface LandingGridPlan {
@@ -42,6 +42,14 @@ interface ResolvedColumns {
   columnMode: LandingGridColumnMode;
   row1Columns: number;
   rowNColumns: number;
+}
+
+export interface LandingExpandedScaleDecision {
+  baseShellScale: number;
+  desiredFinalScale: number;
+  maxSurfaceScale: number;
+  resolvedFinalScale: number;
+  frameInlineScale: number;
 }
 
 function toNonNegativeInteger(value: number): number {
@@ -101,23 +109,35 @@ export function resolveLandingGridColumns(input: {
   };
 }
 
-export function resolveLandingRowExpandedShellInlineScale(input: {
-  columnMode: LandingGridColumnMode;
-  rowIndex: number;
-}): number {
-  if (input.rowIndex === 0) {
-    return 1;
-  }
+export function resolveLandingExpandedScale(input: {
+  viewportTier: LandingGridTier;
+  reducedMotion: boolean;
+  normalRootWidthPx: number;
+  availableStageOutsetPx: number;
+}): LandingExpandedScaleDecision {
+  const roundScale = (value: number) => Math.round(value * 10_000_000_000) / 10_000_000_000;
+  const rootWidth = Number.isFinite(input.normalRootWidthPx) ? Math.max(0, input.normalRootWidthPx) : 0;
+  const stageOutset = Number.isFinite(input.availableStageOutsetPx)
+    ? Math.max(0, input.availableStageOutsetPx)
+    : 0;
+  const baseShellScale = input.reducedMotion ? 1 : 1.04;
+  const desiredFinalScale = input.reducedMotion
+    ? 1
+    : input.viewportTier === 'desktop'
+      ? DESKTOP_EXPANDED_DESIRED_FINAL_SCALE
+      : input.viewportTier === 'tablet'
+        ? TABLET_EXPANDED_DESIRED_FINAL_SCALE
+        : 1;
+  const maxSurfaceScale = rootWidth > 0 ? 1 + stageOutset / rootWidth : 1;
+  const resolvedFinalScale = Math.min(desiredFinalScale, maxSurfaceScale);
 
-  switch (input.columnMode) {
-    case 'desktop-wide':
-    case 'desktop-medium':
-      return DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE;
-    case 'two-column':
-    case 'mobile':
-    default:
-      return 1;
-  }
+  return {
+    baseShellScale,
+    desiredFinalScale,
+    maxSurfaceScale: roundScale(maxSurfaceScale),
+    resolvedFinalScale: roundScale(resolvedFinalScale),
+    frameInlineScale: roundScale(resolvedFinalScale / baseShellScale)
+  };
 }
 
 export function buildLandingGridPlan(input: LandingGridInput): LandingGridPlan {
@@ -145,11 +165,7 @@ export function buildLandingGridPlan(input: LandingGridInput): LandingGridPlan {
       startIndex: cursor,
       endIndex: cursor + rowCardCount,
       cardCount: rowCardCount,
-      isUnderfilled: rowCardCount < targetColumns,
-      expandedShellInlineScale: resolveLandingRowExpandedShellInlineScale({
-        columnMode,
-        rowIndex
-      })
+      isUnderfilled: rowCardCount < targetColumns
     });
 
     cursor += rowCardCount;

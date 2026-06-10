@@ -245,8 +245,10 @@ describe('landing card slot contract', () => {
     expect(comingSoonTag?.textContent?.trim()).toBe('coming soon');
     const tagClass = comingSoonTag?.getAttribute('class') ?? '';
     expect(tagClass).toContain('landing-grid-card-tag-chip');
-    expect(tagClass).toContain('border-[var(--normal-tag-border)]');
+    expect(tagClass).not.toMatch(/\bborder(?:-\[|$)/u);
     expect(tagClass).toContain('whitespace-nowrap');
+    expect(tagClass).toContain('rounded-[var(--normal-tag-radius)]');
+    expect(tagClass).toContain('px-[9px]');
     expect(tagClass).not.toContain('rounded-full');
     expect(tagClass).not.toContain('dashed');
     expect(tagClass).not.toContain('text-transform');
@@ -320,6 +322,51 @@ describe('landing card slot contract', () => {
     expect(unavailableDoc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
   });
 
+  it('unmounts hidden tag suffix while preserving CTA and status semantics', () => {
+    const catalog = resolveLandingCatalog('en', {audience: 'qa'});
+    const testCard = catalog.find((candidate) => candidate.variant === 'rhythm-b');
+    const blogCard = catalog.find((candidate) => candidate.variant === 'ops-handbook');
+    const unavailableCard = catalog.find((candidate) => candidate.variant === 'creativity-profile');
+
+    if (!testCard || !blogCard || !unavailableCard) {
+      throw new Error('Expected rhythm-b, ops-handbook, and creativity-profile fixtures');
+    }
+
+    const testDoc = renderCardDocument({card: testCard, state: 'normal'});
+    const testTags = testDoc.querySelector('[data-slot="tags"]');
+    const testProbe = testDoc.querySelector('[data-slot="tagMeasurementProbe"]');
+
+    expect(testTags?.getAttribute('data-tag-count')).toBe('3');
+    expect(testTags?.getAttribute('data-visible-tag-count')).toBe('0');
+    expect(testTags?.getAttribute('data-tag-tail-ellipsis')).toBe('false');
+    expect(testTags?.querySelectorAll('.landing-grid-card-tag-item')).toHaveLength(0);
+    expect(testProbe?.getAttribute('aria-hidden')).toBe('true');
+    expect(testProbe?.hasAttribute('inert')).toBe(true);
+    expect(testProbe?.querySelectorAll('[data-inline-probe-tag]')).toHaveLength(3);
+
+    const blogDoc = renderCardDocument({
+      card: blogCard,
+      state: 'normal',
+      interactionMode: 'hover',
+      viewportTier: 'tablet'
+    });
+    const readMore = blogDoc.querySelector('[data-slot="blogReadMore"]');
+    expect(readMore?.getAttribute('aria-hidden')).toBe('true');
+    expect(readMore?.querySelector('a, button, [tabindex]')).toBeNull();
+    expect(blogDoc.querySelector('[data-slot="blogReadMoreProbe"]')?.closest('[aria-hidden="true"]')).not.toBeNull();
+
+    const unavailableDoc = renderCardDocument({
+      card: unavailableCard,
+      state: 'normal',
+      ariaDisabled: true,
+      tabIndex: -1
+    });
+    const unavailableTags = unavailableDoc.querySelector('[data-slot="tags"]');
+    expect(unavailableTags?.getAttribute('data-tag-count')).toBe('1');
+    expect(unavailableTags?.getAttribute('data-visible-tag-count')).toBe('1');
+    expect(unavailableDoc.querySelector('[data-slot="comingSoonTag"]')?.closest('[aria-hidden="true"]')).toBeNull();
+  });
+
   it('renders desktop expanded title continuity markers while preserving the full title text', () => {
     const catalog = resolveLandingCatalog('en');
     const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
@@ -381,5 +428,99 @@ describe('landing card slot contract', () => {
       expect(className).not.toContain('line-clamp');
       expect(className).not.toContain('truncate');
     }
+  });
+
+  it('applies the responsive title/subtitle clamp matrix and BQ-30 tag treatment', () => {
+    const catalog = resolveLandingCatalog('en');
+    const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
+    const blogCard = catalog.find((candidate) => candidate.variant === 'ops-handbook');
+    const unavailableCard = catalog.find((candidate) => candidate.variant === 'creativity-profile');
+
+    if (!card || !blogCard || !unavailableCard) {
+      throw new Error('Expected rhythm-b, ops-handbook, and creativity-profile fixtures');
+    }
+
+    for (const viewportTier of ['desktop', 'tablet', 'mobile'] as const) {
+      const doc = renderCardDocument({
+        card,
+        state: 'normal',
+        interactionMode: viewportTier === 'mobile' ? 'tap' : 'hover',
+        viewportTier
+      });
+      const titleClassName = doc.querySelector('[data-slot="cardTitle"]')?.getAttribute('class') ?? '';
+      const subtitleClassName = doc.querySelector('[data-slot="cardSubtitle"]')?.getAttribute('class') ?? '';
+
+      if (viewportTier === 'mobile') {
+        expect(titleClassName).not.toContain('line-clamp-1');
+        expect(titleClassName).toContain('overflow-visible');
+        expect(titleClassName).toContain('text-clip');
+        expect(subtitleClassName).not.toContain('line-clamp-2');
+        expect(subtitleClassName).toContain('overflow-visible');
+        expect(subtitleClassName).toContain('text-clip');
+      } else {
+        expect(titleClassName).toContain('line-clamp-1');
+        expect(titleClassName).toContain('overflow-hidden');
+        expect(titleClassName).toContain('text-ellipsis');
+        expect(subtitleClassName).toContain('line-clamp-2');
+        expect(subtitleClassName).toContain('overflow-hidden');
+        expect(subtitleClassName).toContain('text-ellipsis');
+      }
+    }
+
+    for (const candidate of [card, blogCard, unavailableCard]) {
+      const doc = renderCardDocument({
+        card: candidate,
+        state: 'normal',
+        ariaDisabled: candidate.availability === 'unavailable'
+      });
+      const tag = doc.querySelector('.landing-grid-card-tag-chip');
+      const tagClassName = tag?.getAttribute('class') ?? '';
+
+      expect(tag).not.toBeNull();
+      expect(tagClassName).toContain('rounded-[var(--normal-tag-radius)]');
+      expect(tagClassName).toContain('bg-[var(--normal-tag-bg)]');
+      expect(tagClassName).toContain('px-[9px]');
+      expect(tagClassName).toContain('whitespace-nowrap');
+      expect(tagClassName).not.toMatch(/\bborder(?:-\[|$)/u);
+      expect(tagClassName).not.toContain('text-transform');
+      expect(tag?.children).toHaveLength(0);
+    }
+  });
+
+  it('keeps primary trigger coverage and Expanded controls independent of the root minimum', () => {
+    const catalog = resolveLandingCatalog('en');
+    const testCard = catalog.find((candidate) => candidate.variant === 'qmbti');
+    const blogCard = catalog.find((candidate) => candidate.variant === 'ops-handbook');
+    const unavailableCard = catalog.find((candidate) => candidate.variant === 'creativity-profile');
+
+    if (!testCard || testCard.type !== 'test' || !blogCard || !unavailableCard) {
+      throw new Error('Expected Test, Blog, and unavailable card fixtures');
+    }
+
+    for (const card of [testCard, blogCard, unavailableCard]) {
+      const doc = renderCardDocument({
+        card,
+        state: 'normal',
+        ariaDisabled: card.availability === 'unavailable'
+      });
+      const triggerClassName = doc.querySelector('[data-slot="primaryTrigger"]')?.getAttribute('class') ?? '';
+
+      expect(triggerClassName).toContain('[min-height:100%]');
+      expect(triggerClassName).toContain('[padding:16px]');
+    }
+
+    const mobileOpenDoc = renderCardDocument({
+      card: testCard,
+      state: 'expanded',
+      interactionMode: 'tap',
+      viewportTier: 'mobile',
+      mobilePhase: 'OPEN'
+    });
+    const closeClassName = mobileOpenDoc.querySelector('[data-slot="mobileClose"]')?.getAttribute('class') ?? '';
+    const choiceClassName = mobileOpenDoc.querySelector('[data-slot="answerChoiceA"]')?.getAttribute('class') ?? '';
+
+    expect(closeClassName).toContain('min-h-10');
+    expect(closeClassName).toContain('min-w-10');
+    expect(choiceClassName).toContain('py-3');
   });
 });

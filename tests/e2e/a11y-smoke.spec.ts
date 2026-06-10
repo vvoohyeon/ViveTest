@@ -226,6 +226,42 @@ test.describe('Canonical accessibility smoke', () => {
     await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
   });
 
+  test('@smoke hidden tag suffix stays out of the tree while CTA and coming-soon status keep priority', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 900, height: 980});
+    await page.goto('/id');
+    await page.getByTestId('landing-grid-container').evaluate((element) => {
+      (element as HTMLElement).style.width = '540px';
+    });
+
+    const testCard = page.locator('[data-card-variant="rhythm-b"]');
+    const publicTags = testCard.locator('[data-slot="tags"]');
+    const probe = testCard.locator('[data-slot="tagMeasurementProbe"]');
+    await expect
+      .poll(async () => Number(await publicTags.getAttribute('data-visible-tag-count')))
+      .toBeLessThan(Number(await publicTags.getAttribute('data-tag-count')));
+    const visibleCount = Number(await publicTags.getAttribute('data-visible-tag-count'));
+    await expect(publicTags.locator('.landing-grid-card-tag-item')).toHaveCount(visibleCount);
+    await expect(probe).toHaveAttribute('aria-hidden', 'true');
+    await expect(probe).toHaveAttribute('inert', '');
+    await expect(probe.locator('[data-inline-probe-tag]')).toHaveCount(3);
+
+    const blogCard = page.locator(`[data-card-variant="${SECONDARY_BLOG_VARIANT}"]`);
+    const readMore = blogCard.locator('[data-slot="blogReadMore"]');
+    await blogCard.getByTestId('landing-grid-card-trigger').hover();
+    await expect(readMore).toHaveCSS('visibility', 'visible');
+    await expect(readMore).toHaveAttribute('aria-hidden', 'true');
+    await expect(readMore.locator('a, button, [tabindex]')).toHaveCount(0);
+
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
+    const comingSoon = unavailableCard.locator('[data-slot="comingSoonTag"]');
+    await expect(comingSoon).toHaveCount(1);
+    await expect(comingSoon).toHaveText(/.+/u);
+    await expect(comingSoon).not.toHaveAttribute('aria-hidden', 'true');
+    await expectPageToBeAxeClean(page);
+  });
+
   test('@smoke assertion:B5-axe-canonical KR representative landing states remain axe-clean', async ({page}) => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/kr');

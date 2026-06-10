@@ -390,6 +390,86 @@ test.describe('Phase 7 state + capability smoke', () => {
     expect(overlayStyleMetrics.surfaceMinHeight).toBe('0px');
   });
 
+  test('@smoke desktop title split and resting floor stay stable through opening handoff closing and cleanup', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+    await waitForLandingInteractionRamp(page);
+
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
+
+    for (const card of [firstCard, secondCard]) {
+      await card.evaluate((element) => {
+        const state = window as Window & {
+          __wave10ScaleLifecycleSamples?: Array<{variant: string; phase: string; title: string; floor: string}>;
+          __wave10ScaleLifecycleObservers?: MutationObserver[];
+        };
+        state.__wave10ScaleLifecycleSamples ??= [];
+        state.__wave10ScaleLifecycleObservers ??= [];
+        const observer = new MutationObserver(() => {
+          state.__wave10ScaleLifecycleSamples?.push({
+            variant: element.getAttribute('data-card-variant') ?? '',
+            phase: element.getAttribute('data-desktop-shell-phase') ?? '',
+            title: element.querySelector('[data-slot="cardTitleExpanded"]')?.textContent ?? '',
+            floor: element.querySelector<HTMLElement>('[data-slot="expandedBody"]')?.style.minHeight ?? ''
+          });
+        });
+        observer.observe(element, {attributes: true, attributeFilter: ['data-desktop-shell-phase']});
+        state.__wave10ScaleLifecycleObservers.push(observer);
+      });
+    }
+
+    await firstCard.hover();
+    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    await expect(firstCard).toHaveAttribute('data-expanded-resting-floor', /[1-9]\d*(?:\.\d+)?/u);
+    const firstBaseline = await firstCard.evaluate((element) => ({
+      title: element.querySelector('[data-slot="cardTitleExpanded"]')?.textContent ?? '',
+      floor: element.querySelector<HTMLElement>('[data-slot="expandedBody"]')?.style.minHeight ?? ''
+    }));
+
+    await secondCard.hover();
+    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-source');
+    await expect(secondCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-target');
+    await expect(secondCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    await expect(secondCard).toHaveAttribute('data-expanded-resting-floor', /[1-9]\d*(?:\.\d+)?/u);
+    const secondBaseline = await secondCard.evaluate((element) => ({
+      title: element.querySelector('[data-slot="cardTitleExpanded"]')?.textContent ?? '',
+      floor: element.querySelector<HTMLElement>('[data-slot="expandedBody"]')?.style.minHeight ?? ''
+    }));
+
+    await page.mouse.move(1, 1);
+    await expect(secondCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
+
+    const samples = await page.evaluate(
+      () =>
+        (window as Window & {
+          __wave10ScaleLifecycleSamples?: Array<{variant: string; phase: string; title: string; floor: string}>;
+        }).__wave10ScaleLifecycleSamples ?? []
+    );
+    const baselines = new Map([
+      [PRIMARY_AVAILABLE_TEST_VARIANT, firstBaseline],
+      ['rhythm-b', secondBaseline]
+    ]);
+    for (const sample of samples.filter((entry) => entry.title.length > 0)) {
+      expect(sample.title).toBe(baselines.get(sample.variant)?.title);
+      expect(sample.floor).toBe(baselines.get(sample.variant)?.floor);
+    }
+    const phases = new Set(samples.map((sample) => sample.phase));
+    for (const phase of ['opening', 'steady', 'handoff-source', 'handoff-target', 'closing', 'cleanup-pending', 'idle']) {
+      expect(phases.has(phase)).toBe(true);
+    }
+    await page.evaluate(() => {
+      const observers = (
+        window as Window & {
+          __wave10ScaleLifecycleObservers?: MutationObserver[];
+        }
+      ).__wave10ScaleLifecycleObservers;
+      observers?.forEach((observer) => observer.disconnect());
+    });
+  });
+
   test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}, testInfo) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
@@ -443,6 +523,138 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.keyboard.press('Space');
     await expect(secondCard).toHaveAttribute('data-mobile-phase', 'OPEN');
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
+  });
+
+  test('@smoke Mobile full subtitle pre-open height matches OPENING CLOSING snapshot and final NORMAL restore under normal and reduced-motion', async ({
+    page
+  }) => {
+    const rootMinimums: string[] = [];
+
+    for (const reducedMotion of [false, true]) {
+      await page.emulateMedia({reducedMotion: reducedMotion ? 'reduce' : 'no-preference'});
+      await page.setViewportSize({width: 390, height: 844});
+      await page.goto('/en');
+
+      const card = page.locator('[data-card-variant="rhythm-b"]');
+      await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
+      await expect(card).toHaveAttribute('data-natural-height', /[1-9]\d*(?:\.\d+)?/);
+
+      const preOpen = await card.evaluate((element) => {
+        const subtitle = element.querySelector<HTMLElement>('[data-slot="cardSubtitle"]');
+        if (!subtitle) {
+          throw new Error('Expected Mobile Normal subtitle before opening.');
+        }
+
+        const style = getComputedStyle(subtitle);
+        const rootRect = element.getBoundingClientRect();
+        const trigger = element.querySelector<HTMLElement>('[data-slot="primaryTrigger"]');
+        const triggerRect = trigger?.getBoundingClientRect();
+        return {
+          cardHeight: rootRect.height,
+          rootMinHeight: getComputedStyle(element).minHeight,
+          subtitleHeight: subtitle.getBoundingClientRect().height,
+          lineHeight: Number.parseFloat(style.lineHeight),
+          lineClamp: style.getPropertyValue('-webkit-line-clamp').trim(),
+          triggerHeight: triggerRect?.height ?? 0,
+          triggerTopDelta: (triggerRect?.top ?? 0) - rootRect.top,
+          triggerBottomDelta: (triggerRect?.bottom ?? 0) - rootRect.bottom
+        };
+      });
+
+      rootMinimums.push(preOpen.rootMinHeight);
+      expect(preOpen.lineClamp).toBe('none');
+      expect(preOpen.subtitleHeight).toBeGreaterThan(preOpen.lineHeight * 2);
+      expect(preOpen.triggerHeight).toBeGreaterThanOrEqual(44);
+      expect(Math.abs(preOpen.triggerTopDelta)).toBeLessThanOrEqual(1);
+      expect(Math.abs(preOpen.triggerBottomDelta)).toBeLessThanOrEqual(1);
+
+      await card.getByTestId('landing-grid-card-trigger').click();
+      await expect(card).toHaveAttribute('data-mobile-phase', 'OPENING');
+      const openingSnapshotHeight = Number(await card.getAttribute('data-mobile-snapshot-height'));
+      expect(Math.abs(openingSnapshotHeight - preOpen.cardHeight)).toBeLessThanOrEqual(1);
+      const openingHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
+      expect(Math.abs(openingHeight - preOpen.cardHeight)).toBeLessThanOrEqual(2);
+
+      await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+      const answerChoiceHeight = await card
+        .locator('[data-slot="answerChoiceA"]')
+        .evaluate((element) => element.getBoundingClientRect().height);
+      expect(answerChoiceHeight).toBeGreaterThanOrEqual(44);
+
+      await card.locator('[data-slot="mobileClose"]').click();
+      await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
+      const closingHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
+      expect(Math.abs(closingHeight - preOpen.cardHeight)).toBeLessThanOrEqual(2);
+      await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
+
+      const restoredHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
+      expect(Math.abs(restoredHeight - preOpen.cardHeight)).toBeLessThanOrEqual(1);
+    }
+
+    for (const minHeight of rootMinimums) {
+      expect(['auto', '0px']).toContain(minHeight);
+    }
+  });
+
+  test('@smoke transition frames keep non-comp gap at zero through mobile and desktop lifecycle states', async ({
+    page
+  }) => {
+    const expectNonCompGapZero = async () => {
+      await expect
+        .poll(async () =>
+          page.locator('[data-testid="landing-grid-card"][data-needs-comp="false"]').evaluateAll((cards) =>
+            cards.every((card) => Number(card.getAttribute('data-comp-gap') ?? '0') === 0)
+          )
+        )
+        .toBe(true);
+    };
+
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const mobileCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await expect(mobileCard).toHaveAttribute('data-natural-height', /[1-9]\d*(?:\.\d+)?/);
+    const settledNaturalHeight = await mobileCard.getAttribute('data-natural-height');
+
+    await mobileCard.getByTestId('landing-grid-card-trigger').click();
+    await expect(mobileCard).toHaveAttribute('data-mobile-phase', /OPENING|OPEN/);
+    await expectNonCompGapZero();
+    await expect(mobileCard).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect(mobileCard).toHaveAttribute('data-natural-height', settledNaturalHeight ?? '');
+    await expectNonCompGapZero();
+
+    await mobileCard.locator('[data-slot="mobileClose"]').click();
+    await expect(mobileCard).toHaveAttribute('data-mobile-phase', /CLOSING|NORMAL/);
+    await expectNonCompGapZero();
+    await expect(mobileCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
+    await expect(mobileCard).toHaveAttribute('data-natural-height', settledNaturalHeight ?? '');
+
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.reload();
+
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
+    await expect(firstCard).toHaveAttribute('data-interaction-mode', 'hover');
+    await expect(firstCard).toHaveAttribute('data-natural-height', /[1-9]\d*/);
+    await waitForLandingInteractionRamp(page);
+
+    await page.mouse.move(1, 1);
+    await firstCard.getByTestId('landing-grid-card-trigger').hover();
+    await expect(firstCard).toHaveAttribute('data-desktop-motion-role', /opening|steady/);
+    await expectNonCompGapZero();
+    await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
+    await expectNonCompGapZero();
+
+    await secondCard.hover();
+    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-source');
+    await expect(secondCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-target');
+    await expectNonCompGapZero();
+
+    await page.mouse.move(1, 1);
+    await expect(secondCard).toHaveAttribute('data-desktop-motion-role', /closing|idle/);
+    await expectNonCompGapZero();
+    await expect(secondCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
+    await expectNonCompGapZero();
   });
 
   test('@smoke reduced-motion / low-spec fallback shrinks desktop motion and rapid interactions stay error-free', async ({page}) => {

@@ -283,9 +283,14 @@
 - Desktop/Tablet Expanded title: ellipsis 없이 전체 title을 표시해야 하며, Expanded의 첫 줄은 widened expanded 폭이 아니라 **Normal title 폭 기준으로 계산한 첫 줄 split 결과**를 그대로 유지해야 한다.
 - Desktop/Tablet Expanded title의 나머지 텍스트는 첫 줄 아래에서만 reveal/collapse 되어야 하며, 첫 줄 continuity를 깨는 재래핑을 금지한다.
 - Mobile title: Normal/OPENING/OPEN/CLOSING 전 상태에서 전체 title을 표시해야 하며 ellipsis를 적용하면 안 된다.
-- Landing Normal subtitle: 최대 2줄까지만 표시하며, overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
+- Desktop/Tablet Landing Normal subtitle: 최대 2줄까지만 표시하며, overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
+- Mobile Landing Normal subtitle: 전체 텍스트를 표시하고 clamp/ellipsis를 적용하면 안 된다.
 - Normal subtitle overflow 처리 결과는 동일 카드의 형제 슬롯 기하(썸네일/태그 포함)의 inline-size를 변경하면 안 된다.
-- Normal tags 영역: 1줄 슬롯 고정, chip은 1줄 truncate, wrap 금지
+- Normal tags 영역은 1줄 슬롯과 nowrap을 유지한다. 가시 태그는 원본 좌→우 순서의 단일 prefix여야 하며 재배열/교체를 금지한다.
+- BQ-32: 마지막 가시 태그만 scoped border-box `--tag-min-width:56px`까지 말줄임할 수 있다. 자연 너비가 56px 이하인 짧은 태그는 전체 표시 또는 숨김만 허용하고, 다음 tail의 필수 폭이 부족하면 suffix를 우측부터 숨긴다.
+- 폭이 다시 넓어지면 같은 prefix identity를 유지한 채 suffix가 다시 mount되어야 한다. tail 폭 전개는 CSS가 소유하고, JS는 settled/target width에서 가시 prefix count만 결정해야 한다.
+- Blog `Read more →`는 Desktop/Tablet hover/focus에서 reveal되고 Mobile에서는 항상 표시된다. CTA가 표시될 때는 probe intrinsic CTA width와 row gap을 먼저 예약하여 태그보다 우선하며, live row reflow 폭을 CTA 측정 입력으로 사용하면 안 된다.
+- 숨긴 tag suffix는 public DOM/a11y tree에서 unmount해야 한다. 측정 probe는 `aria-hidden` + `inert`여야 하고 card/container/document scrollable overflow 또는 live-row flex gap을 만들면 안 되며, unavailable `coming soon`은 첫 번째 필수 prefix로 항상 가시·AT 노출 상태를 유지한다.
 - Expanded Test preview/choices: 줄바꿈 허용, truncate 금지
 - Expanded Test subtitle: 렌더링하지 않는다.
 - Expanded Test answer choices 텍스트는 버튼 내부 좌측 정렬을 강제하며 줄 수 제한 없이 줄바꿈을 허용한다.
@@ -304,6 +309,9 @@
 4. Automated: Desktop Expanded Blog subtitle continuity가 lead+overflow 구조를 사용하면서도 Normal subtitle과 동일한 source text를 재사용하는지 검증한다.
 5. Automated: subtitle 길이 변화가 Normal 카드의 형제 슬롯 inline-size를 변경하지 않는지 검증한다.
 6. Automated: 제거된 blog 전용 보조 필드 및 런타임 카드 우회 shape 재유입이 없는지 회귀 검증한다.
+7. Automated: 12 locale에서 resize down/up 시 tag suffix 우측우선 hide/reappear, prefix identity, 56px tail, short-tail full-or-hidden를 검증한다.
+8. Automated: Blog Desktop/Tablet rest→hover/focus에서 CTA 예약으로 가용 tag 폭이 줄고, width transition당 `data-visible-tag-count` 변경이 최대 1회인지 검증한다.
+9. Automated: hidden suffix의 public DOM/a11y 부재, probe 비노출, `coming soon` 상시 노출을 검증한다.
 
 ### 6.7 Card Height & Bottom Spacing Contract
 **Rule**: 카드 높이/하단 여백/row 안정성은 아래 5개 불변식을 동시에 만족해야 한다.
@@ -327,8 +335,12 @@
 - 동일 row 모든 카드의 natural height가 같으면 해당 row의 모든 카드는 `needs_comp=false` 및 `comp_gap=0`이어야 한다.
 - `needs_comp` 판정 규칙은 row index(Row 1/Row 2+)와 무관해야 한다.
 - `tags` 상단 보정은 계산된 `comp_gap` 값으로만 허용한다.
+- BQ-31의 시각적 slack은 측정된 `comp_gap`으로만 표현한다. 자동 flex 분배, 고정 minimum/row height/floor/spacer로 동일 효과를 모사하면 안 된다.
 - 자동 여백/자동 분배 기반 보정(`margin-top:auto`, `justify-content: space-between`, filler flex, pseudo spacer 및 동등 메커니즘)을 보정 수단으로 사용하면 안 된다.
 - Desktop/Tablet Normal settled에서 `needs_comp=false` 카드는 `subtitle -> tags` 구간의 추가 잉여 여백을 가져서는 안 된다(`comp_gap=0`과 동치).
+- intrinsic width/row width/allowance/natural-height 입력은 equality 비교 전에 whole px로 정규화한다. 보정 산술 자체는 변경하지 않는다.
+- settled Normal 카드/content box의 resize, viewport/column 변화, card/locale payload 변화, `document.fonts.ready`, 지원되는 후속 font loading completion에서 재측정한다.
+- Mobile `OPENING/OPEN/CLOSING` 및 Desktop active/frozen/cleanup/handoff 중 spacing write를 중단하고 마지막 유효 Normal map을 유지한 뒤 Normal settled에서만 갱신한다.
 
 3) Expanded Geometry Isolation (Desktop/Tablet)
 - Expanded 높이 정책은 Desktop/Tablet에만 적용하고, Mobile은 full-bleed 규칙을 따른다.
@@ -369,6 +381,8 @@
 11. Automated: Expanded 활성 중 폭 변경 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다.
 12. Automated: handoff(row A→B)에서 row A snapshot 해제가 row B settled 이후에만 발생하는지, Expanded 전환 중 dual-visibility `0건`을 검증한다.
 13. Automated: 반복 handoff/open-close(최소 100회) 후 same-row non-target 누적 높이 오차 `0px`를 검증한다.
+14. Automated: font-ready/후속 font completion과 resize down/up 이후 settled compensation이 재계산되고 equality guard가 반복 state churn을 방지하는지 검증한다.
+15. Automated: Mobile/desktop lifecycle sampled frame에서 `needs_comp=false => comp_gap=0`과 이전 Normal map 유지가 보장되는지 검증한다.
 
 ### 6.8 Normal Thumbnail & Expanded Slot Semantics
 **Rule**: Normal 썸네일 규격과 Expanded 타입별 슬롯 의미론은 아래 규칙으로 고정한다.
@@ -551,11 +565,12 @@
 
 ### 8.4 Expanded Shell Scale and Readability
 **Rule**:
-- Desktop/Tablet Expanded 콘텐츠 scale은 reduced-motion을 제외한 모든 경로에서 `1.04`로 고정해야 한다.
-- `desktop-wide`, `desktop-medium` 레이아웃의 row 1+ 카드는 콘텐츠 scale을 키우지 않고, 카드 외곽의 **최종 가로폭만** `1.10x`가 되도록 확장해야 한다.
-- row 0 카드와 `two-column` 레이아웃 카드는 외곽 가로폭도 `1.04x`를 유지해야 한다.
-- row 1+ 예외는 `expanded shell frame`의 pre-transform width/offset으로 처리해야 하며, shadow/surface/body가 함께 넓어져야 한다.
-- widened lower-row 카드의 visible title/meta/CTA inset은 row 0 Expanded 기준과 `<=1px` 오차로 일치해야 하며, inner counter-scale 또는 surface/body 단독 width 조정을 금지한다.
+- Desktop/Tablet Expanded 콘텐츠 shell scale은 reduced-motion을 제외한 모든 경로에서 `1.04`로 고정해야 한다.
+- Desktop `desktop-wide`, `desktop-medium`, `two-column`의 row/anchor 전체는 최종 외곽 가로폭 desired scale `1.10`을 사용한다. Tablet desired final scale은 `1.04`다.
+- `max_surface_scale = 1 + available_stage_outset_px / normal_root_width_px`, `resolved_final_scale = min(desired_final_scale, max_surface_scale)`, `frame_inline_scale = resolved_final_scale / 1.04`로 고정한다. reduced motion은 최종 `1.00`이다.
+- edge anchor의 allowance는 확장 방향의 measured stage outset, center anchor는 양쪽 중 작은 measured allowance의 2배를 사용한다. 0/non-finite 입력은 유한한 `1.00` 안전값으로 수렴해야 한다.
+- `1.04`를 넘는 추가 폭은 expanded frame이 소유하며 shadow/surface/body가 함께 넓어져야 한다. inner counter-scale, surface/body 단독 width 조정, global/stage token 증대로 `1.10`을 강제하는 구현을 금지한다.
+- clamp가 `1.10` 미만으로 해석되면 해당 band/anchor의 실측값을 기록해야 하며, clipping/overflow를 만들면서 desired 값을 강제하면 안 된다.
 - Mobile은 기존 full-bleed 모바일 전개 규칙을 유지하며, 위 desktop/tablet width-only 예외를 적용하지 않는다.
 - 내부 콘텐츠만 확대하는 구현 금지
 - Expanded 전 구간(진입/유지/해제)에서 title/body/CTA/meta crop 0건
@@ -572,6 +587,7 @@
 2. Automated: Desktop/Tablet에서 인접 카드 가림 현상 `0건`과 Expanded hit-target 우선순위를 검증한다.
 3. Automated: Desktop/Tablet의 Wide/Medium/Narrow 및 hero/main 연속 배치에서 row-edge transform-origin 판정 정확성을 검증한다.
 4. Automated: row 단일 카드 케이스에서 transform-origin `0% 0%` 적용을 검증한다.
+5. Automated: Desktop Wide/Medium/two-column 및 Tablet의 edge/center active state에서 resolved scale, stage containment, grid/container/document horizontal overflow `0px`를 검증한다.
 
 ### 8.5 Mobile Expanded (`width<768`)
 **Rule**: Mobile Expanded는 in-flow full-bleed와 닫기/스크롤/레이어 규칙을 준수해야 한다.
@@ -662,6 +678,7 @@
 ### 9.3 Coming-soon Indicator Readability
 **Rule** (BQ-26/D2 — 우상단 오버레이 제거):
 - coming-soon 표준 태그는 tags-row에 상시 표시되며 텍스트 가독성을 보장한다(`aria-hidden` 금지 — AT에 노출).
+- coming-soon은 BQ-32 visible prefix의 첫 번째 필수 항목이며 가용 폭이나 Blog CTA 규칙으로 숨겨지면 안 된다. hidden suffix unmount 대상에서도 제외한다.
 - unavailable 카드의 title/subtitle은 full opacity를 유지하고(opacity 감소 금지, design.md §10) 항상 식별 가능해야 한다. dim은 thumbnail에만 적용한다.
 - `--surface-soft` 표면 위에서도 키보드 포커스 링(또는 동등한 focus 스타일)은 시각적으로 식별 가능해야 한다.
 
@@ -803,6 +820,7 @@
 - unavailable Blog 카드는 존재하면 안 된다.
 - unavailable Test 카드는 Expanded/CTA/전환을 허용하지 않는다.
 - coming-soon 표준 태그는 모든 입력 모드(hover/tap)에서 tags-row에 상시 표시된다(우상단 오버레이 제거, BQ-26/D2).
+- coming-soon은 첫 번째 필수 visible prefix로 유지하고 public DOM/a11y tree에서 제거하거나 `aria-hidden` 처리하면 안 된다.
 
 **Adapter 레이어 책임 (Landing-side 계약)**: `unavailable` 판정의 단일 소스는 generated runtime registry의 `attribute` 필드다. `loadVariantRegistry()` + `resolveLandingCatalog()`가 카드 attribute를 반영해 카탈로그를 구성하며, 렌더링/상호작용 레이어는 이 값을 그대로 사용한다. 직접 URL 접근 차단은 req-test.md §2.5/§6.1이 소유한다.
 
@@ -1026,6 +1044,13 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 21. **[Accept All and Start] Contract**: `OPTED_IN` 영구 저장 + runtime entry commit + `instructionSeen` 기록 원자성 PASS. qualifier 없는 variant는 CTA click에서 commit되고, qualifier variant는 final qualifier Continue에서 commit된다. landing ingress는 landing ingress runtime start 규칙, 딥링크 유입은 direct runtime start 규칙 PASS.
 22. **Secondary CTA Contract**: [Deny and Abandon] = `OPTED_OUT` 저장 + 랜딩 복귀 + runtime entry commit `0건` + `instructionSeen` 기록 `0건`. [Deny and Start] = `OPTED_OUT` 저장 + runtime entry commit + `instructionSeen` 기록이며, landing ingress는 landing ingress runtime start 규칙, 딥링크 유입은 direct runtime start 규칙 PASS. [Keep Current Preference] = consent 유지 + 랜딩 복귀 + runtime entry commit `0건` PASS.
 23. **OPTED_OUT Available Deep-link Warning Contract**: 딥링크 유입 + `OPTED_OUT` + `available` 경로는 즉시 redirect되지 않고 warning note + [Keep Current Preference]를 표시한다. [Keep Current Preference]는 랜딩 복귀 + commit `0건`, [Accept All and Start]는 `OPTED_IN` 저장 후 direct runtime start 규칙 적용 PASS. `landing ingress + OPTED_OUT + available`는 카탈로그 단계 비도달 PASS (§13.5).
+24. **Active Expanded Width / Overflow**: Desktop Wide/Medium/two-column 및 Tablet의 row 0/later/underfilled, edge/center anchor에서 desired/resolved scale 계약과 stage/surface/grid/container/document horizontal overflow `0px` PASS (§8.4).
+25. **Settled Measurement Invalidation**: `document.fonts.ready`, 후속 font completion, resize down/up 이후 Normal settled compensation 재측정과 equality-guarded convergence PASS (§6.7).
+26. **Transition Non-comp Stability**: Mobile `OPENING/OPEN/CLOSING/NORMAL` 및 Desktop opening/steady/handoff/closing/cleanup sampled frame에서 `needs_comp=false => comp_gap=0` PASS (§6.7).
+27. **BQ-32 Tag Fit**: 12 locale에서 56px tail ellipsis, short-tail full-or-hidden, suffix-only/right-first hide, resize widen reappearance, stable prefix identity, width transition당 visible-count 변경 `<=1` PASS (§6.6).
+28. **CTA / Status Priority**: Blog Desktop/Tablet rest→hover/focus와 Mobile always-visible CTA가 tag width보다 우선하고, unavailable `coming soon`은 첫 필수 prefix로 항상 DOM/AT 노출 PASS (§6.6, §9.3, §13.2).
+29. **Responsive Subtitle Matrix**: Desktop/Tablet Normal subtitle 2줄 ellipsis, Mobile full subtitle, 모든 12 locale tag-row geometry 및 Mobile lifecycle snapshot/restore PASS (§6.6, §8.5).
+30. **BQ-30 Tag Visuals**: Test/Blog available `#ECE8DF`, unavailable status `#E6E2D8`, border `0px`, radius `5px`, inline padding `9px`, nowrap/no-dot/source casing PASS (§6.6, design.md §5.6/§6.3/§7.5).
 
 ### 14.3 Release Traceability Closure
 

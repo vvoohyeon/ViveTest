@@ -18,6 +18,7 @@ import type {
   LandingGridColumnMode,
   LandingGridPlan
 } from '@/features/landing/grid/layout-plan';
+import type {LandingMobileExpandedPhase} from '@/features/landing/grid/mobile-lifecycle';
 import {
   buildRowCompensationModel,
   deriveNaturalHeightFromGeometry,
@@ -30,6 +31,16 @@ export const LANDING_GRID_PLAN_CHANGED_EVENT = 'landing:grid-plan-changed';
 const BASELINE_RELEASE_DELAY_MS = 32;
 
 type CardSpacingMap = Record<string, LandingCardSpacingContract>;
+let landingDocumentFontsReadyPromise: Promise<FontFaceSet> | null = null;
+
+export function getLandingDocumentFontsReady(): Promise<FontFaceSet> | null {
+  if (typeof document === 'undefined' || !document.fonts) {
+    return null;
+  }
+
+  landingDocumentFontsReadyPromise ??= document.fonts.ready;
+  return landingDocumentFontsReadyPromise;
+}
 
 interface UseGridGeometryControllerInput {
   cards: LandingCard[];
@@ -38,6 +49,7 @@ interface UseGridGeometryControllerInput {
   previousColumnModeRef: MutableRefObject<LandingGridColumnMode | null>;
   plan: LandingGridPlan;
   viewportWidth: number;
+  mobileLifecyclePhase: LandingMobileExpandedPhase;
   activeVisualCardVariant: string | null;
   collapseExpandedCard: () => void;
 }
@@ -133,6 +145,10 @@ function serializePlanKey(plan: LandingGridPlan): string {
   ].join(':');
 }
 
+function roundMeasurement(value: number): number {
+  return Math.round(Number.isFinite(value) ? value : 0);
+}
+
 export function useGridGeometryController(input: UseGridGeometryControllerInput): UseGridGeometryControllerOutput {
   const {
     cards,
@@ -141,6 +157,7 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
     previousColumnModeRef,
     plan,
     viewportWidth,
+    mobileLifecyclePhase,
     activeVisualCardVariant,
     collapseExpandedCard
   } = input;
@@ -150,105 +167,152 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
   const baselineReleaseTimerRef = useRef<number>(0);
 
   useLayoutEffect(() => {
-    // Skip spacing remeasurement while a card is expanded on desktop;
-    // the expanded overlay does not change row compensation values.
-    if (plan.tier !== 'mobile' && activeVisualCardVariant) {
+    const measurementSuspended =
+      mobileLifecyclePhase !== 'NORMAL' ||
+      (plan.tier !== 'mobile' && (activeVisualCardVariant !== null || baselineState.phase !== 'BASELINE_READY'));
+    if (measurementSuspended) {
       return;
     }
 
-    const frame = window.requestAnimationFrame(() => {
+    let frame = 0;
+    let cancelled = false;
+    let resizeObserver: ResizeObserver | null = null;
+
+    const measure = () => {
+      if (cancelled) {
+        return;
+      }
+
       const shell = shellRef.current;
       if (!shell) {
         return;
       }
 
-      const nextSpacingModel: CardSpacingMap = {};
+      setSpacingModel((previous) => {
+        const nextSpacingModel: CardSpacingMap = {...previous};
 
-      for (const row of plan.rows) {
-        const rowCards = cards.slice(row.startIndex, row.endIndex);
-        if (rowCards.length === 0) {
-          continue;
-        }
-
-        const rowElement = shell.querySelector<HTMLElement>(`[data-row-index="${row.rowIndex}"]`);
-        if (!rowElement) {
-          continue;
-        }
-
-        const cardElements = Array.from(rowElement.querySelectorAll<HTMLElement>('[data-testid="landing-grid-card"]'));
-        const cardElementByVariant = new Map<string, HTMLElement>();
-        for (const element of cardElements) {
-          const cardVariant = element.dataset.cardVariant;
-          if (cardVariant) {
-            cardElementByVariant.set(cardVariant, element);
+        for (const row of plan.rows) {
+          const rowCards = cards.slice(row.startIndex, row.endIndex);
+          if (rowCards.length === 0) {
+            continue;
           }
-        }
 
-        const rowMeasurements = rowCards
-          .map((card) => {
+          const rowElement = shell.querySelector<HTMLElement>(`[data-row-index="${row.rowIndex}"]`);
+          if (!rowElement) {
+            continue;
+          }
+
+          const cardElementByVariant = new Map<string, HTMLElement>();
+          for (const element of rowElement.querySelectorAll<HTMLElement>('[data-testid="landing-grid-card"]')) {
+            const cardVariant = element.dataset.cardVariant;
+            if (cardVariant) {
+              cardElementByVariant.set(cardVariant, element);
+            }
+          }
+
+          const rowMeasurements = rowCards.map((card) => {
             const cardElement = cardElementByVariant.get(card.variant);
-            if (!cardElement) {
+            const cardContentElement = cardElement?.querySelector<HTMLElement>('.landing-grid-card-content');
+            const tagsElement = cardContentElement?.querySelector<HTMLElement>('[data-slot="tags"]');
+            if (!cardElement || !cardContentElement || !tagsElement) {
               return null;
             }
 
-            const cardContentElement = cardElement.querySelector<HTMLElement>('.landing-grid-card-content');
-            if (!cardContentElement) {
-              return null;
-            }
-
-            const tagsElement = cardContentElement.querySelector<HTMLElement>('[data-slot="tags"]');
-            if (!tagsElement) {
-              return null;
-            }
-
-            const appliedCompGap = Number.parseFloat(cardElement.dataset.compGap ?? '0') || 0;
             const contentRect = cardContentElement.getBoundingClientRect();
             const tagsRect = tagsElement.getBoundingClientRect();
-
-            return deriveNaturalHeightFromGeometry({
+            const measurement = deriveNaturalHeightFromGeometry({
               cardVariant: card.variant,
               contentTop: contentRect.top,
               tagsBottom: tagsRect.bottom,
-              appliedCompGap
+              appliedCompGap: Number.parseFloat(cardElement.dataset.compGap ?? '0') || 0
             });
-          })
-          .filter((measurement): measurement is {cardVariant: string; naturalHeight: number} => measurement !== null);
+            return {
+              ...measurement,
+              naturalHeight: roundMeasurement(measurement.naturalHeight)
+            };
+          });
 
-        const rowCompensation = buildRowCompensationModel(rowMeasurements);
-        for (const decision of rowCompensation) {
-          nextSpacingModel[decision.cardVariant] = {
+          if (rowMeasurements.some((measurement) => measurement === null)) {
+            continue;
+          }
+
+          const completeMeasurements = rowMeasurements.filter(
+            (measurement): measurement is {cardVariant: string; naturalHeight: number} => measurement !== null
+          );
+          for (const decision of buildRowCompensationModel(completeMeasurements)) {
+            nextSpacingModel[decision.cardVariant] = {
+              baseGapPx: LANDING_CARD_BASE_GAP_PX,
+              compGapPx: roundMeasurement(decision.compGap),
+              needsComp: decision.needsComp,
+              naturalHeightPx: roundMeasurement(decision.naturalHeight),
+              rowMaxNaturalHeightPx: roundMeasurement(decision.rowMaxNaturalHeight)
+            };
+          }
+        }
+
+        for (const card of cards) {
+          nextSpacingModel[card.variant] ??= {
             baseGapPx: LANDING_CARD_BASE_GAP_PX,
-            compGapPx: decision.compGap,
-            needsComp: decision.needsComp,
-            naturalHeightPx: decision.naturalHeight,
-            rowMaxNaturalHeightPx: decision.rowMaxNaturalHeight
+            compGapPx: 0,
+            needsComp: false,
+            naturalHeightPx: 0,
+            rowMaxNaturalHeightPx: 0
           };
         }
+
+        return isSameSpacingModel(previous, nextSpacingModel) ? previous : nextSpacingModel;
+      });
+    };
+
+    const scheduleMeasure = () => {
+      if (cancelled || frame !== 0) {
+        return;
       }
 
-      for (const card of cards) {
-        if (nextSpacingModel[card.variant]) {
-          continue;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        measure();
+      });
+    };
+
+    scheduleMeasure();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(scheduleMeasure);
+      const shell = shellRef.current;
+      if (shell) {
+        for (const cardElement of shell.querySelectorAll<HTMLElement>('[data-testid="landing-grid-card"]')) {
+          resizeObserver.observe(cardElement);
+          const contentElement = cardElement.querySelector<HTMLElement>('.landing-grid-card-content');
+          if (contentElement) {
+            resizeObserver.observe(contentElement);
+          }
         }
-
-        nextSpacingModel[card.variant] = {
-          baseGapPx: LANDING_CARD_BASE_GAP_PX,
-          compGapPx: 0,
-          needsComp: false,
-          naturalHeightPx: 0,
-          rowMaxNaturalHeightPx: 0
-        };
       }
+    }
 
-      setSpacingModel((previous) => (isSameSpacingModel(previous, nextSpacingModel) ? previous : nextSpacingModel));
-    });
+    window.addEventListener('resize', scheduleMeasure, {passive: true});
+    const fontSet = typeof document !== 'undefined' ? document.fonts : undefined;
+    const handleFontsLoaded = () => {
+      scheduleMeasure();
+    };
+    fontSet?.addEventListener?.('loadingdone', handleFontsLoaded);
+    void getLandingDocumentFontsReady()?.then(scheduleMeasure);
 
     return () => {
-      window.cancelAnimationFrame(frame);
+      cancelled = true;
+      if (frame !== 0) {
+        window.cancelAnimationFrame(frame);
+      }
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', scheduleMeasure);
+      fontSet?.removeEventListener?.('loadingdone', handleFontsLoaded);
     };
   }, [
     activeVisualCardVariant,
+    baselineState.phase,
     cards,
+    mobileLifecyclePhase,
     plan,
     shellRef,
     viewportWidth // viewportWidth is intentionally listed as a deps re-trigger signal even though it is not read in the effect body.
@@ -259,7 +323,6 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
   // its offsetHeight is the floor. Measured in a layout effect (before first paint) so the
   // expanded body never paints shorter than the resting cell. This is intentionally separate
   // from the freeze/release effect below; it must not alter the BASELINE_READY/FROZEN order.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useLayoutEffect(() => {
     if (plan.tier === 'mobile' || !activeVisualCardVariant) {
       setRestingFloorMap((previous) => (previous === emptyRestingFloorMap ? previous : clearRestingFloor()));
@@ -281,7 +344,6 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
     const restingOuterPx = activeCardElement.offsetHeight;
     setRestingFloorMap((previous) => captureRestingFloor(previous, activeVisualCardVariant, restingOuterPx));
   }, [activeVisualCardVariant, plan.tier, shellRef]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     let frameId = 0;

@@ -1,14 +1,16 @@
 # Wave 10 Landing Grid Height Rhythm Implementation Plan
 
-> **Plan status:** Awaiting explicit user approval. This document does not authorize implementation by itself.
-> **Authoring mode:** Plan Only. Creating this file is the only authorized change for this task.
+> **Plan status:** Implementation complete; final completion blocked by one stale local screenshot
+> baseline and one unchanged stale Phase 9 source matcher. Roadmap not advanced.
+> **Authoring mode:** Implementation authorized inline, one unit at a time.
 > **Implementation mode after approval:** Inline execution only, one unit at a time, with a failing
 > contract/computed-style test before production code. Do not dispatch parallel agents or automated
 > multi-wave pipelines.
 > **Wave:** 10 - Landing grid height rhythm.
 > **Risk:** High - responsiveness, design-system consistency, usability, accessibility, and lifecycle
 > geometry are all in scope.
-> **Workspace:** `/Users/woohyeon/Local/ViveTest`, branch `main`.
+> **Workspace:** `/Users/b-m-2022001/Local/ViveTest`, branch `main`. The originally recorded
+> `/Users/woohyeon/Local/ViveTest` path was stale and was not used.
 > **Basis:** `docs/plans/2026-06-09-wave-10-landing-grid-analysis.md`. Section references below point
 > to that approved analysis; this plan does not restate its evidence audit.
 > **Logic Improvement: approved — W10-LI-01, W10-LI-02, W10-LI-03, W10-LI-04, W10-LI-05, W10-LI-06.**
@@ -16,6 +18,50 @@
 > **Locked follow-up decisions:** Decision B = constrained desktop `1.10x`; Decision C = maximum
 > Wave 10 scope/minimum deferred debt, including all §15.1 re-anchors and phase 4/5/6 static-QA sync.
 > **Governing decisions:** BQ-19, BQ-21, BQ-24, BQ-30, BQ-31, and user-approved BQ-32.
+
+---
+
+## 0. Implementation Outcome (2026-06-10)
+
+- Units 0-9 completed sequentially with no commit/push/checkpoint and no parallel agents.
+- W10-LI-01 implemented settled Normal ResizeObserver/RAF/font invalidation, whole-pixel equality
+  inputs, lifecycle write suspension, and prior-map retention without changing compensation
+  arithmetic or BQ-24 baseline/floor ordering.
+- W10-LI-02/BQ-32 implemented measured visible prefixes, 56px flexible tail, suffix unmount,
+  probe-derived CTA reservation, Desktop/Tablet hover/focus parity, Mobile always-visible CTA,
+  resize-driven reappearance, and transition count-change `<=1`.
+- W10-LI-03 implemented measured Desktop desired `1.10` / Tablet `1.04` frame scaling. No tested live
+  band/anchor clamp engaged; content shell remained `1.04`.
+- W10-LI-04 took the **implemented** branch: root `min-h-44` was removed. Computed root min-height is
+  intrinsic `auto`; row stretch, trigger targets, placeholder/cleanup geometry, Mobile lifecycle,
+  snapshots, and reduced motion remained green. No replacement minimum/floor/row height/spacer was
+  introduced.
+- W10-LI-05 implemented Desktop/Tablet two-line subtitle ellipsis and Mobile full subtitle.
+- W10-LI-06 passed as a no-change guard: behavior/routing/storage/telemetry/transition/resolver/i18n
+  files and contracts were untouched.
+- BQ-30 implemented borderless tags with available `#ECE8DF` and scoped unavailable `#E6E2D8`.
+- Amendments A1-A6 are reflected in runtime/tests/docs. A6 extended the existing BQ-32 register row
+  in place and preserved its decision text.
+- Unit 8 divergence: all three pre-edit phase 4/5/6 checkers passed because they did not yet inspect
+  Wave 10 anchors; therefore the planned red state did not exist. The approved checker assertions
+  were added without manufacturing a failure, and all three updated checkers pass. Exactly those
+  three `scripts/qa/**` files changed.
+- Unit 9 manual verification found the intrinsic tag probe contributing Mobile horizontal overflow
+  and, after initial clipping containment, one extra Blog flex gap. The focused BQ-32 smoke caught
+  both: the probe anchor is now clipped and out-of-flow, settled Mobile document/container overflow
+  is zero, and the visible CTA ends at the row edge with only the single resolver-reserved gap.
+- §17.1 unit gate passed 38/38. Its E2E command passed 54/55; the only failure is the existing
+  `expanded-focus-shell.png` baseline (expected `403x210`, current `403x295`). The same keyboard path
+  passed a non-baseline geometry check: focused trigger inside surface, surface inside stage, and
+  document overflow `0`. The baseline was not regenerated or modified.
+- §17.2 passed in order: lint clean, typecheck clean, full unit suite 496/496, production build green.
+- §17.3 phase 4/5/6/7/8/10 checkers passed, the regression unit command passed 85/85, and the full
+  landing/GNB E2E command passed 77/78 with the same sole stale baseline failure. The unchanged Phase
+  9 checker failed because line 67 still requires the removed `desktopShellInlineScale` identifier;
+  runtime now consumes `useCardExpandedScale(...).frameInlineScale` instead. Phase 9 was not edited
+  and dead prop plumbing was not restored.
+- `docs/wave-roadmap.md` remains unchanged because the literal §18 all-gates condition did not pass.
+  The two blockers are recorded as validation debt, not silently resolved.
 
 ---
 
@@ -221,6 +267,9 @@ Do not edit `_path-config.mjs`, `run-all.mjs`, phase 1-3, or phase 7+ checkers.
 | `docs/design/design.md` | Apply every analysis §15.1 visual delta without taking ownership of behavior. |
 | `docs/wave-roadmap.md` | Mark Wave 10 complete only after all completion conditions pass; record files and non-baseline validation. |
 | `docs/plans/2026-06-09-wave-10-landing-grid-plan.md` | During implementation, check completed units and record LI-04's actual outcome if project plan maintenance requires it. No scope expansion may be self-authorized here. |
+
+The user explicitly authorized this plan file as an additional Unit 9 documentation target on
+2026-06-10 so it could record actual outcomes required by root `AGENTS.md` §9.
 
 ## 5. Impact Assessment
 
@@ -779,6 +828,9 @@ node scripts/qa/check-phase6-spacing-contracts.mjs
 ```
 
 Expected red: stale/missing Wave 10 anchors fail.
+
+Actual result: all three pre-edit checkers passed because the previous scripts did not inspect the
+new Wave 10 anchors. This was recorded as a plan divergence; no artificial failure was introduced.
 
 After only the declared checker edits:
 

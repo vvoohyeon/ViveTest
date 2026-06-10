@@ -2,12 +2,11 @@ import {describe, expect, it} from 'vitest';
 
 import {
   buildLandingGridPlan,
-  DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE,
   DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE,
   DESKTOP_WIDE_MIN_GRID_INLINE_SIZE,
   MOBILE_MAX_VIEWPORT_WIDTH,
+  resolveLandingExpandedScale,
   resolveLandingGridColumns,
-  resolveLandingRowExpandedShellInlineScale,
   resolveLandingViewportTier
 } from '@/features/landing/grid/layout-plan';
 import {useGridGeometryController} from '@/features/landing/grid/use-grid-geometry-controller';
@@ -27,8 +26,6 @@ describe('landing grid layout plan', () => {
     expect(plan.rows.map((row) => row.cardCount)).toEqual([3, 4, 2]);
     expect(plan.rows.at(-1)?.columns).toBe(4);
     expect(plan.rows.at(-1)?.isUnderfilled).toBe(true);
-    expect(plan.rows[0]?.expandedShellInlineScale).toBe(1);
-    expect(plan.rows[1]?.expandedShellInlineScale).toBe(DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE);
   });
 
   it('applies desktop medium row rules', () => {
@@ -42,8 +39,6 @@ describe('landing grid layout plan', () => {
     expect(plan.row1Columns).toBe(2);
     expect(plan.rowNColumns).toBe(3);
     expect(plan.rows.map((row) => row.cardCount)).toEqual([2, 3, 3, 1]);
-    expect(plan.rows[0]?.expandedShellInlineScale).toBe(1);
-    expect(plan.rows[1]?.expandedShellInlineScale).toBe(DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE);
   });
 
   it('applies two-column row rules below the medium threshold on desktop', () => {
@@ -57,7 +52,6 @@ describe('landing grid layout plan', () => {
     expect(plan.row1Columns).toBe(2);
     expect(plan.rowNColumns).toBe(2);
     expect(plan.rows.map((row) => row.cardCount)).toEqual([2, 2, 1]);
-    expect(plan.rows.every((row) => row.expandedShellInlineScale === 1)).toBe(true);
   });
 
   it('resolves viewport tiers at mobile, tablet, and desktop boundaries', () => {
@@ -155,19 +149,100 @@ describe('landing grid layout plan', () => {
     expect(plan.row1Columns).toBe(1);
     expect(plan.rowNColumns).toBe(1);
     expect(plan.rows.map((row) => row.cardCount)).toEqual([1, 1, 1, 1]);
-    expect(plan.rows.every((row) => row.expandedShellInlineScale === 1)).toBe(true);
   });
 
-  it('resolves lower-row shell inline scale from column mode and row index', () => {
-    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'desktop-wide', rowIndex: 0})).toBe(1);
-    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'desktop-wide', rowIndex: 1})).toBe(
-      DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE
-    );
-    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'desktop-medium', rowIndex: 2})).toBe(
-      DESKTOP_LOWER_ROW_SHELL_INLINE_SCALE
-    );
-    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'two-column', rowIndex: 1})).toBe(1);
-    expect(resolveLandingRowExpandedShellInlineScale({columnMode: 'mobile', rowIndex: 3})).toBe(1);
+  it('constrains desktop final scale to 1.10 while keeping tablet at 1.04', () => {
+    expect(
+      resolveLandingExpandedScale({
+        viewportTier: 'desktop',
+        reducedMotion: false,
+        normalRootWidthPx: 400,
+        availableStageOutsetPx: 40
+      })
+    ).toEqual({
+      baseShellScale: 1.04,
+      desiredFinalScale: 1.1,
+      maxSurfaceScale: 1.1,
+      resolvedFinalScale: 1.1,
+      frameInlineScale: 1.0576923077
+    });
+
+    for (const normalRootWidthPx of [320, 400, 500]) {
+      expect(
+        resolveLandingExpandedScale({
+          viewportTier: 'desktop',
+          reducedMotion: false,
+          normalRootWidthPx,
+          availableStageOutsetPx: normalRootWidthPx * 0.1
+        }).desiredFinalScale
+      ).toBe(1.1);
+    }
+
+    expect(
+      resolveLandingExpandedScale({
+        viewportTier: 'desktop',
+        reducedMotion: false,
+        normalRootWidthPx: 400,
+        availableStageOutsetPx: 20
+      })
+    ).toEqual({
+      baseShellScale: 1.04,
+      desiredFinalScale: 1.1,
+      maxSurfaceScale: 1.05,
+      resolvedFinalScale: 1.05,
+      frameInlineScale: 1.0096153846
+    });
+
+    expect(
+      resolveLandingExpandedScale({
+        viewportTier: 'tablet',
+        reducedMotion: false,
+        normalRootWidthPx: 400,
+        availableStageOutsetPx: 80
+      })
+    ).toEqual({
+      baseShellScale: 1.04,
+      desiredFinalScale: 1.04,
+      maxSurfaceScale: 1.2,
+      resolvedFinalScale: 1.04,
+      frameInlineScale: 1
+    });
+    expect(
+      resolveLandingExpandedScale({
+        viewportTier: 'mobile',
+        reducedMotion: false,
+        normalRootWidthPx: 400,
+        availableStageOutsetPx: 80
+      }).resolvedFinalScale
+    ).toBe(1);
+    expect(
+      resolveLandingExpandedScale({
+        viewportTier: 'desktop',
+        reducedMotion: true,
+        normalRootWidthPx: 400,
+        availableStageOutsetPx: 80
+      })
+    ).toEqual({
+      baseShellScale: 1,
+      desiredFinalScale: 1,
+      maxSurfaceScale: 1.2,
+      resolvedFinalScale: 1,
+      frameInlineScale: 1
+    });
+
+    for (const input of [
+      {normalRootWidthPx: 0, availableStageOutsetPx: 40},
+      {normalRootWidthPx: Number.NaN, availableStageOutsetPx: Number.POSITIVE_INFINITY}
+    ]) {
+      const decision = resolveLandingExpandedScale({
+        viewportTier: 'desktop',
+        reducedMotion: false,
+        ...input
+      });
+      expect(decision.maxSurfaceScale).toBe(1);
+      expect(decision.resolvedFinalScale).toBe(1);
+      expect(Number.isFinite(decision.frameInlineScale)).toBe(true);
+    }
   });
 
   it('exposes the catalog-grid geometry controller hook entrypoint', () => {

@@ -83,7 +83,7 @@ For ViveTest specifically, the **card catalog is the primary visual identity**. 
 - The display stack falls back gracefully through system bilingual faces (see `--font-sans` in Section 5).
 - **Global wrapping rule:** wrapping text uses `word-break: keep-all; overflow-wrap: anywhere;`.
 - **Catalog title matrix:** Desktop/Tablet Normal is single-line ellipsis; Mobile Normal is full text with no ellipsis; Mobile Expanded and transient titles are full text with no ellipsis; Desktop/Tablet Expanded preserves the measured Normal first-line split and reveals the full overflow text.
-- Normal catalog subtitles use a two-line ellipsis clamp. Expanded choice text wraps without a line limit or truncation.
+- Desktop/Tablet Normal catalog subtitles use a two-line ellipsis clamp; Mobile Normal subtitles show the full text without ellipsis. Expanded choice text wraps without a line limit or truncation.
 
 ### 4.4 Color philosophy
 - **Atmosphere:** warm-neutral, low-contrast calm. The page floor is a warm off-white, never cool grey or pure white. Cards sit one step brighter than the canvas.
@@ -114,7 +114,7 @@ Thumbnails and imagery stay in the warm-neutral / sage family at low saturation,
 - Unavailable cards are removed from the tab order; they are visually inert but not styled like a broken disabled button.
 
 ### 4.11 Localization
-Korean and English string lengths differ. Keep labels short, use `word-break: keep-all` for Korean line-breaking, and use `overflow-wrap: anywhere` as the Latin fallback. Catalog text follows the state/breakpoint exceptions in §4.3: Desktop/Tablet Normal titles use one-line ellipsis, Mobile Normal/Expanded/transient titles show full text, Desktop/Tablet Expanded preserves the Normal first-line split while showing the full title, Normal subtitles use two-line ellipsis, and Expanded choices wrap without truncation. Case-bearing catalog tag labels are lowercase in localized source values; caseless scripts remain unchanged.
+Korean and English string lengths differ. Keep labels short, use `word-break: keep-all` for Korean line-breaking, and use `overflow-wrap: anywhere` as the Latin fallback. Catalog text follows the state/breakpoint exceptions in §4.3: Desktop/Tablet Normal titles use one-line ellipsis, Mobile Normal/Expanded/transient titles show full text, Desktop/Tablet Expanded preserves the Normal first-line split while showing the full title, Desktop/Tablet Normal subtitles use two-line ellipsis, Mobile Normal subtitles show full text, and Expanded choices wrap without truncation. Case-bearing catalog tag labels are lowercase in localized source values; caseless scripts remain unchanged.
 
 ---
 
@@ -177,7 +177,7 @@ Realized type roles (size / weight / line-height):
 --tag-bg: #ECE8DF;
 --tag-fg: #4A4A55;
 ```
-Catalog tags use a `1px solid var(--hairline-strong)` edge. **No `color` property exists in catalog tag data** — tags are text-only; no color dots.
+Catalog tags are borderless. Available catalog tags use `--tag-bg`; the unavailable catalog status tag uses the scoped application value `#E6E2D8`, which is not promoted to a global token before Wave 16. **No `color` property exists in catalog tag data** — tags are text-only; no color dots.
 
 ### 5.7 Focus & scrim tokens
 ```css
@@ -246,7 +246,7 @@ Warm elevated fill, `1px solid var(--hairline)` border at rest, large radius, re
 A `16 / 6` aspect-ratio block at medium radius, full width, clipped. It sits inside the card's 16px padding and therefore has a natural outer margin on every side.
 
 ### 6.3 Tag / chip
-Text-only lowercase chip at `--radius-xs` (5px), `--tag-bg` fill, `1px solid var(--hairline-strong)` edge, `--tag-fg` text, 13px / 500, `4px 9px` padding, and no wrap. Long labels may ellipsize inside the fixed one-line tags slot. Test, Blog, and Unavailable use one shared treatment with no per-type exception. **No color dot, ever.**
+Text-only lowercase borderless chip at `--radius-xs` (5px), `--tag-bg` fill, `--tag-fg` text, 13px / 500, `4px 9px` padding, and no wrap. The last visible tag may flex and ellipsize to a 56px border-box visual minimum; naturally shorter labels remain full or disappear with the suffix. Test and Blog share the available fill; the unavailable status chip uses the scoped application fill `#E6E2D8`. **No color dot, ever.**
 
 ### 6.4 Button / choice-button primitive
 The realized choice button: elevated fill, 1px `--hairline-strong` edge, `--radius-md`, **`12px 14px`** padding, left-aligned, full width, top-aligned icon. Hover deepens the edge to `--sage` with a `--sage-muted` fill — a calm deepening, not a color change. This is the reusable interactive-row primitive; it carries no letter badges by default.
@@ -286,7 +286,8 @@ ViveTest-specific composition of the primitives above.
 Content order: **Thumbnail → Title → Subtitle → Tags.**
 - Available cards use exact `--canvas-elevated` (`#FFFFFF`) with a resting `--hairline` structural edge.
 - Title typography is 20px / 600 / 1.3 / `-0.01em`; subtitle typography is 15px / 400 / 1.45 / `--body`.
-- Apply the §4.3 title matrix and the two-line Normal subtitle ellipsis clamp.
+- Apply the §4.3 title/subtitle matrix: Desktop/Tablet subtitle is two-line ellipsis; Mobile subtitle is full text.
+- Same-row surplus appears as one visual region above the bottom-anchored tags row; it must not create multiple spacer bands or move the tags off their common bottom rhythm.
 - **No Start CTA** on the front face.
 - **No direct navigation** from the front face.
 - **No independent hover** border, shadow, or background — **expansion is the hover response.** Adding a hover border would contradict the immediate expansion.
@@ -306,7 +307,8 @@ Content order: **context label → preview question → choice A → choice B �
 
 ### 7.4 Blog card
 - **No expanded state.** The card body navigates to the article on click/tap.
-- **`Read more →`** sits at the right end of the tags row: revealed on hover at desktop, always visible on mobile. Its label and arrow are separate visual children with an explicit 6px gap inside the same non-interactive affordance.
+- **`Read more →`** sits at the right end of the one-line tags row: revealed on hover/focus on Desktop and Tablet, always visible on Mobile. Its label and arrow are separate visual children with an explicit 6px gap inside the same non-interactive affordance.
+- When visible, `Read more →` has visual width priority. Tags preserve one left-to-right prefix, the last visible tag flexes toward the 56px visual minimum, and insufficient suffix tags disappear right-first. At rest, the hidden CTA gives the row its full tag width.
 - **Never underlined**, and its color does not change on its own hover.
 - **No `READ` eyebrow** (no eyebrow on any card).
 - Blog is the one card with a hover skin: a `--sage` border plus `--shadow-blog-hover` (using the `--focus-ring-soft` glow), signalling navigability.
@@ -314,7 +316,7 @@ Content order: **context label → preview question → choice A → choice B �
 ### 7.5 Unavailable card
 - Warm **`--surface-soft`** surface, slightly distinct from available cards.
 - Thumbnail may dim **subtly only** (realized: thumbnail `opacity 0.72`); **title and subtitle keep normal opacity.**
-- A lowercase **standard `coming soon` tag** in the tags-row position, using the shared `--tag-bg` + `--hairline-strong` treatment with no Unavailable-specific exception — **no dashed pill, no dot.**
+- A lowercase **standard `coming soon` tag** in the tags-row position, using scoped `#E6E2D8` fill with no border — **no dashed pill, no dot.**
 - Visually inert and removed from the tab order, but **not** styled like a broken disabled button.
 
 ### 7.6 Navigation
@@ -333,7 +335,8 @@ Content order: **context label → preview question → choice A → choice B �
 - **Mobile:** single column.
 - Realized reference widths: desktop catalog ~1280px container, tablet ~920px, mobile ~390px; content centered within the max width.
 - **Top-row prominence comes from wider columns only** — no extra spacing, divider, heading, label, or hero band between rows.
-- Expanded width targets: the realized **Row 1 target is conservative (~400px)** and **Row 2+ is more generous (~360px)**, anchored **left / center / right by column position**, never shrinking below the natural column width. The expanded card overlays via z-index and **never reflows siblings.**
+- Same-row tracks remain equal and active expanded surfaces produce zero horizontal overflow in the catalog container and document.
+- Expanded content shell scale remains `1.04`. Desktop Wide/Medium/two-column desire final scale `1.10`; Tablet remains `1.04`. The expanded frame supplies any width beyond `1.04` and clamps to measured stage allowance at left / center / right anchors. The expanded card overlays via z-index and **never reflows siblings.**
 - **Breakpoint thresholds (realized):** Wide desktop ≥ 1024px (3 → 4 columns) · Medium 860–1023px (2 → 3) · Lower tablet 768–859px (2 → 2) · Mobile ≤ 767px (1 column).
 - **Grid gutter (realized):** 24px desktop · 20px tablet · 14–16px mobile. The 20px tablet gutter sits deliberately off the 4px-derived scale and is a catalog-grid-specific value.
 

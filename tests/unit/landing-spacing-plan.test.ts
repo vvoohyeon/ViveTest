@@ -1,6 +1,10 @@
 import {describe, expect, it} from 'vitest';
 
-import {buildRowCompensationModel, deriveNaturalHeightFromGeometry} from '../../src/features/landing/grid/spacing-plan';
+import {
+  buildRowCompensationModel,
+  deriveNaturalHeightFromGeometry,
+  resolveVisibleTagPrefix
+} from '../../src/features/landing/grid/spacing-plan';
 
 describe('landing row compensation model', () => {
   it('derives natural height from geometry while neutralizing applied comp gap', () => {
@@ -78,5 +82,92 @@ describe('landing row compensation model', () => {
     expect(rowOneLike[0].compGap).toBe(rowTwoLike[0].compGap);
     expect(rowOneLike[1].needsComp).toBe(rowTwoLike[1].needsComp);
     expect(rowOneLike[1].compGap).toBe(rowTwoLike[1].compGap);
+  });
+
+  it('keeps non-comp compensation at zero for repeated normalized measurements', () => {
+    let appliedCompGap = 0;
+
+    for (let pass = 0; pass < 5; pass += 1) {
+      const shorter = deriveNaturalHeightFromGeometry({
+        cardVariant: 'shorter',
+        contentTop: 100.2,
+        tagsBottom: 276.8 + appliedCompGap,
+        appliedCompGap
+      });
+      const taller = deriveNaturalHeightFromGeometry({
+        cardVariant: 'taller',
+        contentTop: 100.2,
+        tagsBottom: 300.8,
+        appliedCompGap: 0
+      });
+      const model = buildRowCompensationModel([shorter, taller]);
+      const shorterDecision = model.find((entry) => entry.cardVariant === 'shorter');
+      const tallerDecision = model.find((entry) => entry.cardVariant === 'taller');
+
+      expect(shorterDecision?.naturalHeight).toBe(176.6);
+      expect(shorterDecision?.needsComp).toBe(true);
+      expect(shorterDecision?.compGap).toBe(24);
+      expect(tallerDecision?.naturalHeight).toBe(200.6);
+      expect(tallerDecision?.needsComp).toBe(false);
+      expect(tallerDecision?.compGap).toBe(0);
+
+      appliedCompGap = shorterDecision?.compGap ?? 0;
+    }
+  });
+
+  it('resolves tag tail ellipsis with right-first hiding and growth reappearance', () => {
+    const resolve = (availableWidth: number, intrinsicWidths = [80, 90, 100]) =>
+      resolveVisibleTagPrefix({
+        availableWidth,
+        intrinsicWidths,
+        gap: 8,
+        requiredVisiblePrefixCount: 0
+      });
+
+    expect(resolve(0)).toEqual({visibleCount: 0, tailIndex: null, tailMayEllipsize: false});
+    expect(resolve(55)).toEqual({visibleCount: 0, tailIndex: null, tailMayEllipsize: false});
+    expect(resolve(56)).toEqual({visibleCount: 1, tailIndex: 0, tailMayEllipsize: true});
+    expect(resolve(143)).toEqual({visibleCount: 1, tailIndex: 0, tailMayEllipsize: false});
+    expect(resolve(144)).toEqual({visibleCount: 2, tailIndex: 1, tailMayEllipsize: true});
+    expect(resolve(241)).toEqual({visibleCount: 2, tailIndex: 1, tailMayEllipsize: false});
+    expect(resolve(242)).toEqual({visibleCount: 3, tailIndex: 2, tailMayEllipsize: true});
+    expect(resolve(243)).toEqual({visibleCount: 3, tailIndex: 2, tailMayEllipsize: true});
+    expect(resolve(286)).toEqual({visibleCount: 3, tailIndex: 2, tailMayEllipsize: false});
+
+    expect(resolve(39, [40])).toEqual({visibleCount: 0, tailIndex: null, tailMayEllipsize: false});
+    expect(resolve(40, [40])).toEqual({visibleCount: 1, tailIndex: 0, tailMayEllipsize: false});
+
+    const shrink = resolve(241);
+    const widen = resolve(242);
+    expect(shrink.visibleCount).toBe(2);
+    expect(widen.visibleCount).toBe(3);
+  });
+
+  it('keeps mandatory status-first prefix visible', () => {
+    expect(
+      resolveVisibleTagPrefix({
+        availableWidth: 0,
+        intrinsicWidths: [96, 80, 90],
+        gap: 8,
+        requiredVisiblePrefixCount: 1
+      })
+    ).toEqual({
+      visibleCount: 1,
+      tailIndex: 0,
+      tailMayEllipsize: true
+    });
+
+    expect(
+      resolveVisibleTagPrefix({
+        availableWidth: 160,
+        intrinsicWidths: [96, 80, 90],
+        gap: 8,
+        requiredVisiblePrefixCount: 1
+      })
+    ).toEqual({
+      visibleCount: 2,
+      tailIndex: 1,
+      tailMayEllipsize: true
+    });
   });
 });

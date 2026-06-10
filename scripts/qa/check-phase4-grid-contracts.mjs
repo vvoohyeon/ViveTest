@@ -3,6 +3,16 @@ import {e2e, landing} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
+function readNamedTestBlock(source, title) {
+  const start = source.indexOf(title);
+  if (start === -1) {
+    return '';
+  }
+
+  const nextTest = source.indexOf('\n  test(', start + title.length);
+  return source.slice(start, nextTest === -1 ? source.length : nextTest);
+}
+
 const requiredFiles = [
   'src/features/landing/grid/layout-plan.ts',
   landing.grid.catalogGrid,
@@ -24,6 +34,18 @@ if (fileExists('src/app/[locale]/page.tsx')) {
   }
 }
 
+if (fileExists('src/features/landing/grid/layout-plan.ts')) {
+  const layoutPlan = read('src/features/landing/grid/layout-plan.ts');
+  if (
+    !/DESKTOP_EXPANDED_DESIRED_FINAL_SCALE\s*=\s*1\.1/u.test(layoutPlan) ||
+    !/TABLET_EXPANDED_DESIRED_FINAL_SCALE\s*=\s*1\.04/u.test(layoutPlan) ||
+    !/resolveLandingExpandedScale/u.test(layoutPlan) ||
+    !/resolvedFinalScale\s*=\s*Math\.min\(desiredFinalScale,\s*maxSurfaceScale\)/u.test(layoutPlan)
+  ) {
+    fail('Layout plan must keep the measured Desktop 1.10 / Tablet 1.04 expanded-scale resolver and safety clamp.');
+  }
+}
+
 if (fileExists('tests/unit/landing-grid-plan.test.ts')) {
   const unitSpec = read('tests/unit/landing-grid-plan.test.ts');
   if (
@@ -35,10 +57,16 @@ if (fileExists('tests/unit/landing-grid-plan.test.ts')) {
   ) {
     fail('Unit test must cover Desktop Wide/Medium and the non-mobile two-column rule.');
   }
+  if (!/constrains desktop final scale to 1\.10 while keeping tablet at 1\.04/u.test(unitSpec)) {
+    fail('Unit test must cover the Desktop 1.10 / Tablet 1.04 measured expanded-scale contract.');
+  }
 }
 
 if (fileExists(e2e.gridSmoke)) {
   const e2eSpec = read(e2e.gridSmoke);
+  const activeWidthTitle =
+    'active expanded width and zero horizontal overflow cover edge and center cards across all column modes';
+  const activeWidthBlock = readNamedTestBlock(e2eSpec, activeWidthTitle);
   if (!/@smoke/u.test(e2eSpec)) {
     fail('Grid smoke spec must be tagged with @smoke.');
   }
@@ -56,6 +84,20 @@ if (fileExists(e2e.gridSmoke)) {
   }
   if (!/title clamp and expanded title continuity/u.test(e2eSpec)) {
     fail('Grid smoke spec must assert desktop/tablet title clamp and expanded title continuity.');
+  }
+  if (!activeWidthBlock) {
+    fail('Grid smoke spec must include the active expanded width and zero-overflow contract.');
+  } else if (
+    !/scrollWidth/u.test(activeWidthBlock) ||
+    !/clientWidth/u.test(activeWidthBlock) ||
+    !/desktop-wide/u.test(activeWidthBlock) ||
+    !/desktop-medium/u.test(activeWidthBlock) ||
+    !/two-column/u.test(activeWidthBlock) ||
+    !/anchor:\s*'start'/u.test(activeWidthBlock) ||
+    !/anchor:\s*'center'/u.test(activeWidthBlock) ||
+    !/anchor:\s*'end'/u.test(activeWidthBlock)
+  ) {
+    fail('Active-width smoke must cover overflow plus Desktop Wide/Medium/two-column edge and center anchors.');
   }
 }
 

@@ -1,4 +1,5 @@
 export const LANDING_CARD_BASE_GAP_PX = 8;
+export const TAG_MIN_WIDTH_PX = 56;
 
 const ROW_HEIGHT_EPSILON_PX = 0.5;
 const SPACING_PRECISION_SCALE = 10000;
@@ -23,6 +24,19 @@ export interface RowCompensationDecision {
   compGap: number;
 }
 
+export interface TagFitInput {
+  availableWidth: number;
+  intrinsicWidths: ReadonlyArray<number>;
+  gap: number;
+  requiredVisiblePrefixCount: number;
+}
+
+export interface TagFitDecision {
+  visibleCount: number;
+  tailIndex: number | null;
+  tailMayEllipsize: boolean;
+}
+
 function normalizeHeight(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
@@ -41,6 +55,50 @@ function normalizeCoordinate(value: number): number {
 
 function roundToPrecision(value: number): number {
   return Math.round(value * SPACING_PRECISION_SCALE) / SPACING_PRECISION_SCALE;
+}
+
+export function resolveVisibleTagPrefix(input: TagFitInput): TagFitDecision {
+  const availableWidth = normalizeHeight(input.availableWidth);
+  const gap = normalizeHeight(input.gap);
+  const intrinsicWidths = input.intrinsicWidths.map(normalizeHeight);
+  const mandatoryCount = Math.min(
+    intrinsicWidths.length,
+    Math.max(0, Math.floor(normalizeHeight(input.requiredVisiblePrefixCount)))
+  );
+  let visibleCount = mandatoryCount;
+
+  for (let candidateCount = mandatoryCount + 1; candidateCount <= intrinsicWidths.length; candidateCount += 1) {
+    const priorWidth = intrinsicWidths
+      .slice(0, candidateCount - 1)
+      .reduce((total, width) => total + width, 0);
+    const tailWidth = Math.min(intrinsicWidths[candidateCount - 1] ?? 0, TAG_MIN_WIDTH_PX);
+    const requiredWidth = priorWidth + gap * Math.max(0, candidateCount - 1) + tailWidth;
+
+    if (requiredWidth > availableWidth) {
+      break;
+    }
+
+    visibleCount = candidateCount;
+  }
+
+  if (visibleCount === 0) {
+    return {
+      visibleCount: 0,
+      tailIndex: null,
+      tailMayEllipsize: false
+    };
+  }
+
+  const tailIndex = visibleCount - 1;
+  const priorWidth = intrinsicWidths.slice(0, tailIndex).reduce((total, width) => total + width, 0);
+  const tailAvailableWidth = Math.max(0, availableWidth - priorWidth - gap * tailIndex);
+  const tailNaturalWidth = intrinsicWidths[tailIndex] ?? 0;
+
+  return {
+    visibleCount,
+    tailIndex,
+    tailMayEllipsize: tailNaturalWidth > TAG_MIN_WIDTH_PX && tailAvailableWidth < tailNaturalWidth
+  };
 }
 
 export function deriveNaturalHeightFromGeometry(measurement: RowNaturalGeometryMeasurement): RowNaturalMeasurement {
