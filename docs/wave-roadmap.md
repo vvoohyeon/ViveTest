@@ -13,7 +13,7 @@
 | 7 | Blog direct navigation behavior via whole-card trigger | Wave 2 + controller coupling 확인 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
 | 8 | Blog normal/active visual | Wave 7 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
 | 9 | Unavailable behavior and visual | Wave 2–3 + Logic Improvement Analysis gate cleared | Medium | ✅ 완료 |
-| 10 | Landing grid height rhythm | Wave 2–9 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
+| 10 | Landing grid height rhythm | Wave 2–9 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
 | 11 | Landing desktop a11y/keyboard hardening | Wave 4–10 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
 | 12 | Mobile browse card visual | Wave 2–3, 8–9 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
 | 13 | Mobile expanded shape/position | Wave 12 + lifecycle coupling 조사 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
@@ -419,13 +419,23 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 10 — Landing grid height rhythm
 
-- **Status:** ⬜ 미완료
-- **Purpose:** 그리드 높이 리듬 안정화
-- **Include:** content-driven height, row stretch, bottom-anchored tags/CTA, no fixed card minHeight
-- [ ] 태그 fit / CTA 우선순위 계약 (BQ-32, W10-LI-02): 앞쪽 태그 전체 표시 + 마지막 태그만 `--tag-min-width:56px`까지 말줄임 + 미만 시 우측우선 숨김(0개 유효), Blog CTA 우선·여유 시 최대 3개, 호버 폭 변화에 걸쳐 정체성 유지(마지막 태그 CSS 전개·신규 태그 이산 mount), Test/Blog/Unavailable 동일·예외 없음. 코드(req-landing)가 SSOT.
-- **Exclude:** expanded overlay internals already done, baseline update
+- **Status:** ✅ 완료
+- **Purpose:** 콘텐츠 기반 카드 높이와 행 리듬을 안정화하고, 반응형 태그/CTA 배치와 확장 폭을 일관되게 정리한다.
+- **Include:** content-driven height, measured row compensation, bottom-anchored tags/CTA, responsive subtitle clamp, constrained desktop expansion, BQ-30/31/32.
+- **Exclude:** Wave 6 expanded overlay internals, transition/telemetry/routing/storage behavior, GNB/theme cleanup, visual baseline regeneration.
+- **Logic Improvement:** W10-LI-01–06 approved and applied. W10-LI-04는 test-first 조건을 통과해 구현되었고, W10-LI-06은 no-change guard로 완료.
+- **구현 결과:**
+  - settled Normal 카드 측정을 `ResizeObserver`/RAF/font-ready invalidation으로 보강하고 lifecycle 중 write를 중지해 기존 `base_gap + comp_gap` 행 보정과 BQ-24 Expanded floor를 분리 유지.
+  - BQ-32 visible-prefix 적용: 마지막 가시 태그만 56px까지 말줄임, 우측 suffix 숨김, Blog CTA 우선, resize 시 태그 재등장 및 Test/Blog/Unavailable 공통 규칙 구현.
+  - 데스크톱 확장 목표를 측정 기반 `1.10`, 태블릿을 `1.04`로 적용하고 stage 여유에 따른 clamp 및 reduced-motion `1.00` 보존.
+  - 카드 root의 고정 `min-h-44` 제거, Desktop/Tablet subtitle 2줄 ellipsis와 Mobile 전체 표시 적용.
+  - 태그 보더 제거, available `#ECE8DF` / unavailable `#E6E2D8` fill 적용. behavior/routing/storage/telemetry/transition/resolver/i18n 계약은 변경하지 않음.
+- **Files changed:** landing grid spacing/layout/geometry/card runtime과 CSS, 관련 unit/E2E 테스트, phase 4/5/6 static QA, `req-landing`·`design`·decision register·Wave 10 plan.
 - **Prerequisites:** Waves 2–9 완료; Logic Improvement Analysis gate cleared
-- **Validation / tests:** grid/state smoke, breakpoint checks
+- **Validation / tests:** `npm run lint`, `npm run typecheck`, `npm test`(496), `npm run build` green; phase 4/5/6/7/8/10 QA와 Wave 10 unit regression green; non-baseline grid/state/a11y geometry 및 12 locale tag-fit/overflow 검증 완료.
+- **Known deferred / debt:**
+  - BQ-07에 따라 `expanded-focus-shell.png` stale baseline은 재생성하지 않음.
+  - Phase 9 checker의 제거된 `desktopShellInlineScale` matcher는 현행 `frameInlineScale` 구조와 불일치하며 후속 QA 정합 대상으로 이연.
 - **Risk:** High
 - **Handoff:** Wave 11 accessibility hardening
 
