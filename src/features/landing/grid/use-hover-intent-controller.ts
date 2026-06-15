@@ -43,6 +43,7 @@ interface UseHoverIntentControllerInput {
 
 interface UseHoverIntentControllerOutput {
   clearHoverTimer: () => void;
+  cancelPendingHoverIntent: () => void;
   recordPointerInput: (event: PointerEvent | MouseEvent | WheelEvent) => void;
   isPointerInsideCardBoundary: (cardVariant: string) => boolean;
   resolveHoverHandlers: (card: LandingCard) => {
@@ -79,6 +80,12 @@ export function useHoverIntentController({
 
   const clearHoverTimer = useCallback(() => {
     clearHoverTimerOnly();
+    pointerWithinCardVariantRef.current = null;
+  }, [clearHoverTimerOnly]);
+
+  const cancelPendingHoverIntent = useCallback(() => {
+    clearHoverTimerOnly();
+    hoverIntentTokenRef.current += 1;
     pointerWithinCardVariantRef.current = null;
   }, [clearHoverTimerOnly]);
 
@@ -277,6 +284,7 @@ export function useHoverIntentController({
 
   return {
     clearHoverTimer,
+    cancelPendingHoverIntent,
     recordPointerInput,
     isPointerInsideCardBoundary,
     resolveHoverHandlers

@@ -264,7 +264,9 @@ A sticky top bar over a translucent canvas with a quiet backdrop blur; a hairlin
 A full-width overlay panel on `--canvas` with bottom corners at `--radius-xl` and the deepest overlay shadow, sitting above a scrim. Its header row mirrors the navigation it belongs to.
 
 ### 6.9 Focus ring
-A 2px `--focus-ring` outline with a 2px offset on `:focus-visible`. Always visible; never removed.
+A 2px `--focus-ring` outline with a 2px offset on `:focus-visible`. It follows the visible card-shell
+boundary in Normal state and the visible expanded-surface boundary in Expanded state. Always
+visible; never removed.
 
 ### 6.10 Meta row / quiet data row
 A horizontal, wrapping row of small (13px / 500) `--muted` items separated by thin dot separators, with the complete leading duration item (value and label) optionally emphasized at 600 / `--body`. A general low-emphasis data line, reusable anywhere a quiet stat row is needed.
@@ -291,6 +293,7 @@ Content order: **Thumbnail → Title → Subtitle → Tags.**
 - **No Start CTA** on the front face.
 - **No direct navigation** from the front face.
 - **No independent hover** border, shadow, or background — **expansion is the hover response.** Adding a hover border would contradict the immediate expansion.
+- Keyboard focus uses the §6.9 ring on the outer Normal card-shell boundary, not around an inner content fragment.
 
 ### 7.3 Expanded test card
 Content order: **context label → preview question → choice A → choice B → meta row.** Thumbnail, subtitle, and tags are removed in this state.
@@ -302,6 +305,7 @@ Content order: **context label → preview question → choice A → choice B �
 - Choice text **wraps freely; never truncated.** Equal top/bottom choice padding; no `minHeight` on choices.
 - Meta label is **`completed`** (never `taken` / `have taken`); numbers are full-digit. Emphasize the complete duration item only; shared and completed remain plain `--muted`.
 - The expanded card uses exact `--canvas-elevated`, a `--sage` edge, and `--shadow-expanded`.
+- Keyboard focus uses the §6.9 ring on the visible expanded-surface boundary; the ring must remain inside the stage bleed and must not alter shell scale, floor, or overflow.
 - **Height invariant:** the expanded card must be **at least the resting card height**. The realized mechanism measures the resting card's height in **explicit pixels** and applies it as a floor; surplus height is absorbed **only** between the last choice and the meta row (a single flex spacer). The card grows downward when content overflows. **Do not** express this invariant as `min-height: 100%`.
 - The floor/spacer affects only the expanded card's own height; it must not change any same-row card's track height (the row-isolation behavior is governed by the product requirements, not by this document).
 
@@ -312,12 +316,14 @@ Content order: **context label → preview question → choice A → choice B �
 - **Never underlined**, and its color does not change on its own hover.
 - **No `READ` eyebrow** (no eyebrow on any card).
 - Blog is the one card with a hover skin: a `--sage` border plus `--shadow-blog-hover` (using the `--focus-ring-soft` glow), signalling navigability.
+- Keyboard focus places the §6.9 ring around the whole-card link boundary.
 
 ### 7.5 Unavailable card
 - Warm **`--surface-soft`** surface, slightly distinct from available cards.
 - Thumbnail may dim **subtly only** (realized: thumbnail `opacity 0.72`); **title and subtitle keep normal opacity.**
 - A lowercase **standard `coming soon` tag** in the tags-row position, using scoped `#E6E2D8` fill with no border — **no dashed pill, no dot.**
 - Visually inert and removed from the tab order, but **not** styled like a broken disabled button.
+- The warm unavailable surface must retain enough contrast for the standard sage ring if focus is inspected programmatically; this does not make the card keyboard-focusable.
 
 ### 7.6 Navigation
 - **Desktop:** logo + text links, plus the **static language/theme pill** at the right. **No desktop gear/settings icon. No desktop hamburger.**

@@ -6,6 +6,8 @@ import {
   focusCardByVariant,
   getCardRootElement,
   getExpandedFocusableElements,
+  hasOpenHigherPriorityOverlay,
+  isCardFocusExit,
   isDocumentLevelFocusTarget,
   isMobileCardElement,
   isVisibleFocusableElement,
@@ -105,6 +107,36 @@ describe('landing interaction DOM helpers', () => {
       'landing-grid-card-trigger'
     );
     expect(resolveCardBoundaryElement(shell, 'missing')).toBeNull();
+  });
+
+  it('distinguishes inside-card focus movement from true focus exit', () => {
+    const shell = mountShell();
+    const cardRoot = shell.querySelector<HTMLElement>('[data-card-variant="qmbti"]')!;
+    const trigger = cardRoot.querySelector<HTMLElement>('[data-testid="landing-grid-card-trigger"]')!;
+    const choice = cardRoot.querySelector<HTMLElement>('[data-slot="expandedBody"] button')!;
+    const outsideButton = document.createElement('button');
+    document.body.append(outsideButton);
+
+    expect(isCardFocusExit(cardRoot, choice)).toBe(false);
+    expect(isCardFocusExit(cardRoot, trigger)).toBe(false);
+    expect(isCardFocusExit(cardRoot, outsideButton)).toBe(true);
+    expect(isCardFocusExit(cardRoot, null)).toBe(true);
+  });
+
+  it('detects any rendered open dialog without coupling to header or GNB state', () => {
+    const shell = mountShell();
+    const cardDisclosure = shell.querySelector<HTMLElement>('[data-slot="expandedBody"]')!;
+    expect(cardDisclosure.getAttribute('role')).toBeNull();
+    expect(hasOpenHigherPriorityOverlay(document)).toBe(false);
+
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.append(dialog);
+    expect(dialog.closest('header')).toBeNull();
+    expect(hasOpenHigherPriorityOverlay(document)).toBe(true);
+
+    dialog.hidden = true;
+    expect(hasOpenHigherPriorityOverlay(document)).toBe(false);
   });
 
   it('queues focus callbacks behind a double requestAnimationFrame', () => {

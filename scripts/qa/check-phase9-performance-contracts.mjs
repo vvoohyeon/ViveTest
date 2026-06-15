@@ -64,8 +64,28 @@ if (fileExists(landing.grid.gridCard)) {
     fail('LandingGridCard must keep interactive cursor policy explicit in component-owned class sources.');
   }
 
-  if (!/styles\.reducedMotion/u.test(cardFile) || !/desktopShellInlineScale/u.test(cardFile)) {
-    fail('LandingGridCard must consume runtime reduced-motion and plan-derived shell geometry in component-owned style state.');
+  const layoutPlanFile = read('src/features/landing/grid/layout-plan.ts');
+  const inlineGeometryFile = read('src/features/landing/grid/use-card-inline-geometry.ts');
+  const geometryControllerFile = read(landing.grid.geometryController);
+
+  if (
+    !/styles\.reducedMotion/u.test(cardFile) ||
+    !/expandedScale\.frameInlineScale/u.test(cardFile) ||
+    !/resolveLandingExpandedScale/u.test(layoutPlanFile) ||
+    !/DESKTOP_EXPANDED_DESIRED_FINAL_SCALE/u.test(layoutPlanFile) ||
+    !/Math\.min\(desiredFinalScale,\s*maxSurfaceScale\)/u.test(layoutPlanFile) ||
+    !/setDecision\(\(current\) => \(scaleDecisionsEqual\(current,\s*nextDecision\) \? current : nextDecision\)\)/u.test(
+      inlineGeometryFile
+    ) ||
+    !/frameRef\.current = requestAnimationFrame/u.test(inlineGeometryFile) ||
+    !/new ResizeObserver\(scheduleSettledMeasure\)/u.test(inlineGeometryFile) ||
+    !/isSameSpacingModel\(previous,\s*nextSpacingModel\) \? previous : nextSpacingModel/u.test(
+      geometryControllerFile
+    ) ||
+    !/frame = window\.requestAnimationFrame/u.test(geometryControllerFile) ||
+    !/new ResizeObserver\(scheduleMeasure\)/u.test(geometryControllerFile)
+  ) {
+    fail('LandingGridCard must consume runtime reduced-motion and constrained measured shell geometry.');
   }
 }
 

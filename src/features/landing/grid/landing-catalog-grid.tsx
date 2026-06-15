@@ -176,6 +176,8 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
       data-hover-lock-enabled={interactionState.hoverLock.enabled ? 'true' : 'false'}
       data-hover-lock-card-variant={interactionState.hoverLock.cardVariant ?? ''}
       data-keyboard-mode={interactionState.hoverLock.keyboardMode ? 'true' : 'false'}
+      data-interaction-expanded-card-variant={interactionState.expandedCardVariant ?? ''}
+      data-active-visual-card-variant={activeVisualCardVariant ?? ''}
       data-mobile-phase={mobileLifecycleState.phase}
       data-mobile-restore-ready-card-variant={mobileRestoreReadyVariant ?? ''}
       data-baseline-phase={baselineState.phase}
@@ -250,6 +252,8 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     keyboardModeBlocked={interactionBindings.keyboardModeBlocked}
                     ariaDisabled={interactionBindings.ariaDisabled}
                     tabIndex={interactionBindings.tabIndex}
+                    onCardKeyDown={interactionBindings.onCardKeyDown}
+                    onCardBlur={interactionBindings.onCardBlur}
                     onFocus={interactionBindings.onFocus}
                     onKeyDown={interactionBindings.onKeyDown}
                     onClick={interactionBindings.onClick}

@@ -1,14 +1,14 @@
 # Wave 11 Desktop A11y / Keyboard Hardening Implementation Plan
 
-> **Plan status:** Awaiting user review and implementation authorization. This document authorizes
-> no implementation.
-> **Authoring mode:** Plan Only.
+> **Plan status:** Approved and implemented on 2026-06-15; formal completion is blocked by the
+> separately owned Phase 9 stale matcher recorded in §18.
+> **Authoring mode:** Approved implementation record.
 > **Implementation mode after approval:** Inline execution only, one unit at a time. Do not dispatch
 > parallel agents, automated implementation pipelines, or multi-wave execution.
 > **Wave:** 11 - Landing desktop a11y/keyboard hardening.
 > **Risk:** High - usability, accessibility, responsive input behavior, lifecycle state, and
 > design-system consistency are in scope.
-> **Workspace:** `/Users/woohyeon/Local/ViveTest`, branch `main`.
+> **Workspace:** `/Users/b-m-2022001/Local/ViveTest`, branch `main`.
 > **Basis:** `docs/plans/2026-06-11-wave-11-desktop-a11y-keyboard-analysis.md`. Section references
 > below point to that approved analysis; this plan does not restate its evidence audit.
 > **Logic Improvement: approved — W11-LI-01, W11-LI-02, W11-LI-03, W11-LI-04.**
@@ -17,6 +17,8 @@
 > `aria-label="Card tags"` and rely on native list semantics with no new i18n keys.
 > **Governing decisions:** BQ-12, BQ-19, BQ-21, BQ-24, BQ-25, BQ-26, Wave 10 outcomes, and the
 > implementation-time BQ-33 record defined in Unit 5.
+> **Amendment authority:** User-approved A1-A8 override every conflicting pre-approval example in
+> this plan. The implemented choices are recorded in §18.
 
 ---
 
@@ -234,7 +236,7 @@ Do not add a new §14.2 blocker number. Extend the existing Keyboard/A11y item s
 
 ### Steps
 
-- [ ] Verify `pwd` is `/Users/woohyeon/Local/ViveTest`.
+- [x] Verify `pwd` is `/Users/b-m-2022001/Local/ViveTest`.
 - [ ] Verify branch `main`, record HEAD, and record `git status --short --untracked-files=all`.
 - [ ] Confirm the user has authorized implementation after reviewing this plan.
 - [ ] Confirm the user-owned Wave 8/10 roadmap/STATE prerequisite has been reconciled, or record an
@@ -244,9 +246,10 @@ Do not add a new §14.2 blocker number. Extend the existing Keyboard/A11y item s
 - [ ] Re-read root `AGENTS.md`, this plan, and analysis §§5, 6, 8, 9, and 10.13.
 - [ ] Confirm `package.json`, `playwright.config.ts`, `next.config.ts`, and `src/config/site.ts` still
       match the commands/locales assumed here.
-- [ ] Prove from the current rendered DOM that an open desktop GNB settings dialog can be detected
-      from the card layer without editing `src/features/gnb/**`. The intended local predicate is
-      semantic, not state-sharing: a visible dialog under the page header is higher priority.
+- [x] Prove from the current rendered DOM that an open desktop GNB settings dialog can be detected
+      from the card layer without editing `src/features/gnb/**`. The verified panel is a non-hidden
+      `div[role="dialog"]` under `header`, has no `aria-modal`, and does not trap focus. The local
+      safety predicate is document-wide `[role="dialog"]:not([hidden])`, not header-coupled.
 - [ ] Confirm Unit 2 will begin with the top-overlay regression before its production edits. It must
       open settings while a Test card retains focus, press Escape once, and prove only settings
       closes; the second Escape closes the card. If the first-Escape isolation cannot be made
@@ -449,7 +452,7 @@ isCardFocusExit(cardRoot, null) === true
 
 ```ts
 hasOpenHigherPriorityOverlay(document) === false
-// true only while a visible dialog exists under the page header
+// true while a non-hidden role=dialog exists anywhere in the document
 ```
 
 The helper must not import from `src/features/gnb/**`, inspect React state, or recognize the landing
@@ -525,11 +528,11 @@ can close both an open settings dialog and the card.
 - [ ] Add `isCardFocusExit(cardRoot, relatedTarget)` in `interaction-dom.ts`. It returns false only
       when `relatedTarget` is a `Node` contained by `cardRoot`.
 - [ ] Add `hasOpenHigherPriorityOverlay(document)` in `interaction-dom.ts`. It may read only the
-      current rendered semantic DOM (a non-hidden `role="dialog"` under `header`). It must not import
+      current rendered semantic DOM (a document-wide non-hidden `role="dialog"`). It must not import
       GNB modules, mutate the overlay, or add a global listener.
 
 ```ts
-return ownerDocument.querySelector('header [role="dialog"]:not([hidden])') !== null;
+return ownerDocument.querySelector('[role="dialog"]:not([hidden])') !== null;
 ```
 
 - [ ] Add `isDesktopShellLogicallyInteractive(phase)` in `desktop-shell-phase.ts`.
@@ -555,6 +558,8 @@ The Escape handler:
 
 The blur handler invokes the same primitive only on a true boundary exit and uses
 `focusDisposition:'preserve-destination'`. It must preserve an already-applied queued handoff.
+Both root handlers are Desktop/Tablet-only. A null `relatedTarget` caused by document/window focus
+loss is not a true in-page focus-out and must preserve disclosure.
 
 - [ ] Add the source-aware desktop close primitive with this effective contract:
 
@@ -615,8 +620,10 @@ Implement analysis §6.3 A, §6.4 A, §4.5 naming guidance, D3, and BQ-26:
 - `aria-expanded` follows logical interactivity, not visual persistence:
   `false -> true -> false` at the start of closing. `opening`, `steady`, and `handoff-target` are
   true; `idle`, `closing`, `cleanup-pending`, and `handoff-source` are false.
-- Add `aria-controls` only to the Test trigger and point it to the always-mounted desktop stage id.
-- Test trigger name is the visible title via `aria-labelledby`, not a concatenated `aria-label`.
+- The Test trigger name is the locale title as a single-value `aria-label`; it must remain
+  byte-identical through idle/opening/steady/closing.
+- The always-mounted desktop stage `aria-hidden` follows the same logical disclosure predicate as
+  `aria-expanded`. Optional `aria-controls` is omitted.
 - Blog remains the title-labelled whole-card link and receives no `aria-expanded`.
 - Unavailable keeps one semantic owner: the button has `aria-labelledby` to title,
   `aria-describedby` to coming-soon, `aria-disabled="true"`, and `tabIndex=-1`; the root no longer
@@ -628,11 +635,11 @@ Implement analysis §6.3 A, §6.4 A, §4.5 naming guidance, D3, and BQ-26:
 ### Red tests first
 
 - [ ] Extend `tests/unit/landing-card-contract.test.ts` with failing DOM contracts:
-  - Test trigger `aria-labelledby` resolves to the visible title id.
+  - Test trigger accessible name remains byte-identical to `card.title` across expand/Escape/close.
   - Desktop Test trigger has `aria-expanded="false"` at idle, `"true"` at
     opening/steady/handoff-target, and `"false"` at closing/cleanup/handoff-source.
-  - Test `aria-controls` resolves to the always-mounted `data-slot="desktopStage"` id even when its
-    visible child shell is absent.
+  - The always-mounted `data-slot="desktopStage"` is AT-exposed while logically expanded and hidden
+    while logically closed; Test omits `aria-controls`.
   - Blog keeps its title label and has no `aria-expanded`/`aria-controls`.
   - Unavailable root has no `aria-disabled`; button owns disabled state/name/description.
   - The coming-soon description id resolves to the public, non-`aria-hidden` status chip.
@@ -663,29 +670,26 @@ state is duplicated, and tags retain the English label.
 
 ### Minimal implementation
 
-- [ ] Create stable per-card ids from React's stable id mechanism, with explicit suffixes for title,
-      status, and desktop stage. Use one `useId()` base per card render; do not derive ids from
-      localized text.
+- [ ] Create stable per-card ids from React's stable id mechanism, with explicit suffixes for title
+      and status. Use one `useId()` base per card render; do not derive ids from localized text.
 - [ ] Thread `titleId` through `NormalCardFace` -> `NormalCardTitle` and attach it to the single
       visible Normal title node used by Desktop/Tablet. Preserve the existing mobile expanded naming
       path; do not restructure mobile lifecycle.
 - [ ] Thread `statusId` through `NormalCardFace` -> `NormalCardTagRow` and attach it only to the
       unavailable coming-soon chip.
-- [ ] Pass `desktopStageId` to the always-mounted `DesktopExpandedShell` wrapper. The stage remains
-      mounted with `aria-hidden="true"` while idle; never point `aria-controls` at
-      `expandedBody`.
+- [ ] Keep the desktop stage always mounted. Its `aria-hidden` follows
+      `isDesktopShellLogicallyInteractive`; do not add `aria-controls`.
 - [ ] Compute Desktop/Tablet Test disclosure state from
       `isDesktopShellLogicallyInteractive(desktopStagePhase)`.
 - [ ] Apply to the Test trigger:
 
 ```tsx
-aria-labelledby={!isMobileViewport ? titleId : undefined}
+aria-label={card.title}
 aria-expanded={!isMobileViewport ? desktopLogicalExpanded : undefined}
-aria-controls={!isMobileViewport ? desktopStageId : undefined}
 ```
 
-- [ ] Keep the current Mobile Test naming path (`aria-label` while Mobile Expanded); do not attach
-      Desktop title/stage relationships when the referenced Normal title/stage is not mounted.
+- [ ] Keep the Test name as the same title-only `aria-label` on Mobile; do not redesign Mobile
+      lifecycle state.
 - [ ] Keep Blog's current title label and omit disclosure attributes.
 - [ ] Apply unavailable `aria-labelledby`, `aria-describedby`, `aria-disabled`, and `tabIndex=-1`
       to the button only.
@@ -828,7 +832,8 @@ Begin this unit only after Units 1-4 are green.
 > without reclaiming focus. Queued Test-to-Test handoff preserves source `0ms`/target standard
 > motion and a later source blur is idempotent; Test-to-Blog uses standard Test close plus Blog
 > focus-only. An open higher-priority GNB dialog consumes Escape before the card without changing
-> GNB internals. Test owns `aria-expanded` and the stable title/stage relationships;
+> GNB internals. Test owns `aria-expanded`; the title-only name is cycle-stable, stage
+> `aria-hidden` follows logical disclosure, and optional `aria-controls` is omitted;
 > unavailable keeps button-only disabled/name/status ownership with `tabIndex=-1`; the hard-coded
 > tags `aria-label` is removed in favor of native list semantics; no live region or new i18n key is
 > added. Closing controls become noninteractive at closing start while reverse motion and BQ-24
@@ -986,7 +991,8 @@ capability rows do not replace the full Desktop normal/reduced-motion matrix.
   BQ-24 geometry remain.
 - No focus trap exists at first/last card edges.
 - Test trigger owns `aria-expanded` and follows `false -> true -> false`.
-- Test `aria-controls` resolves to the always-mounted desktop stage.
+- Test omits optional `aria-controls`; the always-mounted desktop stage follows logical
+  `aria-hidden` state and exposes question/choices while expanded.
 - Stable names/descriptions/states pass across all 12 locales.
 - Blog link remains title-labelled and receives no disclosure state.
 - Unavailable remains title + coming-soon description + `aria-disabled` + `tabIndex=-1`, with the
@@ -1068,7 +1074,80 @@ Additional concrete anchors:
 
 ## 17. Approval Gate
 
-This plan is the BQ-19 implementation-plan artifact. Implementation must not begin until the user
-reviews and explicitly authorizes it. Authorization applies only to the files, units, decisions, and
-validation scope recorded here; any required GNB/mobile/global-token/baseline expansion is a new
-gate.
+The user explicitly approved this BQ-19 implementation plan and W11-LI-01..04 on 2026-06-15, with
+A1-A8 as binding amendments. Authorization remained limited to the recorded files and validation
+scope; no GNB/mobile/global-token/baseline expansion was used.
+
+## 18. Implementation Outcome (2026-06-15)
+
+### 18.1 Amendment result
+
+- **A1:** Verified the real settings panel as a non-hidden `div[role="dialog"]` under `header`,
+  without `aria-modal` and without a focus trap. Implemented the document-wide safety predicate
+  `[role="dialog"]:not([hidden])`; first Escape closes settings, second closes the Test card.
+- **A2:** Chose the title-only `aria-label={card.title}` path. The computed name is byte-identical
+  across idle → opening → steady → closing in all 12 locales.
+- **A3:** Omitted optional `aria-controls`. The always-mounted desktop stage `aria-hidden` follows
+  logical disclosure, and expanded question/A/B are AT-exposed and axe-clean.
+- **A4:** Escape from A/B focuses the Test trigger synchronously before collapse and queues the same
+  trigger after dispatch. The observed sequence never leaves focus in hidden/inert content.
+- **A5:** Both card-root `onKeyDown` and `onBlur` are Desktop/Tablet-only; mobile-state no-op tests
+  cover both branches.
+- **A6:** Repository search found no `ESCAPE` consumer beyond the global dispatch and landing
+  reducer case, so both were removed.
+- **A7:** Null `relatedTarget` during document/window focus loss preserves disclosure; only a true
+  in-page focus-out closes.
+- **A8:** `idle`, `handoff-source`, and `handoff-target` were existing shell phases. The logical
+  interactivity helper maps them without adding or renaming motion states.
+
+### 18.2 Actual changed files
+
+Runtime/style:
+`desktop-shell-phase.ts`, `interaction-dom.ts`, `landing-card-interaction-bindings.ts`,
+`landing-catalog-grid.tsx`, `landing-grid-card.tsx`, `landing-grid-card.module.css`,
+`use-card-keyboard-handler.ts`, `use-hover-intent-controller.ts`, `use-keyboard-handoff.ts`,
+`use-keyboard-mode-tracker.ts`, `use-landing-interaction-controller.ts`, and
+`interaction-state.ts`.
+
+Tests:
+`a11y-smoke.spec.ts`, `state-smoke.spec.ts`, `landing-card-contract.test.ts`,
+`landing-desktop-shell-phase.test.ts`, `landing-interaction-controller-handlers.test.ts`,
+`landing-interaction-dom.test.ts`, and `landing-interaction-state.test.ts`.
+
+SSOT/record:
+`req-landing.md`, `design/design.md`, `decision-register.md`, and this plan.
+
+### 18.3 TDD and validation evidence
+
+- Unit 1 RED: 3/26 unit failures and 3/3 LI-01 E2E failures on missing classifier/immediate focus
+  and stale pointer intent. GREEN: 26/26 unit and 3/3 E2E.
+- Unit 2 RED: 10/45 unit failures and 3 expected LI-02 E2E failures; Blog/unavailable no-op already
+  passed. GREEN: 45/45 unit and 4/4 E2E.
+- Unit 3 RED: 1/14 unit failure and the all-locale name-stability E2E failure. GREEN: 14/14 unit and
+  2/2 E2E.
+- Unit 4 RED: 1/15 unit failure and computed `outline: 0px none`. GREEN: 15/15 unit and 1/1 E2E.
+- Basic gates: lint PASS with zero warnings; typecheck PASS; full Vitest 74 files / 515 tests PASS;
+  production build PASS.
+- Focused units: 5 files / 62 tests PASS.
+- Preview `assertion:W11-keyboard`: 10/10 PASS with one worker.
+- Static checks: Phase 4, 5, 6, 7, 8, and 10 PASS. Phase 9 FAILS with
+  `LandingGridCard must consume runtime reduced-motion and plan-derived shell geometry in
+  component-owned style state.` The separately owned stale `desktopShellInlineScale` matcher was
+  not fixed or worked around.
+- Forbidden paths and snapshot diff: empty. Snapshot inventory: 177 files before/after with
+  identical inventory SHA-256
+  `9780a1d2b195add48f84829d4af22adb8731255f8f5f7f301c1f00c866117642`.
+- `git diff --check`: PASS.
+
+### 18.4 Divergences and status
+
+- The approved plan recorded the old workspace path `/Users/woohyeon/Local/ViveTest`; execution
+  used the user-provided workspace `/Users/b-m-2022001/Local/ViveTest`.
+- A1 replaced the unverified header-coupled selector with the verified document-wide dialog
+  predicate.
+- A2/A3 replaced the pre-amendment `aria-labelledby` + `aria-controls` proposal with stable
+  title-only `aria-label`, omitted `aria-controls`, and logical stage `aria-hidden`.
+- The user explicitly authorized proceeding despite stale roadmap/STATE prerequisite text and
+  prohibited editing either file.
+- Implementation is present and all Wave 11 focused/basic evidence passes, but formal Wave 11
+  completion is **not claimed** because Phase 9 remains red. No roadmap completion is recorded.

@@ -40,12 +40,6 @@ export function useKeyboardModeTracker({
         return;
       }
 
-      if (event.key === 'Escape') {
-        dispatch({
-          type: 'ESCAPE',
-          nowMs: event.timeStamp
-        });
-      }
     };
 
     const handleGlobalMouseDown = () => {

@@ -29,6 +29,8 @@ export interface LandingCardInteractionBindings {
   mobileTransientMode: LandingCardMobileTransientMode;
   mobileRestoreReady: boolean;
   mobileSnapshot: LandingMobileSnapshotView | null;
+  onCardKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
+  onCardBlur: (event: ReactFocusEvent<HTMLElement>) => void;
   onFocus: (event: ReactFocusEvent<HTMLElement>) => void;
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   onClick: (event: ReactMouseEvent<HTMLElement>) => void;

@@ -100,6 +100,46 @@ async function waitForLandingInteractionRamp(page: Page) {
   await page.waitForTimeout(LANDING_INTERACTION_RAMP_SETTLE_MS);
 }
 
+async function installHoverCapability(page: Page, matches: boolean) {
+  await page.addInitScript((hoverMatches) => {
+    const originalMatchMedia = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) => {
+      if (query === '(hover: hover) and (pointer: fine)') {
+        return {
+          media: query,
+          matches: hoverMatches,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => false,
+          addListener: () => {},
+          removeListener: () => {}
+        } as MediaQueryList;
+      }
+
+      return originalMatchMedia(query);
+    };
+  }, matches);
+}
+
+async function readFocusOnlySideEffects(page: Page) {
+  return page.evaluate(() => ({
+    url: window.location.href,
+    transitionOverlayCount: document.querySelectorAll('[data-testid="landing-transition-source-gnb"]').length,
+    transitionStorage: Object.fromEntries(
+      Object.entries(window.sessionStorage).filter(
+        ([key]) =>
+          key === 'vivetest-landing-pending-transition' ||
+          key.startsWith('vivetest-landing-ingress:')
+      )
+    )
+  }));
+}
+
+function normalizeAdjacent(values: string[]): string[] {
+  return values.filter((value, index) => index === 0 || value !== values[index - 1]);
+}
+
 function getPrimaryAvailableTestCard(page: Page): Locator {
   return page.locator(AVAILABLE_TEST_CARD_SELECTOR).first();
 }
@@ -225,6 +265,365 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
     await expect(page.getByTestId('landing-grid-card').first()).toHaveAttribute('data-interaction-mode', 'hover');
+  });
+
+  test('@smoke assertion:W11-keyboard LI-01 Desktop hover-none and Tablet Test focus expand immediately', async ({
+    page
+  }) => {
+    await installHoverCapability(page, false);
+
+    for (const viewport of [
+      {width: 1440, height: 980},
+      {width: 900, height: 980}
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto('/en');
+
+      const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+      const focusExpandElapsedMs = await card.getByTestId('landing-grid-card-trigger').evaluate((trigger) => {
+        const cardRoot = trigger.closest('[data-testid="landing-grid-card"]');
+        if (!(cardRoot instanceof HTMLElement)) {
+          throw new Error('Missing card root');
+        }
+
+        return new Promise<number | null>((resolve) => {
+          const startedAt = performance.now();
+          const observer = new MutationObserver(() => {
+            if (cardRoot.dataset.cardState === 'expanded') {
+              observer.disconnect();
+              resolve(performance.now() - startedAt);
+            }
+          });
+          observer.observe(cardRoot, {attributes: true, attributeFilter: ['data-card-state']});
+          (trigger as HTMLElement).focus();
+
+          if (cardRoot.dataset.cardState === 'expanded') {
+            observer.disconnect();
+            resolve(performance.now() - startedAt);
+            return;
+          }
+
+          window.setTimeout(() => {
+            observer.disconnect();
+            resolve(null);
+          }, 120);
+        });
+      });
+
+      expect(focusExpandElapsedMs).not.toBeNull();
+      expect(focusExpandElapsedMs ?? 120).toBeLessThan(120);
+      await expect(card).toHaveAttribute('data-interaction-mode', 'tap');
+      await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    }
+  });
+
+  test('@smoke assertion:W11-keyboard LI-01 keyboard focus cancels stale pointer intent and keeps Blog out of expansion ownership', async ({
+    page
+  }) => {
+    let telemetryRequestCount = 0;
+    await page.route('**/api/telemetry', async (route) => {
+      telemetryRequestCount += 1;
+      await route.fulfill({status: 204});
+    });
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const shell = page.getByTestId('landing-grid-shell');
+    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
+    const blogCard = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+    const before = await readFocusOnlySideEffects(page);
+    const telemetryBefore = telemetryRequestCount;
+
+    await firstCard.getByTestId('landing-grid-card-trigger').hover();
+    await secondCard.getByTestId('landing-grid-card-trigger').focus();
+    await page.waitForTimeout(220);
+
+    await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(shell).toHaveAttribute('data-interaction-expanded-card-variant', 'rhythm-b');
+    await expect(shell).toHaveAttribute('data-active-visual-card-variant', 'rhythm-b');
+
+    await blogCard.getByTestId('landing-grid-card-trigger').focus();
+    await expect(blogCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
+    await expect(blogCard).not.toHaveAttribute('data-card-state', 'expanded');
+    await expect(shell).not.toHaveAttribute('data-interaction-expanded-card-variant', PRIMARY_BLOG_VARIANT);
+    await expect(shell).not.toHaveAttribute('data-active-visual-card-variant', PRIMARY_BLOG_VARIANT);
+    await expect(blogCard).toHaveAttribute('data-desktop-motion-role', 'idle');
+    await expect(shell).not.toHaveAttribute('data-baseline-active-card-variant', PRIMARY_BLOG_VARIANT);
+
+    await firstCard.getByTestId('landing-grid-card-trigger').focus();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(shell).toHaveAttribute(
+      'data-interaction-expanded-card-variant',
+      PRIMARY_AVAILABLE_TEST_VARIANT
+    );
+
+    const after = await readFocusOnlySideEffects(page);
+    expect(after).toEqual(before);
+    expect(telemetryRequestCount).toBe(telemetryBefore);
+  });
+
+  test('@smoke assertion:W11-keyboard LI-02 Escape from trigger and choices closes once and restores a safe trigger focus', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+
+    for (const source of ['trigger', 'choice-a', 'choice-b'] as const) {
+      await page.goto('/en');
+      const shell = page.getByTestId('landing-grid-shell');
+      const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+      const trigger = card.getByTestId('landing-grid-card-trigger');
+      await trigger.focus();
+      await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+
+      if (source !== 'trigger') {
+        await page.keyboard.press('Tab');
+        await expect(card.locator('[data-slot="answerChoiceA"]')).toBeFocused();
+      }
+      if (source === 'choice-b') {
+        await page.keyboard.press('Tab');
+        await expect(card.locator('[data-slot="answerChoiceB"]')).toBeFocused();
+      }
+
+      await shell.evaluate((element, cardVariant) => {
+        const cardRoot = element.querySelector<HTMLElement>(`[data-card-variant="${cardVariant}"]`);
+        if (!cardRoot) {
+          throw new Error('Missing observed card');
+        }
+        const state = window as Window & {
+          __w11EscapeLog?: {
+            phases: string[];
+            baselinePhases: string[];
+            hiddenOrInertFocus: string[];
+            observer: MutationObserver;
+          };
+        };
+        const phases = [cardRoot.dataset.desktopShellPhase ?? ''];
+        const baselinePhases = [(element as HTMLElement).dataset.baselinePhase ?? ''];
+        const hiddenOrInertFocus: string[] = [];
+        const observer = new MutationObserver(() => {
+          phases.push(cardRoot.dataset.desktopShellPhase ?? '');
+          baselinePhases.push((element as HTMLElement).dataset.baselinePhase ?? '');
+          const active = document.activeElement;
+          if (
+            active instanceof HTMLElement &&
+            active.closest('[aria-hidden="true"], [inert]')
+          ) {
+            hiddenOrInertFocus.push(active.outerHTML);
+          }
+        });
+        observer.observe(element, {
+          attributes: true,
+          subtree: true,
+          attributeFilter: ['data-desktop-shell-phase', 'data-baseline-phase', 'aria-hidden', 'inert', 'tabindex']
+        });
+        state.__w11EscapeLog = {phases, baselinePhases, hiddenOrInertFocus, observer};
+      }, PRIMARY_AVAILABLE_TEST_VARIANT);
+
+      const before = await readFocusOnlySideEffects(page);
+      await page.keyboard.press('Escape');
+      await expect(trigger).toBeFocused();
+      await expect(card).toHaveAttribute('data-desktop-shell-phase', 'idle');
+      await expect(shell).toHaveAttribute('data-baseline-phase', 'BASELINE_READY');
+
+      const log = await page.evaluate(() => {
+        const state = window as Window & {
+          __w11EscapeLog?: {
+            phases: string[];
+            baselinePhases: string[];
+            hiddenOrInertFocus: string[];
+            observer: MutationObserver;
+          };
+        };
+        const value = state.__w11EscapeLog;
+        value?.observer.disconnect();
+        return value
+          ? {
+              phases: value.phases,
+              baselinePhases: value.baselinePhases,
+              hiddenOrInertFocus: value.hiddenOrInertFocus
+            }
+          : null;
+      });
+
+      expect(normalizeAdjacent(log?.phases ?? [])).toEqual([
+        'steady',
+        'closing',
+        'cleanup-pending',
+        'idle'
+      ]);
+      expect(normalizeAdjacent(log?.baselinePhases ?? [])).toEqual([
+        'BASELINE_FROZEN',
+        'BASELINE_READY'
+      ]);
+      expect(log?.hiddenOrInertFocus).toEqual([]);
+      expect(log?.phases).not.toContain('handoff-source');
+      expect(await readFocusOnlySideEffects(page)).toEqual(before);
+
+      await page.keyboard.press('Tab');
+      await expect(card.locator('[data-slot="answerChoiceA"]:focus')).toHaveCount(0);
+      await expect(card.locator('[data-slot="answerChoiceB"]:focus')).toHaveCount(0);
+    }
+  });
+
+  test('@smoke assertion:W11-keyboard LI-02 true focus-out closes without stealing GNB Blog or document destination focus', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const trigger = testCard.getByTestId('landing-grid-card-trigger');
+    const blogTrigger = page
+      .locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`)
+      .getByTestId('landing-grid-card-trigger');
+
+    await trigger.focus();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    await page.keyboard.press('Tab');
+    await expect(testCard.locator('[data-slot="answerChoiceA"]')).toBeFocused();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    await page.keyboard.press('Tab');
+    await expect(testCard.locator('[data-slot="answerChoiceB"]')).toBeFocused();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    await page.keyboard.press('Shift+Tab');
+    await expect(testCard.locator('[data-slot="answerChoiceA"]')).toBeFocused();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
+
+    await page.locator('body').dispatchEvent('mousedown', {
+      button: 0,
+      clientX: 1,
+      clientY: 1
+    });
+    await blogTrigger.focus();
+    await expect(blogTrigger).toBeFocused();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
+
+    await trigger.focus();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    const settingsTrigger = page.getByTestId('gnb-settings-trigger');
+    await settingsTrigger.focus();
+    await expect(settingsTrigger).toBeFocused();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
+
+    await page.evaluate(() => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.testid = 'w11-document-focus-target';
+      button.textContent = 'Document focus target';
+      document.body.append(button);
+    });
+    const documentTarget = page.getByTestId('w11-document-focus-target');
+    await trigger.focus();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    await documentTarget.focus();
+    await expect(documentTarget).toBeFocused();
+    await expect(testCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
+  });
+
+  test('@smoke assertion:W11-keyboard LI-02 open settings consumes first Escape and card consumes second', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const trigger = card.getByTestId('landing-grid-card-trigger');
+    const settingsTrigger = page.getByTestId('gnb-settings-trigger');
+    const settingsPanel = page.getByTestId('gnb-settings-panel');
+
+    await trigger.focus();
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    await settingsTrigger.hover();
+    await expect(settingsPanel).toBeVisible();
+    await expect(trigger).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(settingsPanel).toBeHidden();
+    await expect(trigger).toBeFocused();
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+
+    await page.keyboard.press('Escape');
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'idle');
+    await expect(trigger).toBeFocused();
+  });
+
+  test('@smoke assertion:W11-keyboard LI-04 expanded focus ring follows the surface without horizontal overflow', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+
+    for (const reducedMotion of [false, true]) {
+      await page.emulateMedia({reducedMotion: reducedMotion ? 'reduce' : 'no-preference'});
+      await page.goto('/en');
+
+      const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+      const trigger = card.getByTestId('landing-grid-card-trigger');
+      const surface = card.locator('[data-slot="expandedSurface"]');
+
+      await trigger.focus();
+      await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+      await page.keyboard.press('Tab');
+      await expect(card.locator('[data-slot="answerChoiceA"]')).toBeFocused();
+
+      const metrics = await surface.evaluate((element) => {
+        const surfaceElement = element as HTMLElement;
+        const cardElement = surfaceElement.closest<HTMLElement>('[data-testid="landing-grid-card"]');
+        const stageElement = cardElement?.querySelector<HTMLElement>('[data-slot="desktopStage"]');
+        const shellElement = document.querySelector<HTMLElement>('[data-testid="landing-grid-shell"]');
+        const containerElement = document.querySelector<HTMLElement>('[data-testid="landing-grid-container"]');
+
+        if (!cardElement || !stageElement || !shellElement || !containerElement) {
+          throw new Error('Expected expanded card geometry targets.');
+        }
+
+        const style = getComputedStyle(surfaceElement);
+        const surfaceRect = surfaceElement.getBoundingClientRect();
+        const stageRect = stageElement.getBoundingClientRect();
+        const outlineExtent = Number.parseFloat(style.outlineWidth) + Number.parseFloat(style.outlineOffset);
+        const overflowTargets = {
+          stage: stageElement,
+          surface: surfaceElement,
+          grid: shellElement,
+          container: containerElement,
+          document: document.documentElement
+        };
+
+        return {
+          outlineWidth: style.outlineWidth,
+          outlineStyle: style.outlineStyle,
+          outlineColor: style.outlineColor,
+          outlineOffset: style.outlineOffset,
+          outlineInsideStage:
+            surfaceRect.left - outlineExtent >= stageRect.left &&
+            surfaceRect.right + outlineExtent <= stageRect.right &&
+            surfaceRect.top - outlineExtent >= stageRect.top &&
+            surfaceRect.bottom + outlineExtent <= stageRect.bottom,
+          horizontalOverflow: Object.fromEntries(
+            Object.entries(overflowTargets).map(([name, target]) => [
+              name,
+              `${Math.max(0, target.scrollWidth - target.clientWidth)}px`
+            ])
+          )
+        };
+      });
+
+      expect(metrics).toEqual({
+        outlineWidth: '2px',
+        outlineStyle: 'solid',
+        outlineColor: 'rgb(92, 142, 120)',
+        outlineOffset: '2px',
+        outlineInsideStage: true,
+        horizontalOverflow: {
+          stage: '0px',
+          surface: '0px',
+          grid: '0px',
+          container: '0px',
+          document: '0px'
+        }
+      });
+    }
   });
 
   test('@smoke assertion:B5-keyboard-sequential keyboard sequential override expands focused card and moves through internal controls before next card', async ({

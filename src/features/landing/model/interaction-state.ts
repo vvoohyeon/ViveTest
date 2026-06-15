@@ -82,8 +82,7 @@ export type LandingInteractionEvent =
       nowMs: number;
       interactionMode: 'hover' | 'tap';
       cardVariant: string;
-    }
-  | {type: 'ESCAPE'; nowMs: number};
+    };
 
 export const initialLandingInteractionState: LandingInteractionState = {
   pageState: 'ACTIVE',
@@ -96,6 +95,18 @@ export const initialLandingInteractionState: LandingInteractionState = {
     keyboardMode: false
   }
 };
+
+export function resolveKeyboardFocusDisposition(input: {
+  isMobileViewport: boolean;
+  cardEnterable: boolean;
+  cardExpandable: boolean;
+}): 'expand' | 'focus-only' | 'preserve-mobile' {
+  if (input.isMobileViewport) {
+    return 'preserve-mobile';
+  }
+
+  return input.cardEnterable && input.cardExpandable ? 'expand' : 'focus-only';
+}
 
 const INTERACTION_BLOCKING_PAGE_STATES: ReadonlySet<PageState> = new Set(['INACTIVE', 'TRANSITIONING']);
 
@@ -409,16 +420,6 @@ export function reduceLandingInteractionState(
         focusedCardVariant: settledState.focusedCardVariant === event.cardVariant ? null : settledState.focusedCardVariant
       });
     }
-    case 'ESCAPE':
-      if (isInteractionBlocked(settledState)) {
-        return settledState;
-      }
-
-      return clearHoverLock({
-        ...settledState,
-        focusedCardVariant: null,
-        expandedCardVariant: null
-      });
     default:
       return settledState;
   }

@@ -7,6 +7,7 @@ import {
   isAllowedPageTransition,
   isKeyboardModeBlocked,
   reduceLandingInteractionState,
+  resolveKeyboardFocusDisposition,
   resolveCardStateForVariant,
   resolveVisualState,
   resolveCardTabIndex,
@@ -18,6 +19,59 @@ function replay(events: LandingInteractionEvent[]) {
 }
 
 describe('landing interaction state machine', () => {
+  it('classifies keyboard focus by viewport and card expandability', () => {
+    expect(
+      resolveKeyboardFocusDisposition({
+        isMobileViewport: false,
+        cardEnterable: true,
+        cardExpandable: true
+      })
+    ).toBe('expand');
+    expect(
+      resolveKeyboardFocusDisposition({
+        isMobileViewport: false,
+        cardEnterable: true,
+        cardExpandable: false
+      })
+    ).toBe('focus-only');
+    expect(
+      resolveKeyboardFocusDisposition({
+        isMobileViewport: false,
+        cardEnterable: false,
+        cardExpandable: false
+      })
+    ).toBe('focus-only');
+    expect(
+      resolveKeyboardFocusDisposition({
+        isMobileViewport: true,
+        cardEnterable: true,
+        cardExpandable: true
+      })
+    ).toBe('preserve-mobile');
+  });
+
+  it('keeps repeated CARD_EXPAND commands idempotent for the same Test variant', () => {
+    const expanded = replay([
+      {
+        type: 'CARD_EXPAND',
+        nowMs: 1,
+        interactionMode: 'tap',
+        cardVariant: 'qmbti',
+        available: true
+      },
+      {
+        type: 'CARD_EXPAND',
+        nowMs: 2,
+        interactionMode: 'tap',
+        cardVariant: 'qmbti',
+        available: true
+      }
+    ]);
+
+    expect(expanded.focusedCardVariant).toBe('qmbti');
+    expect(expanded.expandedCardVariant).toBe('qmbti');
+  });
+
   it('blocks card interactions while page is INACTIVE', () => {
     const state = replay([
       {type: 'PAGE_HIDDEN', nowMs: 0},

@@ -24,6 +24,13 @@ import type {
 type LandingInteractionDispatch = Dispatch<LandingInteractionEvent>;
 type TransitionIntent = 'expand' | 'collapse' | 'handoff';
 
+export interface FocusCardFromKeyboardInput {
+  cardVariant: string;
+  cardEnterable: boolean;
+  cardExpandable: boolean;
+  nowMs: number;
+}
+
 interface UseCardKeyboardHandlerInput {
   state: LandingInteractionState;
   dispatch: LandingInteractionDispatch;
@@ -32,10 +39,11 @@ interface UseCardKeyboardHandlerInput {
   shellRef: RefObject<HTMLElement | null>;
   cardVariants: readonly string[];
   isCardEnterableByVariant: (cardVariant: string) => boolean;
+  isCardExpandableByVariant: (cardVariant: string) => boolean;
+  focusCardFromKeyboard: (input: FocusCardFromKeyboardInput) => void;
   mobileLifecycleState: LandingMobileLifecycleState;
   beginMobileOpen: (cardVariant: string, syncInteraction?: boolean) => void;
   beginMobileKeyboardHandoff: (sourceVariant: string, nextCardVariant: string | null, nowMs: number) => void;
-  collapseExpandedCard: () => void;
   queueLandingReverseGnbTargetFocus: () => void;
   onFocusTransitionIntent: (intent: TransitionIntent) => void;
 }
@@ -51,18 +59,6 @@ interface UseCardKeyboardHandlerOutput {
   };
 }
 
-function resolveOnFocusTransitionIntent(
-  expandedVariant: string | null,
-  thisVariant: string,
-  cardEnterable: boolean
-): TransitionIntent {
-  if (expandedVariant && expandedVariant !== thisVariant) {
-    return cardEnterable ? 'handoff' : 'collapse';
-  }
-
-  return 'expand';
-}
-
 export function useCardKeyboardHandler({
   state,
   dispatch,
@@ -71,10 +67,11 @@ export function useCardKeyboardHandler({
   shellRef,
   cardVariants,
   isCardEnterableByVariant,
+  isCardExpandableByVariant,
+  focusCardFromKeyboard,
   mobileLifecycleState,
   beginMobileOpen,
   beginMobileKeyboardHandoff,
-  collapseExpandedCard,
   queueLandingReverseGnbTargetFocus,
   onFocusTransitionIntent
 }: UseCardKeyboardHandlerInput): UseCardKeyboardHandlerOutput {
@@ -85,22 +82,19 @@ export function useCardKeyboardHandler({
       }
 
       const targetCardEnterable = isCardEnterableByVariant(targetCardVariant);
-      onFocusTransitionIntent(targetCardEnterable ? 'handoff' : 'collapse');
-      dispatch({
-        type: 'CARD_FOCUS',
-        nowMs,
-        interactionMode,
+      focusCardFromKeyboard({
         cardVariant: targetCardVariant,
-        available: targetCardEnterable
+        cardEnterable: targetCardEnterable,
+        cardExpandable: isCardExpandableByVariant(targetCardVariant),
+        nowMs,
       });
       queueFocusCardByVariant(shellRef.current, targetCardVariant);
       return true;
     },
     [
-      dispatch,
-      interactionMode,
+      focusCardFromKeyboard,
+      isCardExpandableByVariant,
       isCardEnterableByVariant,
-      onFocusTransitionIntent,
       shellRef
     ]
   );
@@ -171,43 +165,11 @@ export function useCardKeyboardHandler({
 
       return {
         onFocus: (event: ReactFocusEvent<HTMLElement>) => {
-          if (card.type === 'blog') {
-            // Blog focuses without expanding. Collapse any prior test card, then mark
-            // focus via CARD_FOCUS with available:false — the reducer's existing lever for
-            // "focus, do not expand, clear hover-lock" (interaction-state.ts), so the
-            // reducer stays unchanged. Navigation happens on native <a> Enter, not focus.
-            onFocusTransitionIntent('collapse');
-            if (state.expandedCardVariant) {
-              dispatch({
-                type: 'CARD_COLLAPSE',
-                nowMs: event.timeStamp,
-                interactionMode,
-                cardVariant: state.expandedCardVariant
-              });
-            }
-            dispatch({
-              type: 'CARD_FOCUS',
-              nowMs: event.timeStamp,
-              interactionMode,
-              cardVariant: card.variant,
-              available: false
-            });
-            return;
-          }
-
-          onFocusTransitionIntent(
-            resolveOnFocusTransitionIntent(
-              state.expandedCardVariant,
-              card.variant,
-              cardEnterable
-            )
-          );
-          dispatch({
-            type: 'CARD_FOCUS',
-            nowMs: event.timeStamp,
-            interactionMode,
+          focusCardFromKeyboard({
             cardVariant: card.variant,
-            available: cardEnterable
+            cardEnterable,
+            cardExpandable: card.type === 'test' && cardEnterable,
+            nowMs: event.timeStamp,
           });
         },
         onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => {
@@ -296,12 +258,6 @@ export function useCardKeyboardHandler({
             return;
           }
 
-          if (event.key === 'Escape') {
-            event.preventDefault();
-            collapseExpandedCard();
-            return;
-          }
-
           if (card.type === 'blog' && (event.key === 'Enter' || event.key === ' ')) {
             return;
           }
@@ -338,8 +294,8 @@ export function useCardKeyboardHandler({
       beginMobileKeyboardHandoff,
       beginMobileOpen,
       cardVariants,
-      collapseExpandedCard,
       dispatch,
+      focusCardFromKeyboard,
       interactionMode,
       isCardEnterableByVariant,
       isMobileViewport,

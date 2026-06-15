@@ -106,3 +106,18 @@ export function shouldRenderDesktopStageShell(phase: LandingCardDesktopShellPhas
       return false;
   }
 }
+
+export function isDesktopShellLogicallyInteractive(phase: LandingCardDesktopShellPhase): boolean {
+  switch (phase) {
+    case 'opening':
+    case 'steady':
+    case 'handoff-target':
+      return true;
+    case 'idle':
+    case 'closing':
+    case 'cleanup-pending':
+    case 'handoff-source':
+    default:
+      return false;
+  }
+}

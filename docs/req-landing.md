@@ -468,26 +468,27 @@
 2. Automated: `mousedown` 입력은 키보드 모드를 즉시 해제하고, `pointermove`/`wheel` 입력은 키보드 모드를 유지하는지 검증한다.
 3. Automated: rapid hover sweep에서 uncaught runtime error `0건`을 검증한다.
 
-### 7.6 Keyboard Sequential Expansion Override (All Viewports)
-**Rule**: 카드 키보드 탐색은 아래 순차 규칙을 최우선으로 따른다.
-- 본 규칙은 모든 viewport/입력 모드에 적용한다.
-- `Tab/Shift+Tab`으로 available 카드에 포커스가 도달하면 해당 카드는 즉시 Expanded가 되어야 한다.
-- Expanded 상태에서 다음 `Tab` 입력은 카드 내부의 입력 가능한 요소(테스트 A/B 선택지 또는 블로그 CTA)로 포커스를 이동해야 한다.
-- 카드 내부의 입력 가능한 요소를 모두 순회한 뒤 다음 `Tab`을 입력하면 다음 카드로 포커스가 이동해야 한다.
-- 카드 간 포커스 이동 시 이전 카드는 `0ms`로 즉시 Normal로 복귀하고, 새로 포커스된 카드는 표준 Expanded 모션 규격으로 전환되어야 한다.
-- `Shift+Tab` 역방향 이동도 동일한 규칙(이전 카드 즉시 Expanded, 현재 카드 Normal 복귀)을 따른다.
+### 7.6 Keyboard Sequential Expansion Override (Desktop/Tablet)
+**Rule**: Desktop/Tablet 카드 키보드 탐색은 아래 순차 규칙을 최우선으로 따른다. Mobile lifecycle은 본 override 대상이 아니다.
+- 포인터 capability와 무관하게 `Tab/Shift+Tab`으로 available Test 카드에 포커스가 도달하면 pending pointer intent를 취소하고 dwell 없이 즉시 Expanded가 되어야 한다.
+- Blog whole-card link는 enterable이지만 expandable이 아니다. 키보드 포커스는 링크에만 머물며 Blog가 Expanded/opening/geometry target을 소유하면 안 된다.
+- unavailable 카드는 enterable/expandable 대상이 아니며 tab order에서 제외된다.
+- Expanded Test에서 다음 `Tab` 입력은 A/B 선택지로 이동하고, 선택지를 모두 순회한 뒤 다음 enterable 카드로 이동해야 한다.
+- Test trigger의 `Enter/Space`는 동일 Test에 대한 idempotent `CARD_EXPAND`이며 URL 이동, 전환, pre-answer, telemetry, 포커스 이동을 일으키지 않는다. Test 진입은 A/B 선택지만 소유한다.
+- Test→Test handoff는 source `0ms`/target 표준 Expanded 모션을 유지한다. Test→Blog는 source Test의 표준 close와 Blog focus-only로 처리하며 Blog를 handoff target으로 만들지 않는다.
+- `Shift+Tab` 역방향 이동도 동일한 enterable/expandable 구분과 이전 Test close 규칙을 따른다.
 - Landing 컨텍스트에서는 중립 페이지 상태에서 첫 forward `Tab`이 첫 번째 available 카드로 진입해야 하며, 첫 번째 available 카드 trigger에서 `Shift+Tab`은 마지막 visible GNB control(Desktop settings / Mobile menu)로 복귀해야 한다.
 - 위 landing 진입/복귀 규칙은 landing에만 적용하며, Blog/History/Test 컨텍스트의 기본 GNB 순회 규칙은 그대로 유지한다.
-- unavailable 카드는 본 override의 Expanded 대상이 아니다.
 - unavailable 카드는 tab order에서 제외된다(`tabIndex=-1`, 모든 상태). 키보드 순차 탐색과 카드 간 handoff는 unavailable 카드를 건너뛰고 다음 enterable 카드로 이동하며, 직전 카드의 Normal 복귀(collapse-prior)는 유지한다. (BQ-26/D1)
 - 본 규칙은 기존 키보드 관련 카드 전이 규칙을 override한다.
 
 **Verification**:
-1. Automated: 카드 간 Tab 이동 시 `Focused -> Expanded` 즉시 전환과 이전 카드 Normal 복귀를 검증한다.
+1. Automated: Desktop/Tablet 및 Desktop `hover:none`에서 Test 포커스의 dwell 없는 즉시 Expanded와 pending pointer-intent 취소를 검증한다.
 2. Automated: Expanded 카드 내부 포커스 순회(입력 요소 순서) 후 다음 카드로 이동되는지 검증한다.
-3. Automated: Shift+Tab 역순 탐색에서 동일 규칙이 성립하는지 검증한다.
-4. Automated: 키보드 카드 이동에서 이전 카드 `0ms` 복귀 + 현재 카드 표준 Expanded 모션 분리가 유지되는지 검증한다.
-5. Automated: Landing에서 첫 `Tab -> 첫 카드`, 첫 카드 trigger에서 `Shift+Tab -> 마지막 visible GNB control`이 브라우저 간 일관되게 유지되는지 검증한다.
+3. Automated: Blog가 focus-only이고 unavailable이 양방향으로 skip되는지 검증한다.
+4. Automated: Test trigger `Enter/Space`가 idempotent이며 entry side effect가 없는지 검증한다.
+5. Automated: Test→Test source `0ms`/target 표준 모션과 Test→Blog 표준 close/focus-only 분리를 검증한다.
+6. Automated: Landing에서 첫 `Tab -> 첫 카드`, 첫 카드 trigger에서 `Shift+Tab -> 마지막 visible GNB control`이 브라우저 간 일관되게 유지되는지 검증한다.
 
 ### 7.7 State Conformance Gate
 **Rule**:
@@ -520,6 +521,8 @@
 ### 8.2 Desktop/Tablet Expanded Trigger
 **Rule**: Desktop/Tablet Expanded 트리거는 지연/취소/handoff 규칙을 모두 준수해야 한다.
 - Hover-capable: hover enter 후 `120~200ms`에 Expanded.
+- 키보드 Test focus: 포인터 capability와 무관하게 dwell `0ms`로 Expanded하며, 예약된 hover timer·intent token·pointer target을 함께 취소한다.
+- 키보드 Blog focus: focus-only이며 Expanded/opening/geometry target을 소유하지 않는다.
 - 활성 Expanded 카드의 경계는 확장된 카드의 실제 상호작용 영역 전체로 정의한다.
 - hover leave로 위 경계를 완전히 벗어나면 collapse 전이를 수행해야 하며, 다른 카드 hover 여부와 무관하게 동작해야 한다.
 - hover leave 기반 collapse는 허용 유예 `100~180ms` 범위 내에서 수행한다.
@@ -532,6 +535,7 @@
 - 타이머 실행 직전 `현재 hover 대상 == 예약 대상`을 재검증하고 불일치 시 no-op 처리한다.
 - hover leave 기반 collapse 결정은 실행 시점의 최신 경계 판정을 기준으로 수행해야 한다.
 - handoff 경로는 지연 없이 즉시 전환한다.
+- 위 키보드 focus 규칙은 기존 pointer hover enter/leave 지연값을 변경하지 않는다.
 
 **Verification**:
 1. Automated: handoff 시 직전 카드 pending transition 취소 여부를 검증한다.
@@ -541,6 +545,7 @@
 5. Automated: 새 hover 진입 시 이전 예약이 즉시 취소되고, 실행 직전 대상 재검증 불일치 시 no-op 처리되는지 검증한다.
 6. Automated: hover leave collapse가 다른 카드 hover 여부와 무관하게 최신 경계 판정으로 수행되는지 검증한다.
 7. Automated: unavailable 카드 진입이 handoff로 오인되지 않는지 검증한다.
+8. Automated: 키보드 focus가 stale pointer intent를 무효화하고 Blog를 확장 대상으로 만들지 않는지 검증한다.
 
 ### 8.3 Core Motion Contract
 **Rule**: Expanded core motion은 시간/곡선/단조성/예외 경로를 엄격히 준수해야 한다.
@@ -555,6 +560,9 @@
 - core motion 진행 중 전이 역전(열림/닫힘의 즉시 반전)으로 인한 플리커를 금지한다.
 - easing은 `ease-in-out` 계열로 통일한다. spring/overshoot(탄성 튐), Expanded 전환/유지 중 alpha 애니메이션, 내부 이중 박스 시각, 정적 외곽 카드+내부 콘텐츠만 scale 구조를 금지한다.
 - Desktop/Mobile 공통 duration/easing/stagger는 단일 규격으로 관리한다.
+- Desktop/Tablet Escape와 true in-page focus-out은 controller-owned 단일 close command를 사용한다. Escape/outside/Blog destination은 `collapse`, 이미 적용된 Test→Test transfer만 `handoff`를 유지하며 후속 source blur는 no-op이어야 한다.
+- 논리적 close는 `closing` 시작과 동시에 성립한다. `closing`, `cleanup-pending`, `handoff-source`의 선택지는 즉시 tab/activation/AT 대상에서 제외하되 reverse motion, shell persistence, BQ-24 floor/spacer cleanup은 유지한다.
+- Mobile card-root Escape/blur는 이 Desktop/Tablet close 경로를 실행하거나 mobile state를 변경하면 안 된다.
 
 **Verification**:
 1. Automated: Phase 순서/시간/stagger를 타임라인 단언으로 검증한다.
@@ -562,6 +570,7 @@
 3. Automated: same-card leave에서 `0ms` 강제 종료가 발생하지 않는지 검증한다.
 4. Automated: Desktop/Mobile 반복 토글에서 Expanded→Normal 완료 높이 복원 오차 `0px`를 검증한다.
 5. Automated: pointer/keyboard handoff 모두에서 source `0ms` / target 표준 모션 분리를 검증한다.
+6. Automated: Escape/focus-out의 단일 close sequence와 handoff 이후 source blur idempotence를 검증한다.
 
 ### 8.4 Expanded Shell Scale and Readability
 **Rule**:
@@ -660,7 +669,11 @@
 - 모든 상호작용 요소는 키보드 도달 가능해야 한다(단, HOVER_LOCK 가드 예외 적용).
 - focus ring은 명확히 보여야 한다.
 - 카드 탐색 포커스의 시각 경계는 Card Shell 외곽과 일치해야 하며, 카드 내부 일부 영역만 감싸는 표시를 금지한다.
-- `Esc` 입력 시에는 최상위 오버레이/패널을 먼저 닫고, 그 다음 카드의 Focus/Expanded 상태를 해제해 포커스 없는 browse-neutral 상태로 복귀해야 한다.
+- Desktop/Tablet available Test의 trigger 또는 A/B 선택지에서 `Escape`를 누르면 한 번의 표준 close lifecycle을 시작하고 같은 Test trigger로 포커스를 반환한다. 선택지에서 시작한 경우 closing이 선택지를 숨기거나 비활성화하기 전에 trigger 포커스를 동기적으로 확보해야 한다.
+- 열려 있는 더 높은 우선순위의 non-hidden `role="dialog"`가 있으면 첫 `Escape`는 그 dialog만 닫고 Test disclosure는 유지한다. 카드 disclosure 자체는 dialog로 취급하지 않는다.
+- trigger↔A↔B 이동은 카드 내부 이동이며 close하지 않는다. true in-page focus-out은 close하되 destination 포커스를 회수하지 않는다.
+- `relatedTarget === null`이고 document/window가 focus를 잃은 경우는 pure window blur로 간주해 disclosure를 유지한다.
+- first/last grid edge를 포함해 카드 내부 focus trap을 금지한다.
 - Mobile hamburger/desktop settings/back/X 버튼은 `aria-label` 필수다.
 
 ### 9.2 Disabled Semantics
@@ -670,6 +683,10 @@
 - 비시맨틱 컨테이너 단독 활성화 트리거를 금지한다.
 - unavailable Test 카드의 진입 불가는 시맨틱으로 표현해야 한다.
 - unavailable Test 카드의 1차 트리거는 semantic `<button aria-disabled="true" tabindex="-1">`로 표현한다. native `disabled`는 사용하지 않는다 — `disabled`는 카드를 접근성 트리에서 과도하게 제거해 "coming soon" 인지(design.md §4.10)를 해치기 때문이다. `tabIndex=-1`로 tab order에서 제외하되 semantic `<button>`과 a11y/reading tree 노출은 유지하고 `role` 대체는 금지한다. (BQ-26/D1)
+- available Test trigger의 accessible name은 locale별 `card.title` 단일값으로 고정하며 idle→opening→steady→closing 전 구간에서 byte-identical해야 한다.
+- Desktop/Tablet available Test trigger가 `aria-expanded`를 소유한다. `opening`/`steady`/`handoff-target`은 `true`, `idle`/`closing`/`cleanup-pending`/`handoff-source`는 `false`다.
+- always-mounted desktop stage의 `aria-hidden`은 같은 logical disclosure 판정을 따른다. Expanded question/A/B는 논리적 expanded 동안 AT에 노출되어야 한다. `aria-controls`는 사용하지 않는다.
+- unavailable의 `aria-disabled`/name/status/tabIndex ownership은 button 하나에만 두며 card root에 disabled state를 중복하지 않는다.
 - `aria-disabled="true"` 대상은 click/keydown(`Enter/Space`)에서 기본 동작을 차단해야 한다.
 - HOVER_LOCK 키보드 모드 비대상 카드는 `aria-disabled`가 아니라 `inert`로 포커스/접근성 트리/활성화를 차단한다.
 - GNB-to-landing keyboard focus transfer must skip card triggers with `aria-disabled="true"` and any card triggers whose ancestor card root carries the `inert` attribute.
@@ -678,9 +695,11 @@
 ### 9.3 Coming-soon Indicator Readability
 **Rule** (BQ-26/D2 — 우상단 오버레이 제거):
 - coming-soon 표준 태그는 tags-row에 상시 표시되며 텍스트 가독성을 보장한다(`aria-hidden` 금지 — AT에 노출).
+- unavailable button은 visible title을 accessible name으로, public coming-soon tag를 accessible description으로 사용한다.
 - coming-soon은 BQ-32 visible prefix의 첫 번째 필수 항목이며 가용 폭이나 Blog CTA 규칙으로 숨겨지면 안 된다. hidden suffix unmount 대상에서도 제외한다.
 - unavailable 카드의 title/subtitle은 full opacity를 유지하고(opacity 감소 금지, design.md §10) 항상 식별 가능해야 한다. dim은 thumbnail에만 적용한다.
 - `--surface-soft` 표면 위에서도 키보드 포커스 링(또는 동등한 focus 스타일)은 시각적으로 식별 가능해야 한다.
+- tags row는 hard-coded group name 없이 native list semantics를 사용한다. Blog `Read more →`는 decorative affordance로 AT/focus navigation에서 제외한다.
 
 **Verification**:
 1. Manual: 키보드-only 탐색으로 focus 이동/활성화 차단을 확인한다.
@@ -1025,7 +1044,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 2. Routing/i18n: single locale prefix, duplicate prefix `0건`, `proxy.ts` 단일 책임, locale-less allowlist/404 분기 PASS (Section 5, 13).
 3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, trigger-layer gap `0px`, focus out close `<=1 frame`, hover 유예 hover-only, Mobile overlay/backdrop/scroll lock, Desktop/Mobile Test의 Back+Timer-only control set, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
 4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Expanded/handoff 활성 중 grid plan freeze, 폭 변경 시 강제 종료 후 재계산, same-row 비대상 카드 top/bottom/outer height 오차 `0px`, Desktop Normal same-row bottom edge `0px`, 텍스트 overflow(특히 subtitle long-token)로 인한 카드/row inline-size 확장 `0건`, 텍스트 overflow로 인한 형제 슬롯(썸네일/태그) inline-size 변형 `0건`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, handoff는 enterable 카드(available 또는 opt_out) 기준으로만 성립, shell scale/crop PASS (Section 6, 7, 8, 9).
-5. Keyboard/A11y: 카드 Shell focus 경계, Landing-only GNB↔card focus transfer, Tab 순차 Expanded override, 카드 내부 포커스 순회, Esc 우선순위 해제, aria 규칙, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 9).
+5. Keyboard/A11y: Desktop/Tablet Test focus 즉시 확장과 pending pointer-intent 취소, Blog non-expansion, unavailable skip, Landing-only GNB↔card focus transfer, 카드 내부 순회/no-trap, Test trigger `Enter/Space` idempotence와 A/B-only entry, higher-priority dialog 우선 `Escape`, trigger/choice `Escape` 단일 close + trigger 복귀, true focus-out destination 보존과 pure window blur 상태 보존, closing/cleanup/handoff-source 비상호작용, 12-locale Test name cycle 안정성, logical `aria-expanded`/stage `aria-hidden`, unavailable button-only name/status/disabled ownership, unnamed native tags list, expanded Test axe-clean, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 8, 9).
 6. Transition/Test Handshake: ingress flag 기록, landing `scoring1` pre-answer 유지, landing/direct runtime start 규칙 적용, runtime entry commit 이후 ingress consume, rollback 3케이스, canonical/runtime order와 user-facing scoring label 역전 `0건`, Blog article 식별자 전달, Blog transition의 landing ingress/card_answered `0건`, `start=1 -> terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, Mobile lifecycle atomicity(`OPENING -> OPEN -> CLOSING -> NORMAL`), single sequence 상태 전이 1회, OPENING close queue 처리, CLOSING 인터럽트 무시, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op, return scroll 복원 1회+즉시 consume PASS (Section 8, 12, 13).
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
 8. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).

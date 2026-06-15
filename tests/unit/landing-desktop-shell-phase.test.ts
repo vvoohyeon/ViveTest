@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import {
+  isDesktopShellLogicallyInteractive,
   resolveDesktopMotionRole,
   resolveDesktopShellPhase,
   shouldRenderDesktopStageShell
@@ -16,6 +17,16 @@ const idleDesktopMotionState = {
 };
 
 describe('landing desktop shell phase', () => {
+  it('maps existing shell phases to logical disclosure interactivity', () => {
+    expect(isDesktopShellLogicallyInteractive('opening')).toBe(true);
+    expect(isDesktopShellLogicallyInteractive('steady')).toBe(true);
+    expect(isDesktopShellLogicallyInteractive('handoff-target')).toBe(true);
+    expect(isDesktopShellLogicallyInteractive('closing')).toBe(false);
+    expect(isDesktopShellLogicallyInteractive('cleanup-pending')).toBe(false);
+    expect(isDesktopShellLogicallyInteractive('handoff-source')).toBe(false);
+    expect(isDesktopShellLogicallyInteractive('idle')).toBe(false);
+  });
+
   it('keeps same-card hover-out collapse in closing and cleanup-pending phases until cleanup finishes', () => {
     const closing = resolveDesktopShellPhase({
       available: true,

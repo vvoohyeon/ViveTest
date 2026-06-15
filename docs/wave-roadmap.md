@@ -11,10 +11,10 @@
 | 5 | Expanded test visual skin; motion implementation candidate if separately approved | Wave 4 + Logic Improvement Analysis gate cleared | Medium | ✅ 완료 |
 | 6 | Desktop expanded overlay sibling isolation; motion implementation candidate if separately approved | Wave 4–5 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
 | 7 | Blog direct navigation behavior via whole-card trigger | Wave 2 + controller coupling 확인 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
-| 8 | Blog normal/active visual | Wave 7 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
+| 8 | Blog normal/active visual | Wave 7 + Logic Improvement Analysis gate cleared | Medium | ✅ 완료 |
 | 9 | Unavailable behavior and visual | Wave 2–3 + Logic Improvement Analysis gate cleared | Medium | ✅ 완료 |
 | 10 | Landing grid height rhythm | Wave 2–9 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
-| 11 | Landing desktop a11y/keyboard hardening | Wave 4–10 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
+| 11 | Landing desktop a11y/keyboard hardening | Wave 4–10 + Logic Improvement Analysis gate cleared | High | ✅ 완료 |
 | 12 | Mobile browse card visual | Wave 2–3, 8–9 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
 | 13 | Mobile expanded shape/position | Wave 12 + lifecycle coupling 조사 + Logic Improvement Analysis gate cleared | High | ⬜ 미완료 |
 | 14 | Landing-only regression stabilization | Wave 1–13 + Logic Improvement Analysis gate cleared | Medium | ⬜ 미완료 |
@@ -441,12 +441,18 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 11 — Landing desktop a11y/keyboard hardening
 
-- **Status:** ⬜ 미완료
-- **Purpose:** 데스크톱 접근성 및 키보드 강화
-- **Include:** focus expands test card, focus does not navigate, Esc/close behavior, aria-labels
-- **Exclude:** mobile expanded shape, GNB
+- **Status:** ✅ 완료
+- **Purpose:** Desktop/Tablet 카드의 키보드 탐색, disclosure ARIA, focus lifecycle을 결정적으로 정리한다.
+- **Include:** Test 즉시 focus expansion, pointer-intent 취소, controller-owned Escape/focus-out close, stable naming, closing focus safety, scoped expanded focus ring.
+- **Logic Improvement:** A1–A8 및 W11-LI-01–04 approved and applied; BQ-33과 관련 SSOT에 확정.
+- **구현 결과:**
+  - Test focus는 capability와 무관하게 즉시 확장하고 Blog는 focus-only, unavailable은 skip한다. Test trigger `Enter/Space`는 idempotent이며 entry는 A/B 선택지만 소유한다.
+  - 실제 non-hidden `role="dialog"`를 higher-priority overlay로 판정해 settings 첫 Escape/card 둘째 Escape 순서를 보존했다. trigger/A/B Escape는 단일 close lifecycle과 trigger focus 복귀를 사용하며, true focus-out은 destination을 보존하고 pure window blur는 disclosure를 유지한다.
+  - Test title accessible name은 12 locale 전 cycle에서 안정적이며, `aria-expanded`와 stage `aria-hidden`은 logical disclosure를 따른다. closing hidden/inert focus를 방지하고 두 root handler의 Mobile no-op 경계와 expanded-surface의 scoped 2px sage focus ring을 확정했다.
+- **Validation / tests:** `npm run lint`, `npm run typecheck`, `npm test`(515/515), `npm run build` PASS; focused unit 62/62 PASS; filtered preview Wave 11 E2E 10/10 PASS; Phase 4–10 PASS.
+- **Phase 9 reconciliation:** 제거된 `desktopShellInlineScale` 요구를 현재 constrained scale resolver와 RAF/ResizeObserver/equality-guard 성능 계약으로 갱신해 기존 blocker를 해소했다.
+- **Exclude:** mobile expanded shape, GNB internals
 - **Prerequisites:** Waves 4–10 완료; Logic Improvement Analysis gate cleared
-- **Validation / tests:** a11y smoke, keyboard matrix
 - **Risk:** High
 - **Handoff:** Wave 12 mobile browse
 

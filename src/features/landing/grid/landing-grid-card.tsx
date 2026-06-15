@@ -12,7 +12,7 @@ import type {
   RefObject,
   WheelEventHandler
 } from 'react';
-import {Fragment, useRef} from 'react';
+import {Fragment, useId, useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {
@@ -22,6 +22,7 @@ import {
 import {
   type LandingCardDesktopMotionRole,
   type LandingCardDesktopShellPhase,
+  isDesktopShellLogicallyInteractive,
   shouldRenderDesktopStageShell
 } from '@/features/landing/grid/desktop-shell-phase';
 import {buildLocalizedPath} from '@/i18n/localized-path';
@@ -102,6 +103,8 @@ interface LandingGridCardProps {
   keyboardModeBlocked?: boolean;
   hoverLockEnabled?: boolean;
   keyboardMode?: boolean;
+  onCardKeyDown?: KeyboardEventHandler<HTMLElement>;
+  onCardBlur?: FocusEventHandler<HTMLElement>;
   onFocus?: FocusEventHandler<HTMLElement>;
   onKeyDown?: KeyboardEventHandler<HTMLElement>;
   onClick?: MouseEventHandler<HTMLElement>;
@@ -302,6 +305,8 @@ interface NormalCardFaceProps {
   presentation: NormalCardFacePresentation;
   readMoreLabel?: string;
   comingSoonLabel?: string;
+  titleId?: string;
+  statusId?: string;
   titleRef?: RefObject<HTMLHeadingElement | null>;
   subtitleRef?: RefObject<HTMLParagraphElement | null>;
 }
@@ -313,6 +318,7 @@ interface NormalCardTitleProps {
   // Pure base_gap above the title in the collapsed face (thumbnail → title rhythm, req-landing §6.7).
   // Off in expandedTitleOnly, where the thumbnail is absent and the title sits at the content inset.
   topGap: boolean;
+  titleId?: string;
   titleRef?: RefObject<HTMLHeadingElement | null>;
 }
 
@@ -335,6 +341,7 @@ interface NormalCardTagRowProps {
   interactionMode?: LandingCardInteractionMode;
   readMoreLabel?: string;
   comingSoonLabel?: string;
+  statusId?: string;
 }
 
 function LandingCardSubtitleText({
@@ -374,9 +381,17 @@ function LandingCardSubtitleText({
   );
 }
 
-function NormalCardTitle({card, isMobileViewport, exposePublicSlot, topGap, titleRef}: NormalCardTitleProps) {
+function NormalCardTitle({
+  card,
+  isMobileViewport,
+  exposePublicSlot,
+  topGap,
+  titleId,
+  titleRef
+}: NormalCardTitleProps) {
   return (
     <h2
+      id={titleId}
       ref={titleRef}
       className={joinClassNames(
         LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
@@ -423,7 +438,14 @@ function NormalCardSubtitle({card, isMobileViewport, exposePublicSlot, subtitleR
   );
 }
 
-function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', readMoreLabel, comingSoonLabel}: NormalCardTagRowProps) {
+function NormalCardTagRow({
+  card,
+  exposePublicSlot,
+  interactionMode = 'tap',
+  readMoreLabel,
+  comingSoonLabel,
+  statusId
+}: NormalCardTagRowProps) {
   const rowRef = useRef<HTMLElement | null>(null);
   const probeRef = useRef<HTMLDivElement | null>(null);
   const normalizedTags = comingSoonLabel ? [comingSoonLabel] : card.tags;
@@ -447,7 +469,6 @@ function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', read
       data-tag-count={normalizedTags.length}
       data-visible-tag-count={decision.visibleCount}
       data-tag-tail-ellipsis={decision.tailMayEllipsize ? 'true' : 'false'}
-      aria-label="Card tags"
     >
       {visibleTags.map((tag, index) => (
         <li
@@ -458,6 +479,7 @@ function NormalCardTagRow({card, exposePublicSlot, interactionMode = 'tap', read
           )}
         >
           <span
+            id={comingSoonLabel ? statusId : undefined}
             className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME}
             data-slot={comingSoonLabel && exposePublicSlot ? 'comingSoonTag' : undefined}
           >
@@ -563,6 +585,8 @@ function NormalCardFace({
   presentation,
   readMoreLabel,
   comingSoonLabel,
+  titleId,
+  statusId,
   titleRef,
   subtitleRef
 }: NormalCardFaceProps) {
@@ -572,6 +596,7 @@ function NormalCardFace({
       isMobileViewport={isMobileViewport}
       exposePublicSlot={exposePublicSlots}
       topGap={presentation === 'collapsed'}
+      titleId={titleId}
       titleRef={titleRef}
     />
   );
@@ -596,6 +621,7 @@ function NormalCardFace({
         interactionMode={interactionMode}
         readMoreLabel={readMoreLabel}
         comingSoonLabel={comingSoonLabel}
+        statusId={statusId}
       />
     </>
   );
@@ -818,7 +844,7 @@ function DesktopExpandedShell({
       data-testid="landing-grid-card-desktop-stage"
       data-slot="desktopStage"
       data-phase={phase}
-      aria-hidden={isVisible ? undefined : 'true'}
+      aria-hidden={isInteractive ? undefined : 'true'}
     >
       {/* Desktop shell wrapper depth and slot names are CSS/QA geometry contracts. */}
       {isVisible ? (
@@ -910,6 +936,8 @@ export function LandingGridCard({
   keyboardModeBlocked = false,
   hoverLockEnabled = false,
   keyboardMode = false,
+  onCardKeyDown,
+  onCardBlur,
   onFocus,
   onKeyDown,
   onClick,
@@ -922,6 +950,7 @@ export function LandingGridCard({
   onAnswerChoiceSelect,
   onMobileClose
 }: LandingGridCardProps) {
+  const cardA11yId = useId();
   const isUnavailable = isUnavailablePresentation(card);
   const isBlogCard = card.type === 'blog';
   const isTestCard = card.type === 'test';
@@ -971,6 +1000,9 @@ export function LandingGridCard({
   const isDesktopMotionSteady = desktopMotionRole === 'steady';
   const hasDesktopStageGeometry = showDesktopExpandedShell;
   const isDesktopCleanupPending = desktopStagePhase === 'cleanup-pending';
+  const isDesktopLogicallyExpanded = isDesktopShellLogicallyInteractive(desktopStagePhase);
+  const titleId = `${cardA11yId}-title`;
+  const statusId = `${cardA11yId}-status`;
   const isMobileClosingPhase = isMobileViewport && mobilePhase === 'CLOSING';
   const resolvedRootVisualClassName = showDesktopExpandedShell
     ? '[background:transparent] [box-shadow:none]'
@@ -1031,6 +1063,8 @@ export function LandingGridCard({
           exposePublicSlots
           readMoreLabel={isBlogCard ? copy.readMore : undefined}
           comingSoonLabel={isUnavailable ? copy.comingSoon : undefined}
+          titleId={titleId}
+          statusId={statusId}
           titleRef={normalTitleRef}
           subtitleRef={normalSubtitleRef}
         />
@@ -1097,8 +1131,9 @@ export function LandingGridCard({
                 ? 'mobile-closing-shell'
                 : 'none'
       }
-      aria-disabled={ariaDisabled ? 'true' : undefined}
       inert={keyboardModeBlocked}
+      onKeyDown={onCardKeyDown}
+      onBlur={onCardBlur}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onPointerMove={onPointerMove}
@@ -1145,7 +1180,12 @@ export function LandingGridCard({
           data-trigger-state={isExpanded ? 'expanded' : 'collapsed'}
           tabIndex={tabIndex}
           aria-disabled={ariaDisabled ? 'true' : undefined}
-          aria-label={isMobileExpanded ? card.title : undefined}
+          aria-label={!isUnavailable ? card.title : undefined}
+          aria-labelledby={isUnavailable ? titleId : undefined}
+          aria-describedby={isUnavailable ? statusId : undefined}
+          aria-expanded={
+            !isMobileViewport && !isUnavailable ? isDesktopLogicallyExpanded : undefined
+          }
           onFocus={onFocus}
           onKeyDown={onKeyDown}
           onClick={onClick}
@@ -1159,7 +1199,7 @@ export function LandingGridCard({
           stageClassName={resolvedDesktopStageClassName}
           phase={desktopStagePhase}
           isVisible={showDesktopExpandedShell}
-          isInteractive={desktopStagePhase !== 'cleanup-pending'}
+          isInteractive={isDesktopShellLogicallyInteractive(desktopStagePhase)}
           card={card}
           locale={locale}
           copy={copy}

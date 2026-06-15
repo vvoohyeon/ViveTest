@@ -1,3 +1,5 @@
+import {readFileSync} from 'node:fs';
+
 import {JSDOM} from 'jsdom';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
@@ -186,6 +188,122 @@ describe('landing card slot contract', () => {
     const normalTitle = normalDoc.querySelector('[data-slot="cardTitle"]')?.textContent;
     const expandedTitle = expandedDoc.querySelector('[data-slot="cardTitle"]')?.textContent;
     expect(expandedTitle).toBe(normalTitle);
+  });
+
+  it('keeps closing and cleanup shells mounted while removing choices from public interaction', () => {
+    const card = resolveLandingCatalog('en').find(
+      (candidate) => candidate.type === 'test' && candidate.availability === 'available'
+    );
+
+    if (!card || card.type !== 'test') {
+      throw new Error('Expected an available Test card');
+    }
+
+    for (const desktopShellPhase of ['closing', 'cleanup-pending'] as const) {
+      const doc = renderCardDocument({
+        card,
+        state: 'expanded',
+        desktopMotionRole: desktopShellPhase === 'closing' ? 'closing' : 'idle',
+        desktopShellPhase
+      });
+      const visualChoices = doc.querySelectorAll('.landing-grid-card-answer-choice');
+
+      expect(doc.querySelector('[data-slot="expandedShell"]')).not.toBeNull();
+      expect(doc.querySelector('[data-slot="answerChoiceA"]')).toBeNull();
+      expect(doc.querySelector('[data-slot="answerChoiceB"]')).toBeNull();
+      expect(visualChoices).toHaveLength(2);
+      for (const choice of visualChoices) {
+        expect(choice.getAttribute('tabindex')).toBe('-1');
+        expect(choice.getAttribute('aria-hidden')).toBe('true');
+      }
+    }
+  });
+
+  it('assigns stable trigger-owned disclosure and card semantics without concatenated labels', () => {
+    const catalog = resolveLandingCatalog('en');
+    const testCard = catalog.find((candidate) => candidate.variant === 'qmbti');
+    const blogCard = catalog.find((candidate) => candidate.variant === 'ops-handbook');
+    const unavailableCard = catalog.find((candidate) => candidate.variant === 'creativity-profile');
+
+    if (!testCard || testCard.type !== 'test' || !blogCard || !unavailableCard) {
+      throw new Error('Expected Test, Blog, and unavailable fixtures');
+    }
+
+    for (const [phase, expanded, stageHidden] of [
+      ['idle', 'false', 'true'],
+      ['opening', 'true', null],
+      ['steady', 'true', null],
+      ['handoff-target', 'true', null],
+      ['closing', 'false', 'true'],
+      ['cleanup-pending', 'false', 'true'],
+      ['handoff-source', 'false', 'true']
+    ] as const) {
+      const doc = renderCardDocument({
+        card: testCard,
+        state: expanded === 'true' ? 'expanded' : 'normal',
+        desktopMotionRole: phase === 'cleanup-pending' ? 'idle' : phase,
+        desktopShellPhase: phase
+      });
+      const trigger = doc.querySelector('[data-slot="primaryTrigger"]');
+      const stage = doc.querySelector('[data-slot="desktopStage"]');
+
+      expect(trigger?.getAttribute('aria-label')).toBe(testCard.title);
+      expect(trigger?.getAttribute('aria-labelledby')).toBeNull();
+      expect(trigger?.getAttribute('aria-expanded')).toBe(expanded);
+      expect(trigger?.getAttribute('aria-controls')).toBeNull();
+      expect(stage?.getAttribute('aria-hidden')).toBe(stageHidden);
+    }
+
+    const expandedDoc = renderDesktopExpandedCardDocument({card: testCard});
+    for (const selector of [
+      '[data-slot="previewQuestion"]',
+      '[data-slot="answerChoiceA"]',
+      '[data-slot="answerChoiceB"]'
+    ]) {
+      expect(expandedDoc.querySelector(selector)?.closest('[aria-hidden="true"], [inert]')).toBeNull();
+    }
+
+    const blogDoc = renderCardDocument({card: blogCard, state: 'normal'});
+    const blogTrigger = blogDoc.querySelector('[data-slot="primaryTrigger"]');
+    expect(blogTrigger?.getAttribute('aria-label')).toBe(blogCard.title);
+    expect(blogTrigger?.getAttribute('aria-expanded')).toBeNull();
+    expect(blogTrigger?.getAttribute('aria-controls')).toBeNull();
+
+    const unavailableDoc = renderCardDocument({
+      card: unavailableCard,
+      state: 'normal',
+      ariaDisabled: true,
+      tabIndex: -1
+    });
+    const unavailableRoot = unavailableDoc.querySelector('[data-testid="landing-grid-card"]');
+    const unavailableTrigger = unavailableDoc.querySelector('[data-slot="primaryTrigger"]');
+    const labelledBy = unavailableTrigger?.getAttribute('aria-labelledby');
+    const describedBy = unavailableTrigger?.getAttribute('aria-describedby');
+    expect(unavailableRoot?.getAttribute('aria-disabled')).toBeNull();
+    expect(unavailableTrigger?.getAttribute('aria-disabled')).toBe('true');
+    expect(labelledBy).not.toBeNull();
+    expect(describedBy).not.toBeNull();
+    expect(unavailableDoc.getElementById(labelledBy ?? '')?.textContent).toBe(unavailableCard.title);
+    expect(unavailableDoc.getElementById(describedBy ?? '')?.getAttribute('data-slot')).toBe('comingSoonTag');
+    expect(unavailableDoc.getElementById(describedBy ?? '')?.closest('[aria-hidden="true"]')).toBeNull();
+    expect(unavailableDoc.querySelector('[data-slot="tags"]')?.getAttribute('aria-label')).toBeNull();
+    expect(unavailableDoc.querySelector('[aria-live]')).toBeNull();
+  });
+
+  it('keeps the expanded focus-visible ring card-scoped and aligned with the surface boundary', () => {
+    const cardCss = readFileSync(
+      new URL('../../src/features/landing/grid/landing-grid-card.module.css', import.meta.url),
+      'utf8'
+    );
+    const expandedFocusRule = cardCss.match(
+      /\.root\.desktopOverlayLayer:has\(:focus-visible\) \.expandedSurface \{(?<body>[^}]*)\}/u
+    )?.groups?.body;
+
+    expect(expandedFocusRule).toBeDefined();
+    expect(expandedFocusRule).toContain('outline: 2px solid var(--normal-focus-ring);');
+    expect(expandedFocusRule).toContain('outline-offset: 2px;');
+    expect(expandedFocusRule).not.toContain('--focus-ring-outer');
+    expect(expandedFocusRule).not.toContain('--focus-ring-inner');
   });
 
   it('forces unavailable cards to stay normal even when expanded state is requested', () => {

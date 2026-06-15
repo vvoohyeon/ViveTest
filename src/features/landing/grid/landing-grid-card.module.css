@@ -133,10 +133,8 @@
 }
 
 .root.desktopOverlayLayer:has(:focus-visible) .expandedSurface {
-  box-shadow:
-    0 0 0 3px var(--focus-ring-outer),
-    0 0 0 6px var(--focus-ring-inner),
-    0 0 0 1px var(--expanded-card-border);
+  outline: 2px solid var(--normal-focus-ring);
+  outline-offset: 2px;
 }
 
 .desktopStageActive {

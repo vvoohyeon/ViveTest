@@ -1,5 +1,7 @@
 import {expect, test, type Page} from '@playwright/test';
 
+import {locales} from '../../src/config/site';
+import {resolveLandingCatalog} from '../../src/features/variant-registry';
 import {expectPageToBeAxeClean} from './helpers/axe';
 import {seedTelemetryConsent} from './helpers/consent';
 import {
@@ -77,6 +79,28 @@ async function focusMobileMenuByKeyboard(page: Page) {
   await expect(page.getByTestId('gnb-mobile-menu-panel')).toBeVisible();
 }
 
+async function installHoverCapability(page: Page, matches: boolean) {
+  await page.addInitScript((hoverMatches) => {
+    const originalMatchMedia = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) => {
+      if (query === '(hover: hover) and (pointer: fine)') {
+        return {
+          media: query,
+          matches: hoverMatches,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => false,
+          addListener: () => {},
+          removeListener: () => {}
+        } as MediaQueryList;
+      }
+
+      return originalMatchMedia(query);
+    };
+  }, matches);
+}
+
 async function expectSourceGnbOverlay(page: Page, destinationContext: 'blog' | 'test' | 'history') {
   const overlay = page.getByTestId('landing-transition-source-gnb');
   await expect(overlay).toBeVisible();
@@ -112,6 +136,194 @@ test.describe('Canonical accessibility smoke', () => {
   test('@smoke assertion:B5-axe-canonical landing canonical states remain axe-clean', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
+    await expectPageToBeAxeClean(page);
+  });
+
+  test('@smoke assertion:W11-keyboard LI-01 Test Enter and Space remain idempotent non-entry commands', async ({
+    page
+  }) => {
+    await installHoverCapability(page, false);
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const trigger = card.getByTestId('landing-grid-card-trigger');
+    const initialUrl = page.url();
+
+    await trigger.focus();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Enter');
+
+    await expect(trigger).toBeFocused();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(page).toHaveURL(initialUrl);
+    await expect(page.getByTestId('landing-transition-source-gnb')).toHaveCount(0);
+    await expect(card.locator('[data-slot="answerChoiceA"]:focus')).toHaveCount(0);
+    await expect(card.locator('[data-slot="answerChoiceB"]:focus')).toHaveCount(0);
+    expect(
+      await page.evaluate(() =>
+        Object.keys(window.sessionStorage).filter((key) => key.startsWith('vivetest-landing-ingress:'))
+      )
+    ).toEqual([]);
+  });
+
+  test('@smoke assertion:W11-keyboard LI-02 Escape is a no-op for Blog and unavailable cards', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const shell = page.getByTestId('landing-grid-shell');
+    const blogCard = page.locator('[data-card-variant="ops-handbook"]');
+    const blogTrigger = blogCard.getByTestId('landing-grid-card-trigger');
+    await blogTrigger.focus();
+    const blogState = await shell.getAttribute('data-interaction-expanded-card-variant');
+    await page.keyboard.press('Escape');
+    await expect(blogTrigger).toBeFocused();
+    await expect(blogCard).not.toHaveAttribute('data-card-state', 'expanded');
+    await expect(shell).toHaveAttribute('data-interaction-expanded-card-variant', blogState ?? '');
+
+    const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
+    const unavailableTrigger = unavailableCard.getByTestId('landing-grid-card-trigger');
+    const status = unavailableCard.locator('[data-slot="comingSoonTag"]');
+    await unavailableTrigger.focus();
+    await page.keyboard.press('Escape');
+    await expect(unavailableTrigger).toBeFocused();
+    await expect(unavailableTrigger).toHaveAttribute('aria-disabled', 'true');
+    await expect(unavailableTrigger).toHaveAttribute('tabindex', '-1');
+    await expect(status).toBeVisible();
+  });
+
+  test('@smoke assertion:W11-keyboard LI-03 Test accessible name is byte-stable across disclosure in all 12 locales', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+
+    for (const locale of locales) {
+      const catalog = resolveLandingCatalog(locale);
+      const testCard = catalog.find((card) => card.variant === PRIMARY_AVAILABLE_TEST_VARIANT);
+      const blogCard = catalog.find((card) => card.variant === 'ops-handbook');
+      const unavailableCard = catalog.find((card) => card.variant === 'creativity-profile');
+      if (!testCard || !blogCard || !unavailableCard) {
+        throw new Error(`Missing Wave 11 catalog fixtures for ${locale}`);
+      }
+
+      await page.goto(`/${locale}`);
+      const testRoot = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+      const testTrigger = testRoot.getByTestId('landing-grid-card-trigger');
+      const stage = testRoot.locator('[data-slot="desktopStage"]');
+
+      await testRoot.evaluate((element) => {
+        const trigger = element.querySelector<HTMLElement>('[data-testid="landing-grid-card-trigger"]');
+        const stageElement = element.querySelector<HTMLElement>('[data-slot="desktopStage"]');
+        if (!trigger || !stageElement) {
+          throw new Error('Missing Test trigger or desktop stage');
+        }
+        const state = window as Window & {
+          __w11NameLog?: Array<{
+            phase: string;
+            label: string | null;
+            expanded: string | null;
+            stageHidden: string | null;
+          }>;
+          __w11NameObserver?: MutationObserver;
+        };
+        const log = () => {
+          state.__w11NameLog ??= [];
+          state.__w11NameLog.push({
+            phase: element.getAttribute('data-desktop-shell-phase') ?? '',
+            label: trigger.getAttribute('aria-label'),
+            expanded: trigger.getAttribute('aria-expanded'),
+            stageHidden: stageElement.getAttribute('aria-hidden')
+          });
+        };
+        log();
+        const observer = new MutationObserver(log);
+        observer.observe(element, {
+          attributes: true,
+          subtree: true,
+          attributeFilter: ['data-desktop-shell-phase', 'aria-label', 'aria-expanded', 'aria-hidden']
+        });
+        state.__w11NameObserver = observer;
+      });
+
+      await expect(testTrigger).toHaveAccessibleName(testCard.title);
+      await expect(testTrigger).toHaveAttribute('aria-expanded', 'false');
+      await expect(stage).toHaveAttribute('aria-hidden', 'true');
+      await testTrigger.focus();
+      await expect(testRoot).toHaveAttribute('data-desktop-shell-phase', 'steady');
+      await expect(testTrigger).toHaveAccessibleName(testCard.title);
+      await expect(testTrigger).toHaveAttribute('aria-expanded', 'true');
+      await expect(stage).not.toHaveAttribute('aria-hidden', 'true');
+      await page.keyboard.press('Escape');
+      await expect(testRoot).toHaveAttribute('data-desktop-shell-phase', 'idle');
+      await expect(testTrigger).toHaveAccessibleName(testCard.title);
+      await expect(testTrigger).toHaveAttribute('aria-expanded', 'false');
+      await expect(stage).toHaveAttribute('aria-hidden', 'true');
+
+      const nameLog = await page.evaluate(() => {
+        const state = window as Window & {
+          __w11NameLog?: Array<{
+            phase: string;
+            label: string | null;
+            expanded: string | null;
+            stageHidden: string | null;
+          }>;
+          __w11NameObserver?: MutationObserver;
+        };
+        state.__w11NameObserver?.disconnect();
+        return state.__w11NameLog ?? [];
+      });
+      expect(new Set(nameLog.map((entry) => entry.label))).toEqual(new Set([testCard.title]));
+      for (const entry of nameLog) {
+        const logicallyExpanded = ['opening', 'steady', 'handoff-target'].includes(entry.phase);
+        expect(entry.expanded).toBe(logicallyExpanded ? 'true' : 'false');
+        expect(entry.stageHidden).toBe(logicallyExpanded ? null : 'true');
+      }
+
+      const blogTrigger = page
+        .locator('[data-card-variant="ops-handbook"]')
+        .getByTestId('landing-grid-card-trigger');
+      await expect(blogTrigger).toHaveAccessibleName(blogCard.title);
+      await expect(blogTrigger).not.toHaveAttribute('aria-expanded');
+      await expect(blogTrigger).not.toHaveAttribute('aria-controls');
+
+      const unavailableRoot = page.locator('[data-card-variant="creativity-profile"]');
+      const unavailableTrigger = unavailableRoot.getByTestId('landing-grid-card-trigger');
+      const status = unavailableRoot.locator('[data-slot="comingSoonTag"]');
+      await expect(unavailableTrigger).toHaveAccessibleName(unavailableCard.title);
+      await expect(unavailableTrigger).toHaveAccessibleDescription((await status.textContent()) ?? '');
+      await expect(unavailableTrigger).toHaveAttribute('aria-disabled', 'true');
+      await expect(unavailableTrigger).toHaveAttribute('tabindex', '-1');
+      await expect(unavailableRoot).not.toHaveAttribute('aria-disabled');
+      await expect(unavailableRoot.locator('[data-slot="tags"]')).not.toHaveAttribute('aria-label');
+      await expect(page.locator('[data-testid="landing-grid-shell"] [aria-live]')).toHaveCount(0);
+    }
+  });
+
+  test('@smoke assertion:W11-keyboard LI-03 expanded question and choices are AT-exposed and axe-clean', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const trigger = card.getByTestId('landing-grid-card-trigger');
+    await expectPageToBeAxeClean(page);
+    await trigger.focus();
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+
+    for (const slot of ['previewQuestion', 'answerChoiceA', 'answerChoiceB']) {
+      const locator = card.locator(`[data-slot="${slot}"]`);
+      await expect(locator).toBeVisible();
+      expect(
+        await locator.evaluate((element) =>
+          Boolean(element.closest('[aria-hidden="true"], [inert]'))
+        )
+      ).toBe(false);
+    }
     await expectPageToBeAxeClean(page);
   });
 

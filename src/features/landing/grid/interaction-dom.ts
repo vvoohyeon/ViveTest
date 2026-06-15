@@ -77,6 +77,14 @@ export function isDocumentLevelFocusTarget(target: EventTarget | null): boolean 
   return target === document.body || target === document.documentElement;
 }
 
+export function isCardFocusExit(cardRoot: HTMLElement, relatedTarget: EventTarget | null): boolean {
+  return !(relatedTarget instanceof Node && cardRoot.contains(relatedTarget));
+}
+
+export function hasOpenHigherPriorityOverlay(ownerDocument: Document): boolean {
+  return ownerDocument.querySelector('[role="dialog"]:not([hidden])') !== null;
+}
+
 interface IsVisibleFocusableElementOptions {
   excludeDisabled?: boolean;
 }
