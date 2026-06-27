@@ -33,6 +33,11 @@
 `docs/requirements.md` — background context only; not a direct implementation SSOT.  
 `docs/archive/**` — historical reference only; not a current contract basis.
 
+Reference audit *(2026-06-27, `git ls-tree -r --name-only HEAD`)*:
+`docs/req-test-plan.md`, `docs/agent-guides/verification-commands.md`,
+`docs/design/design.md`, `docs/req-landing.md`, `docs/req-test.md`, and
+`docs/requirements.md` all exist in HEAD.
+
 ### Rebuild Workflow Sources
 
 When a task involves rebuild scope, wave sequencing, local worktree roles, checkpoint usage, legacy reference comparison, or rollback anchoring, use these project sources as applicable:
@@ -56,9 +61,9 @@ Do not load these documents upfront for unrelated tasks. They are project-specif
 | Locales | `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru` |
 | Locale normalization | `ko* → kr` · Simplified Chinese → `zs` · Traditional Chinese → `zt` |
 | `[locale]/layout.tsx` flag | `dynamicParams = false` |
-| `next.config.ts` flags | `typedRoutes = true`, `experimental.globalNotFound = true` |
-| Tech stack | `next@16.2.4`, `react@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0` (test question answer-grid transitions) |
-| Tailwind | v4. Tokens/base: `src/app/globals.css`. Landing grid/card motion + scoped visual-skin tokens (`--normal-*` / `--expanded-*`): `landing-grid-card.module.css`. *(2026-04-21)* |
+| `next.config.ts` flags | `typedRoutes = true`, `experimental.globalNotFound = true`, `outputFileTracingRoot = process.cwd()`, `allowedDevOrigins = ['127.0.0.1']`, `turbopack.root = process.cwd()` |
+| Tech stack | `next@16.2.4`, `react@19.2.4`, `react-dom@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0`, `tailwindcss@4.1.0`, `typescript@5.9.3` |
+| Tailwind | v4. Tokens/base: `src/app/globals.css`. Landing grid/card motion + scoped visual-skin tokens (`--normal-*` / `--expanded-*`): `landing-grid-card.module.css`. Verified from current files on 2026-06-27. |
 
 Directory ownership details → `docs/agent-guides/project-rules.md §Ownership`
 
@@ -103,6 +108,9 @@ Confirm the relevant contract document and test anchor before touching any path 
 - `tests/e2e/theme-matrix-manifest.json`
 - `docs/blocker-traceability.json`
 
+Path existence audit *(2026-06-27)*: every Ask-First path above exists in the
+current worktree; `scripts/qa` is a directory.
+
 **High-Risk Areas** — Any plan touching paths below must explicitly identify which dimension is
 at risk (usability / a11y / responsiveness / performance / design system consistency) and must
 include Playwright E2E regression coverage (§5).
@@ -115,6 +123,9 @@ include Playwright E2E regression coverage (§5).
 - `public/theme-bootstrap.js`
 - `src/features/telemetry/consent-source.ts`
 - `src/features/transition/`
+
+Path existence audit *(2026-06-27)*: every High-Risk file above exists in the
+current worktree; `src/features/transition/` is a directory.
 
 ### Always — Modify Freely
 
@@ -155,10 +166,11 @@ npm run qa:visual:full  # Full theme-matrix baseline regeneration
 ```
 
 **QA baseline notes**
-- `qa:rules` excluded from default Done gate. As of 2026-05-05: passes all 12 checks
-  through `scripts/qa/run-all.mjs`.
+- `qa:rules` excluded from default Done gate. Script inspection on 2026-06-27:
+  it delegates to 12 check scripts through `scripts/qa/run-all.mjs`. Current
+  pass/fail status must be verified by running `npm run qa:rules`.
 - `qa:rules` delegates to `scripts/qa/run-all.mjs`, which runs the same 12 checks
-  in parallel and prints buffered child output after completion. *(2026-05-05)*
+  in parallel and prints buffered child output after completion. *(verified 2026-06-27)*
 - Playwright baselines: local PNGs under `tests/e2e/*-snapshots/`.
   Visual smoke helper auto-creates missing baselines; falls back to comparison when baseline exists.
 - Theme-matrix baseline provenance is tracked at

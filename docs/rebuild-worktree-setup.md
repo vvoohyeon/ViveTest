@@ -16,30 +16,56 @@ It is intended to be used as a project source document that describes:
 
 ## 2. Setup Status
 
-Status: **PASS**
+Setup-time status: **PASS**
 
 Setup was completed successfully.
 
-Confirmed:
+Setup-time confirmations:
 
 - No source files were modified.
 - No remote push was performed.
 - All requested target worktrees were created.
 - All requested target worktrees are clean.
 
+Current verification *(2026-06-27, `git worktree list --porcelain` +
+per-worktree `git status --short --branch`)*:
+
+- The rebuild topology is still present: active `main`, `legacy/reference`, and checkpoint
+  ranges `w01-02`, `w03-06`, `w07-10`, `w11-14`, `w15-17`.
+- The active `main` worktree is not clean in the current home environment because of
+  user-owned documentation edits in `docs/decision-register.md` and `docs/wave-roadmap.md`.
+- `legacy/reference` and the five checkpoint worktrees are clean.
+- Additional temporary/Codex worktrees may exist locally; they are not part of the rebuild
+  topology unless explicitly assigned a role in this document.
+
 ---
 
 ## 3. Confirmed Local Paths
 
-| Role | Path | Branch | HEAD | Status |
+Environment path rule:
+
+- Canonical path form: `/Users/<user>/Local/...`
+- Known environments: `woohyeon` = home, `b-m-2022001` = office.
+- Do not normalize one username into the other. The relative worktree layout and branch roles are
+  the invariant.
+
+| Role | Canonical path | Branch | Current observed HEAD | Current observed status |
 |---|---|---|---|---|
-| Active rebuild implementation workspace | `/Users/woohyeon/Local/ViveTest` | `main` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
-| Legacy reference worktree | `/Users/woohyeon/Local/vivetest-legacy-reference` | `legacy/reference` | `d3305b7183a9c0f70331ca64baa5531d1164c2c0` | clean |
-| Checkpoint worktree | `/Users/woohyeon/Local/vivetest-checkpoints/w01-02` | `checkpoint/w01-02-card-structure` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
-| Checkpoint worktree | `/Users/woohyeon/Local/vivetest-checkpoints/w03-06` | `checkpoint/w03-06-card-expanded` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
-| Checkpoint worktree | `/Users/woohyeon/Local/vivetest-checkpoints/w07-10` | `checkpoint/w07-10-blog-unavailable-grid` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
-| Checkpoint worktree | `/Users/woohyeon/Local/vivetest-checkpoints/w11-14` | `checkpoint/w11-14-landing-stable` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
-| Checkpoint worktree | `/Users/woohyeon/Local/vivetest-checkpoints/w15-17` | `checkpoint/w15-17-gnb-theme-mobile` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
+| Active rebuild implementation workspace | `/Users/<user>/Local/ViveTest` | `main` | `55e2808733b925d699ea9a7a606d1a868765de90` | Home env dirty: user-owned docs `decision-register.md`, `wave-roadmap.md` |
+| Legacy reference worktree | `/Users/<user>/Local/vivetest-legacy-reference` | `legacy/reference` | `d3305b7183a9c0f70331ca64baa5531d1164c2c0` | clean |
+| Checkpoint worktree | `/Users/<user>/Local/vivetest-checkpoints/w01-02` | `checkpoint/w01-02-card-structure` | `66bc50c1e8522bf417d0239755e4395d2394be06` | clean |
+| Checkpoint worktree | `/Users/<user>/Local/vivetest-checkpoints/w03-06` | `checkpoint/w03-06-card-expanded` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
+| Checkpoint worktree | `/Users/<user>/Local/vivetest-checkpoints/w07-10` | `checkpoint/w07-10-blog-unavailable-grid` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
+| Checkpoint worktree | `/Users/<user>/Local/vivetest-checkpoints/w11-14` | `checkpoint/w11-14-landing-stable` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
+| Checkpoint worktree | `/Users/<user>/Local/vivetest-checkpoints/w15-17` | `checkpoint/w15-17-gnb-theme-mobile` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | clean |
+
+Observed non-topology worktrees *(2026-06-27)*:
+
+| Path | Branch / state | Note |
+|---|---|---|
+| `/private/tmp/vivetest-head-check` | detached `e0cb8dc5b8ece6d1856a1098ba6ffdf8254c0e6a` | prunable; not a rebuild role |
+| `/Users/<user>/.codex/worktrees/44a5/VibeTest` | detached `81006d27fa6d84383d5d4ea89d73023a496322b4` | Codex worktree; not a rebuild role |
+| `/Users/<user>/Local/VibeTest-phase7` | `codex/phase-7`, HEAD `10a9f78fc8b27a75c8e5706f6785c75b4171664f` | prunable; not a rebuild role |
 
 ---
 
@@ -48,8 +74,11 @@ Confirmed:
 The active rebuild implementation workspace is:
 
 ```txt
-/Users/woohyeon/Local/ViveTest
+/Users/<user>/Local/ViveTest
 ```
+
+Known environment examples: `/Users/woohyeon/Local/ViveTest` (home),
+`/Users/b-m-2022001/Local/ViveTest` (office).
 
 Branch:
 
@@ -61,6 +90,12 @@ Setup-time HEAD:
 
 ```txt
 afe70773a1cde832f1728bf4fc2b857a836db6b9
+```
+
+Current observed HEAD in the home environment on 2026-06-27:
+
+```txt
+55e2808733b925d699ea9a7a606d1a868765de90
 ```
 
 Role:
@@ -77,7 +112,7 @@ Role:
 The legacy reference worktree is:
 
 ```txt
-/Users/woohyeon/Local/vivetest-legacy-reference
+/Users/<user>/Local/vivetest-legacy-reference
 ```
 
 Branch:
@@ -117,13 +152,13 @@ Checkpoint worktrees are range-based verification and rollback anchors.
 
 They are not the default implementation space.
 
-| Range | Worktree Path | Branch | Setup-time HEAD |
-|---|---|---|---|
-| `w01-02` | `/Users/woohyeon/Local/vivetest-checkpoints/w01-02` | `checkpoint/w01-02-card-structure` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
-| `w03-06` | `/Users/woohyeon/Local/vivetest-checkpoints/w03-06` | `checkpoint/w03-06-card-expanded` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
-| `w07-10` | `/Users/woohyeon/Local/vivetest-checkpoints/w07-10` | `checkpoint/w07-10-blog-unavailable-grid` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
-| `w11-14` | `/Users/woohyeon/Local/vivetest-checkpoints/w11-14` | `checkpoint/w11-14-landing-stable` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
-| `w15-17` | `/Users/woohyeon/Local/vivetest-checkpoints/w15-17` | `checkpoint/w15-17-gnb-theme-mobile` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
+| Range | Worktree path | Branch | Setup-time HEAD | Current observed HEAD |
+|---|---|---|---|---|
+| `w01-02` | `/Users/<user>/Local/vivetest-checkpoints/w01-02` | `checkpoint/w01-02-card-structure` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | `66bc50c1e8522bf417d0239755e4395d2394be06` |
+| `w03-06` | `/Users/<user>/Local/vivetest-checkpoints/w03-06` | `checkpoint/w03-06-card-expanded` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
+| `w07-10` | `/Users/<user>/Local/vivetest-checkpoints/w07-10` | `checkpoint/w07-10-blog-unavailable-grid` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
+| `w11-14` | `/Users/<user>/Local/vivetest-checkpoints/w11-14` | `checkpoint/w11-14-landing-stable` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
+| `w15-17` | `/Users/<user>/Local/vivetest-checkpoints/w15-17` | `checkpoint/w15-17-gnb-theme-mobile` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` | `afe70773a1cde832f1728bf4fc2b857a836db6b9` |
 
 Role:
 
@@ -137,7 +172,7 @@ Role:
 ## 7. Final Worktree Layout
 
 ```txt
-/Users/woohyeon/Local/
+/Users/<user>/Local/
 ├─ ViveTest/
 │  └─ branch: main
 │     role: active rebuild implementation workspace
@@ -178,7 +213,7 @@ Role:
 
 ## 9. Minimal Operating Notes
 
-* Active rebuild work happens in `/Users/woohyeon/Local/ViveTest` on branch `main`.
+* Active rebuild work happens in `/Users/<user>/Local/ViveTest` on branch `main`.
 * `legacy/reference` is read-only and exists only for reference.
 * Checkpoint worktrees are verification and rollback anchors.
 * Checkpoint branches should be updated only after completed work on local `main`.
@@ -196,16 +231,16 @@ Setup result:
 PASS
 ```
 
-Confirmed clean worktrees:
+Setup-time clean worktrees:
 
 ```txt
-/Users/woohyeon/Local/ViveTest
-/Users/woohyeon/Local/vivetest-legacy-reference
-/Users/woohyeon/Local/vivetest-checkpoints/w01-02
-/Users/woohyeon/Local/vivetest-checkpoints/w03-06
-/Users/woohyeon/Local/vivetest-checkpoints/w07-10
-/Users/woohyeon/Local/vivetest-checkpoints/w11-14
-/Users/woohyeon/Local/vivetest-checkpoints/w15-17
+/Users/<user>/Local/ViveTest
+/Users/<user>/Local/vivetest-legacy-reference
+/Users/<user>/Local/vivetest-checkpoints/w01-02
+/Users/<user>/Local/vivetest-checkpoints/w03-06
+/Users/<user>/Local/vivetest-checkpoints/w07-10
+/Users/<user>/Local/vivetest-checkpoints/w11-14
+/Users/<user>/Local/vivetest-checkpoints/w15-17
 ```
 
 Setup confirmations:
@@ -214,4 +249,12 @@ Setup confirmations:
 source files modified: no
 remote push performed: no
 all target worktrees clean: yes
+```
+
+Current observed status on 2026-06-27:
+
+```txt
+active main worktree: dirty in home env from user-owned docs/decision-register.md and docs/wave-roadmap.md
+legacy/reference worktree: clean
+checkpoint worktrees: clean
 ```

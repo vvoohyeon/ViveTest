@@ -4,13 +4,13 @@
 
 This repository is a localized Next.js App Router application. Its current technical center is a front-end runtime that joins five surfaces: localized landing catalog, shared app shell/GNB, landing-to-destination transition continuity, fixture-backed blog/test destinations, and consent-gated telemetry. It is no longer just a landing prototype, but it is still not the full assessment product described in `docs/requirements.md`: scoring derivation, persisted history, full result rendering, and backend ingestion remain deferred.
 
-**Workspace verification:**
+**Workspace verification *(2026-06-27, HEAD / current source tree)*:**
 
 - Default local Done gate remains `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
 - `npm run qa:rules` is a release-level reference gate, not the default Done gate. It currently delegates to 12 buffered parallel contract scripts through `scripts/qa/run-all.mjs`.
 - `npm run qa:gate:once` runs `qa:static` (`lint` + `typecheck` + `qa:rules`), then `build`, `test`, and the Playwright `@gate` subset. `npm run qa:gate` repeats that same once-gate three times for flake detection.
-- Current deterministic test inventory: 73 unit `*.test.ts` files under `tests/unit/`, 10 Playwright `*.spec.ts` files under `tests/e2e/`, and 12 `scripts/qa/check-*.mjs` contract scripts plus 4 local QA helper/runner modules.
-- E2E coverage spans routing, grid/state, GNB, accessibility, consent, qualifier overlay, theme matrix, Safari hover ghosting, and transition telemetry. `playwright.config.ts` auto-starts a dev or preview server unless `PLAYWRIGHT_BASE_URL` is provided; the only checked-in GitHub workflow currently runs Sheets sync, not the general quality gates.
+- Current deterministic test inventory: 74 unit `*.test.ts` files under `tests/unit/`, 10 Playwright `*.spec.ts` files under `tests/e2e/`, and 12 `scripts/qa/check-*.mjs` contract scripts plus 4 local QA helper/runner modules.
+- E2E coverage spans routing, grid/state, GNB, accessibility, consent, qualifier overlay, theme matrix, Safari hover ghosting, and transition telemetry. `playwright.config.ts` auto-starts a dev or preview server unless `PLAYWRIGHT_BASE_URL` is provided; the only checked-in GitHub workflow in HEAD is `.github/workflows/sync.yml`, and it runs Sheets sync rather than the general quality gates.
 - Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked PNG completeness is not required; the shared theme-matrix regeneration and gate-verification provenance is tracked in `tests/e2e/theme-matrix-baseline-provenance.md`, with update instructions in `tests/e2e/README.md`.
 
 ---
@@ -21,7 +21,7 @@ This repository is a localized Next.js App Router application. Its current techn
 
 - Localized App Router route tree rooted at `src/app/[locale]/**`, with root document shell, locale layout, segment 404, and global unmatched 404.
 - Shared `PageShell` for localized pages, mounting `TransitionGnbOverlay`, `SiteGnb`, route `<main>`, and the default telemetry consent banner.
-- Landing page and catalog grid with desktop/mobile expansion behavior, keyboard handoff, hover/desktop motion, mobile lifecycle, geometry/baseline management, and feature-local grid motion CSS.
+- Landing page and catalog grid with desktop/mobile expansion behavior, desktop/tablet keyboard-a11y hardening, keyboard handoff, hover/desktop motion, mobile lifecycle, measured spacing/baseline management, tag-prefix fitting, and feature-local grid motion CSS.
 - Global navigation shell with route-aware contexts (`landing`, `blog`, `history`, `test`), locale switching, theme preference, mobile menu, settings panel, back-navigation behavior, and extracted keyboard-target/Tab-routing seams.
 - Landing-to-destination transition handshake with sessionStorage persistence, return-scroll restoration, destination monitor timeout, cancel/failure signals, and GNB overlay continuity.
 - Consent-gated telemetry runtime, validation, `/api/telemetry` transport endpoint, Vercel Analytics gate, and Speed Insights gate sharing a single consent source.
@@ -240,7 +240,7 @@ Pure or model-focused modules:
 Runtime ownership after the 2026-04-30 split:
 
 - `src/features/landing/grid/landing-catalog-grid-loader.tsx` — subscribes to `useTelemetryConsentSource()` and resolves the catalog through `resolveLandingCatalog(locale, {consentState})`, so consent-aware card visibility is a loader/catalog concern rather than a card-render concern.
-- `src/features/landing/grid/use-landing-interaction-controller.ts` — **526 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, per-card binding composition, and transition-start callback composition. Pure visual projection is split: `interaction-state.ts` derives card visual state via `resolveVisualState`, and `desktop-shell-phase.ts` derives desktop motion roles via `resolveDesktopMotionRole`.
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — **738 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, card focus/expand commands, per-card binding composition, and transition-start callback composition. Pure visual projection is split: `interaction-state.ts` derives card visual state via `resolveVisualState`, and `desktop-shell-phase.ts` derives desktop motion roles via `resolveDesktopMotionRole`.
 - `src/features/landing/grid/interaction-dom.ts` — DOM/focus helpers: card-root lookup, expanded focusable selection, adjacent-card resolution, queued focus callbacks, mobile-card detection, and card-boundary resolution.
 - `src/features/landing/grid/use-hover-intent-controller.ts` — hover timers/tokens, last pointer position, card-boundary containment checks, and trigger `onMouseEnter` / `onMouseLeave` handlers.
 - `src/features/landing/grid/use-desktop-motion-controller.ts` — desktop opening/closing/handoff visual state, transition reason ref, cleanup timers, and double-RAF cleanup.
@@ -250,13 +250,13 @@ Runtime ownership after the 2026-04-30 split:
 - `src/features/landing/grid/mobile-card-lifecycle-dom.ts` — **48 lines**, owns mobile snapshot capture and restore measurement helpers.
 - `src/features/landing/grid/use-mobile-restore-polling.ts` — **120 lines**, owns the restore-ready marker timer and RAF polling with the restore-settled predicate injected from the hub orchestrator.
 - `src/features/landing/grid/use-mobile-transient-shell.ts` — **57 lines**, owns transient shell state; no independent auto-reset timer — teardown driven by the orchestrator's open and close timers via `resetMobileTransientShell()`.
-- `src/features/landing/grid/use-keyboard-handoff.ts` — **91 lines**, composition layer for keyboard-mode tracking, first landing entry, and per-card keyboard handlers.
+- `src/features/landing/grid/use-keyboard-handoff.ts` — **95 lines**, composition layer for keyboard-mode tracking, first landing entry, and per-card keyboard handlers.
 - `src/features/landing/grid/use-keyboard-mode-tracker.ts` — global Tab/Escape keyboard-mode entry and mousedown exit listener wiring.
 - `src/features/landing/grid/use-landing-keyboard-entry.ts` — reverse Shift+Tab focus return from the first landing card toward the GNB target.
-- `src/features/landing/grid/use-card-keyboard-handler.ts` — **328 lines**, per-card focus/key handlers, expanded-body traversal, mobile keyboard handoff, and desktop transition intent handoff.
-- `src/features/landing/grid/use-grid-geometry-controller.ts` — **348 lines**, spacing model, row baseline snapshots, reducer-owned `BASELINE_READY`/`BASELINE_FROZEN` freeze/release, 32ms release timer lock, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
-- `src/features/landing/grid/landing-catalog-grid.tsx` — **270 lines**, keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, `LandingGridPlan` calculation, render assembly, and data attributes.
-- `src/features/landing/grid/landing-grid-card.tsx` — **958 lines**, owns the visual card component, semantic CSS-module class mapping, normal/expanded/mobile/transient render branches, inline CSS custom properties for runtime geometry, and public `data-*` QA/debug anchors.
+- `src/features/landing/grid/use-card-keyboard-handler.ts` — **313 lines**, per-card focus/key handlers, expanded-body traversal, mobile keyboard handoff, and desktop transition intent handoff.
+- `src/features/landing/grid/use-grid-geometry-controller.ts` — **446 lines**, spacing model, row baseline snapshots, reducer-owned `BASELINE_READY`/`BASELINE_FROZEN` freeze/release, 32ms release timer lock, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
+- `src/features/landing/grid/landing-catalog-grid.tsx` — **274 lines**, keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, `LandingGridPlan` calculation, render assembly, and data attributes.
+- `src/features/landing/grid/landing-grid-card.tsx` — **1,294 lines**, owns the visual card component, semantic CSS-module class mapping, normal/expanded/mobile/transient render branches, inline CSS custom properties for runtime geometry, and public `data-*` QA/debug anchors.
 
 The core risk is still choreography complexity across hover, keyboard, mobile, desktop shell phases, transition cleanup, and geometry timing, but ownership is now explicit and testable at narrower seams. Styling ownership is hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` remaps raw runtime state into semantic style classes consumed by `landing-grid-card.module.css` for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors and are the runtime contract that a future visual-system replacement must preserve.
 
@@ -475,7 +475,7 @@ Feature styling ownership is split by runtime surface:
 - Shared shell/GNB/consent visual structure is mostly component-local Tailwind utility constants in `page-shell.tsx`, `site-gnb.tsx`, `settings-controls.tsx`, and `consent-banner.tsx`.
 - Landing grid layout and mobile backdrop utility constants live in `landing-catalog-grid.tsx`.
 - Landing card static structure and semantic state-class mapping live in `landing-grid-card.tsx`.
-- `src/features/landing/grid/landing-grid-card.module.css` (371 lines) owns the animation contract: desktop expanded shell motion, focus continuity, mobile transient open/close shells, reduced-motion branches, and keyframes.
+- `src/features/landing/grid/landing-grid-card.module.css` (491 lines) owns the animation contract: desktop expanded shell motion, focus continuity, mobile transient open/close shells, reduced-motion branches, and keyframes.
 - `data-*` attributes are still rendered as QA/debug/Playwright anchors. Styling should consume semantic classes and CSS custom properties rather than making raw `data-*` values the visual contract.
 
 ### 5.7.1 Tailwind v4 Migration — Completion Record
@@ -485,7 +485,7 @@ Feature styling ownership is split by runtime surface:
 **Locked decisions:**
 
 - `src/app/globals.css` was reduced from 1,240 lines to **112 lines** in the migration checkpoint; as of the 2026-05-07 theme-matrix visual follow-up, it is **149 lines** after token-only visual QA additions and still retains only token/theme definitions plus the shared anchor base.
-- Landing grid/card motion, focus continuity, reduced-motion branches owned by `landing-grid-card.module.css` (371 lines).
+- Landing grid/card motion, focus continuity, reduced-motion branches owned by `landing-grid-card.module.css` (491 lines as of 2026-06-27).
 - `data-*` anchors remain on the DOM as QA/debug/Playwright surface. Only visual CSS ownership moved.
 - Global CSS selector surface intentionally limited to `:root`, `html[data-theme='dark']`, and `a { color: var(--link-ink) }`.
 - Do not introduce `tailwind.config.*` until content scanning or theme extension is actually needed.
@@ -577,7 +577,7 @@ The key lists below describe the live prototype plus the Phase 3 test storage co
 
 ### 7.1 Unit Tests (Vitest)
 
-Scoped to `tests/unit/`. Current deterministic file inventory: 73 `*.test.ts` files. The file count is treated as the inventory contract; total assertion/case count is not recorded here because Vitest suites can contain nested or generated cases.
+Scoped to `tests/unit/`. Current deterministic file inventory: 74 `*.test.ts` files. The file count is treated as the inventory contract; total assertion/case count is not recorded here because Vitest suites can contain nested or generated cases.
 
 | Surface | Primary unit coverage |
 |---|---|
@@ -715,11 +715,11 @@ Primary checks: `tests/unit/question-source-parser.test.ts` · `tests/unit/varia
 
 **Instruction copy ownership is intentionally split.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. Future editors need to keep both sources in sync.
 
-**Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is 526 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
+**Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is 738 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
 
-**Landing visual-system replacement is possible only if runtime contracts stay intact.** `landing-grid-card.tsx` is now the largest landing file at 958 lines and mixes visual render branches with contract attributes. A visual rewrite should treat the card component and CSS module as replaceable UI surface, but preserve `LandingCardInteractionBindings`, transition callbacks, focus/keyboard hooks, mobile snapshot CSS variables, `inert`/`aria-disabled` behavior, and the existing `data-*` anchors used by unit/E2E/QA scripts.
+**Landing visual-system replacement is possible only if runtime contracts stay intact.** `landing-grid-card.tsx` is now the largest landing file at 1,294 lines and mixes visual render branches with contract attributes. A visual rewrite should treat the card component and CSS module as replaceable UI surface, but preserve `LandingCardInteractionBindings`, transition callbacks, focus/keyboard hooks, mobile snapshot CSS variables, `inert`/`aria-disabled` behavior, and the existing `data-*` anchors used by unit/E2E/QA scripts.
 
-**Shared runtime namespaces are now split by concern.** GNB, telemetry, transition, and blog destination code live under `src/features/gnb`, `src/features/telemetry`, `src/features/transition`, and `src/features/blog`, leaving `src/features/landing` focused on the landing runtime, grid, shell, and storage. Current pressure points are `src/features/gnb/site-gnb.tsx` (401 lines), `src/features/landing/grid/use-landing-interaction-controller.ts` (526 lines), `src/features/landing/grid/use-card-keyboard-handler.ts` (328 lines), and `src/features/landing/grid/use-grid-geometry-controller.ts` (348 lines). `use-keyboard-handoff.ts` is now a 91-line composition layer rather than a pressure point. GNB behavior pressure is split across focused desktop settings, mobile menu, back-navigation, keyboard DOM, landing entry mode, target discovery, and Tab-routing modules; keyboard-mode tracking has an exported hook reserved for future wiring after §7.5 compliance review. `use-mobile-card-lifecycle.ts` is now 287 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (120), and `use-mobile-transient-shell.ts` (57; independent auto-reset timer removed — teardown now driven by the orchestrator's open and close timers).
+**Shared runtime namespaces are now split by concern.** GNB, telemetry, transition, and blog destination code live under `src/features/gnb`, `src/features/telemetry`, `src/features/transition`, and `src/features/blog`, leaving `src/features/landing` focused on the landing runtime, grid, shell, and storage. Current pressure points are `src/features/gnb/site-gnb.tsx` (401 lines), `src/features/landing/grid/use-landing-interaction-controller.ts` (738 lines), `src/features/landing/grid/use-grid-geometry-controller.ts` (446 lines), `src/features/landing/grid/use-card-keyboard-handler.ts` (313 lines), and `src/features/landing/grid/landing-grid-card.tsx` (1,294 lines). `use-keyboard-handoff.ts` is now a 95-line composition layer rather than a pressure point. GNB behavior pressure is split across focused desktop settings, mobile menu, back-navigation, keyboard DOM, landing entry mode, target discovery, and Tab-routing modules; keyboard-mode tracking has an exported hook reserved for future wiring after §7.5 compliance review. `use-mobile-card-lifecycle.ts` is now 287 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (120), and `use-mobile-transient-shell.ts` (57; independent auto-reset timer removed — teardown now driven by the orchestrator's open and close timers).
 
 **Test entry orchestration is now split from the client.** `use-test-entry-orchestrator.ts` owns the entry action handler (`executeInstructionAction`) and composes the qualifier wizard plus auto-commit scheduling. `use-qualifier-overlay-wizard.ts` owns qualifier step/re-entry draft state; entry side effects remain inline in the orchestrator and call `setTelemetryConsentState`, `markInstructionSeen`, and `clearLandingIngress` directly. `use-auto-commit.ts` owns instruction-seen auto-entry for non-qualifier variants. `test-question-client.tsx` retains `instructionVisible` derivation and renders connector props. The orchestrator path does not own telemetry — `trackAttemptStart` and `trackFinalSubmit` remain in `use-test-run-controller.ts`, while `question_answered` fires from `use-answer-handler.ts`.
 

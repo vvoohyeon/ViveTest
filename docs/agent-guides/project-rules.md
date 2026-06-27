@@ -29,8 +29,12 @@
 | `src/messages/*.json` | Shared UI copy — namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent` |
 | `public/theme-bootstrap.js` | Pre-hydration theme bootstrap |
 | `scripts/qa/*.mjs` | Machine-enforced contract checks |
-| `docs/blocker-traceability.json` | Blocker evidence registry — current blockers `1..30` |
+| `docs/blocker-traceability.json` | Blocker evidence registry — 67 entries across blockers `1..30` (58 `automated_assertion`, 7 `manual_checkpoint`, 2 `scenario_test`; verified 2026-06-27) |
 | `tests/e2e/helpers/landing-fixture.ts` | Representative route anchor SSOT |
+
+Path audit *(2026-06-27)*: the ownership paths above exist in the current
+source tree. `src/features/test/response-projection.ts` is present but exports
+no runtime helper; it remains a reserved projection placeholder.
 
 ---
 
@@ -144,7 +148,8 @@ Do not treat the following as completed contracts:
   `use-answer-handler.ts` on each non-last scoring answer) and `result_viewed` (validated;
   optional `derived_type`; temporary mount-based fire from `TestResultPanel`). Only remaining
   deferred follow-up: real `derived_type` value + IntersectionObserver replacement of the
-  temporary mount fire — tracked in `docs/plans/result-pipeline-todos.md`.
+  temporary mount fire. No `docs/plans/result-pipeline-todos.md` file exists in HEAD as of
+  2026-06-27.
 - History persistence
 - Results Sheets loading
   (`validateCrossSheetIntegrity` runs in 2-source mode until this source is ready)
