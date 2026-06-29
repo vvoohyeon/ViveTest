@@ -313,11 +313,11 @@ This document is intended to provide information that can serve as the final bas
 ---
 
 ## BQ-35
-- **Decision** — Wave 12 모바일 browse 카드 시각은 W12-LI-01~06을 적용한다: 모바일 Normal title/subtitle에 scoped `word-break: keep-all`(+`overflow-wrap: anywhere`); 공유 catalog tag chip `line-height: 1.35`; Blog `Read more →`는 card-scoped ink `#6B6B76`(흰 배경 5.28:1, WCAG AA); 모바일 `base_gap`은 `8px` 유지(fallback, 사유는 BQ-36); W12 proof는 `assertion:W12-mobile` focused non-snapshot unit + grid-smoke + a11y-smoke(360/390/767); behavior no-change guard 적용
+- **Decision** — Wave 12 모바일 browse 카드 시각은 W12-LI-01~06을 적용한다: 모바일 Normal title/subtitle에 scoped `word-break: keep-all`(+`overflow-wrap: anywhere`); 공유 catalog tag chip `line-height: 1.35`; Blog `Read more →`는 card-scoped ink `#6B6B76`(흰 배경 5.28:1, WCAG AA); 모바일 `base_gap`은 **8px 유지(fallback)** — SSR이 `INITIAL_VIEWPORT_WIDTH=1280`로 desktop tier에서 출발해 mobile tier가 hydration 후 확정되므로, tier-가변 12px는 8→12 hydration flip(§11.1 위반)을 일으켜 infeasible로 판정; W12 proof는 `assertion:W12-mobile` focused non-snapshot unit + grid-smoke + a11y-smoke(360/390/767); behavior no-change guard 적용
 - **Source / 근거** — 사용자 승인 — Wave 12 Analysis Step-2(2026-06-15) + 모바일 reference 실측 룰링(2026-06-19) + A4 feasibility 게이트에서 `8px` fallback 명시 승인(2026-06-19)
 - **Implementation impact** — scoped `landing-grid-card.module.css`(keep-all rule, tag `line-height:1.35`, `--blog-read-more-ink:#6b6b76`, `.blogReadMore` color)와 `landing-grid-card.tsx` tag/CTA class 정리(stale `leading-[1.2]`·`text-[var(--muted-ink)]`를 해당 요소에서만 제거; whole-source 금지 아님). geometry/spacing/`globals.css` 무변경. focused W12 unit/e2e/a11y assertion 추가
 - **Include in first implementation wave?** — No (Wave 12)
-- **Notes / caveats** — BQ-29(#6B6B76 scoped, Wave 16까지)·BQ-30(borderless fill)·BQ-31(모바일 full text·content-driven height)·BQ-32(단일 prefix resolver·CTA/status priority)와 정합. globals.css 동결·전역 토큰 promotion 없음(BQ-04/21), snapshot/baseline 재생성 없음(BQ-07). mobile `12px` gap + SSR-tier 결정성은 BQ-36으로 deferred(상호참조). BQ-34와 독립. 잔여 full-E2E 2건(W11 telemetry race `state-smoke.spec.ts:364`, BQ-07 `expanded-focus-shell.png` 403×210 vs 403×295)은 HEAD 55e2808에서도 동일 재현되는 pre-existing debt로 Wave 12 무관 확정
+- **Notes / caveats** — BQ-29(#6B6B76 scoped, Wave 16까지)·BQ-30(borderless fill)·BQ-31(모바일 full text·content-driven height)·BQ-32(단일 prefix resolver·CTA/status priority)와 정합. globals.css 동결·전역 토큰 promotion 없음(BQ-04/21), snapshot/baseline 재생성 없음(BQ-07). **mobile `base_gap` 12px + SSR-tier 결정성은 별도 plan으로 deferred**(그 작업이 12px를 unblock). BQ-34와 독립. 잔여 full-E2E 2건(W11 telemetry race `state-smoke.spec.ts:364`, BQ-07 `expanded-focus-shell.png` 403×210 vs 403×295)은 HEAD 55e2808에서도 동일 재현되는 pre-existing debt로 Wave 12 무관 확정
 
 ---
 

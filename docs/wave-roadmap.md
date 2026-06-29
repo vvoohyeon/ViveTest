@@ -26,11 +26,11 @@ Last reconciled: HEAD `55e2808` / `2026-06-27`
 | 9 | Unavailable behavior and visual | ✅ 완료 | BQ-10, BQ-26, BQ-07 |
 | 10 | Landing grid height rhythm | ✅ 완료 | BQ-24, BQ-30, BQ-31, BQ-32 |
 | 11 | Landing desktop a11y/keyboard hardening | ✅ 완료 | BQ-12, BQ-21, BQ-24, BQ-26, BQ-33 |
-| 12 | Mobile browse card visual | ⬜ 계획 | BQ-19, BQ-31/BQ-32 handoff; no registered Wave-12 BQ in current repo |
+| 12 | Mobile browse card visual | ⬜ 계획 | BQ-19, BQ-31/BQ-32 handoff, BQ-35, BQ-36 |
 | 13 | Mobile expanded shape/position | ⬜ 계획 | BQ-11, BQ-16, Wave 1 B14 deferred title-continuity |
 | 14 | Landing-only regression stabilization | ⬜ 계획 | BQ-07, BQ-12, BQ-21 |
 | 15 | Desktop GNB visual shell | ⬜ 계획 | BQ-03, BQ-21 |
-| 16 | Light-only theme cleanup + scoped visual-token consolidation | ⬜ 계획 | BQ-04, BQ-21, BQ-25, BQ-29, BQ-30 |
+| 16 | Light-only theme cleanup + scoped visual-token consolidation | ⬜ 계획 | BQ-04, BQ-21, BQ-25, BQ-29, BQ-30, BQ-34 |
 | 17 | Mobile menu overlay visual | ⬜ 계획 | BQ-03, BQ-04, BQ-21 |
 
 ### Inter-wave completed checkpoints
@@ -383,8 +383,8 @@ Deferred candidates are logged in the Decision Register.
 - **Prereqs:** Waves 2-Wave 3, Wave 8-Wave 9 완료; Logic Improvement Analysis gate cleared. Current Wave 10/Wave 11 outcomes must be preserved.
 - **Risk:** Medium
 - **Gates/Validation:** mobile browse smoke; targeted landing/grid visual checks appropriate to the approved Wave 12 plan.
-- **BQ refs:** BQ-19, BQ-21, BQ-31, BQ-32. No BQ-34/BQ-35 row exists in current `docs/decision-register.md`.
-- **Completion note:** Not completed in current repo. Current evidence has no Wave 12 plan file, no Wave 12 commit/tag, and no BQ-34/BQ-35 decision row.
+- **BQ refs:** BQ-19, BQ-21, BQ-31, BQ-32, BQ-35, BQ-36.
+- **Completion note:** Not completed in current repo. BQ-35/BQ-36 record the approved Wave 12 mobile browse visual scope, `8px` fallback, and deferred `12px` gap; no Wave 12 completion commit/tag is recorded.
 - **Handoff:** Wave 13 mobile expanded.
 
 ### Wave 13 — Mobile expanded shape/position
@@ -437,13 +437,14 @@ Deferred candidates are logged in the Decision Register.
   - light-first visible state cleanup; dark/system controls not active
   - Scoped visual-token consolidation: `landing-grid-card.module.css`의 `--normal-*` / `--expanded-*` scoped tokens를 `src/app/globals.css`의 warm-neutral / sage / Pretendard semantic namespace로 승격·통합하고 component-side duplicate declarations를 제거
   - BQ-29: system-wide `--muted` AA contrast correction so all light-surface normal text is ≥4.5:1; remove R1's temporary scoped `#757580` expanded-card exception
+  - BQ-34 handoff: extract `docs/design/design.md §5` into shared `tokens.css`(`:root`) so code(module CSS Strategy A scoped tokens → global `:root` consumption) and the Claude Design harness(`colors_and_type.css` → `tokens.css`) consume the same definition. Replace frozen legacy `globals.css` tokens from the §5 source and include BQ-29 `--muted` AA revalue. Token value parity is already verified by BQ-34; this wave is consolidation/consumption migration, not value reconciliation.
   - Token parity check against `docs/design/design.md §5` and `docs/agent-guides/project-rules.md §Visual-Design`
 - **Exclude:** result pipeline, baseline regeneration, functional dark/system activation unless separately approved.
 - **Deferred:** BQ-25 arrow optical nudge is evaluated only after Pretendard transition; do not nudge before this wave. BQ-07 visual baselines remain separate approval.
 - **Prereqs:** Wave 15 완료; `theme-bootstrap` risk plan; W3/W5 이후 도입된 scoped token inventory + `docs/design/design.md §5` value parity 확인 완료.
 - **Risk:** High
 - **Gates/Validation:** theme matrix smoke suggestion only; before/after visual identity screenshot function checks and token parity verification.
-- **BQ refs:** BQ-04, BQ-19, BQ-21, BQ-25, BQ-29, BQ-30.
+- **BQ refs:** BQ-04, BQ-19, BQ-21, BQ-25, BQ-29, BQ-30, BQ-34.
 - **Completion note:** Not completed.
 - **Handoff:** Wave 17 mobile menu.
 
