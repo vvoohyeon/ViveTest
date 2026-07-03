@@ -343,7 +343,8 @@ Content order: **context label → preview question → choice A → choice B �
 - **Top-row prominence comes from wider columns only** — no extra spacing, divider, heading, label, or hero band between rows.
 - Same-row tracks remain equal and active expanded surfaces produce zero horizontal overflow in the catalog container and document.
 - Expanded content shell scale remains `1.04`. Desktop Wide/Medium/two-column desire final scale `1.10`; Tablet remains `1.04`. The expanded frame supplies any width beyond `1.04` and clamps to measured stage allowance at left / center / right anchors. The expanded card overlays via z-index and **never reflows siblings.**
-- **Breakpoint thresholds (realized):** Wide desktop ≥ 1024px (3 → 4 columns) · Medium 860–1023px (2 → 3) · Lower tablet 768–859px (2 → 2) · Mobile ≤ 767px (1 column).
+- **Column-mode thresholds (realized):** Column switching follows the product requirement contract in `docs/req-landing.md §6.2`: the source of truth is the measured `.landing-grid-container` inline-size, not a viewport-width estimate. Desktop/Tablet Wide uses `gridInlineSize >= 1160` (3 → 4 columns); Desktop/Tablet Medium uses `1040 <= gridInlineSize < 1160` (2 → 3); Desktop/Tablet Two-column uses `gridInlineSize < 1040` (2 → 2); Mobile remains `<= 767px` and single column.
+- Viewport values such as 1024px / 860px / 768px are manual review approximations only; they do not override the `req-landing` measurement contract.
 - **Grid gutter (realized):** 24px desktop · 20px tablet · 14–16px mobile. The 20px tablet gutter sits deliberately off the 4px-derived scale and is a catalog-grid-specific value.
 
 ### 7.8 Mobile expanded visual
@@ -369,24 +370,26 @@ This document defines the **visual motion language only**; it does not decide *w
 
 ## 9. Resource Manifest
 
-Accompanying visual resources (interpretation aids; not written authority, and distinct from visual-regression baselines):
+Accompanying visual resources (working-tree inventory; interpretation aids, not written authority, and distinct from visual-regression baselines):
 
-| Resource | Description |
-|---|---|
-| Token CSS | `colors_and_type.css` — finalized custom properties |
-| Component CSS | `styles.css` — realized component styles |
-| Canvas overview | Full design-canvas output of all artboards |
-| Desktop full page | 1280px catalog landing (default expanded card) |
-| Desktop normal cards | Test / Blog / Unavailable at ~380px |
-| Desktop blog hover | Blog active/hover state at 400 and 360 |
-| Desktop expanded Row 1 | Expanded test at 400px + notes |
-| Desktop expanded Row 2+ | Expanded test at 360px (long-choice) + notes |
-| Tablet full page | 920px catalog landing |
-| Mobile browse | 390px browse stack |
-| Mobile expanded | 390px full-width sheet flush to GNB |
-| Mobile menu | Full-screen menu overlay |
-| Logo SVG | `assets/vive-logo.svg` |
-| Mark SVG | `assets/vive-mark.svg` |
+| Resource | Status | Description |
+|---|---|---|
+| Canvas overview | Present | `screenshots/canvas-overview.png` — full design-canvas overview. |
+| Desktop full page | Present | `screenshots/desktop-full.png` — 1280px catalog landing reference. |
+| Desktop nav / expanded | Present | `screenshots/desktop-nav-expanded.png` — desktop nav and expanded-card close-up. |
+| Expanded card spec | Present | `screenshots/expanded-card-spec.png` — expanded test card plus blog hover-state reference. |
+| Logo SVG | Present | `assets/vive-logo.svg`. |
+| Mark SVG | Present | `assets/vive-mark.svg`. |
+| Token CSS | Missing locally | No `colors_and_type.css` is present under `docs/design/resources/`; token reference is via the conformance-passed Claude Design harness / `wave12-conformance/` export, not a checked-in manifest resource. |
+| Component CSS | Missing locally | No `styles.css` is present under `docs/design/resources/`; component reference is via the conformance-passed Claude Design harness / `wave12-conformance/` export, not a checked-in manifest resource. |
+| Desktop normal cards | No standalone local file | Use only the present screenshots and the conformance-passed Claude Design harness / `wave12-conformance/` export as reference; do not treat this as an available separate artboard. |
+| Desktop blog hover | No standalone local file | Covered only where visible in `screenshots/expanded-card-spec.png` and the harness/export; no separate artboard is present. |
+| Desktop expanded Row 1 | No standalone local file | Covered only where visible in the present screenshots and the harness/export; no separate row-specific artboard is present. |
+| Desktop expanded Row 2+ | No standalone local file | Covered only by the conformance-passed Claude Design harness / `wave12-conformance/` export; no separate local artboard is present. |
+| Tablet full page | Missing locally | Reference via the conformance-passed Claude Design harness / `wave12-conformance/` export; no checked-in standalone tablet artboard is present. |
+| Mobile browse | Missing locally | Reference via the conformance-passed Claude Design harness / `wave12-conformance/` export; no checked-in standalone mobile browse artboard is present. |
+| Mobile expanded | Missing locally | Reference via the conformance-passed Claude Design harness / `wave12-conformance/` export; no checked-in standalone mobile expanded artboard is present. |
+| Mobile menu | Missing locally | Reference via the conformance-passed Claude Design harness / `wave12-conformance/` export; no checked-in standalone mobile menu artboard is present. |
 
 **Recommended missing resources** (not yet produced — do not assume they exist):
 - Real catalog thumbnail imagery (current thumbnails are calm abstract placeholders).

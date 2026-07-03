@@ -197,7 +197,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
       ) : null}
       <div
         ref={containerRef}
-        className="landing-grid-container relative grid gap-[15px] md:gap-4"
+        className="landing-grid-container relative grid gap-[15px] md:gap-5 xl:gap-6"
         data-testid="landing-grid-container"
       >
         {plan.rows.map((row) => {
@@ -206,7 +206,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
           return (
             <div
               key={row.rowIndex}
-              className="landing-grid-row grid items-stretch gap-[15px] md:gap-4 [grid-template-columns:repeat(var(--landing-grid-columns),minmax(0,1fr))]"
+              className="landing-grid-row grid items-stretch gap-[15px] md:gap-5 xl:gap-6 [grid-template-columns:repeat(var(--landing-grid-columns),minmax(0,1fr))]"
               data-testid={`landing-grid-row-${row.rowIndex}`}
               data-row-index={row.rowIndex}
               data-row-role={row.role}

@@ -15,6 +15,7 @@
   /* Wave 8 Blog hover skin tokens; scoped here until Wave 16 global token migration. */
   --blog-hover-border: #5c8e78;
   --blog-hover-shadow: 0 4px 14px rgb(92 142 120 / 22%);
+  --blog-read-more-ink: #6b6b76;
 
   /* Wave 9 unavailable-card skin (design.md §7.5). Strategy A: values are scoped here until
      Wave 16 global migration. */
@@ -82,6 +83,16 @@
   opacity: var(--unavailable-thumb-opacity);
 }
 
+.root[data-card-viewport-tier='mobile'] :global(.landing-grid-card-title-normal),
+.root[data-card-viewport-tier='mobile'] :global(.landing-grid-card-subtitle-normal) {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.root :global(.landing-grid-card-tag-chip) {
+  line-height: 1.35;
+}
+
 .fixedTagItem {
   flex: 0 0 auto;
 }
@@ -116,6 +127,8 @@
 
 .blogReadMore {
   width: max-content;
+  color: var(--blog-read-more-ink);
+  text-decoration: none;
 }
 
 .blogReadMoreHover {

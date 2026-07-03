@@ -20,6 +20,37 @@ import type {
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
 import {resolveLandingCatalog} from '../../src/features/variant-registry';
 
+function readLandingGridCardCss(): string {
+  return readFileSync(
+    new URL('../../src/features/landing/grid/landing-grid-card.module.css', import.meta.url),
+    'utf8'
+  );
+}
+
+function readLandingGridCardSource(): string {
+  return readFileSync(new URL('../../src/features/landing/grid/landing-grid-card.tsx', import.meta.url), 'utf8');
+}
+
+function extractSourceAssignment(source: string, constantName: string): string {
+  const assignment = source.match(new RegExp(`const ${constantName}\\s*=\\s*([\\s\\S]*?);`, 'u'))?.[1];
+
+  if (!assignment) {
+    throw new Error(`Expected ${constantName} source assignment.`);
+  }
+
+  return assignment;
+}
+
+function extractReadMoreClassSource(source: string): string {
+  const classLiteral = source.match(/'landing-grid-card-blog-read-more[^']*'/u)?.[0];
+
+  if (!classLiteral) {
+    throw new Error('Expected landing-grid-card-blog-read-more class literal.');
+  }
+
+  return classLiteral;
+}
+
 function renderCardDocument({
   card,
   state,
@@ -291,10 +322,7 @@ describe('landing card slot contract', () => {
   });
 
   it('keeps the expanded focus-visible ring card-scoped and aligned with the surface boundary', () => {
-    const cardCss = readFileSync(
-      new URL('../../src/features/landing/grid/landing-grid-card.module.css', import.meta.url),
-      'utf8'
-    );
+    const cardCss = readLandingGridCardCss();
     const expandedFocusRule = cardCss.match(
       /\.root\.desktopOverlayLayer:has\(:focus-visible\) \.expandedSurface \{(?<body>[^}]*)\}/u
     )?.groups?.body;
@@ -304,6 +332,30 @@ describe('landing card slot contract', () => {
     expect(expandedFocusRule).toContain('outline-offset: 2px;');
     expect(expandedFocusRule).not.toContain('--focus-ring-outer');
     expect(expandedFocusRule).not.toContain('--focus-ring-inner');
+  });
+
+  it('anchors Wave 12 mobile Normal typography, shared tag, and Blog CTA source contracts', () => {
+    const cardCss = readLandingGridCardCss();
+    const cardSource = readLandingGridCardSource();
+    const mobileNormalTextRule = cardCss.match(
+      /\.root\[data-card-viewport-tier=['"]mobile['"]\]\s+:global\(\.landing-grid-card-title-normal\),\s*\.root\[data-card-viewport-tier=['"]mobile['"]\]\s+:global\(\.landing-grid-card-subtitle-normal\)\s*\{(?<body>[^}]*)\}/u
+    )?.groups?.body;
+    const sharedTagRule = cardCss.match(/\.root\s+:global\(\.landing-grid-card-tag-chip\)\s*\{(?<body>[^}]*)\}/u)
+      ?.groups?.body;
+    const blogReadMoreRule = cardCss.match(/\.blogReadMore\s*\{(?<body>[^}]*)\}/u)?.groups?.body;
+
+    expect(mobileNormalTextRule).toBeDefined();
+    expect(mobileNormalTextRule).toContain('word-break: keep-all;');
+    expect(mobileNormalTextRule).toContain('overflow-wrap: anywhere;');
+    expect(sharedTagRule).toBeDefined();
+    expect(sharedTagRule).toContain('line-height: 1.35;');
+    expect(cardCss).toContain('--blog-read-more-ink: #6b6b76;');
+    expect(blogReadMoreRule).toContain('color: var(--blog-read-more-ink);');
+    expect(blogReadMoreRule).toContain('text-decoration: none;');
+    expect(extractSourceAssignment(cardSource, 'LANDING_GRID_CARD_TAG_CHIP_CLASSNAME')).not.toContain(
+      'leading-[1.2]'
+    );
+    expect(extractReadMoreClassSource(cardSource)).not.toContain('text-[var(--muted-ink)]');
   });
 
   it('forces unavailable cards to stay normal even when expanded state is requested', () => {

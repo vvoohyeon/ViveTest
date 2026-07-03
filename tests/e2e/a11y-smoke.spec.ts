@@ -9,10 +9,12 @@ import {
   buildLocalizedBlogIndexRoute,
   buildLocalizedPrimaryTestRoute,
   PRIMARY_AVAILABLE_TEST_VARIANT,
+  PRIMARY_BLOG_VARIANT,
   SECONDARY_BLOG_VARIANT
 } from './helpers/landing-fixture';
 
 const TRANSITION_OVERLAY_READY_DELAY_MS = 900;
+const W12_MOBILE_VIEWPORTS = [360, 390, 767] as const;
 
 async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   await page.addInitScript((timeoutMs) => {
@@ -472,6 +474,49 @@ test.describe('Canonical accessibility smoke', () => {
     await expect(comingSoon).toHaveText(/.+/u);
     await expect(comingSoon).not.toHaveAttribute('aria-hidden', 'true');
     await expectPageToBeAxeClean(page);
+  });
+
+  test('@smoke assertion:W12-mobile Mobile Normal card tree keeps CTA status and probe semantics', async ({
+    page
+  }) => {
+    test.setTimeout(60_000);
+
+    for (const viewportWidth of W12_MOBILE_VIEWPORTS) {
+      await page.setViewportSize({width: viewportWidth, height: 844});
+      await page.goto('/en');
+
+      await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', 'mobile');
+
+      const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+      const testTags = testCard.locator('[data-slot="tags"]');
+      const probe = testCard.locator('[data-slot="tagMeasurementProbe"]');
+      const visibleCount = Number(await testTags.getAttribute('data-visible-tag-count'));
+      await expect(testTags.locator('.landing-grid-card-tag-item')).toHaveCount(visibleCount);
+      await expect(probe).toHaveAttribute('aria-hidden', 'true');
+      await expect(probe).toHaveAttribute('inert', '');
+      await expect(probe.locator('[data-inline-probe-tag]')).toHaveCount(3);
+
+      const blogCard = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+      const blogTrigger = blogCard.getByTestId('landing-grid-card-trigger');
+      const readMore = blogCard.locator('[data-slot="blogReadMore"]');
+      await expect(blogTrigger).toHaveAttribute('href', buildLocalizedBlogDetailRoute('en', PRIMARY_BLOG_VARIANT));
+      await expect(blogTrigger).not.toHaveAttribute('aria-expanded');
+      await expect(readMore).toBeVisible();
+      await expect(readMore).toHaveAttribute('aria-hidden', 'true');
+      await expect(readMore.locator('a, button, [tabindex]')).toHaveCount(0);
+
+      const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
+      const unavailableTrigger = unavailableCard.getByTestId('landing-grid-card-trigger');
+      const comingSoon = unavailableCard.locator('[data-slot="comingSoonTag"]');
+      await expect(unavailableTrigger).toHaveAttribute('aria-disabled', 'true');
+      await expect(unavailableTrigger).toHaveAttribute('tabindex', '-1');
+      await expect(comingSoon).toHaveCount(1);
+      await expect(comingSoon).toHaveText('coming soon');
+      await expect(comingSoon).not.toHaveAttribute('aria-hidden', 'true');
+      await expect(unavailableTrigger).toHaveAccessibleDescription('coming soon');
+
+      await expectPageToBeAxeClean(page);
+    }
   });
 
   test('@smoke assertion:B5-axe-canonical KR representative landing states remain axe-clean', async ({page}) => {

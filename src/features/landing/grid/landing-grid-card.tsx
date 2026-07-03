@@ -220,7 +220,7 @@ const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
   'landing-grid-card-tags-gap h-[calc(var(--landing-card-base-gap)_+_var(--landing-card-comp-gap))]';
 const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
 const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
-  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium leading-[1.2] text-[var(--normal-tag-ink)]';
+  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium text-[var(--normal-tag-ink)]';
 const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME =
   'landing-grid-card-preview-question m-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--expanded-question-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
@@ -493,7 +493,7 @@ function NormalCardTagRow({
   const readMore = readMoreLabel ? (
     <span
       className={joinClassNames(
-        'landing-grid-card-blog-read-more ml-auto inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap text-[13px] font-medium leading-[1.35] text-[var(--muted-ink)] no-underline',
+        'landing-grid-card-blog-read-more ml-auto inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap text-[13px] font-medium leading-[1.35] no-underline',
         styles.blogReadMore,
         interactionMode === 'hover'
           ? joinClassNames(

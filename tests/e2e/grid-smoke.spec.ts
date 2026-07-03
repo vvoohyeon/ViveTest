@@ -8,8 +8,11 @@ import {
   NARROW_TABLET_SIDE_PADDING,
   type LandingGridColumnMode
 } from '../../src/features/landing/grid/layout-plan';
+import {resolveLandingCatalog} from '../../src/features/variant-registry';
 import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT, PRIMARY_BLOG_VARIANT, PRIMARY_OPT_OUT_TEST_VARIANT} from './helpers/landing-fixture';
+
+const W12_MOBILE_VIEWPORTS = [360, 390, MOBILE_MAX_VIEWPORT_WIDTH] as const;
 
 const COLUMN_MODE_ORDER: Record<LandingGridColumnMode, number> = {
   'desktop-wide': 0,
@@ -981,6 +984,342 @@ test.describe('Phase 4 grid smoke', () => {
       expect(metrics.height).toBeGreaterThan(0);
       expect(metrics.height).toBeLessThanOrEqual(metrics.lineHeight + 2);
       expect(metrics.right).toBeLessThanOrEqual(metrics.cardRight);
+    }
+  });
+
+  test('@smoke assertion:W12-mobile computed Normal visuals stay scoped at 360 390 and 767', async ({
+    page
+  }) => {
+    test.setTimeout(75_000);
+
+    for (const viewportWidth of W12_MOBILE_VIEWPORTS) {
+      await page.setViewportSize({width: viewportWidth, height: 844});
+      await page.goto('/en');
+
+      const shell = page.getByTestId('landing-grid-shell');
+      const testCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+      const blogCard = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+      const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
+
+      await expect(shell).toHaveAttribute('data-grid-tier', 'mobile');
+      await expect(shell).toHaveAttribute('data-grid-column-mode', 'mobile');
+      await expect(testCard).toHaveAttribute('data-card-viewport-tier', 'mobile');
+      await expect(testCard).toHaveAttribute('data-base-gap', '8');
+      await expect(testCard).toHaveAttribute('data-comp-gap', '0');
+
+      const normalMetrics = await testCard.evaluate((element) => {
+        const trigger = element.querySelector<HTMLElement>('[data-slot="primaryTrigger"]');
+        const title = element.querySelector<HTMLElement>('[data-slot="cardTitle"]');
+        const subtitle = element.querySelector<HTMLElement>('[data-slot="cardSubtitle"]');
+        const tags = element.querySelector<HTMLElement>('[data-slot="tags"]');
+        const tag = element.querySelector<HTMLElement>('.landing-grid-card-tag-chip');
+        const container = document.querySelector<HTMLElement>('[data-testid="landing-grid-container"]');
+
+        if (!trigger || !title || !subtitle || !tags || !tag || !container) {
+          throw new Error('Expected W12 Normal visual anchors.');
+        }
+
+        const rootStyle = getComputedStyle(element);
+        const triggerStyle = getComputedStyle(trigger);
+        const titleStyle = getComputedStyle(title);
+        const subtitleStyle = getComputedStyle(subtitle);
+        const tagStyle = getComputedStyle(tag);
+        const subtitleRect = subtitle.getBoundingClientRect();
+        const tagsRect = tags.getBoundingClientRect();
+
+        return {
+          borderRadius: rootStyle.borderRadius,
+          borderTopColor: rootStyle.borderTopColor,
+          borderTopWidth: rootStyle.borderTopWidth,
+          boxShadow: rootStyle.boxShadow,
+          triggerPaddingTop: triggerStyle.paddingTop,
+          triggerPaddingRight: triggerStyle.paddingRight,
+          titleFontSize: titleStyle.fontSize,
+          titleFontWeight: titleStyle.fontWeight,
+          titleLineHeight: titleStyle.lineHeight,
+          titleOverflowWrap: titleStyle.overflowWrap,
+          titleTextOverflow: titleStyle.textOverflow,
+          titleWebkitLineClamp: titleStyle.getPropertyValue('-webkit-line-clamp').trim(),
+          titleWordBreak: titleStyle.wordBreak,
+          subtitleFontSize: subtitleStyle.fontSize,
+          subtitleFontWeight: subtitleStyle.fontWeight,
+          subtitleLineHeight: subtitleStyle.lineHeight,
+          subtitleOverflow: subtitleStyle.overflow,
+          subtitleOverflowWrap: subtitleStyle.overflowWrap,
+          subtitleTextOverflow: subtitleStyle.textOverflow,
+          subtitleWebkitLineClamp: subtitleStyle.getPropertyValue('-webkit-line-clamp').trim(),
+          subtitleWordBreak: subtitleStyle.wordBreak,
+          baseGapAttr: element.getAttribute('data-base-gap'),
+          baseGapVar: rootStyle.getPropertyValue('--landing-card-base-gap').trim(),
+          actualGap: tagsRect.top - subtitleRect.bottom,
+          tagBackgroundColor: tagStyle.backgroundColor,
+          tagBorderRadius: tagStyle.borderRadius,
+          tagBorderWidth: tagStyle.borderWidth,
+          tagFontSize: tagStyle.fontSize,
+          tagFontWeight: tagStyle.fontWeight,
+          tagLineHeight: tagStyle.lineHeight,
+          tagPaddingLeft: tagStyle.paddingLeft,
+          tagPaddingRight: tagStyle.paddingRight,
+          tagWhiteSpace: tagStyle.whiteSpace,
+          containerOverflow: container.scrollWidth - container.clientWidth,
+          documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+      });
+
+      expect(normalMetrics).toMatchObject({
+        borderRadius: '16px',
+        borderTopColor: 'rgb(230, 226, 216)',
+        borderTopWidth: '1px',
+        triggerPaddingTop: '16px',
+        triggerPaddingRight: '16px',
+        titleFontSize: '20px',
+        titleFontWeight: '600',
+        titleLineHeight: '26px',
+        titleOverflowWrap: 'anywhere',
+        titleTextOverflow: 'clip',
+        titleWebkitLineClamp: 'none',
+        titleWordBreak: 'keep-all',
+        subtitleFontSize: '15px',
+        subtitleFontWeight: '400',
+        subtitleLineHeight: '21.75px',
+        subtitleOverflow: 'visible',
+        subtitleOverflowWrap: 'anywhere',
+        subtitleTextOverflow: 'clip',
+        subtitleWebkitLineClamp: 'none',
+        subtitleWordBreak: 'keep-all',
+        baseGapAttr: '8',
+        baseGapVar: '8px',
+        tagBackgroundColor: 'rgb(236, 232, 223)',
+        tagBorderRadius: '5px',
+        tagBorderWidth: '0px',
+        tagFontSize: '13px',
+        tagFontWeight: '500',
+        tagLineHeight: '17.55px',
+        tagPaddingLeft: '9px',
+        tagPaddingRight: '9px',
+        tagWhiteSpace: 'nowrap',
+        containerOverflow: 0,
+        documentOverflow: 0
+      });
+      expect(normalMetrics.boxShadow).not.toBe('none');
+      expect(Math.abs(normalMetrics.actualGap - 8)).toBeLessThanOrEqual(1);
+
+      const blogMetrics = await blogCard.locator('[data-slot="blogReadMore"]').evaluate((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        const cardRect = element.closest('[data-card-variant]')?.getBoundingClientRect();
+
+        return {
+          ariaHidden: element.getAttribute('aria-hidden'),
+          childControlCount: element.querySelectorAll('a, button, [tabindex]').length,
+          color: style.color,
+          columnGap: style.columnGap,
+          height: rect.height,
+          right: rect.right,
+          cardRight: cardRect?.right ?? 0,
+          textDecorationLine: style.textDecorationLine,
+          whiteSpace: style.whiteSpace
+        };
+      });
+
+      expect(blogMetrics).toMatchObject({
+        ariaHidden: 'true',
+        childControlCount: 0,
+        color: 'rgb(107, 107, 118)',
+        columnGap: '6px',
+        textDecorationLine: 'none',
+        whiteSpace: 'nowrap'
+      });
+      expect(blogMetrics.height).toBeGreaterThan(0);
+      expect(blogMetrics.right).toBeLessThanOrEqual(blogMetrics.cardRight);
+
+      const unavailableMetrics = await unavailableCard.evaluate((element) => {
+        const trigger = element.querySelector<HTMLElement>('[data-slot="primaryTrigger"]');
+        const thumbnail = element.querySelector<HTMLElement>('[data-slot="cardThumbnail"]');
+        const title = element.querySelector<HTMLElement>('[data-slot="cardTitle"]');
+        const subtitle = element.querySelector<HTMLElement>('[data-slot="cardSubtitle"]');
+        const status = element.querySelector<HTMLElement>('[data-slot="comingSoonTag"]');
+
+        if (!trigger || !thumbnail || !title || !subtitle || !status) {
+          throw new Error('Expected W12 unavailable anchors.');
+        }
+
+        const rootStyle = getComputedStyle(element);
+        const thumbnailStyle = getComputedStyle(thumbnail);
+        const titleStyle = getComputedStyle(title);
+        const subtitleStyle = getComputedStyle(subtitle);
+        const statusStyle = getComputedStyle(status);
+
+        return {
+          triggerAriaDisabled: trigger.getAttribute('aria-disabled'),
+          triggerTabIndex: trigger.getAttribute('tabindex'),
+          rootBackgroundColor: rootStyle.backgroundColor,
+          thumbnailOpacity: thumbnailStyle.opacity,
+          titleOpacity: titleStyle.opacity,
+          subtitleOpacity: subtitleStyle.opacity,
+          statusBackgroundColor: statusStyle.backgroundColor,
+          statusBorderWidth: statusStyle.borderWidth,
+          statusText: status.textContent
+        };
+      });
+
+      expect(unavailableMetrics).toEqual({
+        triggerAriaDisabled: 'true',
+        triggerTabIndex: '-1',
+        rootBackgroundColor: 'rgb(244, 241, 234)',
+        thumbnailOpacity: '0.72',
+        titleOpacity: '1',
+        subtitleOpacity: '1',
+        statusBackgroundColor: 'rgb(230, 226, 216)',
+        statusBorderWidth: '0px',
+        statusText: 'coming soon'
+      });
+    }
+  });
+
+  test('@smoke assertion:W12-mobile all locales keep full mobile text and contained rows', async ({
+    page
+  }) => {
+    test.setTimeout(120_000);
+
+    for (const viewportWidth of W12_MOBILE_VIEWPORTS) {
+      await page.setViewportSize({width: viewportWidth, height: 844});
+
+      for (const locale of locales) {
+        const catalog = resolveLandingCatalog(locale);
+        const titleStressCard = catalog.find((card) => card.variant === 'rhythm-b');
+        const blogCard = catalog.find((card) => card.variant === PRIMARY_BLOG_VARIANT);
+        const unavailableCard = catalog.find((card) => card.variant === 'creativity-profile');
+
+        if (!titleStressCard || !blogCard || !unavailableCard) {
+          throw new Error(`Expected W12 catalog fixtures for ${locale}`);
+        }
+
+        await page.goto(`/${locale}`);
+        await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', 'mobile');
+
+        for (const card of [titleStressCard, blogCard, unavailableCard]) {
+          const root = page.locator(`[data-card-variant="${card.variant}"]`);
+          const title = root.locator('[data-slot="cardTitle"]');
+          const subtitle = root.locator('[data-slot="cardSubtitle"]');
+          await expect(root).toHaveAttribute('data-card-viewport-tier', 'mobile');
+          await expect(title).toHaveText(card.title);
+          await expect(subtitle).toHaveText(card.subtitle);
+
+          const textMetrics = await root.evaluate((element) => {
+            const titleElement = element.querySelector<HTMLElement>('[data-slot="cardTitle"]');
+            const subtitleElement = element.querySelector<HTMLElement>('[data-slot="cardSubtitle"]');
+            const tagsElement = element.querySelector<HTMLElement>('[data-slot="tags"]');
+            if (!titleElement || !subtitleElement || !tagsElement) {
+              throw new Error('Expected W12 mobile text anchors.');
+            }
+            const titleStyle = getComputedStyle(titleElement);
+            const subtitleStyle = getComputedStyle(subtitleElement);
+            const cardRect = element.getBoundingClientRect();
+            const titleRect = titleElement.getBoundingClientRect();
+            const subtitleRect = subtitleElement.getBoundingClientRect();
+            const tagsRect = tagsElement.getBoundingClientRect();
+            return {
+              titleClamp: titleStyle.getPropertyValue('-webkit-line-clamp').trim(),
+              subtitleClamp: subtitleStyle.getPropertyValue('-webkit-line-clamp').trim(),
+              titleScrollDelta: titleElement.scrollWidth - titleElement.clientWidth,
+              subtitleScrollDelta: subtitleElement.scrollWidth - subtitleElement.clientWidth,
+              titleLeft: titleRect.left,
+              titleRight: titleRect.right,
+              subtitleLeft: subtitleRect.left,
+              subtitleRight: subtitleRect.right,
+              tagsRight: tagsRect.right,
+              cardLeft: cardRect.left,
+              cardRight: cardRect.right
+            };
+          });
+
+          expect(textMetrics.titleClamp).toBe('none');
+          expect(textMetrics.subtitleClamp).toBe('none');
+          expect(textMetrics.titleScrollDelta).toBeLessThanOrEqual(1);
+          expect(textMetrics.subtitleScrollDelta).toBeLessThanOrEqual(1);
+          expect(textMetrics.titleLeft).toBeGreaterThanOrEqual(textMetrics.cardLeft);
+          expect(textMetrics.subtitleLeft).toBeGreaterThanOrEqual(textMetrics.cardLeft);
+          expect(textMetrics.titleRight).toBeLessThanOrEqual(textMetrics.cardRight + 1);
+          expect(textMetrics.subtitleRight).toBeLessThanOrEqual(textMetrics.cardRight + 1);
+          expect(textMetrics.tagsRight).toBeLessThanOrEqual(textMetrics.cardRight + 1);
+        }
+
+        const blogRoot = page.locator(`[data-card-variant="${PRIMARY_BLOG_VARIANT}"]`);
+        const blogTags = blogRoot.locator('[data-slot="tags"]');
+        const readMore = blogRoot.locator('[data-slot="blogReadMore"]');
+        await expect
+          .poll(async () => Number(await blogTags.getAttribute('data-visible-tag-count')))
+          .toBeGreaterThanOrEqual(1);
+        const visibleBlogTags = await blogTags.locator('.landing-grid-card-tag-chip').allTextContents();
+        expect(visibleBlogTags).toEqual(blogCard.tags.slice(0, visibleBlogTags.length));
+        await expect(readMore).toBeVisible();
+        await expect(readMore).toHaveAttribute('aria-hidden', 'true');
+
+        const unavailableRoot = page.locator('[data-card-variant="creativity-profile"]');
+        await expect(unavailableRoot.locator('[data-slot="comingSoonTag"]')).toBeVisible();
+        await expect(unavailableRoot.locator('[data-slot="comingSoonTag"]')).not.toHaveAttribute('aria-hidden', 'true');
+
+        const overflow = await page.evaluate(() => {
+          const container = document.querySelector<HTMLElement>('[data-testid="landing-grid-container"]');
+          return {
+            container: container ? container.scrollWidth - container.clientWidth : 0,
+            document: document.documentElement.scrollWidth - document.documentElement.clientWidth
+          };
+        });
+        expect(overflow).toEqual({container: 0, document: 0});
+      }
+    }
+  });
+
+  test('@smoke assertion:W12-mobile Desktop and Tablet tag prefix identity survives tag line-height change', async ({
+    page
+  }) => {
+    for (const viewportWidth of [1440, 900] as const) {
+      await page.setViewportSize({width: viewportWidth, height: 980});
+      await page.goto('/id');
+
+      const expectedTier = viewportWidth === 1440 ? 'desktop' : 'tablet';
+      const container = page.getByTestId('landing-grid-container');
+      await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', expectedTier);
+      await container.evaluate((element) => {
+        (element as HTMLElement).style.width = '540px';
+      });
+      await page.waitForTimeout(280);
+
+      const card = page.locator('[data-card-variant="rhythm-b"]');
+      const tags = card.locator('[data-slot="tags"]');
+      await expect(card).toHaveAttribute('data-card-viewport-tier', expectedTier);
+      await expect(card).toHaveAttribute('data-base-gap', '8');
+      await expect(tags).toHaveAttribute('data-visible-tag-count', /[1-3]/u);
+
+      const readPrefix = async () => ({
+        count: Number(await tags.getAttribute('data-visible-tag-count')),
+        labels: await tags.locator('.landing-grid-card-tag-chip').allTextContents()
+      });
+      const productionPrefix = await readPrefix();
+      const productionLineHeight = await tags
+        .locator('.landing-grid-card-tag-chip')
+        .first()
+        .evaluate((element) => getComputedStyle(element).lineHeight);
+      expect(productionLineHeight).toBe('17.55px');
+
+      await page.addStyleTag({
+        content: `[data-testid="landing-grid-card"] .landing-grid-card-tag-chip { line-height: 1.2 !important; }`
+      });
+      await page.waitForTimeout(120);
+      const overridePrefix = await readPrefix();
+      const overrideLineHeight = await tags
+        .locator('.landing-grid-card-tag-chip')
+        .first()
+        .evaluate((element) => getComputedStyle(element).lineHeight);
+      expect(overrideLineHeight).toBe('15.6px');
+      expect(overridePrefix).toEqual(productionPrefix);
+
+      await page.locator('style').last().evaluate((element) => element.remove());
+      await page.waitForTimeout(120);
+      const restoredPrefix = await readPrefix();
+      expect(restoredPrefix).toEqual(productionPrefix);
     }
   });
 
