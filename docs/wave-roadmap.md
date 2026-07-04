@@ -1,6 +1,6 @@
 # Wave Roadmap
 
-Last reconciled: HEAD `55e2808` / `2026-06-27`
+Last reconciled: HEAD `5a1da0f` / `2026-07-03`
 
 ## Status Legend
 
@@ -26,7 +26,7 @@ Last reconciled: HEAD `55e2808` / `2026-06-27`
 | 9 | Unavailable behavior and visual | ✅ 완료 | BQ-10, BQ-26, BQ-07 |
 | 10 | Landing grid height rhythm | ✅ 완료 | BQ-24, BQ-30, BQ-31, BQ-32 |
 | 11 | Landing desktop a11y/keyboard hardening | ✅ 완료 | BQ-12, BQ-21, BQ-24, BQ-26, BQ-33 |
-| 12 | Mobile browse card visual | ⬜ 계획 | BQ-19, BQ-31/BQ-32 handoff, BQ-35, BQ-36 |
+| 12 | Mobile browse card visual | ✅ 완료 | BQ-19, BQ-31/BQ-32 handoff, BQ-35, BQ-36 |
 | 13 | Mobile expanded shape/position | ⬜ 계획 | BQ-11, BQ-16, Wave 1 B14 deferred title-continuity |
 | 14 | Landing-only regression stabilization | ⬜ 계획 | BQ-07, BQ-12, BQ-21 |
 | 15 | Desktop GNB visual shell | ⬜ 계획 | BQ-03, BQ-21 |
@@ -41,8 +41,9 @@ Wave 번호 체계 밖에서 진행된 정합 작업이며, Wave 번호를 밀�
 | --- | --- | --- | --- |
 | BQ-21 design authority + W1–W5 visual reconciliation | Wave 5 ↔ Wave 6 | ✅ 완료 | BQ-21, BQ-22, BQ-23, BQ-24, BQ-25 |
 | Visual Reconciliation R1 + Claude Design SSOT 단일화 | Wave 9 ↔ Wave 10 | ✅ 완료 | BQ-27, BQ-28, BQ-29, BQ-30, BQ-31 |
+| Visual Reconciliation R2 (code↔design, post-W12) | post-W12 | ✅ 완료 | BQ-37 |
 
-상세는 Wave Details의 "Inter-wave Reconciliation — BQ-21 design authority and W1–W5 visual reconciliation", "Inter-wave Reconciliation — Visual Reconciliation R1" 항목 참조.
+상세는 Wave Details의 "Inter-wave Reconciliation — BQ-21 design authority and W1–W5 visual reconciliation", "Inter-wave Reconciliation — Visual Reconciliation R1", "Inter-wave Reconciliation — Visual Reconciliation R2 (code↔design, post-W12)" 항목 참조.
 
 ---
 
@@ -375,7 +376,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 12 — Mobile browse card visual
 
-- **Status:** ⬜ 계획
+- **Status:** ✅ 완료
 - **Goal:** 모바일 브라우즈 카드 시각 처리.
 - **Include:** single-column browse card visual, mobile Blog CTA visibility.
 - **Exclude:** mobile expanded focus state; second tag-hiding or locale-threshold implementation; Wave 13 mobile expanded shape/position.
@@ -384,8 +385,16 @@ Deferred candidates are logged in the Decision Register.
 - **Risk:** Medium
 - **Gates/Validation:** mobile browse smoke; targeted landing/grid visual checks appropriate to the approved Wave 12 plan.
 - **BQ refs:** BQ-19, BQ-21, BQ-31, BQ-32, BQ-35, BQ-36.
-- **Completion note:** Not completed in current repo. BQ-35/BQ-36 record the approved Wave 12 mobile browse visual scope, `8px` fallback, and deferred `12px` gap; no Wave 12 completion commit/tag is recorded.
+- **Completion note:** 완료 근거: commit `5a1da0f`(2026-07-03, Wave 12 mobile browse card visual + R2 reconciliation). BQ-35/BQ-36 record the approved Wave 12 mobile browse visual scope, `8px` fallback, and deferred `12px` gap.
 - **Handoff:** Wave 13 mobile expanded.
+
+### Inter-wave Reconciliation — Visual Reconciliation R2 (code↔design, post-W12)
+
+- **Status:** ✅ 완료
+- **Position:** post-W12. Wave 번호 밖 정합 작업이며 Wave 번호를 밀지 않는다.
+- **Commits:** `5a1da0f`(2026-07-03; Wave 12 mobile browse card visual + R2 reconciliation).
+- **BQ refs:** BQ-37.
+- **Completion note:** BQ-37 records R2 as completed in the same Wave 12 batch commit; `landing-catalog-grid.tsx` gutter classes are `gap-[15px] md:gap-5 xl:gap-6`, with `docs/design/design.md` and `docs/decision-register.md` updated in that batch.
 
 ### Wave 13 — Mobile expanded shape/position
 
@@ -394,7 +403,7 @@ Deferred candidates are logged in the Decision Register.
 - **Include:** full viewport width, GNB-flush top, natural height, scrim, no side radius, B14 mobile title-continuity `test.fixme` 해제 및 재정렬.
 - **Exclude:** swipe-down close, mobile menu, desktop keyboard/a11y behavior, GNB internals.
 - **Deferred:** Swipe-down close remains undecided and must not be included without a separate decision.
-- **Prereqs:** Wave 12 완료; lifecycle coupling 조사 완료; Logic Improvement Analysis gate cleared.
+- **Prereqs:** Wave 12 완료(충족: `5a1da0f`); lifecycle coupling 조사 완료; Logic Improvement Analysis gate cleared.
 - **Risk:** High
 - **Gates/Validation:** mobile lifecycle smoke, scroll lock check.
 - **BQ refs:** BQ-11, BQ-16, BQ-19, Wave 1 B14 deferred marker.
