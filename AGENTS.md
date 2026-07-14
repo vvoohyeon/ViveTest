@@ -1,190 +1,145 @@
-# AGENTS.md
+# AGENTS.md — ViveTest Coding Agent Instructions
 
-> **Role**: Project-specific facts, runtime constraints, and routing index for ViveTest.
-> Skill routing, orchestration rules, and agent workflow → your active CI document (Codex Custom Instructions or CLAUDE.md).
-> Rules present here are project-specific deviations or constraints — not restatements of CI defaults.
+## 0. Scope and authority
 
----
+이 파일은 ViveTest 저장소의 **프로젝트 계약(what this repo requires)** 정본이다.
 
-## 1. Session Startup
+- **적용:** 코드·테스트·리팩터링·개발 문서·저장소 설정 변경.
+- **비적용:** *how to work*(세션 시작·명확화·plan mode·skill·검증 절차·STATE.md·권한/승인 판단)는 도구 전역 오케스트레이션(Codex Settings / Claude Code settings)의 몫이다 — 이 파일에 재진술하지 않는다. Claude Code는 루트 `CLAUDE.md` 어댑터가 이 파일을 SSOT로 참조한다.
+- **우선순위:** 호스트·사용자 지시 > 이 프로젝트 계약 > 도구 전역 기본. 저장소 고유 사항은 이 파일이 도구 기본을 override한다. 더 가까운 하위 `AGENTS.md`는 델타만 추가하며 이 파일의 불변 규칙·승인 경계를 완화할 수 없다 — 하위 문서는 그 디렉터리 전용 규칙이 3개 이상이거나 전용 fixture/QA/gold standard가 있을 때만 만든다.
 
-1. Read this file. Internalize critical boundaries (§4), build commands (§5), and the Task Routing Table (§2).
-2. If `.planning/STATE.md` exists, read it and restore task state before proceeding.
-3. Using §2, identify which contract documents and sub-guides apply to the current task.
-   Load only those files — do not read all documents upfront.
-4. When the session narrows to a subdirectory, read the nearest child `AGENTS.md` as a delta.
-5. Verify actual script names and flags in `package.json`, `next.config.ts`,
-   `playwright.config.ts`, `src/config/site.ts` before executing any command.
+## 1. Project orientation
 
----
+ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·i18n·variant registry·telemetry·transition을 결정론적 계약으로 두고, 시각 스킨은 별도 SSOT(`docs/design/design.md`)가 규정한다. 현재 **rebuild wave 진행 중**(§2 Rebuild Workflow Sources).
 
-## 2. Task Routing Table
-
-| Task Type | SSOT Contract | Project Rules | Verify |
-|:---|:---|:---|:---|
-| routing / locale / not-found | `docs/req-landing.md §5`, `docs/project-analysis.md §4` | `docs/agent-guides/project-rules.md §Architecture` | `docs/agent-guides/verification-commands.md §routing` |
-| landing grid / GNB / theme | `docs/req-landing.md §6–11` | `docs/agent-guides/project-rules.md §Blog-Telemetry-Theme` | `docs/agent-guides/verification-commands.md §landing` |
-| transition / telemetry / consent | `docs/req-landing.md §8, §12, §13` | `docs/agent-guides/project-rules.md §Blog-Telemetry-Theme` | `docs/agent-guides/verification-commands.md §telemetry` |
-| test flow / domain | `docs/req-test.md`, `docs/req-test-plan.md` | `docs/agent-guides/project-rules.md §TestFlow` | `docs/agent-guides/verification-commands.md §test-flow` |
-| variant registry / fixture | `docs/req-landing.md §12`, `docs/req-test.md §2`, `docs/project-analysis.md §5.3` | `docs/agent-guides/project-rules.md §VariantRegistry` | `docs/agent-guides/verification-commands.md §variant-registry` |
-| visual skin / design tokens / card visual | `docs/design/design.md` (+ §7 application layer) | `docs/agent-guides/project-rules.md §Visual-Design` | `docs/agent-guides/verification-commands.md §landing` |
-| blocker evidence | `docs/blocker-traceability.json` | — | — |
-
-`docs/requirements.md` — background context only; not a direct implementation SSOT.  
-`docs/archive/**` — historical reference only; not a current contract basis.
-
-Reference audit *(2026-06-27, `git ls-tree -r --name-only HEAD`)*:
-`docs/req-test-plan.md`, `docs/agent-guides/verification-commands.md`,
-`docs/design/design.md`, `docs/req-landing.md`, `docs/req-test.md`, and
-`docs/requirements.md` all exist in HEAD.
-
-### Rebuild Workflow Sources
-
-When a task involves rebuild scope, wave sequencing, local worktree roles, checkpoint usage, legacy reference comparison, or rollback anchoring, use these project sources as applicable:
-
-- `docs/rebuild-worktree-setup.md` — confirmed local worktree/branch roles, active implementation workspace, legacy-reference boundary, and checkpoint/rollback-anchor roles.
-- `docs/wave-roadmap.md` — approved rebuild wave sequence, prerequisites, include/exclude scope, risk level, handoff, and validation expectations.
-- `docs/decision-register.md` — confirmed rebuild decisions, conflict-resolution records, scope guards, and implementation caveats.
-- `docs/design/design.md` — VIVE/ViveTest 시각 권위(foundations → tokens → components → patterns/application). **visual-only**: waves/scope/QA/routing/telemetry/storage/behavior는 지배하지 않는다(BQ-21). per-wave CSS snippet은 design SSOT가 아니며, 보충 CSS는 BQ-19 Analysis gate 승인 시에만 발행한다. design.md의 전역 토큰값은 target intent이며 `globals.css` 전역 적용은 Wave 16에서 수행한다.
-
-Do not load these documents upfront for unrelated tasks. They are project-specific operating facts, not replacements for the active CI document’s planning, clarification, execution, or STATE.md rules.
-**Visual source precedence (BQ-21):** `decision-register.md` → product requirements / active rules → `docs/design/design.md` → its patterns/application layer → mockup resources → existing implementation evidence → wave-specific CSS (exception only). design.md never overrides behavior, storage, telemetry, routing, i18n, test-flow, QA, or a11y contracts.
-
----
-
-## 3. Active Runtime Surface
+### Runtime surface
 
 | Fact | Value |
 |:---|:---|
 | Routes | `/{locale}`, `/{locale}/blog`, `/{locale}/blog/{variant}`, `/{locale}/history`, `/{locale}/test/{variant}`, `/{locale}/test/error`, `/api/telemetry` |
 | 404 surface | `src/app/not-found.tsx`, `src/app/global-not-found.tsx` |
-| Locales | `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru` |
-| Locale normalization | `ko* → kr` · Simplified Chinese → `zs` · Traditional Chinese → `zt` |
-| `[locale]/layout.tsx` flag | `dynamicParams = false` |
-| `next.config.ts` flags | `typedRoutes = true`, `experimental.globalNotFound = true`, `outputFileTracingRoot = process.cwd()`, `allowedDevOrigins = ['127.0.0.1']`, `turbopack.root = process.cwd()` |
-| Tech stack | `next@16.2.4`, `react@19.2.4`, `react-dom@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0`, `tailwindcss@4.1.0`, `typescript@5.9.3` |
-| Tailwind | v4. Tokens/base: `src/app/globals.css`. Landing grid/card motion + scoped visual-skin tokens (`--normal-*` / `--expanded-*`): `landing-grid-card.module.css`. Verified from current files on 2026-06-27. |
+| Locales | `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru` (정규화: `ko* → kr` · Simplified Chinese → `zs` · Traditional Chinese → `zt`) |
+| Request entry | 단일 진입 `src/proxy.ts` (middleware 없음). `[locale]/layout.tsx`: `dynamicParams = false` |
+| `next.config.ts` flags | `typedRoutes`, `experimental.globalNotFound`, `outputFileTracingRoot = cwd`, `allowedDevOrigins = ['127.0.0.1']`, `turbopack.root = cwd` |
+| Tech stack | `next@16.2.4`, `react@19.2.4`, `react-dom@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0`, `tailwindcss@4.1.0`, `typescript@5.9.3`; 테스트 `vitest`, `@playwright/test` |
+| Tokens/theme | Tailwind v4 tokens/base = `src/app/globals.css`(분할 금지). Landing grid/card motion + scoped visual-skin tokens(`--normal-*`/`--expanded-*`) = `src/features/landing/grid/landing-grid-card.module.css` |
 
-Directory ownership details → `docs/agent-guides/project-rules.md §Ownership`
+디렉터리 소유권 상세 → `docs/agent-guides/project-rules.md §Ownership`.
 
----
+## 2. Task Routing Table
 
-## 4. Critical Boundaries
+| Task Type | SSOT Contract | Project Rules | Verify |
+|:---|:---|:---|:---|
+| routing / locale / not-found | `docs/req-landing.md §5`, `docs/project-analysis.md §4` | `project-rules.md §Architecture` | `verification-commands.md §routing` |
+| landing grid / GNB / theme | `docs/req-landing.md §6–11` | `project-rules.md §Blog-Telemetry-Theme` | `verification-commands.md §landing` |
+| transition / telemetry / consent | `docs/req-landing.md §8, §12, §13` | `project-rules.md §Blog-Telemetry-Theme` | `verification-commands.md §telemetry` |
+| test flow / domain | `docs/req-test.md`, `docs/req-test-plan.md` | `project-rules.md §TestFlow` | `verification-commands.md §test-flow` |
+| variant registry / fixture | `docs/req-landing.md §12`, `docs/req-test.md §2`, `docs/project-analysis.md §5.3` | `project-rules.md §VariantRegistry` | `verification-commands.md §variant-registry` |
+| visual skin / design tokens / card visual | `docs/design/design.md` (+ §7 application layer) | `project-rules.md §Visual-Design` | `verification-commands.md §landing` |
+| blocker evidence | `docs/blocker-traceability.json` | — | — |
 
-### Rebuild Worktree Boundaries
+`project-rules.md`·`verification-commands.md`는 `docs/agent-guides/` 아래에 있다. `docs/requirements.md` = 배경 컨텍스트(직접 SSOT 아님). `docs/archive/**` = 이력 참고(현행 계약 아님). 구현 전 해당 행의 정본만 로드한다.
 
-For rebuild work, do not redesign, rename, or reinterpret the confirmed branch/worktree/checkpoint topology.
+### Rebuild Workflow Sources
 
-- Active rebuild implementation defaults to the confirmed local `main` workspace unless the user explicitly directs otherwise.
-- `legacy/reference` is read-only reference only. It may be inspected for behavior, implementation comparison, file evidence, and contract preservation checks, but must not be modified or used as an implementation branch.
-- Checkpoint worktrees are verification, comparison, and rollback anchors. They are not regular implementation spaces.
-- Do not update checkpoint branches, start recovery from a checkpoint, merge, reset, revert, push, or otherwise manipulate branches unless the user explicitly approves that operation.
-- If a task appears to require changing the worktree/checkpoint topology, stop and report it as a blocking question.
+rebuild scope·wave 시퀀싱·worktree 역할·checkpoint·legacy 비교·rollback 앵커가 걸린 작업에서만 로드한다.
 
-### Never — Do Not Modify
+- `docs/wave-roadmap.md` — 승인된 wave 시퀀스·전제·include/exclude·리스크·handoff·검증 기대.
+- `docs/decision-register.md` — 확정 rebuild 결정·충돌 해소·scope guard·구현 caveat.
+- `docs/rebuild-worktree-setup.md` — 확정 worktree/branch 역할·활성 구현 workspace·legacy 참조 경계·checkpoint/rollback 앵커.
+- `docs/design/design.md` — 시각 권위(foundations → tokens → components → patterns/application). **visual-only(BQ-21)**: waves/scope/QA/routing/telemetry/storage/behavior/i18n/test-flow/a11y를 지배하지 않는다. 전역 토큰값은 target intent이며 전역 적용 시점은 wave 소관.
 
-- Do not reintroduce `src/middleware.ts`. Single request entry: `src/proxy.ts`.
-Never edit build artifacts directly: `.next/`, `node_modules/`, `coverage/`, `test-results/`, `playwright-report/`, `dist/`, `out/`, `output/`, `tsconfig.tsbuildinfo`, `next-env.d.ts` (Next.js typegen output — not tracked by Git).
+**Visual source precedence (BQ-21):** `decision-register.md` → product requirements / active rules → `docs/design/design.md` → patterns/application layer → mockup resources → 기존 구현 evidence → wave-specific CSS(예외만). design.md는 behavior/storage/telemetry/routing/i18n/test-flow/QA/a11y 계약을 override하지 않는다.
 
-### Ask First — Modify with Caution
+## 3. Repo coding principles (domain)
 
-Confirm the relevant contract document and test anchor before touching any path below.
+- **Contract-first:** 동작·라우팅·test-flow·telemetry·a11y·시각 토큰 계약은 §2가 라우팅하는 SSOT(`req-*.md`, `design.md`, `project-analysis.md`)에서 온다. 행동 변경 전 해당 계약을 읽고 재해석하지 않는다.
+- **No fabrication (domain):** route path·locale code·variant ID·telemetry payload 필드·config 값·test title을 추정으로 만들지 않는다. `src/config/site.ts`·`src/messages/**`·variant registry·실제 소스/생성 파일에서만 가져온다.
+- **Generated ≠ hand-written:** `src/features/variant-registry/variant-registry.generated.ts`와 typegen 산출물은 생성물이다. `source-fixture.ts`·`builder.ts`·`resolvers.ts`를 먼저 고치고 재생성한다 — 생성 파일 직접 편집 금지.
+- **Single request entry:** `src/proxy.ts`가 유일 요청 진입점. `src/middleware.ts`를 재도입하지 않는다.
+- **Tokens SSOT:** Tailwind v4 tokens/base는 `src/app/globals.css` 한 곳 — 여러 CSS로 분할하지 않고 in-place로만 정리한다.
+- **Test isolation:** 테스트·골든은 라이브 상태·생성 파일·Playwright 스냅샷을 오염시키지 않는다. baseline 재생성은 승인된 명시 단계(`qa:visual:full` / `--update`)로만.
 
-- `src/proxy.ts`
-- `src/app/layout.tsx`
-- `src/app/[locale]/layout.tsx`
-- `src/app/globals.css`
-  → Tailwind v4 tokens/base SSOT. During Tailwind cleanup, do not split this file into multiple CSS files. Reduce, reorganize, or migrate static styling in place unless the user explicitly changes this policy.
+> *surgical changes*, *minimum code*, *read before asserting(미확인 API·파일·config 발명 금지)*, *verifiable completion* 등 **도구 무관 작업 규율은 전역 Settings 소관**이다 — 여기 재진술하지 않는다.
+
+## 4. Critical boundaries
+
+Codex authorization policy가 참조하는 repo 경계다. Ask-First·High-Risk·SSOT를 건드리는 변경이 plan mode를 발동한다.
+
+### Rebuild worktree boundaries
+rebuild 작업에서 확정된 branch/worktree/checkpoint 토폴로지를 재설계·개명·재해석하지 않는다.
+- 활성 rebuild 구현 기본 = 확정 로컬 `main` workspace(사용자 명시 지시 없으면).
+- `legacy/reference` = read-only 참조 전용(행동·구현 비교·evidence·계약 보존 점검용) — 수정·구현 브랜치 사용 금지.
+- checkpoint worktree = 검증·비교·rollback 앵커(일반 구현 공간 아님). branch update/recovery/merge/reset/revert/push는 사용자 명시 승인 전 금지.
+- 토폴로지 변경이 필요해 보이면 정지·보고(blocking question).
+
+### Never — do not modify
+- `src/middleware.ts` 재도입 금지(단일 진입 `src/proxy.ts`).
+- 빌드 산출물 직접 편집 금지: `.next/`·`node_modules/`·`coverage/`·`test-results/`·`playwright-report/`·`dist/`·`out/`·`tsconfig.tsbuildinfo`·`next-env.d.ts`(typegen 산출·비추적).
+
+### Ask-First — 사용자 승인 없는 구현 금지
+관련 계약 문서·테스트 앵커를 확인한 뒤에만 손댄다.
+- `src/proxy.ts` · `src/app/layout.tsx` · `src/app/[locale]/layout.tsx`
+- `src/app/globals.css` (Tailwind v4 tokens/base SSOT — 분할 금지, in-place 정리만)
 - `public/theme-bootstrap.js`
-- `src/lib/routes/route-builder.ts`
-- `src/i18n/localized-path.ts`
-- `src/features/variant-registry/source-fixture.ts`
-- `src/features/variant-registry/builder.ts`
-- `src/features/variant-registry/resolvers.ts`
-- `src/features/variant-registry/types.ts`
-- `src/features/variant-registry/variant-registry.generated.ts`
-  → Not hand-written. Edit `source-fixture.ts`, `builder.ts`, `resolvers.ts` first.
-- `scripts/qa/*.mjs`
-- `tests/e2e/theme-matrix-manifest.json`
-- `docs/blocker-traceability.json`
+- `src/lib/routes/route-builder.ts` · `src/i18n/localized-path.ts`
+- `src/features/variant-registry/{source-fixture,builder,resolvers,types}.ts` 및 `variant-registry.generated.ts`(생성물 — source 먼저)
+- `scripts/qa/*.mjs` · `tests/e2e/theme-matrix-manifest.json` · `docs/blocker-traceability.json`
+- `AGENTS.md` · `CLAUDE.md` · `package.json`/`package-lock.json` · 빌드·배포·스케줄 설정
 
-Path existence audit *(2026-06-27)*: every Ask-First path above exists in the
-current worktree; `scripts/qa` is a directory.
+테스트 추가·설명 문서라도 위 계약의 동작·정본·승인 경계를 바꾸면 Ask-First로 취급한다.
 
-**High-Risk Areas** — Any plan touching paths below must explicitly identify which dimension is
-at risk (usability / a11y / responsiveness / performance / design system consistency) and must
-include Playwright E2E regression coverage (§5).
+### High-Risk Areas
+계획에 위험 차원(usability / a11y / responsiveness / performance / design-system consistency)을 명시하고 Playwright E2E 회귀 커버리지(§5·§8)를 포함한다.
+- `src/features/landing/grid/{use-landing-interaction-controller,use-mobile-card-lifecycle,use-keyboard-handoff}.ts`
+- `src/features/gnb/site-gnb.tsx` · `src/features/landing/shell/page-shell.tsx`
+- `public/theme-bootstrap.js` · `src/features/telemetry/consent-source.ts` · `src/features/transition/`
 
-- `src/features/landing/grid/use-landing-interaction-controller.ts`
-- `src/features/landing/grid/use-mobile-card-lifecycle.ts`
-- `src/features/landing/grid/use-keyboard-handoff.ts`
-- `src/features/gnb/site-gnb.tsx`
-- `src/features/landing/shell/page-shell.tsx`
-- `public/theme-bootstrap.js`
-- `src/features/telemetry/consent-source.ts`
-- `src/features/transition/`
+### SSOT contracts
+동작·플로우·시각 계약 정본: `docs/req-landing.md`, `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), 그리고 이 지침 파일들. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.
 
-Path existence audit *(2026-06-27)*: every High-Risk file above exists in the
-current worktree; `src/features/transition/` is a directory.
+### Always — modify freely
+`src/features/**` · `src/i18n/**` · `src/lib/routes/**` · `src/messages/**` · `tests/**` · `docs/**` · `public/**`(bootstrap 계약 유지) · `.planning/**`(문서·세션 상태만, 실행 코드 없음).
+`.planning/STATE.md`(세션 연속성) ≠ `docs/plans/`(기능 계획 SSOT) — 상호 대체 금지. 어떤 런타임 모듈도 `.planning/`을 import하지 않는다.
 
-### Always — Modify Freely
+### Hard stops
+- 비가역·파괴적 행위(prod 배포·DB·credential 회전·파일 삭제·destructive git·build/deploy 설정·외부 네트워크·미검증 패키지)의 **하드 차단은 이 산문이 아니라 도구 강제층의 몫**이다 — Codex: `.codex/rules`(execpolicy `forbidden`/`prompt`) + approval + sandbox / Claude Code: `permissions.deny` + `sandbox` + `PreToolUse` 훅. 구성된 계층은 우회하지 말고, 막히면 다른 경로를 찾지 말고 정지·보고한다. 강제층이 아직 구성되지 않은 경로에서는 이 산문이 유일 게이트임을 전제로 보수 판단하고, 갭을 플래그한다.
+- theme-matrix/golden baseline `--update`(`qa:visual:full`)는 사람 승인 없이 실행하지 않는다.
+- `.env`·비밀값은 사용자 입력 영역 — 읽거나 출력하거나 커밋하지 않는다. 사용자 소유 미커밋 diff를 노출·덮어쓰지 않는다.
 
-`src/features/**` · `src/i18n/**` · `src/lib/routes/**` · `src/messages/**` · `tests/**` ·
-`docs/**` · `public/**` (bootstrap contract must not break) · `.planning/**`
-(documentation and session state only — no executable code)
+## 5. Build and verification commands
 
-**`.planning/` vs `docs/plans/` boundary**: `.planning/STATE.md` = session continuity anchor
-(temporal progress only). `docs/plans/` = SSOT for feature engineering plans and specifications.
-These must not substitute for each other. No runtime module may import from `.planning/`.
+명령 실행 전 실제 script 이름·flag를 `package.json`·`next.config.ts`·`playwright.config.ts`·`src/config/site.ts`에서 확인한다 — 존재하지 않는 게이트를 발명하지 않는다. 의존성 설치는 `npm ci`, E2E 로컬 실행 전 `npx playwright install chromium webkit`.
 
----
-
-## 5. Essential Commands
-
-### Basic Gates — Default Done gate (run in order)
-
+### Basic gates — Default Done gate (순서)
 ```
-npm run lint
-npm run typecheck
-npm test
-npm run build
+npm run lint         # eslint .
+npm run typecheck    # next typegen && tsc --noEmit
+npm test             # vitest run
+npm run build        # next build
 ```
 
-### Reference Commands
-
+### Reference commands
 ```
-npm run sync            # Sheets sync
-npm run sync:dry        # Dry-run sync verification
-npm run qa:static
-npm run qa:rules        # Release-level pipeline — excluded from default Done gate
-npm run qa:gate:once    # Heavy — run before release or when investigating flakiness
-npm run qa:gate         # Full release validation pipeline
-npm run test:e2e
-npm run test:e2e:smoke
-npm run test:e2e:gate
-npm run qa:visual:full  # Full theme-matrix baseline regeneration
+npm run qa:static        # lint + typecheck + qa:rules
+npm run qa:rules         # scripts/qa/run-all.mjs (12 contract checks) — Default Done gate 제외, release-level
+npm run test:e2e         # playwright test
+npm run test:e2e:smoke   # @smoke subset (preview server)
+npm run test:e2e:gate    # @gate subset (preview server)
+npm run qa:gate:once     # qa:static + build + test + test:e2e:gate — release/flaky 조사용
+npm run qa:gate          # qa:gate:once ×3 — full release validation
+npm run qa:visual:full   # theme-matrix baseline 재생성(승인 필요)
+npm run sync / npm run sync:dry   # Sheets sync / dry-run
 ```
 
-**QA baseline notes**
-- `qa:rules` excluded from default Done gate. Script inspection on 2026-06-27:
-  it delegates to 12 check scripts through `scripts/qa/run-all.mjs`. Current
-  pass/fail status must be verified by running `npm run qa:rules`.
-- `qa:rules` delegates to `scripts/qa/run-all.mjs`, which runs the same 12 checks
-  in parallel and prints buffered child output after completion. *(verified 2026-06-27)*
-- Playwright baselines: local PNGs under `tests/e2e/*-snapshots/`.
-  Visual smoke helper auto-creates missing baselines; falls back to comparison when baseline exists.
-- Theme-matrix baseline provenance is tracked at
-  `tests/e2e/theme-matrix-baseline-provenance.md`.
-- `qa:gate:once` uses the `@gate` E2E subset. Use `qa:visual:full` for full
-  theme-matrix baseline regeneration.
-
-→ Change-type specific commands: `docs/agent-guides/verification-commands.md`
-
----
+- `qa:rules`는 Default Done gate에서 **제외**(release-level). 현재 pass/fail은 실행으로 확인한다.
+- Playwright baseline = 로컬 PNG(`tests/e2e/*-snapshots/`); provenance = `tests/e2e/theme-matrix-baseline-provenance.md`.
+- 변경 유형별 추가 명령 → `docs/agent-guides/verification-commands.md`(§8).
+- 버그·행동 변경은 회귀 커버리지를 추가하거나 갱신한다. 테스트 러너 전후 라이브 상태 해시 불변 검사를 우회하지 않는다.
 
 ## 6. Gold Standards
 
-Consult before referencing external patterns. Replicate the following exactly.
+외부 패턴을 참조하기 전에 확인하고 아래를 그대로 replicate한다.
 
 | Purpose | File |
 |:---|:---|
@@ -201,71 +156,27 @@ Consult before referencing external patterns. Replicate the following exactly.
 | Transition storage/runtime | `src/features/transition/runtime.ts` |
 | Representative e2e anchor | `tests/e2e/helpers/landing-fixture.ts` |
 
----
+## 7. Plan fields
 
-## 7. Plan Document Requirements
+Ask-First·High-Risk·SSOT 작업 계획은 `docs/plans/YYYY-MM-DD-feature.md`에 저장하며 다음을 포함한다: All files to be modified · Relevant SSOT(§2) · Impact assessment(shared shell/GNB · localization · a11y · state contracts · core user flow) · Validation commands(`verification-commands.md`) · 사용자 확인이 필요한 결정.
 
-A `docs/plans/YYYY-MM-DD-feature.md` is required when Plan mode is triggered: tasks touching
-an **Ask First** path, a **High-Risk Area**, or an SSOT contract document.
-Trivial tasks: commit message is sufficient.
+**Rebuild 작업 추가 필드:** 해당 wave 번호/범위 · Task mode(`Analysis Only` / `Plan Only` / `Implementation`) · reference-only 파일·worktree(수정 금지 대상 명시) · 해당 wave Exclude 보존 계약 · wave scope 내 검증 게이트.
 
-Required fields before approval and before implementation begins:
-- [ ] All files to be modified
-- [ ] Relevant SSOT contract (per §2 Task Routing Table)
-- [ ] Impact assessment: shared components (shell/GNB) · localization · a11y · state contracts · core user flow
-- [ ] Validation commands (per `docs/agent-guides/verification-commands.md`)
-- [ ] Decisions requiring user confirmation before execution
+## 8. Change-type verification anchors
 
-**For Rebuild tasks, the following must also be included in addition to the items above:**
-- [ ] The corresponding wave number or approved wave range
-- [ ] Task mode: `Analysis Only` / `Plan Only` / `Implementation`
-- [ ] Reference-only files and worktree (explicitly specify targets that must not be modified)
-- [ ] Preservation contracts required by the corresponding wave Exclude list (items that must not be changed)
-- [ ] Validation gates applicable within the wave scope
+Basic gates(§5) 이후 변경 유형별 추가 검증. 실제 명령은 `docs/agent-guides/verification-commands.md`.
 
-Any plan missing these fields must be revised before approval. Plan documents have no length limit — exhaustive detail is the goal, not a side effect.
+| 변경 유형 | 추가 검증·문서 확인 |
+|:---|:---|
+| routing / locale / proxy | `#routing` — route-builder·localized-path·locale-resolution·proxy-policy 단위 + routing-smoke E2E |
+| landing grid / GNB / theme | `#landing` — phase4~10 contract checks + grid/GNB/state/theme 단위 + grid/state/gnb/a11y smoke |
+| transition / telemetry / consent | `#telemetry` — phase10/11 contracts + telemetry/transition 단위 + consent/transition smoke |
+| test flow / domain / entry-policy | `#test-flow` — domain·entry-policy·question-bank 단위 (+ consent-smoke) |
+| variant registry / fixture | `#variant-registry` — registry/variant-only contracts + data/card/serializer 단위 |
+| blog detail / subtitle continuity | `blog-server-model`·`landing-card-contract` 단위 |
 
----
+## 9. Documentation
 
-## 8. Local Definition of Done
-
-- Default Done gate: run Basic Gates (§5) in order.
-- `qa:rules` excluded from Done gate — release-level reference pipeline only.
-- `qa:gate:once` / `qa:gate` — run only before release or when investigating flakiness.
-- Bug fix or behavior change: confirm regression test coverage has been added or updated.
-- Wave가 신규 시각 결정을 확정하면 wave-specific CSS가 아니라 `docs/design/design.md`(patterns/application layer)에 환류한다. implementation-only refactor에는 design.md를 갱신하지 않는다(BQ-21).
-- If the change triggers a §9 update condition, update AGENTS.md in the same commit.
-- `AGENTS.md` changes: cross-reference file paths, commands, locale set, and representative
-  anchors against the actual repository before marking done.
-
-→ Scope-specific verification: `docs/agent-guides/verification-commands.md`
-
----
-
-## 9. Document Maintenance
-
-Update AGENTS.md when any of the following change:
-
-- **Commands / scripts**: script names, execution order, QA script list or responsibilities,
-  `qa:rules` baseline status
-- **Project facts**: active contract documents, route surface, locale set, tech stack,
-  representative anchors, generated/SSOT boundary, baseline availability status
-- **Ownership / structure**: directory ownership, Gold Standard files,
-  subdirectory AGENTS.md delegation scope
-- **Persistent agent error**: a repo-specific mistake observed two or more times
-  in code review or agent execution
-
-`docs/plans/` — create or update after any non-trivial task touching an Ask First, High-Risk,
-or SSOT file. Must reflect actual outcome, not original intent. See §7 for required fields.  
-`.planning/STATE.md` — write when the long-session trigger is met (see your active CI document).
-Skill routing, orchestration, and clarification rules → your active CI document only.
-
----
-
-## 10. Subdirectory Rule Delegation
-
-Create a child `AGENTS.md` when three or more rules apply exclusively to that directory,
-or that directory has its own dedicated fixture, QA loop, or gold standard.
-
-- Child documents contain only deltas — no repetition of parent content.
-- Conflict between child document and repo-wide fact: update root AGENTS.md first.
+- 비사소한 변경 후 실제 동작과 달라진 문서를 점검·갱신한다: 라우팅된 `req-*.md`/`project-analysis.md`(계약 변경 시), `docs/design/design.md` patterns/application(신규 시각 결정 확정 시 — implementation-only refactor엔 미갱신, BQ-21), `docs/wave-roadmap.md` 상태, `docs/decision-register.md`. 범위 밖 문서가 갱신 필요하면 조용히 확장하지 말고 보고한다.
+- 지침 파일(`AGENTS.md`·`CLAUDE.md`) 수정은 사용자가 규칙 개정을 명시 요청하고 승인된 계획이 있을 때만. **AGENTS.md 갱신 트리거:** 명령·script 변경 / 프로젝트 사실(route·locale·stack·anchor·생성-SSOT 경계) 변경 / 소유권·구조·gold standard 변경 / repo 고유 실수 2회 이상 반복. 갱신 시 파일 경로·명령·locale·anchor를 실제 저장소와 대조한다.
+- `.planning/STATE.md`는 Codex↔Claude Code 교대용 공유 컨텍스트다 — 실행 권한·계획 승인을 부여하지 않으며 실제 저장소·승인된 계획·게이트 결과보다 우선하지 않는다.
