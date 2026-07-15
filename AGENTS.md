@@ -58,13 +58,14 @@ rebuild scope·wave 시퀀싱·worktree 역할·checkpoint·legacy 비교·rollb
 - **Generated ≠ hand-written:** `src/features/variant-registry/variant-registry.generated.ts`와 typegen 산출물은 생성물이다. `source-fixture.ts`·`builder.ts`·`resolvers.ts`를 먼저 고치고 재생성한다 — 생성 파일 직접 편집 금지.
 - **Single request entry:** `src/proxy.ts`가 유일 요청 진입점. `src/middleware.ts`를 재도입하지 않는다.
 - **Tokens SSOT:** Tailwind v4 tokens/base는 `src/app/globals.css` 한 곳 — 여러 CSS로 분할하지 않고 in-place로만 정리한다.
-- **Test isolation:** 테스트·골든은 라이브 상태·생성 파일·Playwright 스냅샷을 오염시키지 않는다. baseline 재생성은 승인된 명시 단계(`qa:visual:full` / `--update`)로만.
+- **File size discipline:** 변경으로 소스 파일이 ~500줄을 넘게 되거나 3개 이상의 새 소스 파일 분리가 필요하면 구현을 멈추고 리팩터링 계획을 제안·승인받는다(문서·계획 파일 제외). ~30줄 미만 새 소스 파일은 여러 곳에서 재사용되고 독립 테스트 가능할 때만 만들고, 단일 사용 코드는 호출자에 inline한다.
+- **Test isolation:** 테스트는 라이브 상태·생성 파일·Playwright baseline을 오염시키지 않는다. baseline 재생성은 승인된 명시 단계(`qa:visual:full` / `--update`)로만.
 
 > *surgical changes*, *minimum code*, *read before asserting(미확인 API·파일·config 발명 금지)*, *verifiable completion* 등 **도구 무관 작업 규율은 전역 Settings 소관**이다 — 여기 재진술하지 않는다.
 
 ## 4. Critical boundaries
 
-Codex authorization policy가 참조하는 repo 경계다. Ask-First·High-Risk·SSOT를 건드리는 변경이 plan mode를 발동한다.
+도구 전역 오케스트레이션의 authorization·planning 정책이 참조하는 repo 경계다. Ask-First·High-Risk·SSOT를 건드리는 변경이 plan mode를 발동한다.
 
 ### Rebuild worktree boundaries
 rebuild 작업에서 확정된 branch/worktree/checkpoint 토폴로지를 재설계·개명·재해석하지 않는다.
@@ -102,10 +103,9 @@ rebuild 작업에서 확정된 branch/worktree/checkpoint 토폴로지를 재설
 `src/features/**` · `src/i18n/**` · `src/lib/routes/**` · `src/messages/**` · `tests/**` · `docs/**` · `public/**`(bootstrap 계약 유지) · `.planning/**`(문서·세션 상태만, 실행 코드 없음).
 `.planning/STATE.md`(세션 연속성) ≠ `docs/plans/`(기능 계획 SSOT) — 상호 대체 금지. 어떤 런타임 모듈도 `.planning/`을 import하지 않는다.
 
-### Hard stops
-- 비가역·파괴적 행위(prod 배포·DB·credential 회전·파일 삭제·destructive git·build/deploy 설정·외부 네트워크·미검증 패키지)의 **하드 차단은 이 산문이 아니라 도구 강제층의 몫**이다 — Codex: `.codex/rules`(execpolicy `forbidden`/`prompt`) + approval + sandbox / Claude Code: `permissions.deny` + `sandbox` + `PreToolUse` 훅. 구성된 계층은 우회하지 말고, 막히면 다른 경로를 찾지 말고 정지·보고한다. 강제층이 아직 구성되지 않은 경로에서는 이 산문이 유일 게이트임을 전제로 보수 판단하고, 갭을 플래그한다.
+### Hard stops (repo-specific)
 - theme-matrix/golden baseline `--update`(`qa:visual:full`)는 사람 승인 없이 실행하지 않는다.
-- `.env`·비밀값은 사용자 입력 영역 — 읽거나 출력하거나 커밋하지 않는다. 사용자 소유 미커밋 diff를 노출·덮어쓰지 않는다.
+- `.env`·비밀값은 사용자 입력 영역 — 읽거나 출력하거나 커밋하지 않는다.
 
 ## 5. Build and verification commands
 
@@ -135,7 +135,6 @@ npm run sync / npm run sync:dry   # Sheets sync / dry-run
 - `qa:rules`는 Default Done gate에서 **제외**(release-level). 현재 pass/fail은 실행으로 확인한다.
 - Playwright baseline = 로컬 PNG(`tests/e2e/*-snapshots/`); provenance = `tests/e2e/theme-matrix-baseline-provenance.md`.
 - 변경 유형별 추가 명령 → `docs/agent-guides/verification-commands.md`(§8).
-- 버그·행동 변경은 회귀 커버리지를 추가하거나 갱신한다. 테스트 러너 전후 라이브 상태 해시 불변 검사를 우회하지 않는다.
 
 ## 6. Gold Standards
 
@@ -178,5 +177,4 @@ Basic gates(§5) 이후 변경 유형별 추가 검증. 실제 명령은 `docs/a
 ## 9. Documentation
 
 - 비사소한 변경 후 실제 동작과 달라진 문서를 점검·갱신한다: 라우팅된 `req-*.md`/`project-analysis.md`(계약 변경 시), `docs/design/design.md` patterns/application(신규 시각 결정 확정 시 — implementation-only refactor엔 미갱신, BQ-21), `docs/wave-roadmap.md` 상태, `docs/decision-register.md`. 범위 밖 문서가 갱신 필요하면 조용히 확장하지 말고 보고한다.
-- 지침 파일(`AGENTS.md`·`CLAUDE.md`) 수정은 사용자가 규칙 개정을 명시 요청하고 승인된 계획이 있을 때만. **AGENTS.md 갱신 트리거:** 명령·script 변경 / 프로젝트 사실(route·locale·stack·anchor·생성-SSOT 경계) 변경 / 소유권·구조·gold standard 변경 / repo 고유 실수 2회 이상 반복. 갱신 시 파일 경로·명령·locale·anchor를 실제 저장소와 대조한다.
-- `.planning/STATE.md`는 Codex↔Claude Code 교대용 공유 컨텍스트다 — 실행 권한·계획 승인을 부여하지 않으며 실제 저장소·승인된 계획·게이트 결과보다 우선하지 않는다.
+- **AGENTS.md 갱신 트리거**(승인된 규칙 개정 요청 하에서만): 명령·script 변경 / 프로젝트 사실(route·locale·stack·anchor·생성-SSOT 경계) 변경 / 소유권·구조·gold standard 변경 / repo 고유 실수 2회 이상 반복. 갱신 시 파일 경로·명령·locale·anchor를 실제 저장소와 대조한다.
