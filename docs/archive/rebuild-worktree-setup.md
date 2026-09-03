@@ -1,4 +1,8 @@
-# ViveTest Rebuild — Local Branch / Worktree Setup
+# ViveTest Rebuild — Local Branch / Worktree Setup (ARCHIVED 2026-09-03)
+
+> **폐기된 문서 — 현행 계약이 아니다.** 여기 기술된 워크트리 토폴로지는 2026-09-03에 철거됐고, 이 저장소는 더 이상 워크트리를 만들지 않는다. 격리 작업공간은 clone이며, 현행 workspace·브랜치 규칙은 `AGENTS.md §4`가, 폐지 근거는 `docs/DECISIONS.md`가 갖는다. 이 문서는 브랜치가 왜 존재하는지를 읽기 위한 이력 기록으로만 남는다 — 여기 적힌 절차를 실행하지 않는다.
+>
+> 철거 후에도 브랜치는 전부 보존됐다. 앵커의 실체는 브랜치이고 워크트리는 그 체크아웃일 뿐이므로, 체크아웃을 없애도 잃는 것이 없다.
 
 ## 1. Purpose
 
@@ -27,16 +31,12 @@ Setup-time confirmations:
 - All requested target worktrees were created.
 - All requested target worktrees are clean.
 
-Current verification *(2026-06-27, `git worktree list --porcelain` +
-per-worktree `git status --short --branch`)*:
+Current verification *(2026-06-27, `git worktree list --porcelain` + per-worktree `git status --short --branch`)*:
 
-- The rebuild topology is still present: active `main`, `legacy/reference`, and checkpoint
-  ranges `w01-02`, `w03-06`, `w07-10`, `w11-14`, `w15-17`.
-- The active `main` worktree is not clean in the current home environment because of
-  user-owned documentation edits in `docs/decision-register.md` and `docs/wave-roadmap.md`.
+- The rebuild topology is still present: active `main`, `legacy/reference`, and checkpoint ranges `w01-02`, `w03-06`, `w07-10`, `w11-14`, `w15-17`.
+- The active `main` worktree is not clean in the current home environment because of user-owned documentation edits in `docs/decision-register.md` and `docs/wave-roadmap.md`.
 - `legacy/reference` and the five checkpoint worktrees are clean.
-- Additional temporary/Codex worktrees may exist locally; they are not part of the rebuild
-  topology unless explicitly assigned a role in this document.
+- Additional temporary/Codex worktrees may exist locally; they are not part of the rebuild topology unless explicitly assigned a role in this document.
 
 ---
 
@@ -46,8 +46,7 @@ Environment path rule:
 
 - Canonical path form: `/Users/<user>/Local/...`
 - Known environments: `woohyeon` = home, `b-m-2022001` = office.
-- Do not normalize one username into the other. The relative worktree layout and branch roles are
-  the invariant.
+- Do not normalize one username into the other. The relative worktree layout and branch roles are the invariant.
 
 | Role | Canonical path | Branch | Current observed HEAD | Current observed status |
 |---|---|---|---|---|
@@ -77,8 +76,7 @@ The active rebuild implementation workspace is:
 /Users/<user>/Local/ViveTest
 ```
 
-Known environment examples: `/Users/woohyeon/Local/ViveTest` (home),
-`/Users/b-m-2022001/Local/ViveTest` (office).
+Known environment examples: `/Users/woohyeon/Local/ViveTest` (home), `/Users/b-m-2022001/Local/ViveTest` (office).
 
 Branch:
 
@@ -258,3 +256,13 @@ active main worktree: dirty in home env from user-owned docs/decision-register.m
 legacy/reference worktree: clean
 checkpoint worktrees: clean
 ```
+
+---
+
+## 11. Teardown Record (2026-09-03)
+
+이 절만 아카이브 시점에 추가됐다. 위 §1–§10은 2026-06-27 시점 기록 그대로다.
+
+- 등록부에 남아 있던 워크트리 7개를 전부 제거해 `git worktree list`를 1줄로 되돌렸다: 체크포인트 5개, `legacy/reference` 1개, 그리고 토폴로지 역할이 없던 Codex 워크트리 1개.
+- **브랜치는 하나도 삭제하지 않았다.** `main`, `legacy/reference`, `checkpoint/w01-02-card-structure`, `checkpoint/w03-06-card-expanded`, `checkpoint/w07-10-blog-unavailable-grid`, `checkpoint/w11-14-landing-stable`, `checkpoint/w15-17-gnb-theme-mobile`이 모두 보존돼 있고, rollback 앵커로서의 기능도 그대로다.
+- 폐지 근거와 기각한 대안은 `docs/DECISIONS.md`에 있다.

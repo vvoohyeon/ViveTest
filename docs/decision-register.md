@@ -2,7 +2,11 @@
 
 This document is intended to provide information that can serve as the final basis for judgment when interpretation is unclear due to conflicts among the provided documents.
 
+**역할:** 이곳은 rebuild 제품·설계 결정(`BQ-NN`)의 원장이다 — 확정된 것뿐 아니라 미결·보류·잠정 결정을 상태 태그와 재검토 트리거를 달아 보관한다. 대체·폐지된 결정도 id를 유지한 채 남기고 `Status`로 표시하며, 무엇이 바뀌었는지는 문서 끝 §변경 이력이 갖는다. **규칙이 왜 그 모양인지와 무엇이 이미 기각됐는지는 여기가 아니라 `docs/DECISIONS.md`가 갖는다.** 이 문서는 무엇을 결정했는가에, `DECISIONS.md`는 왜 그렇게 결정했는가에 답한다.
+
 > Each decision is a block anchored by its stable `BQ-NN` id (ids are never renumbered or reused; gaps are intentional). Fields per entry: Decision · Source / 근거 · Implementation impact · Include in first implementation wave? · Notes / caveats.
+>
+> Optional field: **Status** — 결정이 대체·부분 대체·보류 상태일 때만 붙인다. 날짜 · 무엇이 유효하고 무엇이 대체됐는지 · 현행 규칙 위치 · 재검토 트리거를 한 줄에 적는다. Status가 없는 항목은 원문 그대로 유효하다.
 
 ---
 
@@ -120,6 +124,7 @@ This document is intended to provide information that can serve as the final bas
 - **Implementation impact** — Codex Implementation 기본 branch를 `main`으로 변경. checkpoint branch/worktree는 기본적으로 read/test-only
 - **Include in first implementation wave?** — Yes, process guard
 - **Notes / caveats** — remote push 방지는 강제하지 않되 Codex는 명시 지시 없이 push 금지
+- **Status** — ⚠️ 부분 대체 (2026-09-03). **브랜치 결정은 유효**하다: `main`이 착지 대상이고 checkpoint 브랜치는 read/test-only rollback 앵커다. **workspace 운영 절반은 폐지**됐다 — 워크트리를 만들지 않고 격리 작업공간은 clone이며, 현행 규칙은 `AGENTS.md §4`, 근거는 `docs/DECISIONS.md`. 재검토 트리거: 사용자가 워크트리 선호를 되돌리거나 GitHub Desktop의 브랜치 기반 리뷰 경로가 바뀔 때.
 
 ---
 
@@ -129,6 +134,7 @@ This document is intended to provide information that can serve as the final bas
 - **Implementation impact** — legacy evidence 수집은 허용하되 legacy worktree 수정 금지
 - **Include in first implementation wave?** — Yes, setup guard
 - **Notes / caveats** — rollback source가 아니라 reference source
+- **Status** — ✅ 유효, 문구만 조정 (2026-09-03). 결정 자체는 그대로다. "legacy worktree 수정 금지"는 이제 "`legacy/reference` **브랜치**에서 구현·수정 금지"로 읽는다 — 해당 워크트리 체크아웃은 철거됐고 브랜치와 기준 commit은 보존됐다.
 
 ---
 
@@ -138,6 +144,7 @@ This document is intended to provide information that can serve as the final bas
 - **Implementation impact** — checkpoint naming, merge/report 기준 변경
 - **Include in first implementation wave?** — Yes, process guard
 - **Notes / caveats** — range별 안정 지점을 rollback anchor로 사용
+- **Status** — ✅ 유효, 문구만 조정 (2026-09-03). range checkpoint **브랜치** 명명(`w01-02`·`w03-06`·`w07-10`·`w11-14`·`w15-17`)은 그대로 유효하다. 각 range의 워크트리 체크아웃은 철거됐고 rollback 앵커 기능은 브랜치가 갖는다.
 
 ---
 
@@ -338,3 +345,13 @@ This document is intended to provide information that can serve as the final bas
 - **Notes / caveats** — 알려진 pre-existing 2건 유지(재생성·수정 없음): W11 telemetry race(`state-smoke.spec.ts:364`, Expected 0/Received 1), BQ-07 동결 baseline `expanded-focus-shell.png`(frozen 403×210). 후자는 gutter 확대(16→24)로 column 폭이 좁아져 received가 `403×295→398×293`으로 변동 — 정당한 기하 변화이며 baseline 재생성 금지 유지, post-W17 재생성 시 반영. 정합: BQ-07(baseline 동결)·BQ-13(명시 커밋)·BQ-21(design.md visual SSOT)·BQ-32(단일 resolver, prefix 불변 증명)·BQ-35/36(카드 내부 `base_gap` ≠ grid gutter이므로 독립 축). 1280 경계의 20→24 전환은 측정 column tier와 완전 일치하지 않음(수용된 cosmetic); 거슬리면 `xl` 경계만 후속 미세조정 가능. pixel/visual parity 보장 아님(computed 기반)
 
 ---
+
+## 변경 이력
+
+기존 결정이 대체·조정된 기록이다. `BQ-NN` 블록은 그대로 남고 이 표가 무엇이 언제 왜 바뀌었는지를 가리킨다.
+
+| 날짜 | 항목 | 변경 | 근거 |
+|:---|:---|:---|:---|
+| 2026-09-03 | BQ-13 | workspace 운영 절반 대체 — wave별 워크트리 폐지, 격리 작업공간은 clone. `main` 착지·checkpoint read-only라는 브랜치 결정은 유지 | `docs/DECISIONS.md` · `AGENTS.md §4` |
+| 2026-09-03 | BQ-14 | 문구 조정 — "legacy worktree 수정 금지" → `legacy/reference` **브랜치** 수정 금지. 브랜치·기준 commit 보존 | `docs/DECISIONS.md` |
+| 2026-09-03 | BQ-15 | 문구 조정 — range checkpoint는 브랜치로만 존속, 워크트리 체크아웃 철거 | `docs/DECISIONS.md` |

@@ -2,11 +2,11 @@
 
 ## 0. Scope and authority
 
-이 파일은 ViveTest 저장소의 **프로젝트 계약(what this repo requires)** 정본이다.
+이 파일은 ViveTest 저장소의 **프로젝트 계약(what this repo requires)** 단일 정본이다. Codex는 이 파일을 직접 읽고, Claude Code는 `.claude/CLAUDE.md` 포인터를 통해 이 파일을 읽는다. 저장소 규칙은 이 파일 한 곳에만 둔다 — 도구별 사본을 만들지 않는다.
 
-- **적용:** 코드·테스트·리팩터링·개발 문서·저장소 설정 변경.
-- **비적용:** *how to work*(세션 시작·명확화·plan mode·skill·검증 절차·STATE.md·권한/승인 판단)는 도구 전역 오케스트레이션(Codex Settings / Claude Code settings)의 몫이다 — 이 파일에 재진술하지 않는다. Claude Code는 루트 `CLAUDE.md` 어댑터가 이 파일을 SSOT로 참조한다.
-- **우선순위:** 호스트·사용자 지시 > 이 프로젝트 계약 > 도구 전역 기본. 저장소 고유 사항은 이 파일이 도구 기본을 override한다. 더 가까운 하위 `AGENTS.md`는 델타만 추가하며 이 파일의 불변 규칙·승인 경계를 완화할 수 없다 — 하위 문서는 그 디렉터리 전용 규칙이 3개 이상이거나 전용 fixture/QA/gold standard가 있을 때만 만든다.
+- **적용:** 코드·테스트·리팩터링·개발 문서·저장소 설정 변경. 이 저장소에는 런타임 에이전트가 없다 — 이 파일이 곧 코딩 계약이다.
+- **비적용:** *how to work*(세션 시작·명확화·plan mode·skill·workspace/git 절차·검증 절차·STATE.md·권한/승인 판단)는 전역 오케스트레이션(`~/.claude/CLAUDE.md` · Codex Settings)의 몫이다 — 여기 재진술하지 않는다.
+- **우선순위:** 호스트·사용자 지시 > 이 프로젝트 계약 > 전역 기본. 저장소 고유 사항은 이 파일이 전역 기본을 override한다. 더 가까운 하위 `AGENTS.md`는 델타만 추가하며 이 파일의 불변 규칙·승인 경계를 완화할 수 없다 — 하위 문서는 그 디렉터리 전용 규칙이 3개 이상이거나 전용 fixture/QA/gold standard가 있을 때만 만든다.
 
 ## 1. Project orientation
 
@@ -28,6 +28,8 @@ ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·
 
 ## 2. Task Routing Table
 
+구현 전 해당 행의 정본만 로드한다 — 전부 선로드하지 않는다.
+
 | Task Type | SSOT Contract | Project Rules | Verify |
 |:---|:---|:---|:---|
 | routing / locale / not-found | `docs/req-landing.md §5`, `docs/project-analysis.md §4` | `project-rules.md §Architecture` | `verification-commands.md §routing` |
@@ -38,15 +40,14 @@ ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·
 | visual skin / design tokens / card visual | `docs/design/design.md` (+ §7 application layer) | `project-rules.md §Visual-Design` | `verification-commands.md §landing` |
 | blocker evidence | `docs/blocker-traceability.json` | — | — |
 
-`project-rules.md`·`verification-commands.md`는 `docs/agent-guides/` 아래에 있다. `docs/requirements.md` = 배경 컨텍스트(직접 SSOT 아님). `docs/archive/**` = 이력 참고(현행 계약 아님). 구현 전 해당 행의 정본만 로드한다.
+`project-rules.md`·`verification-commands.md`는 `docs/agent-guides/` 아래에 있다. `docs/requirements.md` = 배경 컨텍스트(직접 SSOT 아님). `docs/archive/**` = 이력 참고(현행 계약 아님).
 
 ### Rebuild Workflow Sources
 
-rebuild scope·wave 시퀀싱·worktree 역할·checkpoint·legacy 비교·rollback 앵커가 걸린 작업에서만 로드한다.
+rebuild scope·wave 시퀀싱·legacy 비교·rollback 앵커가 걸린 작업에서만 로드한다.
 
 - `docs/wave-roadmap.md` — 승인된 wave 시퀀스·전제·include/exclude·리스크·handoff·검증 기대.
-- `docs/decision-register.md` — 확정 rebuild 결정·충돌 해소·scope guard·구현 caveat.
-- `docs/rebuild-worktree-setup.md` — 확정 worktree/branch 역할·활성 구현 workspace·legacy 참조 경계·checkpoint/rollback 앵커.
+- `docs/decision-register.md` — 확정 rebuild 결정(`BQ-NN`)·충돌 해소·scope guard·구현 caveat.
 - `docs/design/design.md` — 시각 권위(foundations → tokens → components → patterns/application). **visual-only(BQ-21)**: waves/scope/QA/routing/telemetry/storage/behavior/i18n/test-flow/a11y를 지배하지 않는다. 전역 토큰값은 target intent이며 전역 적용 시점은 wave 소관.
 
 **Visual source precedence (BQ-21):** `decision-register.md` → product requirements / active rules → `docs/design/design.md` → patterns/application layer → mockup resources → 기존 구현 evidence → wave-specific CSS(예외만). design.md는 behavior/storage/telemetry/routing/i18n/test-flow/QA/a11y 계약을 override하지 않는다.
@@ -61,18 +62,23 @@ rebuild scope·wave 시퀀싱·worktree 역할·checkpoint·legacy 비교·rollb
 - **File size discipline:** 변경으로 소스 파일이 ~500줄을 넘게 되거나 3개 이상의 새 소스 파일 분리가 필요하면 구현을 멈추고 리팩터링 계획을 제안·승인받는다(문서·계획 파일 제외). ~30줄 미만 새 소스 파일은 여러 곳에서 재사용되고 독립 테스트 가능할 때만 만들고, 단일 사용 코드는 호출자에 inline한다.
 - **Test isolation:** 테스트는 라이브 상태·생성 파일·Playwright baseline을 오염시키지 않는다. baseline 재생성은 승인된 명시 단계(`qa:visual:full` / `--update`)로만.
 
-> *surgical changes*, *minimum code*, *read before asserting(미확인 API·파일·config 발명 금지)*, *verifiable completion* 등 **도구 무관 작업 규율은 전역 Settings 소관**이다 — 여기 재진술하지 않는다.
+> *surgical changes*, *minimum code*, *read before asserting(미확인 API·파일·config 발명 금지)*, *verifiable completion* 등 **도구 무관 작업 규율은 전역 오케스트레이션 소관**이다 — 여기 재진술하지 않는다.
 
 ## 4. Critical boundaries
 
-도구 전역 오케스트레이션의 authorization·planning 정책이 참조하는 repo 경계다. Ask-First·High-Risk·SSOT를 건드리는 변경이 plan mode를 발동한다.
+전역 오케스트레이션의 authorization·planning 정책이 참조하는 repo 경계다. Ask-First·High-Risk·SSOT를 건드리는 변경이 plan mode를 발동한다.
 
-### Rebuild worktree boundaries
-rebuild 작업에서 확정된 branch/worktree/checkpoint 토폴로지를 재설계·개명·재해석하지 않는다.
-- 활성 rebuild 구현 기본 = 확정 로컬 `main` workspace(사용자 명시 지시 없으면).
-- `legacy/reference` = read-only 참조 전용(행동·구현 비교·evidence·계약 보존 점검용) — 수정·구현 브랜치 사용 금지.
-- checkpoint worktree = 검증·비교·rollback 앵커(일반 구현 공간 아님). branch update/recovery/merge/reset/revert/push는 사용자 명시 승인 전 금지.
-- 토폴로지 변경이 필요해 보이면 정지·보고(blocking question).
+### Workspace and branch roles
+
+**이 저장소는 워크트리를 만들지 않는다 — 격리 작업공간은 `git clone`이다.** 워크트리 생성·이동 명령은 금지이며, 어떤 문서·계획·프롬프트도 그것을 지시할 수 없다. clone 생성·브랜치 공개·커밋·push·착지 절차는 전역 오케스트레이션이 소유한다.
+
+브랜치 역할은 고정된 프로젝트 사실이다 — 개명·용도 변경·삭제는 사용자 명시 승인 전 금지.
+
+| Branch | Role |
+|:---|:---|
+| `main` | 기본 브랜치이자 유일한 착지 대상 |
+| `legacy/reference` (`d3305b7`) | pre-rebuild 기준선. 읽기 전용 참조(행동·구현 비교·evidence·계약 보존 점검) — 구현·수정 금지 (BQ-14) |
+| `checkpoint/w01-02-card-structure` · `checkpoint/w03-06-card-expanded` · `checkpoint/w07-10-blog-unavailable-grid` · `checkpoint/w11-14-landing-stable` · `checkpoint/w15-17-gnb-theme-mobile` | range rollback 앵커. 구현 브랜치 아님 — update/merge/reset/revert/push 금지 (BQ-13, BQ-15) |
 
 ### Never — do not modify
 - `src/middleware.ts` 재도입 금지(단일 진입 `src/proxy.ts`).
@@ -86,7 +92,7 @@ rebuild 작업에서 확정된 branch/worktree/checkpoint 토폴로지를 재설
 - `src/lib/routes/route-builder.ts` · `src/i18n/localized-path.ts`
 - `src/features/variant-registry/{source-fixture,builder,resolvers,types}.ts` 및 `variant-registry.generated.ts`(생성물 — source 먼저)
 - `scripts/qa/*.mjs` · `tests/e2e/theme-matrix-manifest.json` · `docs/blocker-traceability.json`
-- `AGENTS.md` · `CLAUDE.md` · `package.json`/`package-lock.json` · 빌드·배포·스케줄 설정
+- `AGENTS.md` · `.claude/CLAUDE.md` · `.claude/settings.json` · `package.json`/`package-lock.json` · 빌드·배포·스케줄 설정
 
 테스트 추가·설명 문서라도 위 계약의 동작·정본·승인 경계를 바꾸면 Ask-First로 취급한다.
 
@@ -97,10 +103,11 @@ rebuild 작업에서 확정된 branch/worktree/checkpoint 토폴로지를 재설
 - `public/theme-bootstrap.js` · `src/features/telemetry/consent-source.ts` · `src/features/transition/`
 
 ### SSOT contracts
-동작·플로우·시각 계약 정본: `docs/req-landing.md`, `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), 그리고 이 지침 파일들. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.
+동작·플로우·시각 계약 정본: `docs/req-landing.md`, `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), 그리고 이 파일과 `docs/agent-guides/**`. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.
 
 ### Always — modify freely
 `src/features/**` · `src/i18n/**` · `src/lib/routes/**` · `src/messages/**` · `tests/**` · `docs/**` · `public/**`(bootstrap 계약 유지) · `.planning/**`(문서·세션 상태만, 실행 코드 없음).
+
 `.planning/STATE.md`(세션 연속성) ≠ `docs/plans/`(기능 계획 SSOT) — 상호 대체 금지. 어떤 런타임 모듈도 `.planning/`을 import하지 않는다.
 
 ### Hard stops (repo-specific)
@@ -112,7 +119,7 @@ rebuild 작업에서 확정된 branch/worktree/checkpoint 토폴로지를 재설
 명령 실행 전 실제 script 이름·flag를 `package.json`·`next.config.ts`·`playwright.config.ts`·`src/config/site.ts`에서 확인한다 — 존재하지 않는 게이트를 발명하지 않는다. 의존성 설치는 `npm ci`, E2E 로컬 실행 전 `npx playwright install chromium webkit`.
 
 ### Basic gates — Default Done gate (순서)
-```
+```bash
 npm run lint         # eslint .
 npm run typecheck    # next typegen && tsc --noEmit
 npm test             # vitest run
@@ -120,7 +127,7 @@ npm run build        # next build
 ```
 
 ### Reference commands
-```
+```bash
 npm run qa:static        # lint + typecheck + qa:rules
 npm run qa:rules         # scripts/qa/run-all.mjs (12 contract checks) — Default Done gate 제외, release-level
 npm run test:e2e         # playwright test
@@ -159,7 +166,7 @@ npm run sync / npm run sync:dry   # Sheets sync / dry-run
 
 Ask-First·High-Risk·SSOT 작업 계획은 `docs/plans/YYYY-MM-DD-feature.md`에 저장하며 다음을 포함한다: All files to be modified · Relevant SSOT(§2) · Impact assessment(shared shell/GNB · localization · a11y · state contracts · core user flow) · Validation commands(`verification-commands.md`) · 사용자 확인이 필요한 결정.
 
-**Rebuild 작업 추가 필드:** 해당 wave 번호/범위 · Task mode(`Analysis Only` / `Plan Only` / `Implementation`) · reference-only 파일·worktree(수정 금지 대상 명시) · 해당 wave Exclude 보존 계약 · wave scope 내 검증 게이트.
+**Rebuild 작업 추가 필드:** 해당 wave 번호/범위 · Task mode(`Analysis Only` / `Plan Only` / `Implementation`) · reference-only 파일·브랜치(수정 금지 대상 명시) · 해당 wave Exclude 보존 계약 · wave scope 내 검증 게이트.
 
 ## 8. Change-type verification anchors
 
@@ -176,5 +183,29 @@ Basic gates(§5) 이후 변경 유형별 추가 검증. 실제 명령은 `docs/a
 
 ## 9. Documentation
 
+배운 것은 네 계층이 나눠 갖고, 각 계층은 서로 다른 질문에 답한다. 사실은 그 질문이 사는 곳에, 그곳에만 둔다 — 같은 규칙이 두 곳에 있으면 표류하고 인용은 패치되지 않은 쪽으로 옮겨 간다.
+
+| 계층 | 답하는 질문 | 위치 |
+|:---|:---|:---|
+| 전역 오케스트레이션 | 어느 저장소에서든 어떻게 일하는가 | `~/.claude/CLAUDE.md`(저장소 밖 — 여기 재서술하지 않는다) |
+| 저장소 계약 | 이 저장소에서 세션이 알아야 하는 것 | 이 파일 · `.claude/CLAUDE.md`(포인터) · `docs/agent-guides/**` · 코드 docstring |
+| 프로젝트 메모리 | 기계 종속이거나 적용되는 순간에 떠올라야 하는 사실 | `~/.claude/projects/<슬러그>/memory/`(기계 로컬, 훅이 동기화) |
+| 결정의 이유 | 왜 이 모양인가, 무엇이 이미 기각됐나 | `docs/DECISIONS.md` |
+
 - 비사소한 변경 후 실제 동작과 달라진 문서를 점검·갱신한다: 라우팅된 `req-*.md`/`project-analysis.md`(계약 변경 시), `docs/design/design.md` patterns/application(신규 시각 결정 확정 시 — implementation-only refactor엔 미갱신, BQ-21), `docs/wave-roadmap.md` 상태, `docs/decision-register.md`. 범위 밖 문서가 갱신 필요하면 조용히 확장하지 말고 보고한다.
-- **AGENTS.md 갱신 트리거**(승인된 규칙 개정 요청 하에서만): 명령·script 변경 / 프로젝트 사실(route·locale·stack·anchor·생성-SSOT 경계) 변경 / 소유권·구조·gold standard 변경 / repo 고유 실수 2회 이상 반복. 갱신 시 파일 경로·명령·locale·anchor를 실제 저장소와 대조한다.
+- **이 파일 갱신 트리거**(승인된 규칙 개정 요청 하에서만): 명령·script 변경 / 프로젝트 사실(route·locale·stack·anchor·생성-SSOT 경계) 변경 / 소유권·구조·gold standard 변경 / repo 고유 실수 2회 이상 반복. 갱신 시 파일 경로·명령·locale·anchor를 실제 저장소와 대조한다.
+- 규칙 문서(이 파일·`docs/agent-guides/**`)에는 불변식만 적는다. 사건 예시·경위·기각된 대안은 `docs/DECISIONS.md`와 `docs/plans/`가 갖는다.
+
+## 10. Session guardrails (repo-specific)
+
+자율 편집 실패 모드를 이 저장소 맥락에서 막는 규칙이다.
+
+- **계약을 기억으로 인용하지 않는다.** 규칙·근거를 설명하거나 그에 따라 행동하기 전에 §2가 라우팅하는 해당 섹션을 다시 읽는다.
+- **행동 계약이 불확실하면 가정하기 전에 기존 E2E 커버리지(`tests/e2e/**`)를 먼저 확인한다.** 이 저장소에서는 E2E 스펙이 동작 계약의 실측 기록이다.
+- **시각 baseline diff는 회귀로 간주한다** — `tests/e2e/theme-matrix-baseline-provenance.md`에서 provenance가 확인되기 전까지. 스냅샷 차이를 "의도된 변경"으로 임의 해석하지 않는다.
+- **wave 경계를 넘기 전에 정지한다.** 요청이 `docs/wave-roadmap.md`의 해당 wave include/exclude 경계를 넘으면 계획 작성 전에 정지·보고한다.
+- **지침 충돌 시 자체 해소 금지.** 파일 경로·명령·계약 참조가 이 파일과 하위 `AGENTS.md` 사이에서 다르면 정지 — 충돌 항목을 출처와 함께 나열하고 문서 충돌로 보고한다.
+
+## 11. Response language
+
+사용자 메시지의 언어를 따른다. 한국어 입력에는 한국어로, 영어 입력에는 영어로 응답한다.
