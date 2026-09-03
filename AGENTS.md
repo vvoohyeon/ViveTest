@@ -205,7 +205,3 @@ Basic gates(§5) 이후 변경 유형별 추가 검증. 실제 명령은 `docs/a
 - **시각 baseline diff는 회귀로 간주한다** — `tests/e2e/theme-matrix-baseline-provenance.md`에서 provenance가 확인되기 전까지. 스냅샷 차이를 "의도된 변경"으로 임의 해석하지 않는다.
 - **wave 경계를 넘기 전에 정지한다.** 요청이 `docs/wave-roadmap.md`의 해당 wave include/exclude 경계를 넘으면 계획 작성 전에 정지·보고한다.
 - **지침 충돌 시 자체 해소 금지.** 파일 경로·명령·계약 참조가 이 파일과 하위 `AGENTS.md` 사이에서 다르면 정지 — 충돌 항목을 출처와 함께 나열하고 문서 충돌로 보고한다.
-
-## 11. Response language
-
-사용자 메시지의 언어를 따른다. 한국어 입력에는 한국어로, 영어 입력에는 영어로 응답한다.
