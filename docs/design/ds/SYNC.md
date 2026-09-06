@@ -18,9 +18,35 @@ The repository owns the **content**. Claude Design owns the **rendering and the 
 | `SKILL.md` | yes | agent entry point |
 | `preview/*.html` | yes | specimen cards; first line carries the `@dsCard` marker |
 | `SYNC.md` | **no** | this file — repo process, not system content |
+| `fonts/PretendardVariable.woff2` | **no** | mirrored into the repo so local renders match; the design system already holds an identical copy |
 | `_provenance/*` | **no** | pre-rebaseline snapshots kept for rollback |
 
-Files that exist in the Claude Design project but not here — `vive-components.css`, `fonts/`, `assets/`, `ui_kits/`, `uploads/`, `_ds_bundle.js`, `_ds_manifest.json` — are **not** mirrored yet. They are untouched by the rebaseline. `_ds_manifest.json` is compiled by the Claude Design app from the `@dsCard` markers; never hand-write it.
+Files that exist in the Claude Design project but not here — `vive-components.css`, `assets/`, `ui_kits/`, `uploads/`, `_ds_bundle.js`, `_ds_manifest.json` — are **not** mirrored. They are untouched by the rebaseline, and nothing in the catalog work consumes them. `_ds_manifest.json` is compiled by the Claude Design app from the `@dsCard` markers; never hand-write it.
+
+`fonts/` **is** mirrored, and it is the one path that travels in the opposite direction: the repo copy exists so that a local render resolves the same typeface the design system serves, not so that it can be pushed. Pushing it would be a 2 MB write of a file already present there, twice.
+
+## The typeface
+
+`fonts/PretendardVariable.woff2` — **Pretendard Variable, release 1.3.9**, taken from that release's `web/variable/woff2/PretendardVariable.woff2`. Kil Hyung-jin, SIL Open Font License 1.1, <https://github.com/orioncactus/pretendard>.
+
+| | |
+|:---|:---|
+| Size | 2,057,688 bytes |
+| SHA-256 | `9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4` |
+| Format | `wOF2`, flavor `0x00010000`, 16 tables, `totalSfntSize` 6,759,776 |
+| Axis | `font-weight: 45 920`, exactly as `colors_and_type.css` declares |
+
+**How it was verified, and the limit of that verification.** The design system holds this file twice, at `fonts/` and at `uploads/`. Both were read back through `DesignSync` `get_file`, which caps at 256 KiB, so each returned a 196,608-byte prefix — 9.6% of the file. For both copies and the release file: the declared length in the WOFF2 header is 2,057,688, and the decoded prefixes are byte-identical with a matching SHA-256. The release's own `web/variable/pretendardvariable.css` is also content-identical to the design system's `uploads/pretendardvariable.css`, including the `font-weight: 45 920` range.
+
+That is strong provenance but it is **not** a whole-file hash comparison, and it cannot be one while `get_file` is capped. If a future session needs certainty, compare against the upstream release rather than against the design-system copy.
+
+Ship the full face, not a subset: a subset would add a build step and a way for the two sides to diverge, and it would not change the metrics of the glyphs it kept.
+
+**Every measurement taken before this file existed was taken in a fallback typeface.** The `@font-face` in `colors_and_type.css` pointed at a path that did not resolve locally, and a failed `@font-face` is silent. Before measuring anything in this bundle, confirm the face actually loaded:
+
+```js
+document.fonts.check('16px "Pretendard Variable"')   // must be true
+```
 
 ## How to push
 
