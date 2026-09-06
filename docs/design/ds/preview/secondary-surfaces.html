@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!-- @dsCard group="App" name="Secondary surfaces" subtitle="Blog list and detail, history, consent, and the two 404s that render outside the shell" viewport="1240x1360" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<link rel="stylesheet" href="../app-components.css">
+<style>
+  body { margin: 0; background: #57534c; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .side { background: var(--canvas); border-radius: var(--radius-xl); padding: 22px; display: grid; gap: 14px; align-content: start; }
+  .lab { font: var(--overline); letter-spacing: var(--track-over); text-transform: uppercase; color: var(--muted-aa); }
+  .cap { font: var(--caption); color: var(--muted-aa); }
+  .cap b { color: var(--fg1); font-weight: 600; }
+  h2 { font: var(--h4); color: var(--fg1); margin: 4px 0 0; }
+  .full { grid-column: 1 / -1; }
+  .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); }
+  .note b { color: var(--fg1); }
+  .prose h1 { font: var(--h1); color: var(--ink); margin: 0 0 var(--space-3); letter-spacing: var(--track-tight); }
+  .prose p { font: var(--body); color: var(--ink-body); margin: 0 0 var(--space-4); }
+  .prose .meta { font: var(--caption); color: var(--muted-aa); margin-bottom: var(--space-5); }
+  svg.g { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+</style></head>
+<body>
+
+<div class="side vive">
+  <span class="lab">Light</span>
+
+  <h2>History — a real empty state</h2>
+  <div class="vt-panel">
+    <div class="vt-empty" style="padding:var(--space-10) var(--space-4)">
+      <span class="vt-empty__mark"><svg class="g" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
+      <h3 class="vt-empty__title">No results yet</h3>
+      <p class="vt-empty__body">Finish a test and it is kept here on this device — newest first, up to fifty.</p>
+      <button class="vt-btn vt-btn--primary">Browse tests</button>
+    </div>
+  </div>
+  <span class="cap">The realized page has no empty state: it renders its title, its body copy, and <span class="t-code">Locale: en</span> as a third line of prose. One line of what happened plus one action is the README's own voice rule.</span>
+
+  <h2>History — populated</h2>
+  <div class="vt-panel" style="padding:var(--space-2) var(--space-5)">
+    <div class="vt-datarow">
+      <div><p style="font:var(--body-sm);color:var(--ink);margin:0;font-weight:600">10m MBTI test</p><p class="vt-datarow__key" style="margin-top:2px">2026-09-05 · 차분한 조율가</p></div>
+      <div style="display:flex;gap:var(--space-2)"><button class="vt-btn vt-btn--secondary" style="min-height:36px;padding:6px 12px">Open</button><button class="vt-btn vt-btn--quiet" style="min-height:36px">Delete</button></div>
+    </div>
+    <div class="vt-datarow">
+      <div><p style="font:var(--body-sm);color:var(--ink);margin:0;font-weight:600">Energy Allocation Check</p><p class="vt-datarow__key" style="margin-top:2px">2026-09-02 · 저녁형 집중</p></div>
+      <div style="display:flex;gap:var(--space-2)"><button class="vt-btn vt-btn--secondary" style="min-height:36px;padding:6px 12px">Open</button><button class="vt-btn vt-btn--quiet" style="min-height:36px">Delete</button></div>
+    </div>
+  </div>
+
+  <h2>Consent</h2>
+  <div class="vt-banner" role="region" aria-label="Cookie consent">
+    <p class="vt-banner__body">We use cookies to help the service work and to understand how it is used. You can change your choice at any time.</p>
+    <div class="vt-banner__actions">
+      <button class="vt-btn vt-btn--quiet">Deny</button>
+      <button class="vt-btn vt-btn--secondary">Preferences</button>
+      <button class="vt-btn vt-btn--primary">Accept all</button>
+    </div>
+  </div>
+  <span class="cap">A floating surface without a scrim: it <b>is</b> over the page, but it must not read as a modal, because it does not block anything.</span>
+</div>
+
+<div class="side vive" data-theme="dark">
+  <span class="lab">Dark</span>
+
+  <h2>Blog detail</h2>
+  <div class="vt-panel prose">
+    <h1>안정적인 배포를 위한 운영 핸드북</h1>
+    <p class="meta">운영 · 배포 · 8 min read</p>
+    <p>이 글은 사고 대응 태세를 어떻게 준비할지, 배포 순서를 어떤 원칙으로 고정할지, 롤백을 얼마나 빠르고 안전하게 수행할지 정리합니다.</p>
+    <p>또한 탐지 시간과 복구 시간을 줄이기 위한 실전 체크리스트를 함께 다룹니다.</p>
+    <button class="vt-btn vt-btn--secondary">All articles</button>
+  </div>
+  <span class="cap">Reading measure is <span class="t-code">--container-narrow</span> (760px), which existed in the token file and had no consumer. Body is 16px/1.6, the one place the general <span class="t-code">--body</span> role is right and the catalog's 15px is not.</span>
+
+  <h2>404 — the only routes with no shell</h2>
+  <div class="vt-panel">
+    <div class="vt-empty">
+      <span class="vt-empty__mark"><svg class="g" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
+      <h3 class="vt-empty__title">That page is not here</h3>
+      <p class="vt-empty__body">The address may have changed, or the test may have been retired.</p>
+      <div style="display:flex;gap:var(--space-2)">
+        <button class="vt-btn vt-btn--primary">Go to the catalog</button>
+        <button class="vt-btn vt-btn--secondary">Open history</button>
+      </div>
+    </div>
+  </div>
+  <span class="cap"><b>Both 404s render outside <span class="t-code">PageShell</span></b> — measured — so they are the only routes with no navigation, no consent banner and no way back except a single bare link. The design gives them a way back; whether they should also carry the GNB is a routing question, not a visual one, and is left open.</span>
+
+  <h2>Test error</h2>
+  <div class="vt-panel">
+    <div class="vt-empty" style="padding:var(--space-8) var(--space-4)">
+      <span class="vt-empty__mark"><svg class="g" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+      <h3 class="vt-empty__title">이 테스트를 시작할 수 없습니다</h3>
+      <p class="vt-empty__body">잠시 후 다시 시도하거나 다른 테스트를 골라 보세요.</p>
+      <button class="vt-btn vt-btn--primary">카탈로그로 돌아가기</button>
+    </div>
+  </div>
+  <span class="cap">The realized heading is a <b>hardcoded Korean string served to all twelve locales</b>, with the raw variant id interpolated into it. Shown here in Korean because that is what it renders; the string itself is a content defect and is recorded, not designed around.</span>
+</div>
+
+<div class="side vive full">
+  <h2>The pattern all six were missing</h2>
+  <p class="note"><b>Every one of these surfaces was the same unwritten treatment, repeated by copy:</b> <span class="t-code">rounded-[18px] p-5</span>, a <b>94% translucent</b> panel fill, a 22px-blur 16%-alpha shadow, and <b>no border</b>. VIVE says the opposite — an opaque fill, a 1px hairline, and a whisper of shadow, with hierarchy built from surface tint and hairlines and shadow reserved for genuinely floating things. Three classes now carry that, and the difference between them is what they rest on rather than how important they are: <span class="t-code">.vt-panel</span> sits on the page, <span class="t-code">.vt-floating</span> sits over it, <span class="t-code">.vt-well</span> sits inside it.</p>
+  <p class="note"><b>Nothing on this card declares a dark value.</b> Both columns are the same markup and the same rules; the semantic layer supplies the difference. That is the test of whether the dark mapping is a remap or a second palette — if any of these surfaces had needed a <span class="t-code">[data-theme]</span> branch of its own, it would have been the latter.</p>
+</div>
+
+</body></html>

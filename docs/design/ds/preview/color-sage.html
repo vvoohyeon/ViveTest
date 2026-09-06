@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Colors" name="Sage accent" subtitle="The ramp, what the catalog realizes, and the one interaction rule that covers both themes — D-03" viewport="880x820" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; background: #57534c; }
+  .wrap { padding: 24px 28px; background: var(--canvas); display: grid; gap: 14px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; }
+  .lab { font: var(--overline); letter-spacing: var(--track-over); text-transform: uppercase; color: var(--muted-aa); }
+  .cap { font: var(--caption); color: var(--muted-aa); }
+  .cap b { color: var(--fg1); font-weight: 600; }
+  .lede { font: var(--caption); color: var(--fg2); max-width: 760px; }
+  .lede b { color: var(--fg1); font-weight: 600; }
+
+  .scale { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); }
+  .sw { height: 62px; display: flex; flex-direction: column; justify-content: flex-end; padding: 6px 6px; gap: 1px; }
+  .sw b { font: var(--overline); font-weight: 600; letter-spacing: .02em; }
+  .sw i { font-style: normal; font: var(--caption); font-size: 10px; opacity: .8; }
+  .sw.real { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .ctas { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ring { display: inline-block; }
+  .banner { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); }
+  .banner b { color: var(--fg1); }
+  h2 { font: var(--h4); color: var(--fg1); margin: 4px 0 0; }
+</style></head>
+<body>
+
+<div class="wrap vive">
+  <p class="lede"><b>The catalog realizes three steps of this ramp and derives the rest.</b> <span class="t-code">--sage-500</span> is the base accent — focus rings, the expanded card's edge, the choice-button hover border and the submit CTA. <span class="t-code">--sage-200</span> and <span class="t-code">--sage-100</span> are its soft and muted tints. Steps outlined below are the realized ones; the others exist so hover and pressed stay inside one hue family (H 147–157, S 20–28%).</p>
+  <div class="scale">
+    <div class="sw" style="background:var(--sage-50)"><b style="color:var(--sage-700)">50</b><i style="color:var(--sage-700)">#f4f8f6</i></div>
+    <div class="sw real" style="background:var(--sage-100)"><b style="color:var(--sage-700)">100</b><i style="color:var(--sage-700)">--sage-muted</i></div>
+    <div class="sw real" style="background:var(--sage-200)"><b style="color:var(--sage-700)">200</b><i style="color:var(--sage-700)">--sage-soft</i></div>
+    <div class="sw" style="background:var(--sage-300)"><b style="color:var(--sage-800)">300</b><i style="color:var(--sage-800)">#a6c5b5</i></div>
+    <div class="sw" style="background:var(--sage-400)"><b style="color:var(--sage-900)">400</b><i style="color:var(--sage-900)">dark accent</i></div>
+    <div class="sw real" style="background:var(--sage-500)" data-contrast-exempt="this swatch IS the 3.75:1 finding — showing its own label passing would misreport it"><b style="color:#fff">500</b><i style="color:#fff">--sage · 3.75</i></div>
+    <div class="sw" style="background:var(--sage-600)"><b style="color:#fff">600</b><i style="color:#fff">5.09</i></div>
+    <div class="sw" style="background:var(--sage-700)"><b style="color:#fff">700</b><i style="color:#fff">--accent-fg · 7.09</i></div>
+    <div class="sw" style="background:var(--sage-800)"><b style="color:#fff">800</b><i style="color:#fff">#2b4a3e</i></div>
+    <div class="sw" style="background:var(--sage-900)"><b style="color:#fff">900</b><i style="color:#fff">#1f382e</i></div>
+  </div>
+  <p class="cap"><b>Sage is not a text colour at its base step.</b> <span class="t-code">--sage-500</span> on white measures <b>3.75:1</b> — clear of AA for large text and for borders, rings and other non-text UI, which is every way the catalog uses it, and <b>below AA for normal-size text</b>. Whenever sage has to be read as words, use <span class="t-code">--accent-fg</span>.</p>
+</div>
+
+<div class="pair">
+  <div class="wrap vive">
+    <span class="lab">Light — the accent steps darker</span>
+    <div class="ctas">
+      <button class="vt-cta">Submit</button>
+      <button class="vt-cta is-hover">Submit</button>
+      <button class="vt-cta is-pressed">Submit</button>
+      <span class="ring vt-focus-demo" style="padding:6px 10px;border-radius:var(--radius-sm);font:var(--caption);color:var(--fg2)">focus</span>
+    </div>
+    <span class="cap">rest <span class="t-code">--accent-solid</span> 5.09 · hover 7.09 · pressed 9.76 — all clear of AA</span>
+    <div>
+      <button class="vt-choice" style="width:100%"><span class="vt-choice__text">A calm deepening, not a colour change</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button>
+    </div>
+    <button class="vt-choice is-hover" style="width:100%"><span class="vt-choice__text">The same row, hovered</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button>
+  </div>
+
+  <div class="wrap vive" data-theme="dark">
+    <span class="lab">Dark — the accent steps lighter</span>
+    <div class="ctas">
+      <button class="vt-cta">Submit</button>
+      <button class="vt-cta is-hover">Submit</button>
+      <button class="vt-cta is-pressed">Submit</button>
+      <span class="ring vt-focus-demo" style="padding:6px 10px;border-radius:var(--radius-sm);font:var(--caption);color:var(--fg2)">focus</span>
+    </div>
+    <span class="cap">rest <span class="t-code">--accent-solid</span> 7.21 · hover 10.09 · pressed 13.01 — the ladder runs lighter</span>
+    <div>
+      <button class="vt-choice" style="width:100%"><span class="vt-choice__text">A calm deepening, not a colour change</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button>
+    </div>
+    <button class="vt-choice is-hover" style="width:100%"><span class="vt-choice__text">The same row, hovered</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button>
+  </div>
+</div>
+
+<div class="wrap vive">
+  <h2>D-03 — resolved</h2>
+  <p class="lede"><b>The finding was not that the values were wrong; it was that they had no consumer.</b> <span class="t-code">--accent-hover</span> and <span class="t-code">--accent-pressed</span> were declared and derived, and nothing in the system or the product ever read <span class="t-code">--accent-pressed</span>. It now belongs to the pressed state of <span class="t-code">.vt-cta</span> — the one control that carries the filled accent — where the lift returns to zero in the same step, so the button goes down and darker at once.</p>
+  <p class="banner"><b>One rule covers both themes.</b> Interaction moves the accent one step <b>toward higher contrast with the ground</b>. On a light ground that is darker — 500 → 600 → 700. On a dark ground it is lighter — 400 → 300 → 200. Written as "one shade darker", the rule silently inverts to <i>less visible</i> in dark, which is why the README now states it as a direction rather than as a value. The dark theme also anchors one step off the light one: <span class="t-code">--sage-500</span> measures 3.75:1 on white and 4.59:1 on the dark ground, so it cannot serve both; <span class="t-code">--sage-400</span> gives dark <b>6.63:1</b> on the card.</p>
+  <h2>D-12 — the accent has two jobs</h2>
+  <p class="lede"><b>Found while checking the dark side, and it was the light side that was broken.</b> As a line, ring or tint the accent sits <i>beside</i> text and the bar is 3:1, which <span class="t-code">--accent</span> clears at 3.75. As the <b>fill under a label</b> the bar is 4.5:1 against that label — and white on <span class="t-code">--accent</span> is <b>3.75:1</b>, so the submit CTA's own text had been failing AA at rest.</p>
+  <p class="lede"><b>Inverting the label does not fix it.</b> A dark label measures 4.61 at rest and then <b>falls</b> to 3.39 and 2.44 as the button deepens on hover and press — the fill moves toward the label, so interaction makes it worse. Stepping the <i>fill</i> one deeper instead keeps the white label and moves the right way: <b>5.09 → 7.09 → 9.76</b>. Hence <span class="t-code">--accent-solid</span>, <span class="t-code">--accent-solid-hover</span> and <span class="t-code">--accent-solid-pressed</span>, which a filled accent control reads instead of <span class="t-code">--accent</span>.</p>
+  <p class="cap"><b>The label itself is theme-aware.</b> It was <span class="t-code">#fff</span>, hardcoded — <b>2.42:1</b> on the dark theme's lighter accent, an outright failure. It now reads <span class="t-code">--fg-on-accent</span>: white in light, <span class="t-code">--warm-950</span> in dark.</p>
+</div>
+</body></html>

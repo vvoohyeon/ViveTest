@@ -14,6 +14,7 @@ The repository owns the **content**. Claude Design owns the **rendering and the 
 |:---|:---|:---|
 | `colors_and_type.css` | yes | the shared token definition |
 | `catalog-components.css` | yes | the catalog's card system, expressed in those tokens |
+| `app-components.css` | yes | every surface that is not the card — navigation, test flow, secondary pages |
 | `README.md` | yes | the system's own documentation |
 | `SKILL.md` | yes | agent entry point |
 | `preview/*.html` | yes | specimen cards; first line carries the `@dsCard` marker |
@@ -84,4 +85,15 @@ Cards must reference tokens (`var(--accent)`), never literal hex — with one de
 
 `README.md` is the one that catches people out, because it reads as narrative rather than as data and it is pushed alongside the CSS. An earlier version of this file claimed everything but two preview cards followed `colors_and_type.css` automatically; that was wrong.
 
-Everything else — every `card-*.html`, every `comp-*.html`, `color-*.html`, `spacing-scale.html`, `elevation-scale.html`, `type-*.html` — references tokens only and does follow the CSS automatically.
+Everything else — every `card-*.html`, every `comp-*.html`, `color-*.html`, `nav-*.html`, `test-flow.html`, `secondary-surfaces.html`, `spacing-scale.html`, `elevation-scale.html`, `type-*.html` — references tokens only and does follow the CSS automatically.
+
+## Auditing contrast
+
+Nothing in the repository's gates renders this bundle, so a contrast failure here is invisible to every automated check — the same blind spot `L06` describes for computed values. On 2026-09-07 the bundle was audited by rendering all 24 specimen cards in iframes and measuring **every** text node against its composited background: walk up the ancestor chain accumulating backgrounds until one is opaque, composite any alpha on the text colour, then compare against 4.5:1 (3:1 for large text, ≥24px or ≥18.66px bold). It found **418 failures**, and 415 of them were one pattern: specimens using `--fg3` / `--fg4` (`--muted` at 4.06:1 on the canvas and `--muted-soft` at 2.43:1) as caption ink. The three that remain are deliberate and carry `data-contrast-exempt` with a reason — a card documenting a 3.75:1 finding has to show it failing.
+
+Two traps in doing it again:
+
+- **Chrome serialises `color-mix()` as `color(srgb r g b / a)` with 0–1 channels**, not `rgb()` with 0–255. Parsing both with one regex reports near-black backgrounds and produces impossible ratios like 1.05:1 on ink. The first run of this audit did exactly that and its navigation findings were all artefacts.
+- **Skip `[aria-hidden="true"]` subtrees.** The meta row's `·` separators and the choice arrow are decorative glyphs, not text, and flagging them buries the real findings.
+
+`tests/unit/design-tokens-dark-parity.test.ts` cannot measure contrast — that needs a renderer — but it does statically forbid the one pattern that caused the 415, so the recurrence is caught by `npm test` rather than by the next audit.

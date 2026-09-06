@@ -152,12 +152,13 @@ Realized type roles (size / weight / line-height):
 
 ### 5.3 Text tokens
 ```css
---ink:        #1A1A1F;   /* headlines, expanded question */
---ink-soft:   #2E2E36;   /* emphasized body / choice text */
---body:       #4A4A55;   /* default running text, subtitle */
---muted:      #7A7A85;   /* context label, meta, captions */
---muted-soft: #A6A6AE;   /* fine separators, dot separators */
+--ink:        #1E1A16;   /* headlines, expanded question */
+--ink-soft:   #332E28;   /* emphasized body / choice text */
+--body:       #504A43;   /* default running text, subtitle */
+--muted:      #817A72;   /* context label, meta, captions */
+--muted-soft: #ADA59D;   /* fine separators, dot separators */
 ```
+**Ink is warm, and the ramp is one temperature end to end (D-01, resolved 2026-09-07).** These five were cool (blue-leaning by 5 to 11 per channel) while §5.2's surfaces are warm by 3 to 18, so the neutral scale swung 26 points of temperature in a single step. Each value above was re-solved for the *same relative luminance* as the value it replaces, so every contrast ratio moved by at most 0.07 and no threshold anywhere is crossed. The dark theme is what forced it: dark reads this same ramp from the other end, and on the old ramp that produced a cool blue-grey page carrying warm-white text. Realized definition: `docs/design/ds/colors_and_type.css`.
 
 ### 5.4 Border tokens
 ```css
@@ -170,12 +171,17 @@ Realized type roles (size / weight / line-height):
 --sage:       #5C8E78;   /* primary accent: selection, focus, expanded edge */
 --sage-soft:  #C9DBD1;   /* soft sage tint */
 --sage-muted: #E8F0EC;   /* active language chip + choice hover background */
+
+--accent-solid:         #4B7764;   /* fill under a label — never --sage */
+--accent-solid-hover:   #396050;
+--accent-solid-pressed: #2B4A3E;
 ```
+**The accent has two jobs at two different bars (D-12, 2026-09-07).** As a line, ring or tint it sits *beside* text and 3:1 applies, which `--sage` clears at 3.75:1. As the **fill under its own label** it must clear 4.5:1 against that label, and it does not — white on `--sage` is 3.75:1, so the submit CTA's text was failing AA at rest. Inverting the label does not fix it: a dark label measures 4.61 at rest and then *falls* to 3.39 and 2.44 as the fill deepens on hover and press. Stepping the fill one deeper keeps the white label and moves the right way — 5.09 → 7.09 → 9.76. Filled accent controls read `--accent-solid`; everything else keeps `--sage`.
 
 ### 5.6 Tag tokens
 ```css
 --tag-bg: #ECE8DF;
---tag-fg: #4A4A55;
+--tag-fg: #504A43;
 ```
 Catalog tags are borderless. Available catalog tags use `--tag-bg`; the unavailable catalog status tag uses the scoped application value `#E6E2D8`, which is not promoted to a global token before Wave 16. **No `color` property exists in catalog tag data** — tags are text-only; no color dots.
 
@@ -183,18 +189,18 @@ Catalog tags are borderless. Available catalog tags use `--tag-bg`; the unavaila
 ```css
 --focus-ring:      #5C8E78;
 --focus-ring-soft: rgba(92,142,120,0.22);   /* blog-hover glow */
---overlay-scrim:   rgba(26,26,31,0.48);      /* mobile sheet + menu scrim */
+--overlay-scrim:   rgba(30,26,22,0.48);      /* mobile sheet + menu scrim */
 ```
 
 ### 5.8 Shadow tokens
 ```css
---shadow-rest:     0 1px 2px rgba(26,26,31,0.04);
---shadow-hover:    0 4px 14px rgba(26,26,31,0.06),
+--shadow-rest:     0 1px 2px rgba(30,26,22,0.04);
+--shadow-hover:    0 4px 14px rgba(30,26,22,0.06),
                    0 0 0 1px var(--hairline-strong);
 --shadow-blog-hover: 0 4px 14px var(--focus-ring-soft);
---shadow-expanded: 0 12px 32px rgba(26,26,31,0.08),
+--shadow-expanded: 0 12px 32px rgba(30,26,22,0.08),
                    0 0 0 1px var(--hairline-strong);
---shadow-overlay:  0 24px 64px rgba(26,26,31,0.18);
+--shadow-overlay:  0 24px 64px rgba(30,26,22,0.18);
 ```
 
 ### 5.9 Radius tokens
@@ -254,14 +260,18 @@ The realized choice button: elevated fill, 1px `--hairline-strong` edge, `--radi
 ### 6.5 Pill
 Generic pill at `--radius-pill` for chips, toggles, and small status holders.
 
-### 6.6 Static language/theme pill
-A transparent, hairline-bordered pill showing a language label, a thin vertical divider, and a theme glyph. Static display only — no dropdown. Hover deepens the border and picks up `--surface-muted`. This replaces any gear/settings affordance.
+### 6.6 Settings trigger and layer
+A hairline-bordered pill carrying the **current** theme's glyph — which is what makes it readable as a theme control without a label. It opens the language/theme layer: a floating surface anchored to the trigger's own box with **zero effective hover gap**, because `req-landing.md` §6.4 fixes that gap at 0px and has an automated check behind it. Hover deepens the border and picks up `--surface-muted`. On mobile the same controls sit at the foot of the menu drawer rather than in a layer.
+
+*(Rewritten 2026-09-07, D-11. This section previously specified a static pill, "static display only — no dropdown", as a replacement for any gear affordance. That cannot coexist with a behaviour contract that specifies the dropdown's open path, four close paths and its hover geometry.)*
 
 ### 6.7 Navigation surface
 A sticky top bar over a translucent canvas with a quiet backdrop blur; a hairline bottom border appears once content scrolls beneath it. Flat until scrolled.
 
 ### 6.8 Menu panel
-A full-width overlay panel on `--canvas` with bottom corners at `--radius-xl` and the deepest overlay shadow, sitting above a scrim. Its header row mirrors the navigation it belongs to.
+An overlay panel on `--surface-raised` at `--radius-xl` with the deepest overlay shadow, sitting above a scrim, and carrying a **1px `--border-strong` edge**. Its header row mirrors the navigation it belongs to. On mobile it is a right-hand drawer rather than a full-width sheet — see §7.6.
+
+**The edge is not decoration.** In the light theme the scrim separates the panel from the page on its own (measured: the scrim dims its ground 3.12:1, and the panel reads 3.26:1 against that dimmed ground). In dark it cannot — the same treatment dims a near-black ground **1.04:1**, and deepening the scrim to 85% only reaches 1.08, because a page that is already near-black cannot be darkened. The panel's own fill can reach 1.51:1 at best. So in dark the **edge** carries the separation: `--border-strong` measures 4.73:1 against the scrimmed ground and 3.18:1 against the panel, both clear of WCAG 1.4.11's 3:1.
 
 ### 6.9 Focus ring
 A 2px `--focus-ring` outline with a 2px offset on `:focus-visible`. It follows the visible card-shell
@@ -297,7 +307,7 @@ Content order: **Thumbnail → Title → Subtitle → Tags.**
 
 ### 7.3 Expanded test card
 Content order: **context label → preview question → choice A → choice B → meta row.** Thumbnail, subtitle, and tags are removed in this state.
-- Desktop and mobile context typography is 14px / 500 / 1.4 in the muted role. On exact white card surfaces, the scoped card value is `#757580` (the nearest AA-compliant adjustment to `--muted`); the global token remains unchanged until Wave 16.
+- Desktop and mobile context typography is 14px / 500 / 1.4 in the muted role. On exact white card surfaces the scoped card value is the AA adjustment to `--muted`, now `#756D66`; the global token remains unchanged until the theme cut. **The previous value `#757580` was solved against white only** and measured 4.36 on `--canvas` and 4.04 on `--surface-soft`, so the token whose job is to clear AA was failing it on two of the three grounds muted text sits on. Re-solved against the darkest of them: 5.08 / 4.86 / 4.50.
 - The full title remains available. Desktop/Tablet preserves the measured Normal first-line split and reveals overflow text beneath it; Mobile and transient states wrap the full title without ellipsis.
 - **No `PREVIEW QUESTION` label.**
 - **No A/B letter badges** — choices are **text + `→` only.**
@@ -326,12 +336,12 @@ Content order: **context label → preview question → choice A → choice B �
 - The warm unavailable surface must retain enough contrast for the standard sage ring if focus is inspected programmatically; this does not make the card keyboard-focusable.
 
 ### 7.6 Navigation
-- **Desktop:** logo + text links, plus the **static language/theme pill** at the right. **No desktop gear/settings icon. No desktop hamburger.**
+- **Desktop:** logo + text links, plus a **settings trigger** at the right that opens the language/theme layer. **No desktop hamburger.** *(Corrected 2026-09-07, D-11: this section previously forbade a desktop settings icon and §6.6 specified a static pill with no dropdown. `req-landing.md` §6.4 requires the trigger by name and then specifies its layer's hover-open, close paths, 0px hover gap and close grace across eight lines, four of them with automated checks. A static pill cannot satisfy a contract that specifies its dropdown's geometry, and `AGENTS.md` §2 places the product requirement above this document.)*
 - **Mobile:** logo + hamburger pill.
 - Realized nav heights: desktop ~64px, mobile ~56px; sticky over a translucent blurred canvas, hairline bottom border appearing on scroll.
-- **Mobile menu** is a full-screen overlay that **covers the GNB**; its header row mirrors the mobile nav exactly (logo left, close right) with **no duplicate logo**.
-- Menu nav items: **Test history** (current-page dot indicator) · **Blog** · **About vive**. **No `Catalog` item.**
-- Theme control is a segmented Light · Dark · System with **Light active only**; **no dark-mode placeholder text.**
+- **Mobile menu** is a right-hand drawer above the GNB (`z-index` over it, no top clipping), over a scrim that dims the rest of the viewport. *(Corrected 2026-09-07, D-11: this section previously specified a full-screen overlay covering the GNB. `req-landing.md` §6.4 requires that a `pointer down` **outside the panel** begin the close, and be cancelled if it resolves to a scroll gesture; a panel filling the viewport has no outside, so the required input has nowhere to land.)*
+- Menu nav items: **Home** · **Test history** · **Blog**, with a current-page dot indicator. **No `Catalog` item.** *(Corrected 2026-09-07: `About vive` appears nowhere in `src/messages/**` and has never been realized.)*
+- Theme control is **two chips, Light and Dark**, the current one marked and inert. There is no System option to select: `req-landing.md` §6.4 makes system-follow the *initial* state, persisted to `light|dark` on the first manual change. **Both themes are fully realized** — the product has shipped a complete dark theme since before the rebaseline, and the earlier wording here ("Light active only") was never true of it. **No dark-mode placeholder text.**
 - Preserve the realized **12-locale chip set** — English · 한국어 · 简体中文 · 繁體中文 · 日本語 · Español · Français · Português · Deutsch · हिन्दी · Indonesia · Русский — with the active chip on `--sage-muted` background, `--sage` text, transparent border, and no hover effect; inactive chips are elevated with a hairline and a calm hover.
 
 ### 7.7 Responsive catalog
@@ -393,7 +403,7 @@ Accompanying visual resources (working-tree inventory; interpretation aids, not 
 
 **Recommended missing resources** (not yet produced — do not assume they exist):
 - Real catalog thumbnail imagery (current thumbnails are calm abstract placeholders).
-- A dark-theme token mapping (only the Light theme is realized).
+- ~~A dark-theme token mapping~~ — **produced 2026-09-07** at `docs/design/ds/colors_and_type.css`, with `preview/dark-theme.html` as its specimen. Both themes are realized, and were already realized in the product when this line was written.
 - A keyboard-interaction reference capture for the expanded state.
 
 ---

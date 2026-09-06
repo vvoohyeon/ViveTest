@@ -62,11 +62,34 @@
   --sage-900: #1f382e;   /* [not realized] */
 
   /* Neutrals — surfaces, lines, and ink.
-     NOTE (finding D-01): steps 0–400 are warm (R > B); steps 500–900 are the
-     catalog's neutral-cool ink ramp (B >= R). The scale therefore changes
-     temperature between 400 and 500. Both halves are the realized product
-     values and are frozen for this pass; whether to unify the temperature is a
-     question for the design pass, not something to fix silently here. */
+
+     [D-01 — RESOLVED 2026-09-07, step 3] One ramp, one temperature, warm
+     throughout. Steps 500–900 were the catalog's cool ink values (B > R by 5 to
+     11) while 0–400 were warm (R > B by 3 to 18); the scale swung 26 points of
+     temperature in the single step from 400 to 500. They are now warm, at
+     MATCHED LUMINANCE — each new value was solved for the old value's relative
+     luminance, so every contrast ratio moved by at most 0.07 and no threshold
+     anywhere is crossed:
+
+       500  #a6a6ae -> #ada59d    2.42 -> 2.43 on white
+       600  #7a7a85 -> #817a72    4.24 -> 4.23
+       700  #4a4a55 -> #504a43    8.74 -> 8.74
+       800  #2e2e36 -> #332e28   13.46 -> 13.44
+       900  #1a1a1f -> #1e1a16   17.33 -> 17.29
+
+     WHY IT HAD TO BE RESOLVED, AND WHY NOW. In the light theme the split is
+     nearly invisible — a slightly cool ink on warm paper still reads neutral,
+     which is why it survived unnoticed. The dark theme is what makes it decide
+     something: dark reads this same ramp from the other end, taking its page
+     ground from 900–975 and its ink from 50–400. On the old ramp that produced
+     a cool blue-grey page carrying warm-white text — a different personality
+     from the light theme, in the one place the README is most specific ("a warm
+     off-white, never cool grey"). Rendered side by side the light pair is hard
+     to tell apart and the dark pair is not close. D-01 and the dark mapping are
+     therefore one decision, not two.
+
+     Steps 950 and 975 are new, and they give the dark end the same three-rung
+     landing the light end has at 0 / 25 / 50: page floor, and a well below it. */
   --warm-0:   #ffffff;   /* catalog --canvas-elevated: card fill            */
   --warm-25:  #fdfcfa;   /* [not realized]                                  */
   --warm-50:  #fbfaf7;   /* catalog --canvas: warm off-white page floor     */
@@ -75,11 +98,13 @@
   --warm-200: #e6e2d8;   /* catalog --hairline: 1px structural borders      */
   --warm-300: #d6d1c4;   /* catalog --hairline-strong: choice-button edge   */
   --warm-400: #b3aea1;   /* [not realized] — disabled fg, placeholder       */
-  --warm-500: #a6a6ae;   /* catalog --muted-soft: fine / dot separators     */
-  --warm-600: #7a7a85;   /* catalog --muted: context label, meta, captions  */
-  --warm-700: #4a4a55;   /* catalog --ink-body: running text, subtitle      */
-  --warm-800: #2e2e36;   /* catalog --ink-soft: choice text                 */
-  --warm-900: #1a1a1f;   /* catalog --ink: headlines, expanded question     */
+  --warm-500: #ada59d;   /* catalog --muted-soft: fine / dot separators     */
+  --warm-600: #817a72;   /* catalog --muted: context label, meta, captions  */
+  --warm-700: #504a43;   /* catalog --ink-body: running text, subtitle      */
+  --warm-800: #332e28;   /* catalog --ink-soft: choice text                 */
+  --warm-900: #1e1a16;   /* catalog --ink: headlines, expanded question     */
+  --warm-950: #141110;   /* dark page floor            [light: not realized] */
+  --warm-975: #0c0a09;   /* dark sunken well           [light: not realized] */
 
   /* Clay — warm secondary accent. [not realized by the catalog]
      The catalog uses no secondary accent. Kept for non-catalog VIVE surfaces. */
@@ -135,6 +160,19 @@
   --accent-subtle:   var(--sage-100);
   --accent-subtle-2: var(--sage-50);
   --accent-fg:       var(--sage-700);
+
+  /* [D-12 — 2026-09-07, step 3] The accent has TWO jobs and they need different
+     steps. As a line, ring or tint it sits next to text and 3:1 is the bar, which
+     `--accent` clears at 3.75:1. As the FILL UNDER A LABEL it has to clear 4.5:1
+     against that label, and it does not: white on `--accent` is 3.75:1, so the
+     submit CTA's own text failed AA at rest. Inverting the label does not fix it
+     — a dark label on this ramp measures 4.61 at rest and then FALLS to 3.39 and
+     2.44 as the button deepens, because the fill moves toward the label. Stepping
+     the fill one deeper keeps the white label and moves the right way: 5.09 ->
+     7.09 -> 9.76. So a filled accent control reads these, never `--accent`. */
+  --accent-solid:         var(--sage-600);
+  --accent-solid-hover:   var(--sage-700);
+  --accent-solid-pressed: var(--sage-800);
 
   /* Accent (secondary / warm). [not realized by the catalog] */
   --accent2:        var(--clay-400);
@@ -234,11 +272,11 @@
      ELEVATION — low-alpha, tinted with the ink colour. Depth is a whisper.
      Tinted rgba(26,26,31,…) to match the catalog's ink (see D-01).
      ====================================================================== */
-  --shadow-xs: 0 1px 2px rgba(26, 26, 31, 0.04);
-  --shadow-sm: 0 1px 3px rgba(26, 26, 31, 0.06), 0 1px 2px rgba(26, 26, 31, 0.04);
-  --shadow-md: 0 4px 14px rgba(26, 26, 31, 0.06);
-  --shadow-lg: 0 12px 32px rgba(26, 26, 31, 0.08);
-  --shadow-xl: 0 24px 64px rgba(26, 26, 31, 0.18);
+  --shadow-xs: 0 1px 2px rgba(30, 26, 22, 0.04);
+  --shadow-sm: 0 1px 3px rgba(30, 26, 22, 0.06), 0 1px 2px rgba(30, 26, 22, 0.04);
+  --shadow-md: 0 4px 14px rgba(30, 26, 22, 0.06);
+  --shadow-lg: 0 12px 32px rgba(30, 26, 22, 0.08);
+  --shadow-xl: 0 24px 64px rgba(30, 26, 22, 0.18);
 
   /* ======================================================================
      MOTION
@@ -340,11 +378,21 @@
   --ink-body:   var(--warm-700);
   --muted:      var(--warm-600);
   --muted-soft: var(--warm-500);
-  /* BQ-29: `--muted` on a white surface is 4.24:1 — below AA for normal text.
-     `#757580` (4.55:1) is the scoped correction currently applied to the
-     expanded card's context and meta rows. Whether it replaces `--muted`
-     system-wide is decided in the theme cut, not here. */
-  --muted-aa:   #757580;
+  /* BQ-29: `--muted` on a white surface is 4.23:1 — below AA for normal text.
+     `--muted-aa` is the correction.
+
+     [2026-09-07, step 3] IT WAS SOLVED AGAINST THE WRONG GROUND, and had been
+     since BQ-29 produced it. `#757580` clears 4.5:1 on WHITE (4.55) and nowhere
+     else muted text actually sits: 4.36 on `--canvas`, 4.04 on `--surface-sunken`.
+     So the token whose entire job is to clear AA was failing AA on two of the
+     three grounds it appears on. Found by auditing every rendered text/background
+     pair in the bundle rather than by re-reading the derivation — 358 of 418
+     failures were this one value and its uncorrected sibling.
+
+     Re-solved against `--surface-sunken`, the darkest ground muted text sits on:
+     5.08 on white, 4.86 on `--canvas`, 4.50 on `--surface-sunken`. Warm, per D-01.
+     Whether it replaces `--muted` system-wide is still decided in the theme cut. */
+  --muted-aa:   #756d66;
 
   /* Lines */
   --hairline:        var(--warm-200);
@@ -373,7 +421,7 @@
   /* Focus & scrim */
   --focus-ring:      var(--sage-500);
   --focus-ring-soft: rgba(92, 142, 120, 0.22);   /* blog hover glow */
-  --overlay-scrim:   rgba(26, 26, 31, 0.48);
+  --overlay-scrim:   rgba(30, 26, 22, 0.48);
 
   /* Catalog elevation roles */
   --shadow-rest:       var(--shadow-xs);
@@ -413,6 +461,293 @@
   --t-choice:            400 15px/1.45 var(--font-sans);
   --t-tag:               500 13px/1.35 var(--font-sans);
   --t-eyebrow:           400 14px/1.4  var(--font-sans);
+}
+
+/* ============================================================================
+   DARK THEME
+
+   [D-10 — 2026-09-07, step 3] The product has shipped a complete dark theme
+   since before this rebaseline: `src/app/globals.css` redefines 31 custom
+   properties under `html[data-theme='dark']`, `public/theme-bootstrap.js` sets
+   `data-theme` before hydration, and `tests/e2e/theme-matrix-manifest.json`
+   holds baselines across 2 locales x 2 themes x 6 viewports. This file carried
+   no dark values at all, and `docs/design/design.md` §9 still lists a
+   dark-theme mapping among resources "not yet produced". That made the theme
+   cut impossible: there was nothing to point the 31 runtime dark values at.
+
+   THE MAPPING IS A REMAP OF LAYER 2, NOT A SECOND PALETTE. Every value below
+   resolves to a step of the same ramp declared above. Dark reads that ramp from
+   the other end — ground from 900–975, ink from 50–400 — which is only coherent
+   because D-01 made the ramp one temperature. Only three things are genuinely
+   new: the two dark-end steps (950, 975), the shadow alphas, and the scrim.
+
+   TWO SELECTORS, ONE SET OF VALUES. `[data-theme='dark']` is what the product
+   sets, on `<html>`. It is deliberately NOT written `:root[data-theme='dark']`:
+   unqualified, the same attribute themes any subtree, which is what lets one
+   page show both themes at once — `preview/dark-theme.html` does exactly that,
+   and a product surface can use it for a deliberately inverted panel. The media
+   query is for anything rendering this file without the bootstrap: the
+   specimens here, and the Claude Design canvas. It is guarded with
+   `:not([data-theme='light'])` so an explicit light choice always wins.
+   The two blocks must stay byte-identical in their declarations;
+   `tests/unit/design-tokens-dark-parity.test.ts` fails the build if they drift.
+   ============================================================================ */
+
+[data-theme='dark'] {
+  /* -- surfaces: the ramp read from the dark end ------------------------- */
+  --canvas:          var(--warm-950);
+  --surface:         var(--warm-900);
+  --surface-raised:  var(--warm-800);
+  --surface-sunken:  var(--warm-975);
+  --surface-strong:  var(--warm-700);
+
+  /* -- foreground: mirrors the light ladder's ROLES, not its indices ------
+     light  fg1 900 / fg2 700 / fg3 600 / fg4 500  ->  17.3 / 8.7 / 4.2 / 2.4 on the card
+     dark   fg1  50 / fg2 200 / fg3 400 / fg4 600  ->  16.6 / 13.4 / 7.8 / 4.1 on the card
+     Dark runs more generous in the middle on purpose: the same nominal ratio
+     reads dimmer on a dark ground, and the light half of the ramp has eight
+     steps to spend where the dark half has five. */
+  --fg1: var(--warm-50);
+  --fg2: var(--warm-200);
+  --fg3: var(--warm-400);
+  --fg4: var(--warm-600);
+  --fg-disabled: var(--warm-700);
+  --fg-on-accent: var(--warm-950);          /* 7.21 on --sage-400 */
+
+  /* -- lines: dark leans on the edge, because the fill cannot carry it ---- */
+  --border:        var(--warm-700);
+  --border-strong: var(--warm-600);
+  --border-focus:  var(--sage-400);
+
+  /* -- accent: the direction inverts -------------------------------------
+     The rule is one rule in both themes — interaction moves the accent one
+     step TOWARD HIGHER CONTRAST WITH THE GROUND. On a light ground that is
+     darker (500 -> 600 -> 700); on a dark ground it is lighter (400 -> 300 ->
+     200). Stated as "one shade darker" it silently inverts to "less visible"
+     in dark, which is why the README's wording is corrected alongside this.
+     --sage-500 cannot serve both themes: 3.75:1 on white, 4.59:1 on the dark
+     ground. Dark anchors on --sage-400 (6.63:1 on the card). */
+  --accent:          var(--sage-400);
+  --accent-hover:    var(--sage-300);
+  --accent-pressed:  var(--sage-200);
+  --accent-subtle:   var(--sage-800);
+  --accent-subtle-2: var(--sage-900);
+  --accent-fg:       var(--sage-300);       /* 9.28 on the card */
+
+  /* D-12, dark side. Here the label is ink rather than white, so the accent step
+     itself already clears AA under it — 7.21 at rest — and the ladder runs the
+     same direction as every other dark interaction: lighter. 7.21 -> 10.09 -> 13.01. */
+  --accent-solid:         var(--sage-400);
+  --accent-solid-hover:   var(--sage-300);
+  --accent-solid-pressed: var(--sage-200);
+
+  /* -- secondary + semantic hues. [not realized by the catalog]
+     Same inversion: the base steps one lighter, `fg` swaps to the light tint,
+     and `subtle` fills are mixed toward the dark canvas rather than toward
+     white, since there is no dark step authored for these families. */
+  --accent2:        var(--clay-300);
+  --accent2-hover:  var(--clay-200);
+  --accent2-subtle: color-mix(in srgb, var(--clay-500) 22%, var(--canvas));
+  --accent2-fg:     var(--clay-200);
+
+  --success:        var(--green-500);
+  --success-fg:     var(--green-100);
+  --success-subtle: color-mix(in srgb, var(--green-500) 22%, var(--canvas));
+  --warning:        var(--amber-500);
+  --warning-fg:     var(--amber-100);
+  --warning-subtle: color-mix(in srgb, var(--amber-500) 22%, var(--canvas));
+  --danger:         var(--red-500);
+  --danger-fg:      var(--red-100);
+  --danger-subtle:  color-mix(in srgb, var(--red-500) 22%, var(--canvas));
+  --info:           var(--blue-500);
+  --info-fg:        var(--blue-100);
+  --info-subtle:    color-mix(in srgb, var(--blue-500) 22%, var(--canvas));
+
+  --ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--sage-400);
+
+  /* -- elevation: dark lifts by surface, not by shadow --------------------
+     An ink-tinted shadow is invisible on a dark ground — measured, the light
+     scrim (ink at 48%) dims the light canvas by 3.12:1 and the dark canvas by
+     1.04:1. So the ladder switches to a warm near-black at much higher alpha
+     and does less of the work; the surface step and the edge do the rest.
+     `#050403` rather than `#000000` keeps the README's "never pure black"
+     literally true and keeps the whole system on one temperature. */
+  --shadow-xs: 0 1px 2px rgba(5, 4, 3, 0.30);
+  --shadow-sm: 0 1px 3px rgba(5, 4, 3, 0.36), 0 1px 2px rgba(5, 4, 3, 0.28);
+  --shadow-md: 0 4px 14px rgba(5, 4, 3, 0.42);
+  --shadow-lg: 0 12px 32px rgba(5, 4, 3, 0.50);
+  --shadow-xl: 0 24px 64px rgba(5, 4, 3, 0.62);
+
+  /* -- catalog aliases ---------------------------------------------------- */
+  --canvas-elevated: var(--warm-900);
+  --surface-soft:    var(--warm-975);       /* unavailable card recesses below the page */
+  --surface-muted:   var(--warm-800);
+
+  --ink:        var(--warm-50);
+  --ink-soft:   var(--warm-150);
+  --ink-body:   var(--warm-200);
+  --muted:      var(--warm-400);
+  --muted-soft: var(--warm-600);
+  /* BQ-29 does not bite in dark: `--muted` here is 7.81:1 on the card and 6.07
+     on `--surface-raised`, the lightest dark ground and therefore the worst case
+     for light text — clear of AA on all three. The correction token resolves to
+     the same value rather than to a second hex nobody needs. */
+  --muted-aa:   var(--warm-400);
+
+  --hairline:        var(--warm-700);
+  --hairline-strong: var(--warm-600);
+
+  --sage:       var(--sage-400);
+  --sage-soft:  var(--sage-800);
+  --sage-muted: var(--sage-900);
+
+  --tag-bg: var(--warm-800);
+  --tag-fg: var(--warm-300);                /* 8.82 on --tag-bg */
+  --tag-bg-unavailable: var(--warm-700);
+
+  --blog-read-more-ink: var(--warm-300);    /* between --muted and --ink-body, as in light */
+
+  --focus-ring:      var(--sage-400);
+  --focus-ring-soft: rgba(125, 170, 149, 0.28);
+
+  /* An overlay in dark cannot separate itself by dimming what is behind it —
+     the ground is already near-black, and deepening the scrim from 48% to 85%
+     moves the ground by 1.04:1 -> 1.08:1. Measured panel-against-scrim: light
+     reaches 3.26:1, the naive dark port reaches 1.35:1, and the best a fill can
+     do is 1.51:1. So in dark the OVERLAY'S EDGE carries the separation:
+     `--border-strong` against the scrimmed ground is 4.73:1 and against the
+     panel 3.18:1, both clear of WCAG 1.4.11's 3:1. Overlays in dark must draw
+     that edge; in light they may rely on the scrim alone. */
+  --overlay-scrim: rgba(5, 4, 3, 0.72);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    /* -- surfaces: the ramp read from the dark end ------------------------- */
+    --canvas:          var(--warm-950);
+    --surface:         var(--warm-900);
+    --surface-raised:  var(--warm-800);
+    --surface-sunken:  var(--warm-975);
+    --surface-strong:  var(--warm-700);
+
+    /* -- foreground: mirrors the light ladder's ROLES, not its indices ------
+       light  fg1 900 / fg2 700 / fg3 600 / fg4 500  ->  17.3 / 8.7 / 4.2 / 2.4 on the card
+       dark   fg1  50 / fg2 200 / fg3 400 / fg4 600  ->  16.6 / 13.4 / 7.8 / 4.1 on the card
+       Dark runs more generous in the middle on purpose: the same nominal ratio
+       reads dimmer on a dark ground, and the light half of the ramp has eight
+       steps to spend where the dark half has five. */
+    --fg1: var(--warm-50);
+    --fg2: var(--warm-200);
+    --fg3: var(--warm-400);
+    --fg4: var(--warm-600);
+    --fg-disabled: var(--warm-700);
+    --fg-on-accent: var(--warm-950);          /* 7.21 on --sage-400 */
+
+    /* -- lines: dark leans on the edge, because the fill cannot carry it ---- */
+    --border:        var(--warm-700);
+    --border-strong: var(--warm-600);
+    --border-focus:  var(--sage-400);
+
+    /* -- accent: the direction inverts -------------------------------------
+       The rule is one rule in both themes — interaction moves the accent one
+       step TOWARD HIGHER CONTRAST WITH THE GROUND. On a light ground that is
+       darker (500 -> 600 -> 700); on a dark ground it is lighter (400 -> 300 ->
+       200). Stated as "one shade darker" it silently inverts to "less visible"
+       in dark, which is why the README's wording is corrected alongside this.
+       --sage-500 cannot serve both themes: 3.75:1 on white, 4.59:1 on the dark
+       ground. Dark anchors on --sage-400 (6.63:1 on the card). */
+    --accent:          var(--sage-400);
+    --accent-hover:    var(--sage-300);
+    --accent-pressed:  var(--sage-200);
+    --accent-subtle:   var(--sage-800);
+    --accent-subtle-2: var(--sage-900);
+    --accent-fg:       var(--sage-300);       /* 9.28 on the card */
+
+    /* D-12, dark side. Here the label is ink rather than white, so the accent step
+       itself already clears AA under it — 7.21 at rest — and the ladder runs the
+       same direction as every other dark interaction: lighter. 7.21 -> 10.09 -> 13.01. */
+    --accent-solid:         var(--sage-400);
+    --accent-solid-hover:   var(--sage-300);
+    --accent-solid-pressed: var(--sage-200);
+
+    /* -- secondary + semantic hues. [not realized by the catalog]
+       Same inversion: the base steps one lighter, `fg` swaps to the light tint,
+       and `subtle` fills are mixed toward the dark canvas rather than toward
+       white, since there is no dark step authored for these families. */
+    --accent2:        var(--clay-300);
+    --accent2-hover:  var(--clay-200);
+    --accent2-subtle: color-mix(in srgb, var(--clay-500) 22%, var(--canvas));
+    --accent2-fg:     var(--clay-200);
+
+    --success:        var(--green-500);
+    --success-fg:     var(--green-100);
+    --success-subtle: color-mix(in srgb, var(--green-500) 22%, var(--canvas));
+    --warning:        var(--amber-500);
+    --warning-fg:     var(--amber-100);
+    --warning-subtle: color-mix(in srgb, var(--amber-500) 22%, var(--canvas));
+    --danger:         var(--red-500);
+    --danger-fg:      var(--red-100);
+    --danger-subtle:  color-mix(in srgb, var(--red-500) 22%, var(--canvas));
+    --info:           var(--blue-500);
+    --info-fg:        var(--blue-100);
+    --info-subtle:    color-mix(in srgb, var(--blue-500) 22%, var(--canvas));
+
+    --ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--sage-400);
+
+    /* -- elevation: dark lifts by surface, not by shadow --------------------
+       An ink-tinted shadow is invisible on a dark ground — measured, the light
+       scrim (ink at 48%) dims the light canvas by 3.12:1 and the dark canvas by
+       1.04:1. So the ladder switches to a warm near-black at much higher alpha
+       and does less of the work; the surface step and the edge do the rest.
+       `#050403` rather than `#000000` keeps the README's "never pure black"
+       literally true and keeps the whole system on one temperature. */
+    --shadow-xs: 0 1px 2px rgba(5, 4, 3, 0.30);
+    --shadow-sm: 0 1px 3px rgba(5, 4, 3, 0.36), 0 1px 2px rgba(5, 4, 3, 0.28);
+    --shadow-md: 0 4px 14px rgba(5, 4, 3, 0.42);
+    --shadow-lg: 0 12px 32px rgba(5, 4, 3, 0.50);
+    --shadow-xl: 0 24px 64px rgba(5, 4, 3, 0.62);
+
+    /* -- catalog aliases ---------------------------------------------------- */
+    --canvas-elevated: var(--warm-900);
+    --surface-soft:    var(--warm-975);       /* unavailable card recesses below the page */
+    --surface-muted:   var(--warm-800);
+
+    --ink:        var(--warm-50);
+    --ink-soft:   var(--warm-150);
+    --ink-body:   var(--warm-200);
+    --muted:      var(--warm-400);
+    --muted-soft: var(--warm-600);
+    /* BQ-29 does not bite in dark: `--muted` here is 7.81:1 on the card, well
+       clear of AA, so the correction token resolves to the same value rather
+       than to a second hex nobody needs. */
+    --muted-aa:   var(--warm-400);
+
+    --hairline:        var(--warm-700);
+    --hairline-strong: var(--warm-600);
+
+    --sage:       var(--sage-400);
+    --sage-soft:  var(--sage-800);
+    --sage-muted: var(--sage-900);
+
+    --tag-bg: var(--warm-800);
+    --tag-fg: var(--warm-300);                /* 8.82 on --tag-bg */
+    --tag-bg-unavailable: var(--warm-700);
+
+    --blog-read-more-ink: var(--warm-300);    /* between --muted and --ink-body, as in light */
+
+    --focus-ring:      var(--sage-400);
+    --focus-ring-soft: rgba(125, 170, 149, 0.28);
+
+    /* An overlay in dark cannot separate itself by dimming what is behind it —
+       the ground is already near-black, and deepening the scrim from 48% to 85%
+       moves the ground by 1.04:1 -> 1.08:1. Measured panel-against-scrim: light
+       reaches 3.26:1, the naive dark port reaches 1.35:1, and the best a fill can
+       do is 1.51:1. So in dark the OVERLAY'S EDGE carries the separation:
+       `--border-strong` against the scrimmed ground is 4.73:1 and against the
+       panel 3.18:1, both clear of WCAG 1.4.11's 3:1. Overlays in dark must draw
+       that edge; in light they may rely on the scrim alone. */
+    --overlay-scrim: rgba(5, 4, 3, 0.72);
+  }
 }
 
 /* ============================================================================

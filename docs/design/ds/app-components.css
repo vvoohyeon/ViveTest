@@ -1,0 +1,659 @@
+/* ============================================================================
+   ViveTest application surfaces
+   ----------------------------------------------------------------------------
+   Everything the product renders that is NOT the catalog card: navigation, the
+   test flow, and the secondary pages. `catalog-components.css` owns the card
+   system; this file owns the rest. Load `colors_and_type.css` first, then this,
+   and scope markup with `class="vive"`.
+
+   WHY THIS FILE EXISTS. Step 1b read the catalog card and nothing else, so every
+   other surface reached step 3 with no design at all — measured, they consume 51
+   legacy custom properties and zero VIVE tokens between them. The extraction is
+   `docs/done/2026-09-07-step3-U3-undesigned-surface-extraction.md`.
+
+   THIS IS A SPECIMEN STYLESHEET, exactly as `catalog-components.css` is. It is
+   never imported by the app. The product's own surfaces are rebuilt against
+   these rules at step 5; nothing here is a drop-in.
+
+   THE ONE PATTERN THE PRODUCT WAS MISSING. Every undesigned surface repeats one
+   unwritten treatment by copy:
+
+       rounded-[18px] p-5
+       background: color-mix(in srgb, var(--panel-solid) 94%, transparent)
+       box-shadow: var(--dialog-shadow)
+
+   — a translucent panel with a heavy shadow and no border. VIVE says the
+   opposite (`design.md` §4.7, README *Corners, borders & cards*): an opaque
+   fill, a 1px hairline, and a whisper of shadow, with "hierarchy built primarily
+   through surface tint and hairlines, shadow reserved for genuinely floating
+   things." `.vt-panel` below is that treatment written down once. Its radii are
+   on the ramp, which 18px and 14px were not.
+
+   DARK. Nothing here declares a dark value. Every surface resolves through the
+   semantic layer, so the whole file inverts with `data-theme="dark"` and the
+   specimens show both themes from one set of rules. The one place dark needs its
+   own instruction is the floating surface: an overlay in dark cannot separate
+   itself by dimming what is behind it, so it draws an edge instead — see
+   `.vt-floating`.
+   ============================================================================ */
+
+/* ---- Shared surfaces -------------------------------------------------------
+
+   Three, and the difference between them is what they are resting ON, not how
+   important they are. A panel sits on the page. A floating surface sits over it
+   and needs to be told apart from it. A well sits inside a panel. */
+
+.vt-panel {
+  background: var(--canvas-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-rest);
+  padding: var(--space-5);
+}
+
+/* Dialogs, menus, popovers. In LIGHT the scrim behind does the separating and
+   the edge is a hairline. In DARK the scrim can do almost nothing — measured,
+   the light scrim dims its ground 3.12:1 and the same treatment dims the dark
+   ground 1.04:1, and deepening it to 85% only reaches 1.08 — so the edge carries
+   it: `--border-strong` is 4.73:1 against the scrimmed dark ground. One
+   declaration covers both because `--border-strong` is a hairline in light and a
+   visible edge in dark; that is the semantic layer doing its job. */
+.vt-floating {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-overlay);
+}
+
+.vt-well {
+  background: var(--surface-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.vt-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay-scrim);
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-scrim { transition: none; }
+}
+
+/* ---- Buttons ---------------------------------------------------------------
+
+   One base, three intents. The realized product declares `min-height: 46px`,
+   which already clears the 44px floor `design.md` §4.10 requires, so it is kept
+   rather than rounded to the token — it is a real value that satisfies a real
+   rule. The radius moves from the product's off-ramp 14px to `--radius-md`.
+
+   The lift is 1px and only on the primary. `design.md` §4.8 bans bounce and
+   overshoot; a 1px translate under a 140ms ease is the whole gesture. */
+
+.vt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 46px;
+  padding: 12px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: var(--button);
+  letter-spacing: var(--track-tight);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard),
+    transform var(--dur-fast) var(--ease-standard);
+}
+
+.vt-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Primary — the filled accent. Reads `--accent-solid`, never `--accent`: a fill
+   sitting under its own label needs 4.5:1 against that label and `--accent`
+   gives 3.75 (D-12). */
+.vt-btn--primary {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--fg-on-accent);
+}
+
+.vt-btn--primary:hover,
+.vt-btn--primary.is-hover {
+  background: var(--accent-solid-hover);
+  border-color: var(--accent-solid-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.vt-btn--primary:active,
+.vt-btn--primary.is-pressed {
+  background: var(--accent-solid-pressed);
+  border-color: var(--accent-solid-pressed);
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.vt-btn--secondary {
+  background: var(--canvas-elevated);
+  border-color: var(--hairline-strong);
+  color: var(--ink-soft);
+}
+
+.vt-btn--secondary:hover,
+.vt-btn--secondary.is-hover {
+  background: var(--surface-sunken);
+  border-color: var(--border-strong);
+}
+
+.vt-btn--secondary:active,
+.vt-btn--secondary.is-pressed {
+  background: var(--surface-strong);
+}
+
+/* Quiet — the third weight the product needs but never named: "Deny", "Cancel",
+   the destructive-adjacent action that must not compete. Text only until hover. */
+.vt-btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted-aa);
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.vt-btn--quiet:hover,
+.vt-btn--quiet.is-hover {
+  background: var(--surface-sunken);
+  color: var(--ink-body);
+}
+
+.vt-btn[disabled],
+.vt-btn.is-disabled {
+  background: var(--surface-sunken);
+  border-color: var(--hairline);
+  color: var(--fg-disabled);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-btn { transition: none; }
+  .vt-btn:hover, .vt-btn.is-hover { transform: none; }
+}
+
+/* ---- Pill ------------------------------------------------------------------
+
+   The GNB's interactive unit: back, menu trigger, settings trigger. `design.md`
+   §6.5. The square variant is the settings trigger, which carries a glyph and no
+   label; it is 44 rather than the realized 40, because §4.10 names this class of
+   control and asks for 44. */
+
+.vt-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding: 7px 16px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-body);
+  font: var(--label);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard);
+}
+
+.vt-pill:hover,
+.vt-pill.is-hover {
+  background: var(--surface-muted);
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+
+.vt-pill:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.vt-pill--square {
+  width: var(--tap-min);
+  height: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+}
+
+.vt-pill[aria-expanded='true'] {
+  background: var(--surface-muted);
+  border-color: var(--border-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-pill { transition: none; }
+}
+
+/* ---- Navigation ------------------------------------------------------------
+
+   `design.md` §6.7 and §7.6, and `req-landing.md` §6.4 for the heights and the
+   elevation rule. Flat until content scrolls under it, then a hairline — the
+   realized product swaps to a shadow instead, and the hairline is the calmer of
+   the two and the one the document asks for.
+
+   D-11: §7.6 forbids a desktop settings icon and specifies a static pill with no
+   dropdown. `req-landing.md` §6.4 requires the trigger BY NAME and then spends
+   eight lines specifying its layer's hover-open, close paths, 0px hover gap and
+   close grace. A static pill cannot satisfy a contract that specifies its
+   dropdown's geometry, and `AGENTS.md` §2 puts the product requirement above
+   design.md. The trigger stays; what it looks like is the design question. */
+
+.vt-gnb {
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  background: color-mix(in srgb, var(--canvas) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--dur-base) var(--ease-standard);
+}
+
+.vt-gnb[data-elevated='true'] {
+  border-bottom-color: var(--hairline);
+}
+
+.vt-gnb__inner {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+  display: flex;
+  align-items: center;
+  height: 64px;
+}
+
+.vt-gnb__inner--mobile { height: 56px; padding: 0 var(--space-4); }
+
+.vt-gnb__col { flex: 1 1 0; min-width: 0; display: flex; align-items: center; }
+.vt-gnb__col--center { justify-content: center; }
+.vt-gnb__col--end { justify-content: flex-end; }
+
+.vt-gnb__brand {
+  font: var(--h4);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.vt-gnb__links { display: flex; align-items: center; gap: var(--space-5); }
+
+.vt-gnb__link {
+  font: var(--body-sm);
+  font-weight: 500;
+  color: var(--muted-aa);
+  text-decoration: none;
+  padding: var(--space-2) 0;
+  position: relative;
+  transition: color var(--dur-fast) var(--ease-standard);
+}
+
+.vt-gnb__link:hover { color: var(--ink); }
+
+.vt-gnb__link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-2xs);
+}
+
+/* Current page. `design.md` §7.6 asks for a dot indicator on the menu's current
+   item; the same signal is used here rather than inventing a second one. */
+.vt-gnb__link[aria-current='page'] { color: var(--ink); }
+
+.vt-gnb__link[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+
+.vt-gnb__timer {
+  font: var(--label);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-aa);
+  margin: 0;
+}
+
+/* ---- Settings layer --------------------------------------------------------
+
+   The desktop dropdown. `req-landing.md` §6.4 fixes the geometry: the effective
+   hover gap between trigger and layer must be 0px, so the panel is anchored to
+   the trigger's own box and overlaps it rather than sitting below with a margin.
+   A gap here is not a style choice — it breaks a contract with an automated
+   check behind it. */
+
+.vt-settings {
+  position: relative;
+  display: inline-flex;
+}
+
+.vt-settings__panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0;
+  width: 324px;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.vt-settings__row { display: grid; gap: var(--space-2); }
+
+.vt-settings__label {
+  font: var(--overline);
+  letter-spacing: var(--track-over);
+  text-transform: uppercase;
+  /* `--fg3` is `--muted`, which BQ-29 measured at 4.23:1 on white — below AA for
+     normal text, and an overline is normal text however small it is. `--muted-aa`
+     is the correction that finding produced, and this is what it is for. */
+  color: var(--muted-aa);
+}
+
+/* ---- Chips -----------------------------------------------------------------
+
+   The 12-locale set and the two theme swatches. `design.md` §7.6 specifies the
+   active chip exactly — `--sage-muted` fill, `--sage` text, transparent border,
+   no hover — and the realized product already matches that structure with only
+   the palette wrong. This is the one part of the navigation that needed no
+   design decision, only a token swap. */
+
+.vt-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 5px 11px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-pill);
+  background: var(--canvas-elevated);
+  color: var(--ink-body);
+  font: var(--caption);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard);
+}
+
+.vt-chip:hover,
+.vt-chip.is-hover {
+  background: var(--surface-sunken);
+  border-color: var(--border-strong);
+}
+
+.vt-chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.vt-chip[aria-pressed='true'],
+.vt-chip.is-active {
+  background: var(--sage-muted);
+  border-color: transparent;
+  color: var(--accent-fg);
+  cursor: default;
+}
+
+.vt-chip[aria-pressed='true']:hover,
+.vt-chip.is-active:hover {
+  background: var(--sage-muted);
+  border-color: transparent;
+}
+
+.vt-chip-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* The 12-locale grid is dense on purpose: at 44px each it becomes a wall, and on
+   the desktop layer it is a fine-pointer surface where WCAG 2.2 AA's 24px floor
+   is the applicable bar (`design.md` §4.10's 44px list names choices, Read more,
+   the close button and the hamburger — not these). Inside the drawer the same
+   chips are a primary touch target, so there they take the floor. */
+.vt-drawer .vt-chip { min-height: var(--tap-min); padding: 5px 14px; }
+.vt-drawer .vt-chip--swatch { padding: 0; }
+
+/* The two theme chips preview the theme they switch to, so they are deliberately
+   NOT theme-aware — a light swatch stays light inside the dark theme. That is why
+   they carry literal values: they are a picture of a theme, not a use of one.
+
+   AND THE ACTIVE ONE KEEPS ITS PICTURE. Every other chip in the system marks
+   selection by swapping its fill to `--sage-muted`; doing that here would paint
+   over the very thing the control is showing, and the result reads backwards —
+   the unselected swatch, still wearing its own strong colour, looks more chosen
+   than the selected one. So selection is a ring around the swatch instead. This
+   is the one place the chip's selected treatment is overridden, and the reason is
+   that the chip's content IS a colour. */
+.vt-chip--swatch { width: var(--tap-min); min-height: var(--tap-min); padding: 0; }
+.vt-chip--swatch-light { background: #ffffff; border-color: #d6d1c4; color: #1e1a16; }
+.vt-chip--swatch-dark  { background: #1e1a16; border-color: #504a43; color: #fbfaf7; }
+
+.vt-chip--swatch[aria-pressed='true'],
+.vt-chip--swatch.is-active,
+.vt-chip--swatch[aria-pressed='true']:hover,
+.vt-chip--swatch.is-active:hover {
+  background: inherit;
+  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent);
+}
+.vt-chip--swatch-light[aria-pressed='true'], .vt-chip--swatch-light.is-active { background: #ffffff; border-color: #d6d1c4; }
+.vt-chip--swatch-dark[aria-pressed='true'],  .vt-chip--swatch-dark.is-active  { background: #1e1a16; border-color: #504a43; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-chip { transition: none; }
+}
+
+/* ---- Mobile menu drawer ----------------------------------------------------
+
+   D-11 again. `design.md` §7.6 specifies a FULL-SCREEN overlay covering the GNB.
+   `req-landing.md` §6.4 requires that input outside the panel begin the close on
+   `pointer down`, and that the close be cancelled if the input resolves to a
+   scroll gesture; §10 lists that behaviour among the PASS criteria. A panel
+   occupying the whole viewport has no outside, so the required input has nowhere
+   to land. The realized right-hand drawer stays and is skinned. */
+
+.vt-drawer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: min(87vw, 340px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-5) var(--space-8);
+  background: var(--surface-raised);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-overlay);
+  transform: translateX(0);
+  opacity: 1;
+  transition:
+    transform var(--dur-base) var(--ease-standard),
+    opacity var(--dur-base) var(--ease-standard);
+}
+
+.vt-drawer[data-state='closing'] {
+  transform: translateX(12px);
+  opacity: 0;
+}
+
+.vt-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+}
+
+.vt-drawer__nav { display: grid; gap: var(--space-1); }
+
+.vt-drawer__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding: var(--space-2) var(--space-3);
+  margin: 0 calc(var(--space-3) * -1);
+  border-radius: var(--radius-sm);
+  font: var(--h4);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-standard);
+}
+
+.vt-drawer__link:hover { background: var(--surface-sunken); }
+
+.vt-drawer__link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.vt-drawer__link[aria-current='page']::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  flex: none;
+}
+
+.vt-drawer__foot { margin-top: auto; display: grid; gap: var(--space-4); }
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-drawer { transition: opacity var(--dur-base) var(--ease-standard); }
+  .vt-drawer[data-state='closing'] { transform: none; }
+}
+
+/* ---- Progress --------------------------------------------------------------
+
+   The test flow's only quantitative element. The realized bar is 24px tall with
+   the percentage floating inside it and a `right: -2.5rem` escape when the fill
+   is too narrow to hold the label — two layouts for one control, and the label
+   changes side as you answer. Here the label sits outside the track and does not
+   move, and the track drops to 6px because it is a progress indication, not a
+   surface. */
+
+.vt-progress { display: grid; gap: var(--space-2); }
+
+.vt-progress__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font: var(--caption);
+  color: var(--muted-aa);
+}
+
+.vt-progress__value { font-weight: 600; color: var(--ink-body); font-variant-numeric: tabular-nums; }
+
+.vt-progress__track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  overflow: hidden;
+}
+
+.vt-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--dur-slow) var(--ease-in-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-progress__fill { transition: none; }
+}
+
+/* ---- Quiet data row --------------------------------------------------------
+
+   `design.md` §6.10. The result panel's answer list and anything else that is a
+   label paired with a value. */
+
+.vt-datarow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.vt-datarow:last-child { border-bottom: 0; }
+.vt-datarow__key { font: var(--caption); color: var(--muted-aa); margin: 0; }
+.vt-datarow__val { font: var(--body-sm); color: var(--ink); margin: 0; text-align: right; }
+
+/* ---- Banner ----------------------------------------------------------------
+
+   Consent. It is the first thing a first-time visitor sees, so it is a floating
+   surface rather than a panel — it is genuinely over the page — but it does not
+   take a scrim, because it must not read as a modal it is not. */
+
+.vt-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.vt-banner__body { font: var(--body-sm); color: var(--ink-body); margin: 0; }
+.vt-banner__actions { display: flex; gap: var(--space-2); flex: none; }
+
+/* ---- Empty / error ---------------------------------------------------------
+
+   404s and the test error page. `design.md` has no pattern for these because
+   they were never extracted; the rule taken is the README's own voice guidance —
+   one line of what happened, one action, no apology and no error code. */
+
+.vt-empty {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+  text-align: center;
+  padding: var(--space-16) var(--space-6);
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.vt-empty__mark {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  display: grid;
+  place-items: center;
+  background: var(--accent-subtle);
+  color: var(--accent-fg);
+}
+
+.vt-empty__title { font: var(--h3); color: var(--ink); margin: 0; }
+.vt-empty__body { font: var(--body-sm); color: var(--muted-aa); margin: 0; }

@@ -52,7 +52,7 @@ Tier 2 runs **after the motion pass and before the design pass**, because every 
 | 6 | `candidates_6-bundle-assets-and-remeasure` | 2 | The bundle is one file of a multi-file system: no fonts, no thumbnails, so local rendering ≠ design-system rendering and decision D is unexecuted | S | 중 | 중 |
 | 7 | `candidates_7-readme-value-drift` | 3 | `README.md` restates ~30 token values in prose and is pushed; one of them contradicts `design.md` §7.7 | S | 중 | 중 |
 | 8 | `candidates_8-token-role-remap` | 3 | Radius and shadow were revalued at the *role* level, so generic components inherited catalog decisions | M | 중 | 중 |
-| 9 | `candidates_9-thumbnail-ratio-conflict` | 3 | Two routed SSOTs disagree on the thumbnail ratio and nothing detects it | S | 중 | 중 |
+| 9 | ~~`candidates_9-thumbnail-ratio-conflict`~~ | 3 | **Landed 2026-09-07** during the design pass — `req-landing.md` §6.8 now reads `16 / 6`. Moved to `docs/done/`. | S | 중 | 중 |
 | 10 | `candidates_10-drift-gate` | 3 | Nothing can detect drift between the four places that define these values | M | 중 | 중 |
 
 Scoring is the mid-review's own: 공수 S/M/L, 효과 and 심각도 상/중/하 and 높음/중간/낮음.
@@ -93,7 +93,7 @@ The rebaseline added one and removed none. That is by design until the theme cut
 
 ### I-6 — Two routed SSOTs can disagree indefinitely with nothing to detect it
 
-`docs/req-landing.md:389` specifies the normal thumbnail as ratio `6:1`. `design.md` §6.2 and the product both use `16 / 6` — a change made under `BQ-22` that never reached `req-landing.md`. Both files are routed by `AGENTS.md` §2. The extraction propagated the product's value into the design system without noticing the conflict, because nothing compares them. See `candidates_9`.
+`docs/req-landing.md:389` specified the normal thumbnail as ratio `6:1`. `design.md` §6.2 and the product both use `16 / 6` — a change made under `BQ-22` that never reached `req-landing.md`. Both files are routed by `AGENTS.md` §2. The extraction propagated the product's value into the design system without noticing the conflict, because nothing compares them. **Landed 2026-09-07**, ahead of its tier: the design pass's D-08 thumbnail proposal rests on the 16:6 slot, so leaving a routed contract saying otherwise would have put a new proposal on the wrong side of a live conflict. This was propagating `BQ-22`, not deciding anything.
 
 ### I-7 — Local rendering is not design-system rendering until the bundle is complete
 

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<!-- @dsCard group="App" name="Navigation — desktop" subtitle="GNB in its three contexts and the settings layer, against req-landing §6.4's geometry" viewport="980x1560" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../app-components.css">
+<style>
+  body { margin: 0; background: #57534c; }
+  .frame { background: var(--canvas); padding-bottom: var(--space-6); }
+  .lab { font: var(--overline); letter-spacing: var(--track-over); text-transform: uppercase; color: var(--muted-aa); padding: 14px 24px 6px; display: block; }
+  .page { padding: 0 24px; }
+  .ghost { height: 84px; border-radius: var(--radius-lg); background: var(--surface-sunken); border: 1px solid var(--hairline); }
+  .ghost + .ghost { margin-top: 12px; }
+  .note { font: var(--caption); color: var(--fg2); margin: 10px 24px 0; max-width: 780px; }
+  .note b { color: var(--fg1); font-weight: 600; }
+  .banner { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); margin: 12px 24px 0; max-width: 780px; }
+  .banner b { color: var(--fg1); }
+  .stack { position: relative; }
+  svg.g { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+</style></head>
+<body>
+
+<div class="frame vive">
+  <span class="lab">Landing / Blog / History — flat until content scrolls under it</span>
+  <header class="vt-gnb">
+    <div class="vt-gnb__inner">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <nav class="vt-gnb__col vt-gnb__col--center vt-gnb__links" aria-label="Primary">
+        <a class="vt-gnb__link" href="#" aria-current="page">History</a>
+        <a class="vt-gnb__link" href="#">Blog</a>
+      </nav>
+      <div class="vt-gnb__col vt-gnb__col--end">
+        <button class="vt-pill vt-pill--square" aria-label="Settings" aria-expanded="false">
+          <svg class="g" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+  <div class="page"><div class="ghost"></div><div class="ghost"></div></div>
+  <p class="note">Brand left, links centred, the settings trigger right — <span class="t-code">req-landing.md</span> §6.4, which also forbids a desktop hamburger. The current page takes a 4px sage dot under its link rather than a weight change, so the row does not reflow as you navigate. Height <b>64px</b>.</p>
+</div>
+
+<div class="frame vive" data-theme="dark">
+  <span class="lab">Scrolled — the hairline appears; the same bar in dark</span>
+  <header class="vt-gnb" data-elevated="true">
+    <div class="vt-gnb__inner">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <nav class="vt-gnb__col vt-gnb__col--center vt-gnb__links" aria-label="Primary">
+        <a class="vt-gnb__link" href="#">History</a>
+        <a class="vt-gnb__link" href="#" aria-current="page">Blog</a>
+      </nav>
+      <div class="vt-gnb__col vt-gnb__col--end">
+        <button class="vt-pill vt-pill--square" aria-label="Settings" aria-expanded="false">
+          <svg class="g" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+  <div class="page"><div class="ghost"></div><div class="ghost"></div></div>
+  <p class="note"><b>Elevation is a hairline, not a shadow.</b> <span class="t-code">req-landing.md</span> §6.4 allows either — "a shallow shadow above <span class="t-code">scrollY > 4px</span>, or a 1px divider if there is no shadow" — and the hairline is the one <span class="t-code">design.md</span> §6.7 asks for and the calmer of the two. The trigger's glyph is the <b>current</b> theme, which is what makes it readable as a theme control without a label.</p>
+</div>
+
+<div class="frame vive">
+  <span class="lab">Settings layer, open — the hover gap is 0px by contract</span>
+  <header class="vt-gnb" style="z-index:2">
+    <div class="vt-gnb__inner">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <nav class="vt-gnb__col vt-gnb__col--center vt-gnb__links" aria-label="Primary">
+        <a class="vt-gnb__link" href="#">History</a><a class="vt-gnb__link" href="#">Blog</a>
+      </nav>
+      <div class="vt-gnb__col vt-gnb__col--end">
+        <div class="vt-settings">
+          <button class="vt-pill vt-pill--square" aria-label="Settings" aria-expanded="true">
+            <svg class="g" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          </button>
+          <div class="vt-settings__panel" role="dialog" aria-label="Language and theme">
+            <div class="vt-settings__row">
+              <span class="vt-settings__label">Theme</span>
+              <div class="vt-chip-row">
+                <button class="vt-chip vt-chip--swatch vt-chip--swatch-light is-active" aria-pressed="true" aria-label="Light">
+                  <svg class="g" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                </button>
+                <button class="vt-chip vt-chip--swatch vt-chip--swatch-dark" aria-pressed="false" aria-label="Dark">
+                  <svg class="g" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="vt-settings__row">
+              <span class="vt-settings__label">Language</span>
+              <div class="vt-chip-row">
+                <button class="vt-chip is-active" aria-pressed="true">English</button>
+                <button class="vt-chip">한국어</button><button class="vt-chip">简体中文</button>
+                <button class="vt-chip">繁體中文</button><button class="vt-chip">日本語</button>
+                <button class="vt-chip">Español</button><button class="vt-chip">Français</button>
+                <button class="vt-chip">Português</button><button class="vt-chip">Deutsch</button>
+                <button class="vt-chip">हिन्दी</button><button class="vt-chip">Indonesia</button>
+                <button class="vt-chip">Русский</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="page" style="padding-top:220px"><div class="ghost"></div></div>
+  <p class="banner"><b>The panel is anchored to the trigger's own box, not offset below it.</b> <span class="t-code">req-landing.md</span> §6.4 fixes the effective hover gap between trigger and layer at <b>0px</b> and has an automated check behind it, so a decorative margin here would not be a style choice — it would fail a contract. The active chip follows <span class="t-code">design.md</span> §7.6 exactly: <span class="t-code">--sage-muted</span> fill, <span class="t-code">--accent-fg</span> text, transparent border, no hover. The two theme swatches are the one thing in this system that is deliberately <b>not</b> theme-aware — they are a picture of a theme, not a use of one, so the light swatch stays light inside the dark theme.</p>
+</div>
+
+<div class="frame vive">
+  <span class="lab">Test context — back and timer only</span>
+  <header class="vt-gnb">
+    <div class="vt-gnb__inner">
+      <div class="vt-gnb__col"><button class="vt-pill">Back</button></div>
+      <div class="vt-gnb__col vt-gnb__col--center"><p class="vt-gnb__timer">00:00</p></div>
+      <div class="vt-gnb__col vt-gnb__col--end"></div>
+    </div>
+  </header>
+  <div class="page"><div class="ghost"></div></div>
+  <p class="note">No settings, no language, no theme, no links — <span class="t-code">req-landing.md</span> §6.4. The timer is the only centre content and holds <span class="t-code">tabular-nums</span> so it does not jitter as it counts.</p>
+</div>
+
+</body></html>

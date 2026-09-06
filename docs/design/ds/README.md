@@ -16,12 +16,15 @@ Findings recorded and **not** settled. Do not resolve them silently. (M-01, the 
 
 | # | Finding | Where it is visible |
 |:---|:---|:---|
-| D-01 | The neutral ramp is warm at steps 0–400 and cool at 500–900, so surfaces and ink disagree in temperature. | `preview/color-temperature.html` |
-| D-03 | The catalog defines no hover or pressed state for the accent; `--accent-hover` and `--accent-pressed` are derived here, not realized in the product. | `preview/color-sage.html` |
+| D-01 | **Resolved 2026-09-07.** The neutral ramp changed temperature between steps 400 and 500. Steps 500–900 are now warm, re-solved at matched luminance, so no contrast ratio moved by more than 0.07. The dark theme is what forced it — dark reads the same ramp from the other end. | `preview/color-temperature.html` |
+| D-03 | **Resolved 2026-09-07.** The values were fine; they had no consumer — nothing in the system or the product read `--accent-pressed`. The accent's interaction ladder is now realized on the filled CTA, through the roles D-12 introduced. | `preview/color-sage.html` |
+| D-12 | **New, resolved 2026-09-07.** The accent has two jobs at two different bars: as a line or ring it needs 3:1 and clears it, as the fill under a label it needs 4.5:1 and did not — white on `--accent` is 3.75:1, so the submit CTA's own text failed AA. `--accent-solid` and its two states are one step deeper and clear it in both themes. | `preview/color-sage.html` |
+| D-10 | **Resolved 2026-09-07.** The product has shipped a full dark theme since before the rebaseline — 31 runtime overrides, a pre-hydration bootstrap, and baselines across 2 locales × 2 themes × 6 viewports — and this system defined none of it, which made the theme cut impossible. A dark mapping now ships. | `preview/dark-theme.html` |
+| D-11 | `design.md` §7.6 contradicts `req-landing.md` §6.4 on navigation in three places: the desktop settings trigger it forbids is required with a specified hover-gap geometry, the full-screen mobile menu it specifies would break the outside-pointer-down close contract, and "Light active only" is false. The behaviour contract wins in all three. | `docs/done/2026-09-07-step3-U3-undesigned-surface-extraction.md` |
 | D-05 | Six values in the catalog still come from the legacy global theme, including two different title colours in the same grid, a cool shadow that replaces the expanded card's warm lift while focus is inside it, and a mobile scrim at a different hue and strength from the token. | `preview/catalog-drift.html` |
 | D-06 | `design.md` §4.3 states one global wrapping rule; the product applies it to the card title and subtitle only on the mobile tier, so a two-line Korean subtitle may break mid-word above mobile. | `preview/catalog-drift.html` |
 | D-07 | The blog `Read more →` carries a 140ms opacity fade that never runs, because the same element also switches `display`. Measured, not inferred. | `preview/catalog-drift.html` |
-| D-08 | The product ships one thumbnail for eight cards, and it is the same artwork as the generated fallback — so the catalog renders exactly one illustration. Seven candidates exist in `825385f6` at a different aspect ratio and in five accent hues. | `preview/brand-thumbnails.html` |
+| D-08 | **Proposal raised 2026-09-07, not adopted.** The product ships one thumbnail for eight cards, and the seven imported candidates are 3:2 against a 16:6 slot — cropping discards 43.8% of their height and leaves the composition airless rather than clipped, so re-tinting cannot rescue them. A 16:6-native set in the single sage family is proposed, with four rules so a new one can be drawn without asking. | `preview/thumb-proposal.html` |
 | D-09 | The mobile expanded sheet's close button is 40 × 40 against the 44 × 44 `design.md` §4.10 requires of it by name. | `preview/card-mobile-expanded.html` |
 
 ---
@@ -80,11 +83,13 @@ How VIVE products *talk*. The voice matches the visuals: calm, plain, and respec
 The complete answer to "what does VIVE *look* like." Tokens live in `colors_and_type.css`; component patterns in `vive-components.css`.
 
 ### Color & vibe
-- **Atmosphere:** warm-neutral, low-contrast calm. The page floor is `--canvas` (`#fbfaf7`) — a warm off-white, never cool grey or pure white. Ink is `--fg1` (`#1a1a1f`), a near-black that reads neutral rather than warm (see D-01).
+- **Atmosphere:** warm-neutral, low-contrast calm. The page floor is `--canvas` (`#fbfaf7`) — a warm off-white, never cool grey or pure white. Ink is `--fg1` (`#1e1a16`), a near-black that carries the same warmth as the surfaces: **one ramp, one temperature, end to end** (D-01).
 - **Primary accent:** **Sage / moss** (`--accent` `#5c8e78`). A green-grey that signals trust without shouting. Hover steps to `#4b7764`, pressed to `#396050`. Tints (`--accent-subtle` `#e8f0ec`) carry selection and quiet emphasis.
+- **Sage as a fill under a label:** use `--accent-solid` (and `-hover` / `-pressed`), never `--accent` — see D-12.
 - **Sage as text:** `--accent` on white measures **3.75:1**. That clears AA for large text and for borders, focus rings and other non-text UI — every way the product uses it — but it is **below AA for normal-size text**. Use `--accent-fg` (`#396050`, 7.09:1) whenever sage has to be read as text.
 - **Secondary accent:** **Clay** (`--accent2` `#c2855b`), a warm earthy tone used *sparingly* — a highlighted avatar, an occasional category, an illustration accent. Never competes with sage. The catalog does not use it.
 - **Semantic hues are muted** to stay in the calm family: success is a soft forest green, warning a dim amber, danger a dusty brick red, info a slate blue. Each ships a `subtle` tint, a base, and a readable `fg`. The catalog does not use them.
+- **Dark theme:** one ramp, read from the other end. Surfaces come from `--warm-900…975` and ink from `--warm-50…400`; the accent anchors on `--sage-400` because `--sage-500` measures 3.75:1 on white and cannot serve both grounds. Dark is a **remap of the semantic layer**, not a second palette — every dark value resolves to a step of the same ramp, and no component stylesheet changes. Set it with `data-theme="dark"` on any element, or let `prefers-color-scheme` pick it up.
 - **Imagery vibe (when used):** warm, natural, soft daylight; low saturation. No neon, no cold blue tech imagery, no heavy duotones. Photography sits inside `--radius-md` containers.
 
 ### Type
@@ -107,12 +112,13 @@ The complete answer to "what does VIVE *look* like." Tokens live in `colors_and_
 - **Cards** = `--surface` fill (exact white) + 1px hairline + a *whisper* of `--shadow-xs`. Raised variants use `--shadow-md`. Sunken/well areas drop the shadow and use `--surface-sunken`. **No** colored left-border accent cards, **no** tilt, **no** thick drop shadows.
 
 ### Elevation & depth
-- **Depth is a whisper.** Five low-alpha shadow steps (`--shadow-xs…xl`) tinted with the ink color (`rgba(26,26,31,…)`) at 4–18% — never pure black, never large blur halos.
+- **Depth is a whisper.** Five low-alpha shadow steps (`--shadow-xs…xl`) tinted with the ink color (`rgba(30,26,22,…)`) at 4–18% — never pure black, never large blur halos.
+- **In dark, depth is a surface, not a shadow.** An ink-tinted shadow is invisible on a dark ground, so the dark theme lifts by stepping the surface lighter and keeps shadow only for genuinely floating things, at a warm near-black (`rgba(5,4,3,…)`) and higher alpha.
 - Hierarchy is built primarily through **surface tint and hairlines**, with shadow reserved for genuinely floating things (menus, dialogs, popovers, drag).
 
 ### Interaction states (all components encode these)
-- **Hover:** a small, calm shift — accent steps one shade darker; neutral surfaces pick up `--surface-sunken`; cards deepen to `--shadow-md`. Never a color *change*, just a deepening.
-- **Pressed:** one more shade darker + a 0.5px nudge down (`translateY`). No squish/scale beyond that.
+- **Hover:** a small, calm shift — the accent steps one shade **toward higher contrast with the ground**; neutral surfaces pick up `--surface-sunken`; cards deepen to `--shadow-md`. Never a color *change*, just a deepening. On a light ground that step is darker (500 → 600); on a dark ground it is lighter (400 → 300). Stated as "one shade darker" the rule silently inverts to *less* visible in dark, which is why it is written as a direction rather than a value.
+- **Pressed:** one more step in the same direction + a 0.5px nudge down (`translateY`). No squish/scale beyond that.
 - **Focus:** **strong and always visible** — `:focus-visible` gets a 2px sage outline with a 2px offset. Inputs use a 3px `--accent-subtle` glow + accent border. Focus is never removed.
 - **Disabled:** neutral fill + `--fg-disabled` text, `not-allowed` cursor, no shadow.
 - **Loading:** label hides, a 16px spinner (currentColor, 0.7s linear) appears; control is non-interactive.
@@ -124,7 +130,8 @@ The complete answer to "what does VIVE *look* like." Tokens live in `colors_and_
 - **Allowed:** opacity fades, small (≤8px) translations, color transitions, shadow depth. **Banned:** bounce, spring overshoot, parallax, card tilt, auto-playing decorative motion. Respect `prefers-reduced-motion` — reduced motion drops translations and keeps opacity only.
 
 ### Transparency & blur
-- Used rarely and quietly: a sticky header may use a subtle `backdrop-filter: blur(8px)` over a translucent `--canvas`. Scrims behind dialogs and mobile sheets are `--overlay-scrim` (`rgba(26,26,31,0.48)`). No frosted-glass everywhere.
+- Used rarely and quietly: a sticky header may use a subtle `backdrop-filter: blur(8px)` over a translucent `--canvas`. Scrims behind dialogs and mobile sheets are `--overlay-scrim` (`rgba(30,26,22,0.48)`). No frosted-glass everywhere.
+- **A dark overlay separates by its edge, not by its scrim.** Measured: the light scrim dims its ground 3.12:1, and the same treatment dims the dark ground 1.04:1 — deepening it to 85% only reaches 1.08:1, because you cannot darken a page that is already near-black. So in dark a floating surface draws a 1px `--border-strong` edge, which measures 4.73:1 against the scrimmed ground and 3.18:1 against the panel. In light, the scrim alone is enough.
 
 ---
 
@@ -147,6 +154,7 @@ Root foundations:
 - **`colors_and_type.css`** — all tokens: base palette, VIVE semantic roles, and the catalog's own alias vocabulary; type scale, spacing, radius, elevation, motion, layout. Load this first.
 - **`vive-components.css`** — reusable component styles (buttons, inputs, cards, badges, chips, switch, avatar, menu) built on the tokens. Load after the tokens; scope markup with `class="vive"`.
 - **`catalog-components.css`** — the ViveTest catalog's card system: the four card states, tag chips, answer choices and the meta row, every value read off the running product. Load after the tokens when you are building the catalog surface.
+- **`app-components.css`** — every ViveTest surface that is *not* the card: navigation and its settings layer, the mobile drawer, the shared panel / floating / well surfaces, buttons, pills, chips, progress, quiet data rows, banner and empty states. Load after the tokens.
 - **`README.md`** — this file.
 - **`SKILL.md`** — Agent-Skills-compatible entry point for using VIVE in Claude Code or as a downloaded skill.
 

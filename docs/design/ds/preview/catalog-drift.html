@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="760x1450" -->
+<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="760x1560" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <link rel="stylesheet" href="../catalog-components.css">
@@ -10,13 +10,13 @@
   .lede b { color: var(--fg1); font-weight: 600; }
   table { border-collapse: collapse; width: 100%; font: var(--caption); }
   th { text-align: left; font-weight: 600; color: var(--fg2); padding: 0 10px 6px 0; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--border); color: var(--fg3); vertical-align: top; }
+  td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--border); color: var(--muted-aa); vertical-align: top; }
   td.what { color: var(--fg2); }
   .sw { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
   .dot { width: 13px; height: 13px; border-radius: 3px; border: 1px solid var(--border-strong); flex: none; }
   .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 620px; }
   .note b { color: var(--fg1); }
-  .corr { font: var(--caption); color: var(--fg3); max-width: 620px; border-left: 2px solid var(--border-strong); padding: 8px 12px; }
+  .corr { font: var(--caption); color: var(--muted-aa); max-width: 620px; border-left: 2px solid var(--border-strong); padding: 8px 12px; }
   .corr b { color: var(--fg2); font-weight: 600; }
   .sec { font: var(--h4); color: var(--fg1); margin: 10px 0 0; }
   .sec em { color: var(--fg2); }
@@ -34,12 +34,12 @@
       <tr>
         <td class="what">Card title — test, unavailable</td>
         <td><span class="sw"><span class="dot" style="background:#161a20"></span>#161A20</span><br>legacy <span class="t-code">--ink</span></td>
-        <td><span class="sw"><span class="dot" style="background:#1a1a1f"></span>#1A1A1F</span><br><span class="t-code">--ink</span></td>
+        <td><span class="sw"><span class="dot" style="background:#1e1a16"></span>#1E1A16</span><br><span class="t-code">--ink</span></td>
       </tr>
       <tr>
         <td class="what">Card title — blog</td>
         <td><span class="sw"><span class="dot" style="background:#0f1218"></span>#0F1218</span><br>legacy <span class="t-code">--link-ink</span>, because the whole card is a link</td>
-        <td><span class="sw"><span class="dot" style="background:#1a1a1f"></span>#1A1A1F</span><br>the same as every other title</td>
+        <td><span class="sw"><span class="dot" style="background:#1e1a16"></span>#1E1A16</span><br>the same as every other title</td>
       </tr>
       <tr>
         <td class="what">Typeface</td>
@@ -49,7 +49,7 @@
       <tr>
         <td class="what">Mobile scrim</td>
         <td><span class="sw"><span class="dot" style="background:rgba(4,6,10,0.64)"></span>rgb(4 6 10 / 64%)</span><br>legacy <span class="t-code">--overlay-scrim-medium</span>, a cool near-black at 64%</td>
-        <td><span class="sw"><span class="dot" style="background:rgba(26,26,31,0.48)"></span>rgba(26 26 31 / 48%)</span><br><span class="t-code">--overlay-scrim</span>, warm ink at 48% — <span class="t-code">design.md</span> §5.7</td>
+        <td><span class="sw"><span class="dot" style="background:rgba(30,26,22,0.48)"></span>rgba(30 26 22 / 48%)</span><br><span class="t-code">--overlay-scrim</span>, warm ink at 48% — <span class="t-code">design.md</span> §5.7</td>
       </tr>
       <tr>
         <td class="what">Expanded card, focused</td>
@@ -67,7 +67,7 @@
       <tr>
         <td class="what">D-06</td>
         <td><span class="t-code">design.md</span> §4.3 states one <b>global</b> wrapping rule: <span class="t-code">word-break: keep-all; overflow-wrap: anywhere</span>.</td>
-        <td>Applies it to the expanded question and the choice text unconditionally, and to the card title and subtitle <b>only on the mobile tier</b> (<span class="t-code">module.css:96-100</span>). Above mobile they carry <span class="t-code">overflow-wrap</span> alone (<span class="t-code">tsx:212</span>, <span class="t-code">:214</span>). Unobservable on the one-line title; <b>visible on the two-line subtitle</b>, where Korean may break mid-word against the rule. This system follows the intent, so both bases carry both properties.</td>
+        <td>Applies it to the expanded question and the choice text unconditionally, and to the card title and subtitle <b>only on the mobile tier</b> (<span class="t-code">module.css:96-100</span>). Above mobile they carry <span class="t-code">overflow-wrap</span> alone (<span class="t-code">tsx:212</span>, <span class="t-code">:214</span>).<br><br><b>Measured 2026-09-07, not inferred.</b> Of the eight catalog cards, five wrap and <b>four break Korean mid-word on the desktop tier today</b> — <span class="t-code">egtt</span> 카탈로그에&thinsp;/&thinsp;서는 · <span class="t-code">ops-handbook</span> 준비할&thinsp;/&thinsp;지, 갖&thinsp;/&thinsp;춰야, 또&thinsp;/&thinsp;한, 데스크톱&thinsp;/&thinsp;과 · <span class="t-code">build-metrics</span> 테스&thinsp;/&thinsp;트, 실용&thinsp;/&thinsp;적인 · <span class="t-code">release-gate</span> 쌓&thinsp;/&thinsp;아. Every one of them moves to a word boundary under <span class="t-code">keep-all</span>. The mobile control has the rule and breaks correctly.<br><br><b>The one objection to applying it at every tier does not hold.</b> A card carrying a long unbreakable Latin token produces <b>byte-identical line boxes</b> with and without <span class="t-code">keep-all</span> — <span class="t-code">overflow-wrap: anywhere</span> still handles it. The pair §4.3 specifies fixes Korean without regressing the long-token case. This system follows the intent, so both bases carry both properties.</td>
       </tr>
       <tr>
         <td class="what">D-07</td>

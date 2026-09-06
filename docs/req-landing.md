@@ -386,7 +386,7 @@
 
 ### 6.8 Normal Thumbnail & Expanded Slot Semantics
 **Rule**: Normal 썸네일 규격과 Expanded 타입별 슬롯 의미론은 아래 규칙으로 고정한다.
-- Normal thumbnail: width `100%`, ratio `6:1`, `object-fit: cover`(왜곡 금지).
+- Normal thumbnail: width `100%`, ratio `16 / 6`, `object-fit: cover`(왜곡 금지). **BQ-22 가 옮긴 값이다** — 그 change set 이 구현·`grid-smoke` ratio assertion·SVG 를 모두 `16 / 6` 으로 바꾸면서 이 줄만 `6:1` 로 남았고, 두 계약을 비교하는 장치가 없어 열다섯 wave 동안 아무도 보지 못했다. 제품(`landing-grid-card.tsx:216` `aspect-[16/6]`)·`design.md` §6.2·E2E assertion·`ds/colors_and_type.css`(`--thumb-ratio`)가 전부 `16 / 6` 이고 이 줄만 달랐다.
 - Normal 상태의 슬롯 기하 계약은 subtitle overflow 처리와 독립이어야 하며, 텍스트 처리로 슬롯 간 폭 전파를 허용하지 않는다.
 - Expanded에서 제거 대상(`subtitle/thumbnail/tags`)은 시각 숨김이 아니라 미렌더링 또는 접근성 트리 비노출이어야 한다.
 - front/back title 불일치를 금지한다.

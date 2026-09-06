@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Colors" name="Dark theme" subtitle="One ramp read from the other end — surfaces, ink, accent inversion, and why an overlay separates differently" viewport="860x760" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; background: #57534c; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; }
+  .side { padding: 22px 24px; background: var(--canvas); display: grid; gap: 12px; align-content: start; }
+  .lab { font: var(--overline); letter-spacing: var(--track-over); text-transform: uppercase; color: var(--muted-aa); }
+  .cap { font: var(--caption); color: var(--muted-aa); }
+  .cap b { color: var(--fg1); font-weight: 600; }
+
+  .ladder { display: grid; gap: 3px; }
+  .rung { display: flex; align-items: center; gap: 8px; font: var(--caption); color: var(--muted-aa); }
+  .chip { width: 34px; height: 18px; border-radius: 4px; border: 1px solid var(--border); flex: none; }
+
+  .accent-row { display: flex; gap: 6px; }
+  .acc { flex: 1; height: 34px; border-radius: var(--radius-sm); display: grid; place-items: center;
+         font: var(--overline); letter-spacing: .04em; color: var(--fg-on-accent); }
+
+  /* the overlay demonstration: a scrimmed ground with a panel over it */
+  .stage { position: relative; height: 128px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); }
+  .stage .under { position: absolute; inset: 0; background: var(--canvas); display: grid; gap: 6px; padding: 12px; align-content: start; }
+  .stage .under .line { height: 9px; border-radius: 3px; background: var(--surface-strong); }
+  .stage .under .line:nth-child(2) { width: 72%; } .stage .under .line:nth-child(3) { width: 84%; }
+  .stage .scrim { position: absolute; inset: 0; background: var(--overlay-scrim); }
+  .stage .panel { position: absolute; left: 18px; right: 18px; top: 26px; padding: 12px 14px;
+                  background: var(--surface-raised); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); }
+  .stage .panel.edged { border: 1px solid var(--border-strong); }
+  .stage .panel span { font: var(--label); color: var(--fg1); }
+</style></head>
+<body>
+<div class="pair">
+
+  <!-- ================= LIGHT ================= -->
+  <div class="side vive">
+    <span class="lab">Light</span>
+
+    <div class="vt-card">
+      <div class="vt-card__pad"><div class="vt-card__content">
+        <div class="vt-thumb">
+          <svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs>
+            <rect width="640" height="240" fill="url(#lg)"/>
+            <circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/>
+            <circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/>
+          </svg>
+        </div>
+        <h3 class="vt-title">준비할지 갖춰야 할지</h3>
+        <p class="vt-subtitle">퍼블릭 카탈로그에서는 짧고 실용적인 답을 먼저 봅니다.</p>
+        <div class="vt-tags-gap"></div>
+        <ul class="vt-tags"><li class="vt-tag">rapid</li><li class="vt-tag">focus</li><li class="vt-tag vt-tag--flex">decision</li></ul>
+      </div></div>
+    </div>
+
+    <div class="ladder">
+      <div class="rung"><i class="chip" style="background:var(--canvas)"></i>--canvas · warm-50</div>
+      <div class="rung"><i class="chip" style="background:var(--canvas-elevated)"></i>--canvas-elevated · warm-0</div>
+      <div class="rung"><i class="chip" style="background:var(--surface-soft)"></i>--surface-soft · warm-100</div>
+      <div class="rung"><i class="chip" style="background:var(--ink)"></i>--ink · warm-900 &nbsp;<b style="color:var(--fg2)">17.3</b></div>
+      <div class="rung"><i class="chip" style="background:var(--ink-body)"></i>--ink-body · warm-700 &nbsp;<b style="color:var(--fg2)">8.7</b></div>
+      <div class="rung"><i class="chip" style="background:var(--muted)"></i>--muted · warm-600 &nbsp;<b style="color:var(--fg2)">4.2</b></div>
+    </div>
+
+    <span class="cap"><b>Accent steps darker</b> — <span class="t-code">--accent-solid</span> 600 → 700 → 800.</span>
+    <div class="accent-row">
+      <div class="acc" style="background:var(--accent-solid)">rest</div>
+      <div class="acc" style="background:var(--accent-solid-hover)">hover</div>
+      <div class="acc" style="background:var(--accent-solid-pressed)">press</div>
+    </div>
+
+    <span class="cap"><b>An overlay separates by scrim.</b> Panel against its scrimmed ground: <b>3.26:1</b>.</span>
+    <div class="stage">
+      <div class="under"><div class="line"></div><div class="line"></div><div class="line"></div></div>
+      <div class="scrim"></div>
+      <div class="panel"><span>Menu</span></div>
+    </div>
+  </div>
+
+  <!-- ================= DARK ================= -->
+  <div class="side vive" data-theme="dark">
+    <span class="lab">Dark</span>
+
+    <div class="vt-card">
+      <div class="vt-card__pad"><div class="vt-card__content">
+        <div class="vt-thumb">
+          <svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#332E28"/><stop offset="100%" stop-color="#2B4A3E"/></linearGradient></defs>
+            <rect width="640" height="240" fill="url(#dg)"/>
+            <circle cx="556" cy="120" r="82" fill="#1F382E" opacity="0.75"/>
+            <circle cx="602" cy="70" r="40" fill="#7DAA95" opacity="0.20"/>
+          </svg>
+        </div>
+        <h3 class="vt-title">준비할지 갖춰야 할지</h3>
+        <p class="vt-subtitle">퍼블릭 카탈로그에서는 짧고 실용적인 답을 먼저 봅니다.</p>
+        <div class="vt-tags-gap"></div>
+        <ul class="vt-tags"><li class="vt-tag">rapid</li><li class="vt-tag">focus</li><li class="vt-tag vt-tag--flex">decision</li></ul>
+      </div></div>
+    </div>
+
+    <div class="ladder">
+      <div class="rung"><i class="chip" style="background:var(--canvas)"></i>--canvas · warm-950</div>
+      <div class="rung"><i class="chip" style="background:var(--canvas-elevated)"></i>--canvas-elevated · warm-900</div>
+      <div class="rung"><i class="chip" style="background:var(--surface-soft)"></i>--surface-soft · warm-975</div>
+      <div class="rung"><i class="chip" style="background:var(--ink)"></i>--ink · warm-50 &nbsp;<b style="color:var(--fg2)">16.6</b></div>
+      <div class="rung"><i class="chip" style="background:var(--ink-body)"></i>--ink-body · warm-200 &nbsp;<b style="color:var(--fg2)">13.4</b></div>
+      <div class="rung"><i class="chip" style="background:var(--muted)"></i>--muted · warm-400 &nbsp;<b style="color:var(--fg2)">7.8</b></div>
+    </div>
+
+    <span class="cap"><b>Accent steps lighter</b> — <span class="t-code">--accent-solid</span> 400 → 300 → 200. One rule: toward higher contrast with the ground.</span>
+    <div class="accent-row">
+      <div class="acc" style="background:var(--accent-solid)">rest</div>
+      <div class="acc" style="background:var(--accent-solid-hover)">hover</div>
+      <div class="acc" style="background:var(--accent-solid-pressed)">press</div>
+    </div>
+
+    <span class="cap"><b>An overlay separates by its edge.</b> The same scrim dims this ground <b>1.08:1</b> — so the edge does it: <b>4.73:1</b>.</span>
+    <div class="stage">
+      <div class="under"><div class="line"></div><div class="line"></div><div class="line"></div></div>
+      <div class="scrim"></div>
+      <div class="panel edged"><span>Menu</span></div>
+    </div>
+  </div>
+
+</div>
+</body></html>

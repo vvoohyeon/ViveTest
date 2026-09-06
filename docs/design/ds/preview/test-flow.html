@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!-- @dsCard group="App" name="Test flow" subtitle="Instruction, question and result — the surface group with the most legacy tokens, rebuilt on the panel pattern" viewport="1240x1500" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<link rel="stylesheet" href="../app-components.css">
+<style>
+  body { margin: 0; background: #57534c; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .side { background: var(--canvas); border-radius: var(--radius-xl); padding: 22px; display: grid; gap: 16px; align-content: start; }
+  .lab { font: var(--overline); letter-spacing: var(--track-over); text-transform: uppercase; color: var(--muted-aa); }
+  .cap { font: var(--caption); color: var(--muted-aa); }
+  .cap b { color: var(--fg1); font-weight: 600; }
+  .stage { position: relative; height: 330px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--hairline); background: var(--canvas); }
+  .stage__under { position: absolute; inset: 0; padding: 16px; display: grid; gap: 10px; align-content: start; }
+  .stage__ghost { height: 70px; border-radius: var(--radius-md); background: var(--canvas-elevated); border: 1px solid var(--hairline); }
+  .dialog { position: absolute; left: 24px; right: 24px; top: 34px; }
+  .actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+  .full { grid-column: 1 / -1; }
+  .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); }
+  .note b { color: var(--fg1); }
+  h2 { font: var(--h4); color: var(--fg1); margin: 2px 0 0; }
+</style></head>
+<body>
+
+<!-- ============ LIGHT ============ -->
+<div class="side vive">
+  <span class="lab">Light</span>
+
+  <h2>Instruction</h2>
+  <div class="stage">
+    <div class="stage__under"><div class="stage__ghost"></div><div class="stage__ghost"></div><div class="stage__ghost"></div></div>
+    <div class="vt-scrim"></div>
+    <div class="dialog vt-floating" style="padding:var(--space-5);display:grid;gap:var(--space-4)" role="dialog" aria-label="Before we start">
+      <h3 style="font:var(--h3);color:var(--ink);margin:0">Before we start</h3>
+      <p style="font:var(--body-sm);color:var(--ink-body);margin:0">QMBTI opens with a quick personality rhythm check before you move into the main questions.</p>
+      <hr style="border:0;height:1px;background:var(--hairline);margin:0">
+      <p style="font:var(--caption);color:var(--muted-aa);margin:0">For a better experience, please agree to the terms to proceed with the test.</p>
+      <div class="actions">
+        <button class="vt-btn vt-btn--quiet">Deny and start</button>
+        <button class="vt-btn vt-btn--primary">Accept all and start</button>
+      </div>
+    </div>
+  </div>
+  <span class="cap">A dialog is a <b>floating</b> surface: <span class="t-code">--surface-raised</span>, an edge, the overlay shadow, and a scrim. The product used a translucent panel with a 22px-blur shadow and <b>no border at all</b>.</span>
+
+  <h2>Question</h2>
+  <div class="vt-panel" style="display:grid;gap:var(--space-5)">
+    <header style="display:grid;gap:var(--space-3)">
+      <h3 style="font:var(--h3);color:var(--ink);margin:0">10m MBTI test</h3>
+      <div class="vt-progress">
+        <div class="vt-progress__head"><span>Question 4 of 12</span><span class="vt-progress__value">33%</span></div>
+        <div class="vt-progress__track" role="progressbar" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100"><div class="vt-progress__fill" style="width:33%"></div></div>
+      </div>
+    </header>
+    <div style="display:grid;gap:var(--space-3)">
+      <h4 style="font:var(--t-expanded-question);color:var(--ink);margin:0">긴 회의가 끝난 직후, 당신은 무엇을 먼저 합니까?</h4>
+      <div style="display:grid;gap:var(--space-2)">
+        <button class="vt-choice vt-choice--answer"><span class="vt-choice__mark"></span><span class="vt-choice__text">바로 다음 작업으로 넘어간다</span></button>
+        <button class="vt-choice vt-choice--answer is-selected"><span class="vt-choice__mark"></span><span class="vt-choice__text">잠깐 걷거나 자리를 뜬다</span></button>
+        <button class="vt-choice vt-choice--answer is-hover"><span class="vt-choice__mark"></span><span class="vt-choice__text">메모를 정리하고 다음을 계획한다</span></button>
+      </div>
+    </div>
+    <div class="actions" style="justify-content:space-between">
+      <button class="vt-btn vt-btn--secondary">Previous</button>
+      <button class="vt-btn vt-btn--primary">Next</button>
+    </div>
+  </div>
+  <span class="cap">The track is <b>6px</b> and the percentage sits outside it. The product's is 24px tall with the label floating <i>inside</i> the fill and escaping to <span class="t-code">right: -2.5rem</span> when the fill is too narrow — two layouts for one control, and the number changes side as you answer.</span>
+</div>
+
+<!-- ============ DARK ============ -->
+<div class="side vive" data-theme="dark">
+  <span class="lab">Dark</span>
+
+  <h2>Instruction</h2>
+  <div class="stage">
+    <div class="stage__under"><div class="stage__ghost"></div><div class="stage__ghost"></div><div class="stage__ghost"></div></div>
+    <div class="vt-scrim"></div>
+    <div class="dialog vt-floating" style="padding:var(--space-5);display:grid;gap:var(--space-4)" role="dialog" aria-label="Before we start">
+      <h3 style="font:var(--h3);color:var(--ink);margin:0">시작하기 전에</h3>
+      <p style="font:var(--body-sm);color:var(--ink-body);margin:0">QMBTI는 본 문항에 들어가기 전에 작업 리듬 성향을 짧게 점검하는 테스트입니다.</p>
+      <hr style="border:0;height:1px;background:var(--hairline);margin:0">
+      <p style="font:var(--caption);color:var(--muted-aa);margin:0">더 나은 경험을 위해 테스트를 진행하기 전에 약관에 동의해 주세요.</p>
+      <div class="actions">
+        <button class="vt-btn vt-btn--quiet">동의하지 않고 시작</button>
+        <button class="vt-btn vt-btn--primary">모두 동의하고 시작</button>
+      </div>
+    </div>
+  </div>
+  <span class="cap">The same markup, the same rules. Only the edge is doing more work — <span class="t-code">--border-strong</span> is a hairline in light and a visible edge in dark, which is the semantic layer absorbing the difference rather than a dark-mode branch.</span>
+
+  <h2>Result</h2>
+  <div class="vt-panel" style="display:grid;gap:var(--space-4)">
+    <div style="display:grid;gap:var(--space-2)">
+      <span class="vt-settings__label">Final result</span>
+      <h3 style="font:var(--h3);color:var(--ink);margin:0">차분한 조율가</h3>
+      <p style="font:var(--body-sm);color:var(--ink-body);margin:0">결과는 마지막으로 고른 답을 기준으로 계산됩니다.</p>
+    </div>
+    <div class="vt-well" style="padding:var(--space-2) var(--space-4)">
+      <div class="vt-datarow"><p class="vt-datarow__key">Q1</p><p class="vt-datarow__val">잠깐 걷거나 자리를 뜬다</p></div>
+      <div class="vt-datarow"><p class="vt-datarow__key">Q2</p><p class="vt-datarow__val">메모를 정리한다</p></div>
+      <div class="vt-datarow"><p class="vt-datarow__key">Q3</p><p class="vt-datarow__val">바로 다음 작업으로</p></div>
+    </div>
+    <div class="actions" style="justify-content:flex-start">
+      <button class="vt-btn vt-btn--primary">Back to landing</button>
+      <button class="vt-btn vt-btn--secondary">Open history</button>
+    </div>
+  </div>
+  <span class="cap">The answer list is a <b>well</b> inside the panel — <span class="t-code">design.md</span> §6.10's quiet data row, in the one place the product has genuinely tabular content. Keys are <span class="t-code">--muted-aa</span>, not <span class="t-code">--muted</span>, because they are normal-size text.</span>
+</div>
+
+<div class="side vive full">
+  <h2>What changed, and why</h2>
+  <p class="note"><b>Three geometry values came off the ramp.</b> The realized surfaces use <b>18px</b> radius for panels, <b>16px</b> for shell cards and <b>14px</b> for every button. The VIVE ramp is 5 / 8 / 12 / 16 / 24 / 999 — only 16 is on it. Panels move to <span class="t-code">--radius-lg</span> (16), dialogs and drawers to <span class="t-code">--radius-xl</span> (24) per §6.8, buttons to <span class="t-code">--radius-md</span> (12). The one realized value kept as-is is <b>min-height 46px</b> on buttons: it is off the 4px grid but it clears §4.10's 44px floor, and a real value that satisfies a real rule is not worth rounding.</p>
+  <p class="note"><b>The answer button was already decided.</b> Step 2 established <span class="t-code">.vt-choice--answer</span> — the catalog's choice row with a radio mark instead of an arrow — and the filled CTA for submit. Nothing here revisits that; the question surface just uses it. What is new is the third button weight, <span class="t-code">.vt-btn--quiet</span>, which the flow needs and never had: "Deny and start" was rendering with the same neutral fill as "Previous", so a consent refusal and a navigation step carried identical visual weight.</p>
+  <p class="note"><b>Placeholder copy is out of scope and stays visible.</b> The history page renders <span class="t-code">Locale: en</span> as body text, the test-error heading is a hardcoded Korean string served to all twelve locales, and both 404s are hardcoded English with no shell. Those are content defects, not visual ones; they are recorded in the extraction and left for the owner of those strings rather than designed around.</p>
+</div>
+
+</body></html>

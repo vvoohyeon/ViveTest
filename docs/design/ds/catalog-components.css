@@ -586,10 +586,10 @@
   justify-content: center;
   min-height: 46px;
   padding: 12px 18px;
-  border: 1px solid var(--sage);
+  border: 1px solid var(--accent-solid);
   border-radius: var(--radius-md);
-  background: var(--sage);
-  color: #fff;
+  background: var(--accent-solid);
+  color: var(--fg-on-accent);
   font: var(--t-choice);
   font-weight: 600;
   cursor: pointer;
@@ -602,16 +602,29 @@
 
 .vt-cta:hover,
 .vt-cta.is-hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: var(--accent-solid-hover);
+  border-color: var(--accent-solid-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
-.vt-cta:active { transform: translateY(0); }
+/* [D-03 — RESOLVED 2026-09-07, step 3] The finding was that `--accent-hover`
+   and `--accent-pressed` were declared, derived, and never consumed by anything.
+   They are now the interaction ladder of the one control that carries the filled
+   accent — reached through the `--accent-solid-*` roles D-12 introduced, since a
+   fill sitting under a label needs a step deeper than a line or a ring does. The
+   lift returns to 0 in the same step, so press reads as the button going down
+   and darker at once. */
+.vt-cta:active,
+.vt-cta.is-pressed {
+  background: var(--accent-solid-pressed);
+  border-color: var(--accent-solid-pressed);
+  transform: translateY(0);
+  box-shadow: none;
+}
 
 .vt-cta:focus-visible {
-  outline: 2px solid var(--sage);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 

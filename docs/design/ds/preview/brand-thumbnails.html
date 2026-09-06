@@ -8,16 +8,16 @@
   .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; justify-items: start; }
   .lede { font: var(--caption); color: var(--fg2); max-width: 780px; }
   .lede b { color: var(--fg1); font-weight: 600; }
-  .flag { font: var(--label); color: #b06a3b; border: 1px dashed #b06a3b; border-radius: var(--radius-sm); padding: 6px 12px; }
+  .flag { font: var(--label); color: var(--danger-fg); border: 1px dashed var(--danger-fg); border-radius: var(--radius-sm); padding: 6px 12px; }
   h2 { font: var(--h4); color: var(--fg1); margin: 10px 0 0; }
   .grid { display: grid; grid-template-columns: repeat(4, 180px); gap: 18px; }
   .item { display: grid; gap: 6px; }
   .art { width: 180px; aspect-ratio: 3 / 2; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--hairline); }
   .art img { width: 100%; height: 100%; display: block; }
-  .name { font: var(--code); color: var(--fg4); }
-  .hue { display: inline-flex; align-items: center; gap: 5px; font: var(--caption); color: var(--fg3); }
+  .name { font: var(--code); color: var(--muted-aa); }
+  .hue { display: inline-flex; align-items: center; gap: 5px; font: var(--caption); color: var(--muted-aa); }
   .dot { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--border-strong); flex: none; }
-  .no { font: var(--caption); color: var(--fg3); max-width: 780px; }
+  .no { font: var(--caption); color: var(--muted-aa); max-width: 780px; }
   .no b { color: var(--fg1); font-weight: 600; }
   .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 780px; }
   .note b { color: var(--fg1); }
@@ -40,7 +40,7 @@
     <div class="item"><div class="art"><img src="../assets/thumb-values.svg" alt="Values thumbnail"></div><span class="name">thumb-values</span><span class="hue"><span class="dot" style="background:#4A6FA5"></span>#4A6FA5 blue</span></div>
     <div class="item"><div class="art"><img src="../assets/thumb-blog.svg" alt="Blog thumbnail"></div><span class="name">thumb-blog</span><span class="hue"><span class="dot" style="background:#7A7A85"></span>#7A7A85 grey</span></div>
     <div class="item"><div class="art"><img src="../assets/thumb-comingsoon.svg" alt="Coming soon thumbnail"></div><span class="name">thumb-comingsoon</span><span class="hue"><span class="dot" style="background:#A6A6AE"></span>#A6A6AE grey</span></div>
-    <div class="item"><div class="art" style="display:grid;place-items:center;background:var(--canvas-elevated)"><img src="../assets/answer-arrow.svg" alt="Answer arrow" style="width:32px;height:32px;color:var(--muted)"></div><span class="name">answer-arrow</span><span class="hue"><span class="dot" style="background:currentColor"></span>currentColor</span></div>
+    <div class="item"><div class="art" style="display:grid;place-items:center;background:var(--canvas-elevated)"><img src="../assets/answer-arrow.svg" alt="Answer arrow" style="width:32px;height:32px;color:var(--muted-aa)"></div><span class="name">answer-arrow</span><span class="hue"><span class="dot" style="background:currentColor"></span>currentColor</span></div>
   </div>
 
   <h2>Against what the product actually renders</h2>
