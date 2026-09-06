@@ -339,24 +339,58 @@
    Mobile shows it always — `req-landing.md:293` — hence `--always`, which the
    mobile specimen consumes.
 
-   The reveal is INSTANT, and that is a finding rather than a choice. The product
-   writes a 140ms opacity transition next to a `display` switch on the same
-   element; a `display: none` element has no rendered previous frame, so the
-   transition never runs. Measured 2026-09-07: with the display switch the
-   element reports zero running animations and `opacity: 1` on the same frame,
+   [D-07 — RESOLVED 2026-09-07, step 3] THE FADE STAYS; THE MECHANISM CHANGES.
+
+   The product writes a 140ms opacity transition next to a `display` switch on
+   the same element, and a `display: none` element has no rendered previous
+   frame, so the transition never runs. Measured: with the display switch the
+   element reports zero running animations and `opacity: 1` on the flip frame,
    while an otherwise identical element without it reports one running animation
-   and `opacity: 0`. Recorded as D-07. This file shows what the product renders,
-   so there is no transition here either — do not add one to "fix" the specimen;
-   the product is where it would have to change. */
+   and `opacity: 0`.
+
+   One of the two had to go, and the fade is the one worth keeping — every other
+   hover in this system transitions (the card's shadow, the choice button's fill,
+   the arrow's colour) and this was the only one that snapped.
+
+   A SECOND REASON, found while checking the first. `display: none` takes the CTA
+   out of layout, so at any width where it would compete with the tag row the
+   reveal REFLOWS that row. Measured across three card widths: at 397px and 292px
+   nothing moves, but at 250px the tag row loses 23.33px and the last tag
+   ellipsizes a further 3.92px — the tags visibly jump and re-clip under the
+   pointer. Driving the reveal with `visibility` reserves the box at rest and
+   measures **zero shift at all three widths**. So the mechanism below is not
+   just the one that lets the fade run; it is the one that cannot reflow.
+
+   `visibility: hidden` — not `opacity: 0` alone — because it keeps the hidden
+   CTA out of the tab order and out of the accessibility tree, which is what
+   `display: none` was doing and must not be lost. The `visibility` transition is
+   delayed by the fade's own duration on the way out so the element stays
+   rendered while it fades, and is immediate on the way in. */
 .vt-card--blog .vt-readmore {
-  display: none;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--dur-fast) var(--ease-standard),
+    visibility 0s linear var(--dur-fast);
 }
 
 .vt-card--blog:hover .vt-readmore,
 .vt-card--blog:focus-within .vt-readmore,
 .vt-card--blog.is-hover .vt-readmore,
 .vt-card--blog .vt-readmore--always {
-  display: inline-flex;
+  visibility: visible;
+  opacity: 1;
+  transition:
+    opacity var(--dur-fast) var(--ease-standard),
+    visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-card--blog .vt-readmore,
+  .vt-card--blog:hover .vt-readmore,
+  .vt-card--blog:focus-within .vt-readmore,
+  .vt-card--blog.is-hover .vt-readmore,
+  .vt-card--blog .vt-readmore--always { transition: none; }
 }
 
 /* ---- Unavailable card ----------------------------------------------------- */
