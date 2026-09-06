@@ -443,17 +443,34 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-.vive h1 { font: var(--h1); color: var(--fg1); letter-spacing: var(--track-tight); margin: 0; }
-.vive h2 { font: var(--h2); color: var(--fg1); letter-spacing: var(--track-tight); margin: 0; }
-.vive h3 { font: var(--h3); color: var(--fg1); margin: 0; }
-.vive h4 { font: var(--h4); color: var(--fg1); margin: 0; }
-.vive p  { font: var(--body); color: var(--fg2); margin: 0; text-wrap: pretty; }
-.vive small { font: var(--caption); color: var(--fg3); }
-.vive code, .vive kbd, .vive pre { font: var(--code); }
-.vive a { color: var(--accent-fg); text-underline-offset: 2px; }
+/* ELEMENT DEFAULTS, WRAPPED IN `:where()` SO THAT ANY COMPONENT CLASS BEATS THEM.
 
-/* Korean and Latin wrap by the same rule across the system (`design.md` §4.3). */
-.vive p, .vive h1, .vive h2, .vive h3, .vive h4 {
+   Written plainly as `.vive p`, these are (0,1,1) and outrank every single-class
+   component selector (0,1,0) — so a base default silently won over the component
+   that was supposed to own the value, and it won by element, which meant the SAME
+   class rendered at two different sizes depending on the tag it sat on. Measured
+   2026-09-07: `.vt-subtitle` on a `<p>` computed 16px/25.6 and on a `<span>`
+   15px/21.75; `.vt-question` computed 16px where its token says 21px, and
+   `.vt-context` and `.vt-meta` the same way. Four of the catalog's six type roles
+   had never once rendered at their token size, and every card height measured in
+   this bundle was measured against the wrong type.
+
+   `:where()` contributes zero specificity, so these drop to (0,0,1) — a real
+   default that any class overrides, which is what a base layer is for. The
+   utility classes below stay at (0,2,0) and still win, which is also correct. */
+:where(.vive) h1 { font: var(--h1); color: var(--fg1); letter-spacing: var(--track-tight); margin: 0; }
+:where(.vive) h2 { font: var(--h2); color: var(--fg1); letter-spacing: var(--track-tight); margin: 0; }
+:where(.vive) h3 { font: var(--h3); color: var(--fg1); margin: 0; }
+:where(.vive) h4 { font: var(--h4); color: var(--fg1); margin: 0; }
+:where(.vive) p  { font: var(--body); color: var(--fg2); margin: 0; text-wrap: pretty; }
+:where(.vive) small { font: var(--caption); color: var(--fg3); }
+:where(.vive) code, :where(.vive) kbd, :where(.vive) pre { font: var(--code); }
+:where(.vive) a { color: var(--accent-fg); text-underline-offset: 2px; }
+
+/* Korean and Latin wrap by the same rule across the system (`design.md` §4.3).
+   Kept at element level and at zero specificity: it is a default that applies to
+   any prose, and the components that need it state it themselves. */
+:where(.vive) :is(p, h1, h2, h3, h4) {
   word-break: keep-all;
   overflow-wrap: anywhere;
 }

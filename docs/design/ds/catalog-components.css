@@ -6,7 +6,7 @@
 
    Every value here was read off the running product on 2026-09-06 with
    `getComputedStyle`, not transcribed from a spec — see
-   `docs/plans/2026-09-06-design-system-rebaseline-step1b.md` for the extraction
+   `docs/done/2026-09-06-design-system-rebaseline-step1b.md` for the extraction
    and `preview/catalog-drift.html` for the places where the product and the
    tokens disagree.
 
@@ -22,6 +22,42 @@
    layering this file deliberately flattens. Read it to design against; do not
    try to adopt it.
    ============================================================================ */
+
+/* ---- The grid the cards sit in -------------------------------------------- */
+
+/* THREE PROPERTIES OF A CATALOG ROW LIVE HERE, NOT ON ANY CARD: the gutter, the
+   column count, and equal height. Without them the most noticeable property of
+   the real grid — that a row of cards shares one bottom edge — cannot be
+   reproduced from this system at all.
+
+   Band modifiers rather than media queries, for the same reason the text clamps
+   are modifiers: the specimen renders inside a fixed-width frame in the Design
+   System pane, so a `max-width` query would fire on the pane's width rather than
+   on the tier being simulated. The product decides the tier from the measured
+   `.landing-grid-container` inline size, never from a card
+   (`landing-catalog-grid.tsx:200`, `:209`).
+
+   THE COLUMN COUNT IS NOT ONE NUMBER PER BAND — it changes between the first row
+   and the rest, which is invisible in any single-row specimen (`req-landing.md`
+   §6.2, lines 195-197):
+
+     gridInlineSize >= 1160   Wide         row 1 → 3 columns, rows 2+ → 4
+     1040 … 1159              Medium       row 1 → 2 columns, rows 2+ → 3
+     < 1040                   Two-column   every non-mobile row → 2, no exception
+     viewport <= 767          Mobile       single column
+
+   So the two card widths in this bundle are both Desktop Wide: 397px is a
+   first-row card and 292px is a later-row card, on a 1240px grid at the 24px
+   gutter — `(1240 - 2×24) / 3` and `(1240 - 3×24) / 4`. */
+.vt-grid {
+  display: grid;
+  align-items: stretch;
+  gap: var(--grid-gutter-mobile);
+  grid-template-columns: repeat(var(--vt-columns, 1), minmax(0, 1fr));
+}
+
+.vt-grid--tablet  { gap: var(--grid-gutter-tablet); }
+.vt-grid--desktop { gap: var(--grid-gutter-desktop); }
 
 /* ---- Base card ------------------------------------------------------------ */
 
@@ -49,6 +85,13 @@
 .vt-card__pad {
   display: block;
   width: 100%;
+  /* ROW STRETCH, and the only place `min-height: 100%` is correct in this file.
+     `req-landing.md:321` requires the card shell to accept the row's stretch, and
+     the product does it here (`landing-grid-card.tsx:1046`) and on the content box
+     (`:1052`). The expanded card's height floor must NOT be written this way —
+     `design.md` §7.3 bans it by name, because that floor is a measured pixel value
+     and a percentage cannot express it. See `.vt-expanded` below. */
+  min-height: 100%;
   padding: var(--card-pad);
   border: 0;
   background: none;
@@ -62,6 +105,8 @@
 .vt-card__content {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 100%;
 }
 
 /* ---- Card parts ----------------------------------------------------------- */
@@ -158,14 +203,28 @@
   margin-top: 0;
 }
 
-/* A STATIC STAND-IN, not the mechanism. In the product this gap is
-   `base_gap + comp_gap`, both written per card from measured values, and that
-   measured compensation is what puts every card's tags row on a common bottom
-   line. 8px is only the base half. A constant cannot absorb surplus, and
-   `req-landing.md` §6 explicitly bans faking the effect with a fixed minimum,
-   a floor or a spacer — so do not read this value as the rule. */
+/* THE GAP IS TWO NUMBERS, AND THE SECOND ONE IS WRITTEN PER CARD.
+
+   `req-landing.md:327-334` fixes the `subtitle → tags` distance as
+   `base_gap + comp_gap`, with `comp_gap = actual_gap - base_gap`, and the product
+   writes both onto each card as inline custom properties from measured values
+   (`landing-grid-card.tsx:220` consumes them, `:1144-1145` writes them,
+   `spacing-plan.ts:1` fixes the base at 8px and `:142` zeroes the compensation
+   whenever `needs_comp` is false). That per-card compensation is the whole reason
+   every card's tags row lands on one common line across a row of unequal cards.
+
+   `--vt-comp-gap` therefore has to be authored per card, exactly as the product
+   writes it — see `preview/grid-rhythm.html`, where four cards of unequal content
+   carry four different values and end up on one line. The default of `0px` is the
+   `needs_comp = false` case, which the contract requires to be exactly zero and
+   never to pass through a positive value even for one frame.
+
+   A constant cannot absorb surplus, and `req-landing.md` §6 bans faking the
+   effect with a fixed minimum, a floor or a spacer. The values written in the
+   specimens are illustrative — authored to demonstrate the mechanism — not
+   measurements taken from the running product. */
 .vt-tags-gap {
-  height: var(--space-2);
+  height: calc(var(--vt-base-gap, 8px) + var(--vt-comp-gap, 0px));
 }
 
 /* The row keeps one line's height even with no chips in it, so an untagged
@@ -326,6 +385,8 @@
    the grid. Composited here in one declaration because a specimen has no
    z-layering to preserve; the lift is what matters. */
 .vt-expanded {
+  display: flex;
+  flex-direction: column;
   background: var(--canvas-elevated);
   border-radius: var(--radius-lg);
   box-shadow:
@@ -333,11 +394,55 @@
     0 0 0 1px var(--sage);
 }
 
+/* THE HEIGHT FLOOR IS A MEASURED PIXEL VALUE, AND IT IS NOT WRITTEN HERE.
+
+   `design.md` §7.3: the expanded card must be at least the resting card's height,
+   the mechanism measures that height in explicit pixels and applies it as a floor,
+   and `min-height: 100%` is banned by name as a way of saying it. The product
+   writes the floor inline (`landing-grid-card.tsx:837`) from a value divided by the
+   base shell scale (`:995`), so that after the shell's `scale(1.04)` the visual
+   floor lands back on the resting card's own height.
+
+   A stylesheet cannot hold a per-card measurement, so nothing here sets it. The
+   specimen sets it inline on `.vt-expanded`, next to the resting card it was taken
+   from — `preview/card-expanded.html`.
+
+   ---- The body is three boxes, not one ----
+
+   `landing-grid-card.tsx:255-257`, assembled at `:781-787`. The group holds the
+   question and the choices at a 10px rhythm; the spacer sits between the last
+   choice and the meta row with a 14px minimum and `flex: 1`, so it is the single
+   place the floor's surplus is allowed to go (`design.md` §7.3: absorbed **only**
+   between the last choice and the meta row). Flattened into one box with a uniform
+   `gap: 10px` — as this file had it — the choices→meta distance reads 10px where
+   the product's floor alone is 14px, and the surplus has nowhere to go at all.
+
+   The product has one more nesting level than this: its padded body holds the
+   context title and a floor body at a 10px gap, and the floor body holds the
+   group, the spacer and the meta row with no gap of its own (`:860`, `:781`).
+   Putting the context label inside the group here collapses that level with no
+   visual difference — context→question is 10px either way — and a specimen has no
+   reason to carry a box that changes nothing on screen.
+
+   The floor itself goes on `.vt-expanded__body`, inline, in the specimen that
+   needs it: that is the box the product writes it on. */
 .vt-expanded__body {
   display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--card-pad);
+}
+
+.vt-expanded__group {
+  display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 10px;
-  padding: var(--card-pad);
+}
+
+.vt-expanded__spacer {
+  min-height: 14px;
+  flex: 1;
 }
 
 .vt-context {

@@ -1,30 +1,173 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Catalog" name="Test card — expanded" subtitle="Context → question → choices → meta · sage edge, no labels, no badges" viewport="700x460" -->
+<!-- @dsCard group="Catalog" name="Test card — expanded" subtitle="At its resolved on-screen size · shell scale, pixel floor, and the single spacer" viewport="980x1620" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <link rel="stylesheet" href="../catalog-components.css">
 <style>
   body { margin: 0; }
-  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 14px; justify-items: start; }
-  .spec { width: 397px; }
-  .cap { font: var(--caption); color: var(--fg4); }
-  .no { font: var(--caption); color: var(--fg3); max-width: 620px; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; justify-items: start; }
+  .lede { font: var(--caption); color: var(--fg2); max-width: 780px; }
+  .lede b { color: var(--fg1); font-weight: 600; }
+  .row { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+  .col { display: grid; gap: 8px; align-content: start; }
+  .cap { font: var(--caption); color: var(--fg4); max-width: 440px; }
+  .cap b { color: var(--fg2); font-weight: 600; }
+  .no { font: var(--caption); color: var(--fg3); max-width: 780px; }
   .no b { color: var(--fg1); font-weight: 600; }
+  .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 780px; }
+  .note b { color: var(--fg1); }
+
+  /* THE SCALE, REPRODUCED RATHER THAN RE-TYPED.
+
+     The product lays the surface out at `frame_inline_scale × 397px` and then puts
+     `transform: scale(1.04)` on the shell. A transform in a specimen would paint
+     outside its own frame and clip, because a specimen has no stage to bleed into.
+     `zoom` produces the identical result and participates in layout, so the boxes
+     below really are the size they appear and can be measured with a ruler.
+
+     The consequence worth noticing: every number written here is the number the
+     PRODUCT writes, not a number multiplied by hand. The floor really is
+     `258 / 1.04`, the question really is 21px in the token, and 1.04 turns both
+     into what lands on screen. */
+  .frame { zoom: 1.04; }
+  .frame--desktop { width: calc(397px * 1.1 / 1.04); }   /* frame_inline_scale = 1.10 / 1.04 */
+  .frame--tablet  { width: calc(397px * 1.04 / 1.04); }  /* frame_inline_scale = 1.04 / 1.04 = 1 */
+  .floor { min-height: calc(270px / 1.04); }             /* resting height ÷ base shell scale */
+  /* ANNOTATION, not a style — nothing in the card system draws this. */
+  .annot-spacer { outline: 1px dashed var(--accent); }
+  .annot-key { font: var(--caption); color: var(--fg4); display: inline-flex; align-items: center; gap: 6px; }
+  .annot-key i { width: 22px; height: 0; border-top: 1px dashed var(--accent); display: inline-block; }
+
+  .resting { width: 397px; }
+  .measure { font: var(--code); color: var(--fg4); }
+  .measure b { color: var(--fg2); font-weight: 600; }
+  table { border-collapse: collapse; font: var(--caption); }
+  th { text-align: left; font-weight: 600; color: var(--fg2); padding: 0 16px 6px 0; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 6px 16px 6px 0; border-bottom: 1px solid var(--border); color: var(--fg3); white-space: nowrap; }
+  td.k { color: var(--fg2); }
 </style></head>
 <body class="vive">
-  <div class="spec">
-    <div class="vt-expanded">
-      <div class="vt-expanded__body">
-        <p class="vt-context">10m MBTI test</p>
-        <p class="vt-question">At parties or birthday celebrations, what do you usually notice first?</p>
-        <ul class="vt-choices">
-          <li><button class="vt-choice" type="button"><span class="vt-choice__text">Early morning blocks</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
-          <li><button class="vt-choice is-hover" type="button"><span class="vt-choice__text">Late-night sprints</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
-        </ul>
-        <p class="vt-meta"><span><span class="vt-meta__lead">3 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>2,184 shared</span><span class="vt-meta__sep" aria-hidden="true">·</span><span>15,236 completed</span></p>
+
+  <p class="lede"><b>This card is rendered at the size it actually reaches on screen, not at the size of the card it replaces.</b> Every earlier version of this specimen drew it at 397px — the resting width, scale 1.0 — so every type and line-length judgement made against it was made about 4% small and 40px narrow. The three mechanisms that decide its real geometry are the shell scale, the pixel height floor, and the single flex spacer; all three are shown below rather than described.</p>
+
+  <div class="row">
+
+    <div class="col">
+      <div class="resting">
+        <div class="vt-card">
+          <div class="vt-card__pad">
+            <div class="vt-card__content">
+              <div class="vt-thumb">
+                <svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs><linearGradient id="ge1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs>
+                  <rect width="640" height="240" fill="url(#ge1)"/>
+                  <circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/>
+                  <circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/>
+                </svg>
+              </div>
+              <h3 class="vt-title vt-title--clamp1">10m MBTI test</h3>
+              <p class="vt-subtitle vt-subtitle--clamp2">Find your default deep-work cadence.</p>
+              <div class="vt-tags-gap"></div>
+              <ul class="vt-tags">
+                <li class="vt-tag vt-tag--fixed">rapid</li>
+                <li class="vt-tag vt-tag--flex">focus</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
+      <span class="measure"><b>397 × 270</b> — resting, Desktop Wide first row</span>
+      <span class="cap"><b>The card being replaced.</b> Its height is the floor: the expanded card beside it may never be shorter than this, and the 258px is measured from this card rather than assumed.</span>
+    </div>
+
+    <div class="col">
+      <div class="frame frame--desktop">
+        <div class="vt-expanded">
+          <div class="vt-expanded__body floor">
+            <div class="vt-expanded__group">
+              <p class="vt-context">10m MBTI test</p>
+              <p class="vt-question">At parties or birthday celebrations, what do you usually notice first?</p>
+              <ul class="vt-choices">
+                <li><button class="vt-choice" type="button"><span class="vt-choice__text">Early morning blocks</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+                <li><button class="vt-choice is-hover" type="button"><span class="vt-choice__text">Late-night sprints</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+              </ul>
+            </div>
+            <div class="vt-expanded__spacer" aria-hidden="true"></div>
+            <p class="vt-meta"><span><span class="vt-meta__lead">3 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>2,184 shared</span><span class="vt-meta__sep" aria-hidden="true">·</span><span>15,236 completed</span></p>
+          </div>
+        </div>
+      </div>
+      <span class="measure"><b>437 × 272</b> — expanded, Desktop Wide</span>
+      <span class="cap"><b>40px wider and 4% larger throughout.</b> Second choice shown hovered. The thumbnail, subtitle and tags are gone; what replaces them is a question, two choices and a meta row, at a line length the resting card never has.<br><b>Here the content is driving</b> — it comes out 2px over the floor, so the spacer sits at its 14px minimum and the card grows downward. The frame below shows the other direction.</span>
+    </div>
+
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <div class="frame frame--desktop">
+        <div class="vt-expanded">
+          <div class="vt-expanded__body floor">
+            <div class="vt-expanded__group">
+              <p class="vt-context">10m MBTI test</p>
+              <p class="vt-question">Where does your attention go first?</p>
+              <ul class="vt-choices">
+                <li><button class="vt-choice" type="button"><span class="vt-choice__text">The room</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+                <li><button class="vt-choice" type="button"><span class="vt-choice__text">One person</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+              </ul>
+            </div>
+            <div class="vt-expanded__spacer annot-spacer" aria-hidden="true"></div>
+            <p class="vt-meta"><span><span class="vt-meta__lead">3 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>2,184 shared</span><span class="vt-meta__sep" aria-hidden="true">·</span><span>15,236 completed</span></p>
+          </div>
+        </div>
+      </div>
+      <span class="annot-key"><i></i> the spacer, stretched by the floor's surplus</span>
+      <span class="measure"><b>437 × 270</b> — expanded, short content</span>
+      <span class="cap"><b>Here the floor is driving.</b> Same card, a one-line question: the content wants to be shorter than 270px, the floor refuses, and every pixel of the difference goes into the one spacer between the last choice and the meta row. The meta row stays pinned to the bottom. Change the question's length and only the dashed box changes size — that is the mechanism, and it is why a uniform gap cannot stand in for it.</span>
+    </div>
+
+    <div class="col">
+      <div class="frame frame--tablet">
+        <div class="vt-expanded">
+          <div class="vt-expanded__body floor">
+            <div class="vt-expanded__group">
+              <p class="vt-context">10m MBTI test</p>
+              <p class="vt-question">At parties or birthday celebrations, what do you usually notice first?</p>
+              <ul class="vt-choices">
+                <li><button class="vt-choice" type="button"><span class="vt-choice__text">Early morning blocks</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+                <li><button class="vt-choice" type="button"><span class="vt-choice__text">Late-night sprints</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+              </ul>
+            </div>
+            <div class="vt-expanded__spacer" aria-hidden="true"></div>
+            <p class="vt-meta"><span><span class="vt-meta__lead">3 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>2,184 shared</span><span class="vt-meta__sep" aria-hidden="true">·</span><span>15,236 completed</span></p>
+          </div>
+        </div>
+      </div>
+      <span class="measure"><b>413 × 272</b> — expanded, Tablet</span>
+      <span class="cap"><b>The band split, isolated.</b> Same 397px resting card, same 1.04 type scale — only the desired final scale differs, so only the width moves. Each band's own resting width comes from its column count, which is a separate question: a 900px tablet viewport gives a 852px grid, two columns, and a 414px resting card.</span>
+    </div>
+
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <table>
+        <thead><tr><th>Number</th><th>Value</th><th>What it moves</th></tr></thead>
+        <tbody>
+          <tr><td class="k">base shell scale</td><td><b>1.04</b></td><td>type, spacing, everything inside</td></tr>
+          <tr><td class="k">desired final — Desktop Wide / Medium / two-column</td><td><b>1.10</b></td><td>outer width only</td></tr>
+          <tr><td class="k">desired final — Tablet</td><td><b>1.04</b></td><td>outer width only</td></tr>
+          <tr><td class="k">frame inline scale</td><td><b>final ÷ 1.04</b></td><td>the layout width the text wraps against</td></tr>
+          <tr><td class="k">reduced motion</td><td><b>1.00</b></td><td>both — no scale at all</td></tr>
+          <tr><td class="k">resolved final</td><td><b>min(desired, max surface)</b></td><td>capped by the stage outset available</td></tr>
+        </tbody>
+      </table>
+      <span class="cap">Fixed by <span class="t-code">req-landing.md</span> §8.4 and frozen under decision B. <b>There is deliberately no <span class="t-code">--shell-scale</span> token</b> — this is behaviour, not a visual choice, and a token would invite someone to change it. Constants at <span class="t-code">layout-plan.ts:10-11</span>, base at <span class="t-code">:123</span>, resolution at <span class="t-code">:139</span>.</span>
     </div>
   </div>
-  <span class="cap">Second choice shown hovered. Thumbnail, subtitle and tags are gone in this state; the card is at least as tall as the resting card it replaces, and surplus goes between the last choice and the meta row.</span>
-  <span class="no"><b>Never:</b> a <span class="t-code">PREVIEW QUESTION</span> label, A/B letter badges, a divider above the meta row, a truncated choice, a min-height on a choice, an abbreviated count, or <span class="t-code">taken</span> in place of <span class="t-code">completed</span>.</span>
+
+  <p class="note"><b>The height floor is a measured pixel value, and saying it as <span class="t-code">min-height: 100%</span> is banned by name</b> — <span class="t-code">design.md</span> §7.3, and again in its §10 Never list. The product measures the resting card, divides by the base shell scale, and writes the result inline (<span class="t-code">landing-grid-card.tsx:837</span>, value at <span class="t-code">:995</span>); the shell's own 1.04 then puts the visual floor back on the resting card's height. The specimens above carry <span class="t-code">min-height: calc(270px / 1.04)</span> for exactly that reason — the same arithmetic, on the same box. <b>Surplus above the floor goes to one place only:</b> the spacer between the last choice and the meta row, <span class="t-code">min-height: 14px; flex: 1</span>. Not to a gap, not to a margin, not spread through the stack.</p>
+
+  <p class="no"><b>Never:</b> a <span class="t-code">PREVIEW QUESTION</span> label, A/B letter badges, a divider above the meta row, a truncated choice, a min-height on a choice, an abbreviated count, or <span class="t-code">taken</span> in place of <span class="t-code">completed</span>. No expanded state on a blog card — it navigates instead (<span class="t-code">BQ-02</span>), which is the question this card gets asked most often.</p>
+
 </body></html>

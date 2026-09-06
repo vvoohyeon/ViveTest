@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Grid and row rhythm" subtitle="Equal heights and one common tag line, and the two mechanisms that produce them" viewport="1300x1360" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 24px; background: var(--canvas); display: grid; gap: 16px; justify-items: start; }
+  .lede { font: var(--caption); color: var(--fg2); max-width: 800px; }
+  .lede b { color: var(--fg1); font-weight: 600; }
+  h2 { font: var(--h4); color: var(--fg1); margin: 10px 0 0; }
+  .sub { font: var(--caption); color: var(--fg3); max-width: 800px; }
+  .sub b { color: var(--fg1); font-weight: 600; }
+  .stage { position: relative; width: 1240px; }
+  .labels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-top: 8px; }
+  .lab { font: var(--code); color: var(--fg4); }
+  .lab b { color: var(--accent-fg); font-weight: 600; }
+  .no { font: var(--caption); color: var(--fg3); max-width: 800px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+  .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 800px; }
+  .note b { color: var(--fg1); }
+  .annot-key { font: var(--caption); color: var(--fg4); display: inline-flex; align-items: center; gap: 6px; }
+  .annot-key i { width: 22px; height: 0; border-top: 1px dashed var(--accent); display: inline-block; }
+  /* ANNOTATION, not a style. Nothing in the card system draws this. */
+  .guide { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--accent); pointer-events: none; }
+  .bad .guide { border-top-color: var(--warn, #b06a3b); }
+  .bad .annot-key i { border-top-color: var(--warn, #b06a3b); }
+</style></head>
+<body class="vive">
+
+  <p class="lede"><b>Three of the properties that make a row of catalog cards look deliberate live in the grid, not in any card</b> — the gutter, the column count, and equal height — and a fourth, the common line every tags row sits on, is produced by a number written onto each card individually. None of them could be reproduced from this system before, because the system described a card and never the thing cards are arranged in.</p>
+
+  <h2>With the mechanisms</h2>
+  <p class="sub">Four Desktop Wide later-row cards at <b>292px</b>, <b>24px</b> gutter, deliberately unequal content: two one-line subtitles against two two-line, and tag counts of 2, 4, 1, 3. <b>All four cards are the same height and all four tags rows sit on one line.</b></p>
+
+  <div class="stage" id="good">
+    <div class="vt-grid vt-grid--desktop" style="--vt-columns: 4">
+
+      <div class="vt-card" style="--vt-comp-gap: 21.75px">
+        <div class="vt-card__pad"><div class="vt-card__content">
+          <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="a1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#a1)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg></div>
+          <h3 class="vt-title vt-title--clamp1">10m MBTI test</h3>
+          <p class="vt-subtitle vt-subtitle--clamp2">Find your default cadence.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags"><li class="vt-tag vt-tag--fixed">rapid</li><li class="vt-tag vt-tag--flex">focus</li></ul>
+        </div></div>
+      </div>
+
+      <div class="vt-card" style="--vt-comp-gap: 0px">
+        <div class="vt-card__pad"><div class="vt-card__content">
+          <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="a2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#a2)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg></div>
+          <h3 class="vt-title vt-title--clamp1">Decision Style</h3>
+          <p class="vt-subtitle vt-subtitle--clamp2">How you weigh speed against certainty when the stakes are unclear.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags"><li class="vt-tag vt-tag--fixed">choice</li><li class="vt-tag vt-tag--fixed">risk</li><li class="vt-tag vt-tag--fixed">pace</li><li class="vt-tag vt-tag--flex">framing</li></ul>
+        </div></div>
+      </div>
+
+      <div class="vt-card" style="--vt-comp-gap: 21.75px">
+        <div class="vt-card__pad"><div class="vt-card__content">
+          <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="a3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#a3)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg></div>
+          <h3 class="vt-title vt-title--clamp1">Focus Profile</h3>
+          <p class="vt-subtitle vt-subtitle--clamp2">Where your attention settles.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags"><li class="vt-tag vt-tag--flex">attention</li></ul>
+        </div></div>
+      </div>
+
+      <div class="vt-card" style="--vt-comp-gap: 0px">
+        <div class="vt-card__pad"><div class="vt-card__content">
+          <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="a4" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#a4)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg></div>
+          <h3 class="vt-title vt-title--clamp1">Collaboration Read</h3>
+          <p class="vt-subtitle vt-subtitle--clamp2">What you notice first in a room, and what that costs you later on.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags"><li class="vt-tag vt-tag--fixed">teams</li><li class="vt-tag vt-tag--fixed">signals</li><li class="vt-tag vt-tag--flex">habits</li></ul>
+        </div></div>
+      </div>
+
+    </div>
+  </div>
+  <div class="labels" style="width: 1240px">
+    <span class="lab">--vt-comp-gap: <b>21.75px</b><br>1-line subtitle</span>
+    <span class="lab">--vt-comp-gap: <b>0px</b><br>2-line — needs_comp false</span>
+    <span class="lab">--vt-comp-gap: <b>21.75px</b><br>1-line subtitle</span>
+    <span class="lab">--vt-comp-gap: <b>0px</b><br>2-line — needs_comp false</span>
+  </div>
+  <span class="annot-key"><i></i> the common line the four tags rows land on</span>
+
+  <h2>Without them</h2>
+  <p class="sub">The same four cards with every <span class="t-code">--vt-comp-gap</span> at <b>0px</b>. The row still stretches them to one height — that part is the grid — but each tags row now sits wherever its own subtitle left it, and the surplus collects <b>below</b> the tags instead of above them, which <span class="t-code">req-landing.md:324</span> forbids outright.</p>
+
+  <div class="stage bad" id="bad">
+    <div class="vt-grid vt-grid--desktop" style="--vt-columns: 4">
+      <div class="vt-card">
+        <div class="vt-card__pad"><div class="vt-card__content">
+          <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="640" height="240" fill="#EFEDE6"/></svg></div>
+          <h3 class="vt-title vt-title--clamp1">10m MBTI test</h3>
+          <p class="vt-subtitle vt-subtitle--clamp2">Find your default cadence.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags"><li class="vt-tag vt-tag--fixed">rapid</li><li class="vt-tag vt-tag--flex">focus</li></ul>
+        </div></div>
+      </div>
+      <div class="vt-card">
+        <div class="vt-card__pad"><div class="vt-card__content">
+          <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="640" height="240" fill="#EFEDE6"/></svg></div>
+          <h3 class="vt-title vt-title--clamp1">Decision Style</h3>
+          <p class="vt-subtitle vt-subtitle--clamp2">How you weigh speed against certainty when the stakes are unclear.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags"><li class="vt-tag vt-tag--fixed">choice</li><li class="vt-tag vt-tag--fixed">risk</li><li class="vt-tag vt-tag--fixed">pace</li><li class="vt-tag vt-tag--flex">framing</li></ul>
+        </div></div>
+      </div>
+      <div class="vt-card">
+        <div class="vt-card__pad"><div class="vt-card__content">
+          <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="640" height="240" fill="#EFEDE6"/></svg></div>
+          <h3 class="vt-title vt-title--clamp1">Focus Profile</h3>
+          <p class="vt-subtitle vt-subtitle--clamp2">Where your attention settles.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags"><li class="vt-tag vt-tag--flex">attention</li></ul>
+        </div></div>
+      </div>
+      <div class="vt-card">
+        <div class="vt-card__pad"><div class="vt-card__content">
+          <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="640" height="240" fill="#EFEDE6"/></svg></div>
+          <h3 class="vt-title vt-title--clamp1">Collaboration Read</h3>
+          <p class="vt-subtitle vt-subtitle--clamp2">What you notice first in a room, and what that costs you later on.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags"><li class="vt-tag vt-tag--fixed">teams</li><li class="vt-tag vt-tag--fixed">signals</li><li class="vt-tag vt-tag--flex">habits</li></ul>
+        </div></div>
+      </div>
+    </div>
+  </div>
+  <span class="annot-key"><i></i> where the four rows land instead</span>
+
+  <p class="note"><b>The compensation is authored per card, and the numbers above are illustrative rather than measured.</b> The product computes them: <span class="t-code">spacing-plan.ts:1</span> fixes the base at 8px, <span class="t-code">:142</span> zeroes the compensation whenever <span class="t-code">needs_comp</span> is false, and <span class="t-code">landing-grid-card.tsx:1144-1145</span> writes both onto the card as inline custom properties which <span class="t-code">:220</span> then adds together. <span class="t-code">req-landing.md:327-334</span> requires a <span class="t-code">needs_comp = false</span> card to hold exactly <span class="t-code">0px</span> and never to pass through a positive value for even one frame — which is why the second and fourth cards read <span class="t-code">0px</span> rather than a small number.</p>
+
+  <p class="no"><b>The column count is not one number per band.</b> Wide (<span class="t-code">&gt;=1160</span>) puts 3 in the first row and 4 in every row after it; Medium (<span class="t-code">1040–1159</span>) puts 2 then 3; below 1040 every non-mobile row is 2 with no first-row exception; at or below 767px it is a single mobile column. Both card widths in this bundle are Desktop Wide on a 1240px grid — <span class="t-code">(1240 − 2×24) / 3 = 397</span> for a first-row card and <span class="t-code">(1240 − 3×24) / 4 = 292</span> for a later-row one. <span class="t-code">req-landing.md</span> §6.2.</p>
+
+  <p class="no"><b>Never:</b> a fixed minimum, a floor, or a spacer element standing in for the compensation — <span class="t-code">req-landing.md</span> §6 bans all three by name. No dynamic margin or pseudo-element below the tags. No axis alignment that breaks the row's stretch. And the tags slot is always the last one in the collapsed face.</p>
+
+  <script>
+    // Draws the annotation lines at the measured tag-row tops. Annotation only —
+    // no card style depends on it, and removing this script changes no card.
+    for (const id of ['good', 'bad']) {
+      const stage = document.getElementById(id);
+      const stageTop = stage.getBoundingClientRect().top + window.scrollY;
+      const seen = new Set();
+      for (const row of stage.querySelectorAll('.vt-tags')) {
+        const top = Math.round((row.getBoundingClientRect().top + window.scrollY - stageTop) * 100) / 100;
+        if (seen.has(top)) continue;
+        seen.add(top);
+        const g = document.createElement('div');
+        g.className = 'guide';
+        g.style.top = top + 'px';
+        stage.appendChild(g);
+      }
+    }
+  </script>
+
+</body></html>

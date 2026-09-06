@@ -367,6 +367,17 @@ This document is intended to provide information that can serve as the final bas
 - **`box-sizing: border-box` 리셋 신설(`colors_and_type.css`, `.vive` 스코프).** 번들에 리셋이 없어 `width: 100%` + 패딩을 함께 쓰는 `.vt-card__pad`가 자기 부모를 넘쳤다. 실측: 292px 카드 안의 콘텐츠 박스가 290px로 잡혀 오른쪽으로 15px 흘렀고, 397px 카드의 썸네일은 363×136이어야 할 것이 395×148로 그려졌다 — `catalog-components.css`가 "16px 패딩이 썸네일에 사방 균등 여백을 준다"고 적어 둔 바로 그 문장이 렌더에서 거짓이었다. 제품은 Tailwind Preflight가 전역으로 리셋하므로 이 문제가 없다(`node_modules/tailwindcss/preflight.css:12`). 번들은 리셋을 로드하지 않으므로 스스로 선언한다. 이 교정으로 카드 3종의 높이가 바뀌었고(`397x270→397x258`, `292x264→292x252`, `292x230→292x244`) 해당 viewport를 재측정해 갱신했다.
 - **적용 범위** — 문서 계층뿐이다. `src/**` 무변경.
 
+### BQ-38 후속 — 그리드와 리듬의 실현 (2026-09-07, U3)
+
+- **그리드가 시스템에 없었다.** `--grid-gutter-*` 토큰 3종이 정의만 되고 소비처가 0이었고, `catalog-components.css`에는 grid 규칙이 아예 없었다. `.vt-grid`(+`--tablet`/`--desktop` 밴드 modifier)를 신설하고, 주석에 컬럼 사다리를 전부 적었다 — Wide는 첫 행 3·이후 4, Medium은 2·3, 1040 미만은 예외 없이 2, 767 이하는 모바일 단일 열(`req-landing.md` §6.2). 이 번들의 두 카드 폭이 모두 여기서 나온다: `(1240 − 2×24)/3 = 397`, `(1240 − 3×24)/4 = 292`.
+- **row stretch 신설** — `.vt-card__pad`에 `min-height: 100%`, `.vt-card__content`에 `height/min-height: 100%`(제품 `landing-grid-card.tsx:1046`·`:1052`). 선언은 정확히 이 둘뿐이며 `.vt-expanded` 근처에는 없다 — `design.md` §7.3이 확장 카드 높이 floor를 그렇게 쓰는 것을 이름으로 금지한다.
+- **`.vt-tags-gap`이 기전을 갖는다** — `calc(var(--vt-base-gap, 8px) + var(--vt-comp-gap, 0px))`. 보정값은 제품이 카드마다 쓰듯 표본에서도 카드마다 authored이며, 기본 `0px`가 `needs_comp = false` 케이스다.
+- **`preview/grid-rhythm.html` 신설** — 292px 카드 4장, 24px 거터, 불균등 콘텐츠. 반증 행(보정 전부 `0px`)을 나란히 두어 기전이 없을 때 태그 행이 흩어지는 것을 보인다. 실측: 보정 있을 때 높이 4개 전부 252.25 · 태그 top 4개 전부 207.25 · 거터 3개 전부 24. 보정 없을 때 태그 top이 185.5/207.25/185.5/207.25로 갈린다.
+- **확장 카드를 해상 기하로 렌더한다** — Desktop Wide 437px(`397 × 1.10`), Tablet 413px(`397 × 1.04`). `transform` 대신 `zoom: 1.04`를 쓴 이유는 표본에 bleed할 stage가 없어 transform이 제 프레임 밖을 칠하고 잘리기 때문이다. 부수 효과가 본질적이다 — 파일에 적힌 수가 전부 **제품이 쓰는 수**다(floor는 `270 / 1.04`, question은 토큰 그대로 21px). `--shell-scale` 토큰은 만들지 않았다: §8.4가 지배하는 behavior이고 결정 B로 동결돼 있다.
+- **`.vt-expanded__body`/`__group`/`__spacer` 3박스 재구성 + 픽셀 floor 시연.** 긴 질문이면 콘텐츠 271.5로 floor 270을 넘겨 spacer가 최소 14.6에 앉고 카드가 아래로 자란다. 한 줄 질문이면 카드가 정확히 270.0에 서고 spacer가 41.5로 늘어 잉여를 전부 흡수한다.
+- **기본 타입 계층이 컴포넌트 계층을 누르고 있었다(신규 발견).** `.vive p`(0,1,1)가 `.vt-question`(0,1,0)을 이겨, 카탈로그 여섯 타입 역할 중 **넷이 한 번도 토큰 크기로 렌더된 적이 없다**. 실측: `.vt-subtitle`이 `<p>`에서 16px/25.6, `<span>`에서 15px/21.75 — 같은 클래스가 태그에 따라 다른 크기였다. `.vt-question`은 21px여야 할 것이 16px, `.vt-context`·`.vt-meta`도 같다. 같은 규칙의 `margin: 0`이 `.vt-title`·`.vt-subtitle`의 8px 리듬(`req-landing.md` §6.7)까지 지우고 있었다. 요소 기본값을 `:where()`로 감싸 특정도 0으로 낮춰 해소했다. 이 교정으로 카드 기하가 다시 움직였고(`card-test` 397×258 → **397×270**, 제품 산술 270.6과 썸네일 반올림 내에서 일치) viewport 11건을 재측정했다. 함정 원장 `L06`에 등재.
+- **적용 범위** — 문서 계층뿐이다. `src/**` 무변경.
+
 ---
 
 ## 변경 이력
@@ -383,3 +394,4 @@ This document is intended to provide information that can serve as the final bas
 | 2026-09-06 | Wave 13–17 | 대체 — per-wave 시각 교체 방식을 폐지하고 rebaseline 프로그램으로 전환. wave 블록은 이력으로 보존 | BQ-38 · `docs/wave-roadmap.md` |
 | 2026-09-07 | BQ-38 | 후속 — M-01 을 `--ease-in-out` 으로 확정하고 구현(21개 animation). 답변 버튼 타입 `.vt-choice--answer` 신설, 제출 CTA `.vt-cta` 유지 | BQ-38 후속 항목 |
 | 2026-09-07 | BQ-38 | 후속(U2) — D-05 4→5건, D-06·D-07 신규 등재, `--blog-read-more-ink` 개명, `box-sizing` 리셋 신설. 반응형 텍스트 modifier·블로그 CTA 기전·확장 표면 포커스 링·`preview/card-states.html` 추가 | BQ-38 후속 항목 · `docs/plans/2026-09-07-tier2-execution-plan.md` |
+| 2026-09-07 | BQ-38 | 후속(U3) — `.vt-grid`·row stretch·`.vt-tags-gap` 기전·`preview/grid-rhythm.html` 신설, 확장 카드를 해상 기하(437/413px)로 재렌더하고 3박스+픽셀 floor 시연. 기본 타입 계층이 컴포넌트를 누르던 문제를 `:where()`로 해소(L06) | BQ-38 후속 항목 · `docs/plans/2026-09-07-tier2-execution-plan.md` |
