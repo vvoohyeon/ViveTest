@@ -12,11 +12,10 @@ This file and `colors_and_type.css` are **one definition shared with the ViveTes
 
 The token **values** are now the ones the ViveTest product actually ships, read from its realized stylesheets rather than from an intent document. The token **names and structure** stay VIVE's. Generic components therefore round one step softer than before (`--radius-md` is 12px, not 8px), cards sit on exact white, and the accent is a slightly more saturated, more teal sage. That is intended: the design system now speaks the product's language, so a screen generated here can be implemented without translation.
 
-Three findings are recorded and **not** settled. Do not resolve them silently.
+Findings recorded and **not** settled. Do not resolve them silently. (M-01, the core easing, was settled on 2026-09-07 — see Motion below.)
 
 | # | Finding | Where it is visible |
 |:---|:---|:---|
-| M-01 | All 21 landing-card animations ship `linear`, while `req-landing.md` §8.3 requires an ease-in-out curve. No test catches the gap. | `preview/motion.html` |
 | D-01 | The neutral ramp is warm at steps 0–400 and cool at 500–900, so surfaces and ink disagree in temperature. | `preview/color-temperature.html` |
 | D-03 | The catalog defines no hover or pressed state for the accent; `--accent-hover` and `--accent-pressed` are derived here, not realized in the product. | `preview/color-sage.html` |
 | D-05 | Four values in the catalog still come from the legacy global theme, including two different title colours in the same grid. | `preview/catalog-drift.html` |
@@ -117,7 +116,7 @@ The complete answer to "what does VIVE *look* like." Tokens live in `colors_and_
 
 ### Motion
 - **Calm and purposeful.** Durations are the product's realized ladder: **120ms** slot exit, **140ms** hover and focus skins, **180ms** general UI and the reduced-motion core, **280ms** expand and collapse, with a **40 / 100 / 160ms** stagger on staged reveals.
-- **Easing is an open question (M-01).** The product currently ships `linear` on every landing-card animation while its own behaviour contract requires an ease-in-out curve. `preview/motion.html` puts the three candidates side by side at the realized 280ms. Do not treat `--ease-standard` as decided.
+- **Core easing is `--ease-in-out` (M-01, decided 2026-09-07).** The expand and collapse had shipped `linear` on all 21 animations, against the behaviour contract; the three candidates were compared side by side at the realized 280ms in `preview/motion.html`, and the symmetric curve won because the close has to return on the same curve as the open. `--ease-standard` remains the curve for one-way entrances and reveals.
 - **Allowed:** opacity fades, small (≤8px) translations, color transitions, shadow depth. **Banned:** bounce, spring overshoot, parallax, card tilt, auto-playing decorative motion. Respect `prefers-reduced-motion` — reduced motion drops translations and keeps opacity only.
 
 ### Transparency & blur

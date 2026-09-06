@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Answer button vs submit CTA" subtitle="A light repeated answer, a heavy single decision" viewport="700x620" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 18px; }
+  .lede { font: var(--caption); color: var(--fg2); max-width: 620px; }
+  .lede b { color: var(--fg1); font-weight: 600; }
+  .row { display: grid; gap: 8px; }
+  .lab { font: var(--caption); color: var(--fg3); }
+  .lab b { color: var(--fg2); font-weight: 600; }
+  .set { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+  .col { width: 300px; display: grid; gap: 8px; }
+  .no { font: var(--caption); color: var(--fg3); max-width: 620px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+  /* The pre-decision treatment, reproduced for contrast only. Not a token set. */
+  .was {
+    display: inline-flex; align-items: center; justify-content: flex-start;
+    width: 300px; min-height: 46px; padding: 12px 14px;
+    border: 1px solid rgba(22,26,32,.16); border-radius: 14px;
+    background: rgba(22,26,32,.043); color: #161a20;
+    font: var(--t-choice); font-weight: 600; text-align: left;
+  }
+  .was.sel {
+    border-color: rgba(47,115,255,.52);
+    background: color-mix(in srgb, #2f73ff 16%, #fff);
+    box-shadow: inset 0 0 0 1px rgba(47,115,255,.36), 0 10px 24px rgba(47,115,255,.14);
+  }
+</style></head>
+<body class="vive">
+  <p class="lede"><b>Two weights, and the product had only one.</b> Answering a question happens once per question, a dozen times per run — it is a light, repeated action. Submitting happens once and commits the whole run. The shipped test flow gives both the same treatment, a filled chip at <span class="t-code">font-semibold</span>, separated only by fill strength, so every answer carries the weight of a decision.</p>
+
+  <div class="row">
+    <span class="lab"><b>Answer button</b> — <span class="t-code">.vt-choice.vt-choice--answer</span> · rest, hover, selected</span>
+    <div class="set">
+      <button class="vt-choice vt-choice--answer" type="button"><span class="vt-choice__text">아침 일찍 블록</span><span class="vt-choice__mark"></span></button>
+      <button class="vt-choice vt-choice--answer is-hover" type="button"><span class="vt-choice__text">밤샘 스프린트</span><span class="vt-choice__mark"></span></button>
+      <button class="vt-choice vt-choice--answer is-selected" type="button"><span class="vt-choice__text">둘 다 비슷하다</span><span class="vt-choice__mark"></span></button>
+    </div>
+    <span class="lab">White surface, hairline edge, 400 weight. Hover deepens the edge to sage over a sage-muted fill. The disc is what says <em>chosen</em> — and what stays once the pointer leaves.</span>
+  </div>
+
+  <div class="row">
+    <span class="lab"><b>Submit CTA</b> — <span class="t-code">.vt-cta</span> · rest, hover</span>
+    <div class="set">
+      <button class="vt-cta" type="button">결과 보기</button>
+      <button class="vt-cta is-hover" type="button">결과 보기</button>
+    </div>
+    <span class="lab">Filled accent, 600 weight, a 1px lift on hover. Retained from the current flow, because this one really is a decision.</span>
+  </div>
+
+  <div class="row">
+    <span class="lab"><b>What ships today</b> — for contrast, not for reuse</span>
+    <div class="set">
+      <span class="was">아침 일찍 블록</span>
+      <span class="was sel">밤샘 스프린트</span>
+    </div>
+    <span class="lab">Filled neutral chip at 600 weight; selecting moves it to the accent fill with an inset ring and a drop shadow — the submit treatment, arrived at by picking an answer.</span>
+  </div>
+
+  <p class="no"><b>Why the same type as the catalog choice.</b> The expanded catalog card previews the first question of a test, and entering the test shows that same question again. If the control is a light choice in one place and a heavy CTA in the other, the seam shows at exactly the moment continuity matters most. One type, one variant.</p>
+  <p class="no"><b>Never:</b> an arrow on the answer variant — inside the test, answering navigates nowhere, and the glyph would promise something the interaction does not do. No <span class="t-code">min-height</span> beyond what the padding already gives (the box clears 44px on its own), and no shadow on hover.</p>
+</body></html>

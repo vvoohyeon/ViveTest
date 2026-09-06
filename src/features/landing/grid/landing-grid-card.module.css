@@ -12,6 +12,16 @@
   --normal-tag-radius: 5px;
   --tag-min-width: 56px;
 
+  /* M-01 (BQ-38, 2026-09-07): the core expand/collapse easing. Every animation
+     below shipped `linear` while `docs/req-landing.md` §8.3 required the easing to
+     be unified on an ease-in-out curve — code and contract disagreed and no test
+     caught it. Decided by side-by-side comparison at 0.25x speed. Durations,
+     phases, staggers and the reduced-motion path are unchanged; only the curve is.
+     Symmetry matters here: §8.3 also requires Expanded→Normal to return on the
+     same axis and curve, and a decelerate-only curve ends the close faster than
+     the open. */
+  --landing-card-motion-ease: cubic-bezier(0.45, 0, 0.2, 1);
+
   /* Wave 8 Blog hover skin tokens; scoped here until Wave 16 global token migration. */
   --blog-hover-border: #5c8e78;
   --blog-hover-shadow: 0 4px 14px rgb(92 142 120 / 22%);
@@ -174,19 +184,19 @@
 }
 
 .root.desktopMotionEnter .expandedShellFrame {
-  animation: landing-card-shell-frame-expand var(--landing-card-motion-ms) linear both;
+  animation: landing-card-shell-frame-expand var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
 }
 
 .root.desktopMotionEnter .expandedShell {
-  animation: landing-card-shell-expand var(--landing-card-motion-ms) linear both;
+  animation: landing-card-shell-expand var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
 }
 
 .root.desktopMotionExit .expandedShellFrame {
-  animation: landing-card-shell-frame-collapse var(--landing-card-motion-ms) linear both;
+  animation: landing-card-shell-frame-collapse var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
 }
 
 .root.desktopMotionExit .expandedShell {
-  animation: landing-card-shell-collapse var(--landing-card-motion-ms) linear both;
+  animation: landing-card-shell-collapse var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
 }
 
 .root.desktopMotionExit .expandedSurface {
@@ -218,17 +228,17 @@
 }
 
 .root.desktopMotionEnter .motionStageEarly {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 40ms;
 }
 
 .root.desktopMotionEnter .motionStageMiddle {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 100ms;
 }
 
 .root.desktopMotionEnter .motionStageLate {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 160ms;
 }
 
@@ -241,65 +251,65 @@
 .root.mobileTransientOpening .normalSubtitle,
 .root.mobileTransientOpening .normalTags,
 .root.mobileTransientOpening .normalTagsGap {
-  animation: landing-card-normal-slot-exit 120ms linear both;
+  animation: landing-card-normal-slot-exit 120ms var(--landing-card-motion-ease) both;
 }
 
 .root.mobileTransientClosing .normalThumbnail {
-  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 20ms;
 }
 
 .root.mobileTransientClosing .normalSubtitle {
-  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 80ms;
 }
 
 .root.mobileTransientClosing .normalTagsGap,
 .root.mobileTransientClosing .normalTags {
-  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 140ms;
 }
 
 .transientShell.transientOpening {
-  animation: landing-card-mobile-open-shell var(--landing-card-motion-ms) linear both;
+  animation: landing-card-mobile-open-shell var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
 }
 
 .transientShell.transientClosing {
-  animation: landing-card-mobile-close-shell var(--landing-card-motion-ms) linear both;
+  animation: landing-card-mobile-close-shell var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
 }
 
 .transientShell.transientClosing .transientPanel {
-  animation: landing-card-mobile-close-surface var(--landing-card-motion-ms) linear both;
+  animation: landing-card-mobile-close-surface var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
 }
 
 .transientShell .motionStageEarly {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 40ms;
 }
 
 .transientShell .motionStageMiddle {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 100ms;
 }
 
 .transientShell .motionStageLate {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   animation-delay: 160ms;
 }
 
 .transientShell.transientClosing .motionStageEarly,
 .transientShell.transientClosing .motionStageMiddle,
 .transientShell.transientClosing .motionStageLate {
-  animation: landing-card-detail-quiet-exit var(--landing-card-motion-ms) linear both;
+  animation: landing-card-detail-quiet-exit var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
 }
 
 .root.reducedMotion.desktopMotionEnter .expandedBody {
-  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
+  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   transform: none;
 }
 
 .root.reducedMotion.desktopMotionExit .expandedBody {
-  animation: landing-card-shell-reduced-close var(--landing-card-motion-ms) linear both;
+  animation: landing-card-shell-reduced-close var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   transform: none;
 }
 
@@ -347,7 +357,7 @@
 .root.reducedMotion.mobileTransientClosing .normalSubtitle,
 .root.reducedMotion.mobileTransientClosing .normalTags,
 .root.reducedMotion.mobileTransientClosing .normalTagsGap {
-  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
+  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   transform: none;
 }
 

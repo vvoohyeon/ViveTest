@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Spacing" name="Motion" subtitle="Realized 120 / 140 / 180 / 280ms · easing is OPEN (M-01)" viewport="700x460" -->
+<!-- @dsCard group="Spacing" name="Motion" subtitle="Realized 120 / 140 / 180 / 280ms · core easing decided (M-01)" viewport="700x460" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <style>
@@ -34,12 +34,12 @@
   }
 </style></head>
 <body class="vive">
-  <div class="track ships"><span class="lab">linear — ships today</span><div class="rail"><div class="dot"></div></div></div>
+  <div class="track ships"><span class="lab">linear — retired</span><div class="rail"><div class="dot"></div></div></div>
   <div class="track std"><span class="lab">--ease-standard</span><div class="rail"><div class="dot"></div></div></div>
   <div class="track out"><span class="lab">--ease-out</span><div class="rail"><div class="dot"></div></div></div>
-  <div class="track inout"><span class="lab">--ease-in-out</span><div class="rail"><div class="dot"></div></div></div>
+  <div class="track inout"><span class="lab">--ease-in-out — shipped</span><div class="rail"><div class="dot"></div></div></div>
 
-  <div class="flag"><b>M-01 — open.</b> All 21 landing-card animations ship <span class="t-code">linear</span>, and no <span class="t-code">animation-timing-function</span> is declared anywhere, while <span class="t-code">req-landing.md</span> §8.3 requires the easing to be unified on an ease-in-out curve. Code and contract disagree and no test catches it. The three candidates run above at the realized 280ms; none of them is the decision.</div>
+  <div class="flag"><b>M-01 — decided 2026-09-07.</b> The core expand and collapse takes <span class="t-code">--ease-in-out</span>. All 21 landing-card animations had shipped <span class="t-code">linear</span> with no <span class="t-code">animation-timing-function</span> declared anywhere, against <span class="t-code">req-landing.md</span> §8.3. The two decelerate curves were rejected because §8.3 also requires the close to return on the same curve as the open, and a decelerate-only curve ends the close faster than the open. Durations, phases and staggers are unchanged — only the curve moved. The top rail is kept as the before.</div>
 
   <div class="ladder">
     <span><b>120ms</b> slot exit</span>

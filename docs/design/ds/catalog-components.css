@@ -328,6 +328,101 @@
   overflow-wrap: anywhere;
 }
 
+/* ---- Answer choice, test-flow variant --------------------------------------
+
+   The same type, one variant. The test flow asks the same question the expanded
+   catalog card previews, so the two must read as the same control — a light,
+   repeated answer, not a decision to steel yourself for.
+
+   The product does not do this today: its answer button is a filled neutral chip
+   at `font-semibold`, and selecting one moves it to the accent fill with an inset
+   ring and a shadow — the same treatment as the submit button, separated only by
+   fill strength. That weight is wrong for an action taken once per question, a
+   dozen times per run. This variant keeps the white surface and the 400 weight
+   and lets the edge carry the state.
+
+   Two differences from the catalog choice:
+   - **No arrow.** In the catalog the `→` means "this takes you into the test".
+     Inside the test, answering navigates nowhere new, so the glyph would be a
+     promise the interaction does not keep. The trailing slot stays empty until
+     something is chosen.
+   - **A selected state**, which the catalog has no need for. Hover and selected
+     share the sage edge and fill; the disc is what distinguishes them, and it is
+     what survives the pointer leaving.
+
+   The submit button on the last question keeps the filled CTA treatment. That is
+   a decision, taken once, and it should look like one — see `.vt-cta`. */
+
+.vt-choice--answer .vt-choice__arrow { display: none; }
+
+.vt-choice--answer .vt-choice__mark {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--hairline-strong);
+  transition: background-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+
+.vt-choice--answer.is-selected {
+  border-color: var(--sage);
+  background: var(--sage-muted);
+}
+
+.vt-choice--answer.is-selected .vt-choice__mark {
+  background: var(--sage);
+  box-shadow: inset 0 0 0 1px var(--sage);
+}
+
+/* ---- Primary CTA ------------------------------------------------------------
+
+   Retained from the current test flow, deliberately. Submit is taken once at the
+   end of a run and it commits the whole thing, so it earns the filled accent, the
+   raised edge and the 1px lift on hover — the weight the answer buttons were
+   borrowing. Nothing else in the product uses this treatment. */
+
+.vt-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 12px 18px;
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-md);
+  background: var(--sage);
+  color: #fff;
+  font: var(--t-choice);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    transform var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
+}
+
+.vt-cta:hover,
+.vt-cta.is-hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.vt-cta:active { transform: translateY(0); }
+
+.vt-cta:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-cta { transition: none; }
+  .vt-cta:hover, .vt-cta.is-hover { transform: none; }
+}
+
 /* Decorative only — it carries no meaning and is hidden from assistive tech. */
 .vt-choice__arrow {
   flex: none;

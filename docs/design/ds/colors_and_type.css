@@ -248,12 +248,21 @@
      realized values win over the pre-rebaseline design tokens (which claimed
      220ms / 260ms and were never implemented).
 
-     [OPEN — finding M-01] Every one of the 21 landing-card animations ships
-     `linear`, and no `animation-timing-function` is declared anywhere, while
-     `req-landing.md` §8.3 requires the easing to be unified on an ease-in-out
-     curve. Code and contract disagree, and no test catches it. Which curve the
-     core motion takes is decided in the motion pass — none of the four curves
-     below is that decision.
+     [M-01 — DECIDED 2026-09-07, BQ-38] The core expand and collapse takes
+     `--ease-in-out`. Until this decision all 21 landing-card animations shipped
+     `linear` with no `animation-timing-function` declared anywhere, against
+     `req-landing.md` §8.3's requirement that the easing be unified on an
+     ease-in-out curve; no test caught the gap. Decided by running the three
+     candidates side by side on the real expand at 0.25x speed.
+
+     Why this one and not the two decelerate curves: §8.3 also requires
+     Expanded→Normal to return on the same axis and curve, and a decelerate-only
+     curve ends the close faster than the open — the asymmetry reads as the card
+     being dismissed rather than closing. `--ease-in-out` is also the only
+     candidate that satisfies §8.3 as written, so it needed no amendment to a
+     contract decision B had frozen. The product now declares the curve once, as
+     `--landing-card-motion-ease` in `landing-grid-card.module.css`; durations,
+     phases, staggers and the reduced-motion path are unchanged.
 
      NAME COLLISION, now resolved. `--ease-out` named two different curves:
      `design.md` §5.11 binds it to `cubic-bezier(0.0, 0, 0.2, 1)`, and the
@@ -266,10 +275,10 @@
      now reached by its `design.md` name, `--ease-standard`; generic components
      that ask for `--ease-out` get a gentler decelerate than before.
      ====================================================================== */
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);    /* entrances, state changes */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);    /* entrances, one-way reveals */
   --ease-out:      cubic-bezier(0.0, 0, 0.2, 1);
   --ease-in:       cubic-bezier(0.4, 0, 1, 1);
-  --ease-in-out:   cubic-bezier(0.45, 0, 0.2, 1); /* VIVE only — no `design.md` counterpart */
+  --ease-in-out:   cubic-bezier(0.45, 0, 0.2, 1); /* core expand/collapse (M-01) */
 
   --dur-micro:  120ms;   /* mobile normal-slot exit                     */
   --dur-fast:   140ms;   /* hover / focus skin transitions              */
