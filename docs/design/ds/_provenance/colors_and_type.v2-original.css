@@ -1,0 +1,258 @@
+/* ============================================================================
+   PROVENANCE COPY — DO NOT EDIT, DO NOT PUSH.
+
+   Verbatim snapshot of `colors_and_type.css` as it stood in the Claude Design
+   project "VIVE Design System v2" (cd630eec-25e4-4613-a58f-c671c80297ca),
+   fetched 2026-09-06 immediately before the design-system rebaseline
+   overwrote it. Kept so the pre-rebaseline foundation can be restored without
+   depending on Claude Design's version history.
+
+   The live definition is `../colors_and_type.css`.
+   ============================================================================ */
+
+/* ============================================================================
+   VIVE Design System — Foundations
+   Color · Type · Spacing · Radius · Elevation · Motion
+   ----------------------------------------------------------------------------
+   Calm, trustworthy, lightweight product UI. Warm-neutral surfaces, a
+   sage / moss primary accent, restrained depth, and quiet motion.
+   Typeface: Pretendard Variable (Korean + Latin), with a mono fallback.
+   ============================================================================ */
+
+/* ---- Fonts ---------------------------------------------------------------- */
+@font-face {
+  font-family: 'Pretendard Variable';
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/PretendardVariable.woff2') format('woff2-variations');
+}
+
+:root {
+  /* ======================================================================
+     COLOR — base palette
+     ====================================================================== */
+
+  /* Sage / Moss — primary accent. A green-grey that reads calm, not loud. */
+  --sage-50:  #f2f5f1;
+  --sage-100: #e3eae2;
+  --sage-200: #c8d6c8;
+  --sage-300: #a6bca8;
+  --sage-400: #819c85;
+  --sage-500: #5f7b64;   /* base accent */
+  --sage-600: #4c6451;   /* hover       */
+  --sage-700: #3d5141;   /* pressed     */
+  --sage-800: #2f3f33;
+  --sage-900: #233028;
+
+  /* Warm neutrals — surfaces & ink. Slightly warm grey, never cool. */
+  --warm-0:   #ffffff;   /* pure white, rarely used raw */
+  --warm-25:  #fdfcfa;   /* elevated surface            */
+  --warm-50:  #faf9f6;   /* page canvas                 */
+  --warm-100: #f4f2ec;   /* soft sunken surface         */
+  --warm-150: #ece9e1;   /* stronger fill               */
+  --warm-200: #e6e3db;   /* hairline / border           */
+  --warm-300: #d6d2c7;   /* strong border               */
+  --warm-400: #b3aea1;   /* disabled fg, placeholder    */
+  --warm-500: #908b7e;   /* subtle text                 */
+  --warm-600: #6e6b62;   /* muted text                  */
+  --warm-700: #514e47;   /* body text                   */
+  --warm-800: #34322d;   /* strong body                 */
+  --warm-900: #1f1e1b;   /* ink — near-black, warm      */
+
+  /* Clay — warm secondary accent. Used sparingly for highlight & emphasis. */
+  --clay-50:  #faf2ea;
+  --clay-100: #f3e2d2;
+  --clay-200: #e7c4a6;
+  --clay-300: #d6a079;
+  --clay-400: #c2855b;   /* base secondary */
+  --clay-500: #a96e47;
+  --clay-600: #8a5837;
+
+  /* Semantic hues — muted to match the calm palette. */
+  --green-100: #dcefe0;  --green-500: #3f8c57;  --green-600: #2f6e44;
+  --amber-100: #f7eccf;  --amber-500: #b5891f;  --amber-600: #8f6a13;
+  --red-100:   #f6dcd7;  --red-500:   #bd5347;  --red-600:   #9a3f35;
+  --blue-100:  #dde7f0;  --blue-500:  #5a7a99;  --blue-600:  #45617c;
+
+  /* ======================================================================
+     COLOR — semantic tokens (reference these in product work)
+     ====================================================================== */
+
+  /* Surfaces */
+  --canvas:          var(--warm-50);    /* default page floor            */
+  --surface:         var(--warm-25);    /* cards, panels                 */
+  --surface-raised:  var(--warm-0);     /* menus, dialogs, popovers      */
+  --surface-sunken:  var(--warm-100);   /* wells, code, inset areas      */
+  --surface-strong:  var(--warm-150);   /* emphasized fills              */
+
+  /* Foreground / text */
+  --fg1: var(--warm-900);   /* headlines, primary text          */
+  --fg2: var(--warm-700);   /* body / running text              */
+  --fg3: var(--warm-600);   /* muted — captions, secondary      */
+  --fg4: var(--warm-500);   /* subtle — placeholder, fine print */
+  --fg-disabled: var(--warm-400);
+  --fg-on-accent: #ffffff;  /* text on sage / clay fills        */
+
+  /* Lines */
+  --border:        var(--warm-200);
+  --border-strong: var(--warm-300);
+  --border-focus:  var(--sage-500);
+
+  /* Accent (primary) */
+  --accent:          var(--sage-500);
+  --accent-hover:    var(--sage-600);
+  --accent-pressed:  var(--sage-700);
+  --accent-subtle:   var(--sage-100);   /* tint backgrounds            */
+  --accent-subtle-2: var(--sage-50);
+  --accent-fg:       var(--sage-700);   /* accent-colored text on light */
+
+  /* Accent (secondary / warm) */
+  --accent2:        var(--clay-400);
+  --accent2-hover:  var(--clay-500);
+  --accent2-subtle: var(--clay-50);
+  --accent2-fg:     var(--clay-600);
+
+  /* Semantic states */
+  --success:        var(--green-500);
+  --success-fg:     var(--green-600);
+  --success-subtle: var(--green-100);
+  --warning:        var(--amber-500);
+  --warning-fg:     var(--amber-600);
+  --warning-subtle: var(--amber-100);
+  --danger:         var(--red-500);
+  --danger-fg:      var(--red-600);
+  --danger-subtle:  var(--red-100);
+  --info:           var(--blue-500);
+  --info-fg:        var(--blue-600);
+  --info-subtle:    var(--blue-100);
+
+  /* Focus ring */
+  --ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--sage-400);
+
+  /* ======================================================================
+     TYPE
+     ====================================================================== */
+  --font-sans: 'Pretendard Variable', -apple-system, BlinkMacSystemFont,
+               'Apple SD Gothic Neo', 'Segoe UI', Roboto, 'Helvetica Neue',
+               sans-serif;
+  /* JetBrains Mono substitutes for a bespoke mono — see README (flagged). */
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code',
+               Menlo, Consolas, monospace;
+
+  /* Display — for hero / marketing moments. Tight tracking, weight 700. */
+  --display-xl: 700 56px/1.05 var(--font-sans);
+  --display-lg: 700 44px/1.08 var(--font-sans);
+  --display-md: 700 36px/1.12 var(--font-sans);
+
+  /* Headings */
+  --h1: 700 30px/1.2  var(--font-sans);
+  --h2: 600 24px/1.25 var(--font-sans);
+  --h3: 600 20px/1.3  var(--font-sans);
+  --h4: 600 18px/1.4  var(--font-sans);
+
+  /* Body & UI */
+  --body-lg: 400 18px/1.6  var(--font-sans);
+  --body:    400 16px/1.6  var(--font-sans);
+  --body-sm: 400 14px/1.55 var(--font-sans);
+  --label:   500 14px/1.4  var(--font-sans);   /* form labels, nav        */
+  --caption: 400 13px/1.45 var(--font-sans);   /* helper text, meta       */
+  --overline:600 12px/1.4  var(--font-sans);   /* eyebrows — uppercase    */
+  --button:  600 15px/1    var(--font-sans);
+  --code:    400 14px/1.55 var(--font-mono);
+
+  /* Tracking helpers */
+  --track-display: -0.02em;
+  --track-tight:   -0.01em;
+  --track-over:     0.08em;
+
+  /* ======================================================================
+     SPACING — 4px base
+     ====================================================================== */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ======================================================================
+     RADIUS — restrained, calm. Softer than playful, firmer than sharp.
+     ====================================================================== */
+  --radius-xs:  4px;
+  --radius-sm:  6px;
+  --radius-md:  8px;    /* buttons, inputs                 */
+  --radius-lg:  12px;   /* cards, panels                   */
+  --radius-xl:  16px;   /* large containers, dialogs       */
+  --radius-2xl: 20px;   /* hero surfaces                   */
+  --radius-pill: 9999px;
+
+  /* ======================================================================
+     ELEVATION — warm-tinted, low-alpha. Depth is a whisper.
+     ====================================================================== */
+  --shadow-xs: 0 1px 2px rgba(31, 30, 27, 0.05);
+  --shadow-sm: 0 1px 3px rgba(31, 30, 27, 0.07), 0 1px 2px rgba(31, 30, 27, 0.04);
+  --shadow-md: 0 4px 12px rgba(31, 30, 27, 0.08), 0 1px 3px rgba(31, 30, 27, 0.05);
+  --shadow-lg: 0 12px 28px rgba(31, 30, 27, 0.10), 0 2px 6px rgba(31, 30, 27, 0.06);
+  --shadow-xl: 0 24px 56px rgba(31, 30, 27, 0.14), 0 4px 12px rgba(31, 30, 27, 0.07);
+
+  /* ======================================================================
+     MOTION — calm. Quiet ease-out, no bounce, no decorative motion.
+     ====================================================================== */
+  --ease-out:    cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 260ms;
+
+  /* ======================================================================
+     LAYOUT
+     ====================================================================== */
+  --container: 1200px;
+  --container-narrow: 760px;
+  --tap-min: 44px;   /* minimum touch target */
+}
+
+/* ============================================================================
+   SEMANTIC ELEMENT DEFAULTS — opt-in via .vive scope so the tokens above can
+   be reused without forcing global element styles.
+   ============================================================================ */
+.vive {
+  font: var(--body);
+  color: var(--fg2);
+  background: var(--canvas);
+  letter-spacing: var(--track-tight);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.vive h1 { font: var(--h1); color: var(--fg1); letter-spacing: var(--track-tight); margin: 0; }
+.vive h2 { font: var(--h2); color: var(--fg1); letter-spacing: var(--track-tight); margin: 0; }
+.vive h3 { font: var(--h3); color: var(--fg1); margin: 0; }
+.vive h4 { font: var(--h4); color: var(--fg1); margin: 0; }
+.vive p  { font: var(--body); color: var(--fg2); margin: 0; text-wrap: pretty; }
+.vive small { font: var(--caption); color: var(--fg3); }
+.vive code, .vive kbd, .vive pre { font: var(--code); }
+.vive a { color: var(--accent-fg); text-underline-offset: 2px; }
+
+/* Utility type classes */
+.vive .t-display-xl { font: var(--display-xl); letter-spacing: var(--track-display); color: var(--fg1); }
+.vive .t-display-lg { font: var(--display-lg); letter-spacing: var(--track-display); color: var(--fg1); }
+.vive .t-display-md { font: var(--display-md); letter-spacing: var(--track-display); color: var(--fg1); }
+.vive .t-body-lg { font: var(--body-lg); }
+.vive .t-body-sm { font: var(--body-sm); }
+.vive .t-label   { font: var(--label); color: var(--fg2); }
+.vive .t-caption { font: var(--caption); color: var(--fg3); }
+.vive .t-overline {
+  font: var(--overline);
+  letter-spacing: var(--track-over);
+  text-transform: uppercase;
+  color: var(--fg3);
+}
+.vive .t-code { font: var(--code); }

@@ -1,0 +1,419 @@
+/* ============================================================================
+   VIVE Design System — Foundations (rebaseline 2026-09-06)
+   Color · Type · Spacing · Radius · Elevation · Motion
+   ----------------------------------------------------------------------------
+   THIS FILE IS THE SHARED DEFINITION. It lives in the repository at
+   `docs/design/ds/colors_and_type.css` and is pushed verbatim to the Claude
+   Design project "VIVE Design System v2" (cd630eec-25e4-4613-a58f-c671c80297ca)
+   at the same path. Both sides consume one definition; neither re-types values.
+
+   Three layers, outermost last:
+
+     1. BASE PRIMITIVES  — VIVE scale names (`--warm-*`, `--sage-*`, `--space-N`,
+        `--radius-*`, `--shadow-*`, `--dur-*`). Structure from the VIVE system.
+     2. SEMANTIC ROLES   — VIVE role names (`--canvas`, `--fg1`, `--accent`,
+        `--border`). Unchanged names so every existing preview and UI kit in the
+        design system keeps rendering.
+     3. CATALOG ALIASES  — the ViveTest catalog's own vocabulary as written in
+        `docs/design/design.md` §5 (`--ink`, `--hairline`, `--sage`, `--tag-bg`).
+
+   VALUES come from the ViveTest catalog as actually realized in code
+   (`src/features/landing/grid/landing-grid-card.module.css` scoped tokens,
+   verified against `docs/design/design.md` §5). NAMES and structure come from
+   the VIVE system. That is decision A of the 2026-09-06 rebaseline; the
+   provenance of each mapping is `_provenance/colors_and_type.v2-original.css`
+   (the pre-rebaseline foundation) and the design project's
+   `wave16-token-mapping-reference.md`.
+
+   Steps marked `[not realized]` are VIVE-only: the catalog does not use them,
+   so they keep their VIVE value and are available for non-catalog surfaces.
+   Items marked `[OPEN]` are not decided — do not treat them as settled.
+   ============================================================================ */
+
+/* ---- Fonts ---------------------------------------------------------------- */
+@font-face {
+  font-family: 'Pretendard Variable';
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/PretendardVariable.woff2') format('woff2-variations');
+}
+
+:root {
+  /* ======================================================================
+     1. BASE PRIMITIVES
+     ====================================================================== */
+
+  /* Sage / Moss — primary accent.
+     `--sage-500` / `-200` / `-100` are the catalog's realized accent, soft and
+     muted tints. The remaining steps are re-derived around that anchor
+     (H 147–157, S 20–28%) so hover and pressed states stay in the same hue
+     family; the pre-rebaseline ramp was anchored on a duller, less teal
+     #5f7b64 and its dark steps no longer belonged to this accent. */
+  --sage-50:  #f4f8f6;   /* [not realized] */
+  --sage-100: #e8f0ec;   /* catalog --sage-muted: active chip, choice hover */
+  --sage-200: #c9dbd1;   /* catalog --sage-soft */
+  --sage-300: #a6c5b5;   /* [not realized] */
+  --sage-400: #7daa95;   /* [not realized] — focus-ring halo */
+  --sage-500: #5c8e78;   /* catalog --sage: base accent, focus, expanded edge */
+  --sage-600: #4b7764;   /* hover   [not realized by the catalog — see D-03] */
+  --sage-700: #396050;   /* pressed [not realized by the catalog — see D-03] */
+  --sage-800: #2b4a3e;   /* [not realized] */
+  --sage-900: #1f382e;   /* [not realized] */
+
+  /* Neutrals — surfaces, lines, and ink.
+     NOTE (finding D-01): steps 0–300 are warm (R > B); steps 500–900 are the
+     catalog's neutral-cool ink ramp (B >= R). The scale therefore changes
+     temperature between 400 and 500. Both halves are the realized product
+     values and are frozen for this pass; whether to unify the temperature is a
+     question for the design pass, not something to fix silently here. */
+  --warm-0:   #ffffff;   /* catalog --canvas-elevated: card fill            */
+  --warm-25:  #fdfcfa;   /* [not realized]                                  */
+  --warm-50:  #fbfaf7;   /* catalog --canvas: warm off-white page floor     */
+  --warm-100: #f4f1ea;   /* catalog --surface-soft: unavailable card        */
+  --warm-150: #ece8df;   /* catalog --surface-muted / --tag-bg              */
+  --warm-200: #e6e2d8;   /* catalog --hairline: 1px structural borders      */
+  --warm-300: #d6d1c4;   /* catalog --hairline-strong: choice-button edge   */
+  --warm-400: #b3aea1;   /* [not realized] — disabled fg, placeholder       */
+  --warm-500: #a6a6ae;   /* catalog --muted-soft: fine / dot separators     */
+  --warm-600: #7a7a85;   /* catalog --muted: context label, meta, captions  */
+  --warm-700: #4a4a55;   /* catalog --ink-body: running text, subtitle      */
+  --warm-800: #2e2e36;   /* catalog --ink-soft: choice text                 */
+  --warm-900: #1a1a1f;   /* catalog --ink: headlines, expanded question     */
+
+  /* Clay — warm secondary accent. [not realized by the catalog]
+     The catalog uses no secondary accent. Kept for non-catalog VIVE surfaces. */
+  --clay-50:  #faf2ea;
+  --clay-100: #f3e2d2;
+  --clay-200: #e7c4a6;
+  --clay-300: #d6a079;
+  --clay-400: #c2855b;
+  --clay-500: #a96e47;
+  --clay-600: #8a5837;
+
+  /* Semantic hues. [not realized by the catalog] */
+  --green-100: #dcefe0;  --green-500: #3f8c57;  --green-600: #2f6e44;
+  --amber-100: #f7eccf;  --amber-500: #b5891f;  --amber-600: #8f6a13;
+  --red-100:   #f6dcd7;  --red-500:   #bd5347;  --red-600:   #9a3f35;
+  --blue-100:  #dde7f0;  --blue-500:  #5a7a99;  --blue-600:  #45617c;
+
+  /* ======================================================================
+     2. SEMANTIC ROLES — VIVE vocabulary (names unchanged)
+     ====================================================================== */
+
+  /* Surfaces */
+  --canvas:          var(--warm-50);
+  --surface:         var(--warm-0);     /* catalog cards sit on exact white */
+  --surface-raised:  var(--warm-0);
+  --surface-sunken:  var(--warm-100);
+  --surface-strong:  var(--warm-150);
+
+  /* Foreground / text */
+  --fg1: var(--warm-900);
+  --fg2: var(--warm-700);
+  --fg3: var(--warm-600);
+  --fg4: var(--warm-500);
+  --fg-disabled: var(--warm-400);
+  --fg-on-accent: #ffffff;
+
+  /* Lines */
+  --border:        var(--warm-200);
+  --border-strong: var(--warm-300);
+  --border-focus:  var(--sage-500);
+
+  /* Accent (primary) */
+  --accent:          var(--sage-500);
+  --accent-hover:    var(--sage-600);
+  --accent-pressed:  var(--sage-700);
+  --accent-subtle:   var(--sage-100);
+  --accent-subtle-2: var(--sage-50);
+  --accent-fg:       var(--sage-700);
+
+  /* Accent (secondary / warm). [not realized by the catalog] */
+  --accent2:        var(--clay-400);
+  --accent2-hover:  var(--clay-500);
+  --accent2-subtle: var(--clay-50);
+  --accent2-fg:     var(--clay-600);
+
+  /* Semantic states. [not realized by the catalog] */
+  --success:        var(--green-500);
+  --success-fg:     var(--green-600);
+  --success-subtle: var(--green-100);
+  --warning:        var(--amber-500);
+  --warning-fg:     var(--amber-600);
+  --warning-subtle: var(--amber-100);
+  --danger:         var(--red-500);
+  --danger-fg:      var(--red-600);
+  --danger-subtle:  var(--red-100);
+  --info:           var(--blue-500);
+  --info-fg:        var(--blue-600);
+  --info-subtle:    var(--blue-100);
+
+  /* Generic focus ring for non-catalog VIVE components. The catalog's own
+     focus treatment is `--focus-ring` in layer 3 (2px outline, 2px offset). */
+  --ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--sage-400);
+
+  /* ======================================================================
+     TYPE
+     ====================================================================== */
+  --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system,
+               BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, 'Noto Sans KR', sans-serif;
+  /* JetBrains Mono substitutes for a bespoke mono. [not realized] */
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code',
+               Menlo, Consolas, monospace;
+
+  /* Display — hero / marketing moments. [not realized by the catalog: the
+     catalog has no hero band, `design.md` §7.1.] */
+  --display-xl: 700 56px/1.05 var(--font-sans);
+  --display-lg: 700 44px/1.08 var(--font-sans);
+  --display-md: 700 36px/1.12 var(--font-sans);
+
+  /* Headings */
+  --h1: 700 30px/1.2  var(--font-sans);
+  --h2: 600 24px/1.25 var(--font-sans);
+  --h3: 600 20px/1.3  var(--font-sans);   /* = catalog card title */
+  --h4: 600 18px/1.4  var(--font-sans);
+
+  /* Body & UI */
+  --body-lg: 400 18px/1.6  var(--font-sans);
+  --body:    400 16px/1.6  var(--font-sans);
+  --body-sm: 400 14px/1.55 var(--font-sans);
+  --label:   500 14px/1.4  var(--font-sans);
+  --caption: 400 13px/1.45 var(--font-sans);
+  --overline:600 12px/1.4  var(--font-sans);
+  --button:  600 15px/1    var(--font-sans);
+  --code:    400 14px/1.55 var(--font-mono);
+
+  /* Tracking helpers */
+  --track-display: -0.02em;
+  --track-tight:   -0.01em;
+  --track-over:     0.08em;
+
+  /* ======================================================================
+     SPACING — 4px base
+     ====================================================================== */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ======================================================================
+     RADIUS
+     Re-indexed so the ramp carries the catalog's realized corners (5 / 8 / 12 /
+     16 / 24 / 999) as its main steps, with 4px kept below them and 32px above.
+     Generic VIVE components therefore round one step softer than before —
+     intended: the design system now speaks the product's radii.
+     ====================================================================== */
+  --radius-2xs:  4px;    /* [not realized] */
+  --radius-xs:   5px;    /* tag chips                        */
+  --radius-sm:   8px;    /* small controls                   */
+  --radius-md:   12px;   /* choice buttons, thumbnails       */
+  --radius-lg:   16px;   /* cards                            */
+  --radius-xl:   24px;   /* mobile menu panel                */
+  --radius-2xl:  32px;   /* [not realized] */
+  --radius-pill: 999px;
+
+  /* ======================================================================
+     ELEVATION — low-alpha, tinted with the ink colour. Depth is a whisper.
+     Tinted rgba(26,26,31,…) to match the catalog's ink (see D-01).
+     ====================================================================== */
+  --shadow-xs: 0 1px 2px rgba(26, 26, 31, 0.04);
+  --shadow-sm: 0 1px 3px rgba(26, 26, 31, 0.06), 0 1px 2px rgba(26, 26, 31, 0.04);
+  --shadow-md: 0 4px 14px rgba(26, 26, 31, 0.06);
+  --shadow-lg: 0 12px 32px rgba(26, 26, 31, 0.08);
+  --shadow-xl: 0 24px 64px rgba(26, 26, 31, 0.18);
+
+  /* ======================================================================
+     MOTION
+     Durations are the values the product actually ships, read from
+     `landing-grid-card.module.css` and `landing-grid-card.tsx`. Per decision B
+     of this rebaseline, `docs/req-landing.md` §8 owns motion behaviour and its
+     realized values win over the pre-rebaseline design tokens (which claimed
+     220ms / 260ms and were never implemented).
+
+     [OPEN — finding M-01] Every one of the 21 landing-card animations ships
+     `linear`, and no `animation-timing-function` is declared anywhere, while
+     `req-landing.md` §8.3 requires the easing to be unified on an ease-in-out
+     curve. Code and contract disagree, and no test catches it. Which curve the
+     core motion takes is decided in the motion pass — do not read
+     `--ease-standard` below as that decision.
+     ====================================================================== */
+  --ease-out:      cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out:   cubic-bezier(0.45, 0, 0.2, 1);
+  --ease-in:       cubic-bezier(0.4, 0, 1, 1);
+  --ease-standard: var(--ease-out);   /* `design.md` §5.11 name — [OPEN] */
+
+  --dur-micro:  120ms;   /* mobile normal-slot exit                     */
+  --dur-fast:   140ms;   /* hover / focus skin transitions              */
+  --dur-base:   180ms;   /* general UI; also the reduced-motion core     */
+  --dur-slow:   280ms;   /* core expand / collapse                       */
+  --dur-expand: var(--dur-slow);
+  --dur-reduced: var(--dur-base);
+
+  /* Staged reveal offsets for the expanded card (`req-landing.md` §8.3). */
+  --stagger-1: 40ms;
+  --stagger-2: 100ms;
+  --stagger-3: 160ms;
+  /* Mobile collapse re-entry offsets. */
+  --stagger-exit-1: 20ms;
+  --stagger-exit-2: 80ms;
+  --stagger-exit-3: 140ms;
+
+  /* ======================================================================
+     LAYOUT
+     ====================================================================== */
+  --container: 1280px;        /* catalog container max width */
+  --container-narrow: 760px;  /* [not realized] */
+  --tap-min: 44px;
+
+  /* ======================================================================
+     3. CATALOG ALIASES — `docs/design/design.md` §5 vocabulary
+     One rename against that document: its `--body` (a text colour) collides
+     with the VIVE `--body` (a font shorthand), so the colour is `--ink-body`
+     here. Nothing consumed the old name yet.
+     ====================================================================== */
+
+  /* Surfaces */
+  --canvas-elevated: var(--warm-0);
+  --surface-soft:    var(--warm-100);
+  --surface-muted:   var(--warm-150);
+
+  /* Ink */
+  --ink:        var(--warm-900);
+  --ink-soft:   var(--warm-800);
+  --ink-body:   var(--warm-700);
+  --muted:      var(--warm-600);
+  --muted-soft: var(--warm-500);
+  /* BQ-29: `--muted` on a white surface is 4.24:1 — below AA for normal text.
+     `#757580` (4.55:1) is the scoped correction currently applied to the
+     expanded card's context and meta rows. Whether it replaces `--muted`
+     system-wide is decided in the theme cut, not here. */
+  --muted-aa:   #757580;
+
+  /* Lines */
+  --hairline:        var(--warm-200);
+  --hairline-strong: var(--warm-300);
+
+  /* Accent.
+     Measured 2026-09-06: `--sage` on white is 3.75:1. That clears AA for large
+     text and for borders, focus rings and other non-text UI — which is every
+     way the catalog uses it — but it is BELOW AA for normal-size text. Use
+     `--accent-fg` (`--sage-700`, 7.09:1) whenever sage has to be read as text,
+     and `--accent-hover` (`--sage-600`, 5.09:1) for a deepened interactive
+     state that still has to pass as text. */
+  --sage:       var(--sage-500);
+  --sage-soft:  var(--sage-200);
+  --sage-muted: var(--sage-100);
+
+  /* Tags — borderless, text only, never a colour dot. */
+  --tag-bg: var(--warm-150);
+  --tag-fg: var(--warm-700);
+  --tag-bg-unavailable: var(--warm-200);
+
+  /* Focus & scrim */
+  --focus-ring:      var(--sage-500);
+  --focus-ring-soft: rgba(92, 142, 120, 0.22);   /* blog hover glow */
+  --overlay-scrim:   rgba(26, 26, 31, 0.48);
+
+  /* Catalog elevation roles */
+  --shadow-rest:       var(--shadow-xs);
+  --shadow-hover:      var(--shadow-md), 0 0 0 1px var(--hairline-strong);
+  --shadow-blog-hover: 0 4px 14px var(--focus-ring-soft);
+  --shadow-expanded:   var(--shadow-lg), 0 0 0 1px var(--hairline-strong);
+  --shadow-overlay:    var(--shadow-xl);
+
+  /* Catalog spacing vocabulary (`design.md` §5.10) */
+  --space-2xs:     var(--space-1);
+  --space-xs:      var(--space-2);
+  --space-sm:      var(--space-3);
+  --space-md:      var(--space-4);
+  --space-lg:      var(--space-6);
+  --space-xl:      var(--space-8);    /* [not realized] */
+  --space-2xl:     var(--space-12);   /* [not realized] */
+  --space-section: var(--space-24);   /* [not realized] */
+
+  /* Component metrics that sit deliberately off the 4px grid. */
+  --card-pad:   16px;        /* base card padding; makes the thumbnail margin */
+  --choice-pad: 12px 14px;   /* expanded answer choice                        */
+  --tag-pad:    4px 9px;     /* tag chip                                      */
+  --tag-min-width: 56px;     /* last visible tag's border-box floor           */
+  --thumb-ratio: 16 / 6;     /* thumbnail aspect                              */
+
+  /* Realized grid gutters (BQ-37). The 20px tablet step is catalog-specific. */
+  --grid-gutter-mobile:  15px;
+  --grid-gutter-tablet:  20px;
+  --grid-gutter-desktop: 24px;
+
+  /* Catalog type roles. The catalog's 15px body and 13px/500 tag do not exist
+     on the VIVE scale, so they are named here rather than forced onto it. */
+  --t-card-title:        600 20px/1.3  var(--font-sans);
+  --t-card-subtitle:     400 15px/1.45 var(--font-sans);
+  --t-expanded-question: 600 21px/1.3  var(--font-sans);
+  --t-context-label:     500 14px/1.4  var(--font-sans);
+  --t-choice:            400 15px/1.45 var(--font-sans);
+  --t-tag:               500 13px/1.35 var(--font-sans);
+  --t-eyebrow:           400 14px/1.4  var(--font-sans);
+}
+
+/* ============================================================================
+   SEMANTIC ELEMENT DEFAULTS — opt-in via the `.vive` scope so the tokens above
+   can be reused without forcing global element styles.
+   ============================================================================ */
+.vive {
+  font: var(--body);
+  color: var(--fg2);
+  background: var(--canvas);
+  letter-spacing: var(--track-tight);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.vive h1 { font: var(--h1); color: var(--fg1); letter-spacing: var(--track-tight); margin: 0; }
+.vive h2 { font: var(--h2); color: var(--fg1); letter-spacing: var(--track-tight); margin: 0; }
+.vive h3 { font: var(--h3); color: var(--fg1); margin: 0; }
+.vive h4 { font: var(--h4); color: var(--fg1); margin: 0; }
+.vive p  { font: var(--body); color: var(--fg2); margin: 0; text-wrap: pretty; }
+.vive small { font: var(--caption); color: var(--fg3); }
+.vive code, .vive kbd, .vive pre { font: var(--code); }
+.vive a { color: var(--accent-fg); text-underline-offset: 2px; }
+
+/* Korean and Latin wrap by the same rule across the system (`design.md` §4.3). */
+.vive p, .vive h1, .vive h2, .vive h3, .vive h4 {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* Utility type classes */
+.vive .t-display-xl { font: var(--display-xl); letter-spacing: var(--track-display); color: var(--fg1); }
+.vive .t-display-lg { font: var(--display-lg); letter-spacing: var(--track-display); color: var(--fg1); }
+.vive .t-display-md { font: var(--display-md); letter-spacing: var(--track-display); color: var(--fg1); }
+.vive .t-body-lg { font: var(--body-lg); }
+.vive .t-body-sm { font: var(--body-sm); }
+.vive .t-label   { font: var(--label); color: var(--fg2); }
+.vive .t-caption { font: var(--caption); color: var(--fg3); }
+.vive .t-overline {
+  font: var(--overline);
+  letter-spacing: var(--track-over);
+  text-transform: uppercase;
+  color: var(--fg3);
+}
+.vive .t-code { font: var(--code); }
+
+/* Reduced motion, as the product actually implements it: the core expand and
+   collapse shortens to 180ms and drops its translations, keeping opacity only.
+   Hover and focus skins are not slowed — they are removed at the component
+   level (`transition: none`), which a token cannot express. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-slow: var(--dur-reduced);
+  }
+}

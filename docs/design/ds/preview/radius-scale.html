@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Spacing" name="Radius scale" subtitle="2xs–2xl + pill · the product's realized corners" viewport="700x190" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 28px 32px; background: var(--canvas); display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+  .item { display: grid; gap: 6px; justify-items: center; align-content: start; width: 62px; }
+  .box { width: 60px; height: 60px; background: var(--sage-100); border: 1.5px solid var(--sage-400); }
+  .lab { font: var(--code); font-size: 12px; color: var(--fg3); white-space: nowrap; }
+  .use { font: var(--caption); font-size: 11px; line-height: 1.25; color: var(--fg4); text-align: center; }
+</style></head>
+<body class="vive">
+  <div class="item"><div class="box" style="border-radius:var(--radius-2xs)"></div><span class="lab">2xs · 4</span><span class="use">—</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-xs)"></div><span class="lab">xs · 5</span><span class="use">tag chip</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-sm)"></div><span class="lab">sm · 8</span><span class="use">small control</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-md)"></div><span class="lab">md · 12</span><span class="use">choice, thumb</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-lg)"></div><span class="lab">lg · 16</span><span class="use">card</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-xl)"></div><span class="lab">xl · 24</span><span class="use">menu panel</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-2xl)"></div><span class="lab">2xl · 32</span><span class="use">—</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-pill)"></div><span class="lab">pill</span><span class="use">chip, toggle</span></div>
+</body></html>
