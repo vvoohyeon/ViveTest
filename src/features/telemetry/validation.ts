@@ -110,7 +110,7 @@ function assertNoForbiddenFields(value: unknown): void {
 function assertPostAttemptSessionId(event: TelemetryEvent): void {
   // TODO(2위 result pipeline): add result_viewed to the post-attempt
   // session-id requirement once derived_type and IntersectionObserver
-  // fire point are implemented. See docs/plans/result-pipeline-todos.md.
+  // fire point are implemented. See docs/plans/2026-05-17-result-pipeline-todos.md.
   if (
     (event.event_type === 'attempt_start' ||
       event.event_type === 'final_submit' ||

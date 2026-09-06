@@ -149,8 +149,9 @@ Do not treat the following as completed contracts:
   `use-answer-handler.ts` on each non-last scoring answer) and `result_viewed` (validated;
   optional `derived_type`; temporary mount-based fire from `TestResultPanel`). Only remaining
   deferred follow-up: real `derived_type` value + IntersectionObserver replacement of the
-  temporary mount fire. No `docs/plans/result-pipeline-todos.md` file exists in HEAD as of
-  2026-06-27.
+  temporary mount fire. That follow-up is owned by
+  `docs/plans/2026-05-17-result-pipeline-todos.md` — the 2026-06-27 note claiming no such
+  file exists searched for an undated name and was wrong.
 - History persistence
 - Results Sheets loading
   (`validateCrossSheetIntegrity` runs in 2-source mode until this source is ready)

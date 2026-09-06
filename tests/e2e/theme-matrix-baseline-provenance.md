@@ -17,7 +17,7 @@ and verification result. The PNG baselines themselves remain local-only under
 - Reason for regeneration: Accept visual-improvement baseline for dark
   unavailable treatment, landing expanded answer contrast, and disabled Next
   affordance. Implementation notes are recorded in
-  `docs/plans/2026-05-07-theme-matrix-visual-improvement-followup.md`.
+  `docs/done/2026-05-07-theme-matrix-visual-improvement-followup.md`.
 
 ## Theme Matrix Baseline Regeneration 2026-05-11
 
@@ -51,7 +51,7 @@ and verification result. The PNG baselines themselves remain local-only under
 
 - Date generated: 2026-05-17 KST
 - Git commit SHA: 09d7503eca67831284ade9dfe4ce35710f213dd9
-- Working tree note: qualifier-reentry-ui implementation present (uncommitted; plan `docs/plans/2026-05-16-qualifier-reentry-ui.md`). Theme-matrix test states use `qmbti` (no qualifier/profile): the reentry chip is guarded off (`qualifierItems.length === 0`), the §8f profile filter is a no-op, the §8-D4/Q-F1 `instructionVisible` change is a strict superset (`overlayMode` always `entry`), and the §8-D14 result-panel extraction reproduces byte-identical class strings — so qmbti DOM is unchanged vs pre-change. The pre-regen @gate showed ~117 broad ~1% sub-pixel diffs spanning blog/landing/history-menu and test surfaces (no shared code path to this change); post-regen only 6 PNGs were byte-different, all `theme-layout-test-instruction-kr-*` (Korean instruction-overlay text-wrap across 3 viewports × 2 themes), confirming preview/dev-runtime environment drift, not a qualifier-reentry regression.
+- Working tree note: qualifier-reentry-ui implementation present (uncommitted; plan `docs/done/2026-05-16-qualifier-reentry-ui.md`). Theme-matrix test states use `qmbti` (no qualifier/profile): the reentry chip is guarded off (`qualifierItems.length === 0`), the §8f profile filter is a no-op, the §8-D4/Q-F1 `instructionVisible` change is a strict superset (`overlayMode` always `entry`), and the §8-D14 result-panel extraction reproduces byte-identical class strings — so qmbti DOM is unchanged vs pre-change. The pre-regen @gate showed ~117 broad ~1% sub-pixel diffs spanning blog/landing/history-menu and test surfaces (no shared code path to this change); post-regen only 6 PNGs were byte-different, all `theme-layout-test-instruction-kr-*` (Korean instruction-overlay text-wrap across 3 viewports × 2 themes), confirming preview/dev-runtime environment drift, not a qualifier-reentry regression.
 - OS: macOS 26.5 (25F71), Darwin 25.5.0 arm64
 - Node version: v24.2.0
 - Playwright version: 1.57.0

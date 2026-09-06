@@ -200,7 +200,7 @@ Deferred candidates are logged in the Decision Register.
   - `tests/e2e/grid-smoke.spec.ts` ratio assertion `>5.5 && <6.5` → `>2.4 && <2.9`; expanded title single-line guard headroom `+1` → `+2`
   - Expanded meta inline row를 `label/value`에서 점-구분 inline "value label" 행으로 전환(`landing-grid-card-meta-separator` ×2, `landing-grid-card-meta-value-lead`)
   - 12개 locale meta label copy를 leading-label에서 trailing inline-unit lowercase로 변경하고 `tests/unit/landing-card-contract.test.ts`를 신규 markup에 맞춰 갱신
-  - Related analysis/plan docs 추가/갱신: `docs/plans/2026-06-01-rc-w1-w5-reconciliation-analysis.md` 등
+  - Related analysis/plan docs 추가/갱신: `docs/done/2026-06-01-rc-w1-w5-reconciliation-analysis.md` 등
 - **Exclude:**
   - 전역 theme token migration 미수행; `src/app/globals.css` 전역 적용·namespace 정착은 Wave 16(BQ-04/BQ-21)로 유지
   - High-risk runtime logic 미수정: controller/hooks/storage/telemetry/transition/routing/test-entry
@@ -227,7 +227,7 @@ Deferred candidates are logged in the Decision Register.
   - lower-row 포함 non-target top/height/bottom isolation, baseline freeze/release 상태모델, clipping 금지 보존
 - **Exclude:** mobile expanded, Blog behavior / direct navigation, unrelated transition/storage/telemetry/routing/test-entry behavior, motion, BQ-25 arrow optical correction, Wave 16 global tokens, visual baseline regeneration / `npm run qa:visual:full`.
 - **Deferred:** BQ-25 arrow optical correction and Wave 16 global token work. BQ-07 baseline regeneration remains deferred.
-- **Prereqs:** Wave 4-W5 완료; `docs/plans/2026-06-02-expanded-height-floor.md` 검토; Logic Improvement Analysis gate cleared
+- **Prereqs:** Wave 4-W5 완료; `docs/done/2026-06-02-expanded-height-floor.md` 검토; Logic Improvement Analysis gate cleared
 - **Risk:** High
 - **Gates/Validation:** `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` green; full `tests/e2e/grid-smoke.spec.ts` 18/18 green; functional-only `tests/e2e/state-smoke.spec.ts` 13/13 green; `git diff --check` clean. Expanded ≥ same-row Normal height geometry, lower-row isolation, B4 `surfaceMinHeight==='0px'` 보존 확인.
 - **BQ refs:** BQ-12, BQ-19, BQ-24, BQ-25, BQ-07
@@ -351,7 +351,7 @@ Deferred candidates are logged in the Decision Register.
 - **Gates/Validation:** `npm run lint`, `npm run typecheck`, `npm test`(496), `npm run build` green; phase 4/5/6/7/8/10 QA and Wave 10 unit regression green; non-baseline grid/state/a11y geometry and 12-locale tag-fit/overflow checks complete.
 - **BQ refs:** BQ-19, BQ-21, BQ-24, BQ-25, BQ-30, BQ-31, BQ-32, BQ-07
 - **Completion note:** W10-LI-01-W10-LI-06 approved and applied. Settled Normal measurement now uses `ResizeObserver`/RAF/font-ready invalidation while preserving the existing `base_gap + comp_gap` row compensation and keeping BQ-24 Expanded floor separate. BQ-32 visible-prefix uses a 56px tail minimum, right-side suffix unmount, Blog CTA priority, resize reappearance, and Test/Blog/Unavailable shared rules. Desktop desired expansion is measured `1.10`, Tablet is `1.04`, reduced motion is `1.00`. Fixed root `min-h-44` was removed, Desktop/Tablet subtitle remains two-line ellipsis, Mobile subtitle is full text, and BQ-30 borderless tags use available `#ECE8DF` / unavailable `#E6E2D8`.
-- **Files / QA touched:** `src/features/landing/grid/spacing-plan.ts`, `layout-plan.ts`, `use-card-inline-geometry.ts`, `use-grid-geometry-controller.ts`, `landing-catalog-grid.tsx`, `landing-grid-card.tsx`, `landing-grid-card.module.css`, `tests/unit/landing-spacing-plan.test.ts`, `tests/unit/landing-grid-plan.test.ts`, `tests/unit/landing-card-contract.test.ts`, `tests/e2e/grid-smoke.spec.ts`, `tests/e2e/state-smoke.spec.ts`, `tests/e2e/a11y-smoke.spec.ts`, `scripts/qa/check-phase4-grid-contracts.mjs`, `scripts/qa/check-phase5-card-contracts.mjs`, `scripts/qa/check-phase6-spacing-contracts.mjs`, `docs/req-landing.md`, `docs/design/design.md`, `docs/decision-register.md`, `docs/plans/2026-06-09-wave-10-landing-grid-plan.md`.
+- **Files / QA touched:** `src/features/landing/grid/spacing-plan.ts`, `layout-plan.ts`, `use-card-inline-geometry.ts`, `use-grid-geometry-controller.ts`, `landing-catalog-grid.tsx`, `landing-grid-card.tsx`, `landing-grid-card.module.css`, `tests/unit/landing-spacing-plan.test.ts`, `tests/unit/landing-grid-plan.test.ts`, `tests/unit/landing-card-contract.test.ts`, `tests/e2e/grid-smoke.spec.ts`, `tests/e2e/state-smoke.spec.ts`, `tests/e2e/a11y-smoke.spec.ts`, `scripts/qa/check-phase4-grid-contracts.mjs`, `scripts/qa/check-phase5-card-contracts.mjs`, `scripts/qa/check-phase6-spacing-contracts.mjs`, `docs/req-landing.md`, `docs/design/design.md`, `docs/decision-register.md`, `docs/done/2026-06-09-wave-10-landing-grid-plan.md`.
 - **Handoff:** Wave 11 accessibility hardening; Wave 12 mobile browse may visually validate shared mobile browse presentation without replacing BQ-32 logic.
 
 ### Wave 11 — Landing desktop a11y/keyboard hardening
@@ -373,7 +373,7 @@ Deferred candidates are logged in the Decision Register.
 - **Risk:** High
 - **Gates/Validation:** `npm run lint`, `npm run typecheck`, `npm test`(515/515), `npm run build` PASS; focused unit 62/62 PASS; filtered preview Wave 11 E2E 10/10 PASS; Phase 4-10 PASS.
 - **BQ refs:** BQ-12, BQ-19, BQ-21, BQ-24, BQ-25, BQ-26, BQ-33, BQ-07
-- **Completion note:** A1-A8 and W11-LI-01-W11-LI-04 approved and applied. Runtime updates include `desktop-shell-phase.ts`, `interaction-dom.ts`, landing interaction bindings/controllers/keyboard handoff, grid/card components/styles, and interaction state. Tests updated include `tests/unit/landing-card-contract.test.ts`, `landing-desktop-shell-phase.test.ts`, `landing-interaction-controller-handlers.test.ts`, `landing-interaction-dom.test.ts`, `landing-interaction-state.test.ts`, `tests/e2e/a11y-smoke.spec.ts`, and `tests/e2e/state-smoke.spec.ts`. SSOT docs updated: `docs/decision-register.md`(BQ-33), `docs/design/design.md`, `docs/req-landing.md`, `docs/plans/2026-06-11-wave-11-desktop-a11y-keyboard-plan.md`, `docs/wave-roadmap.md`.
+- **Completion note:** A1-A8 and W11-LI-01-W11-LI-04 approved and applied. Runtime updates include `desktop-shell-phase.ts`, `interaction-dom.ts`, landing interaction bindings/controllers/keyboard handoff, grid/card components/styles, and interaction state. Tests updated include `tests/unit/landing-card-contract.test.ts`, `landing-desktop-shell-phase.test.ts`, `landing-interaction-controller-handlers.test.ts`, `landing-interaction-dom.test.ts`, `landing-interaction-state.test.ts`, `tests/e2e/a11y-smoke.spec.ts`, and `tests/e2e/state-smoke.spec.ts`. SSOT docs updated: `docs/decision-register.md`(BQ-33), `docs/design/design.md`, `docs/req-landing.md`, `docs/done/2026-06-11-wave-11-desktop-a11y-keyboard-plan.md`, `docs/wave-roadmap.md`.
 - **Phase 9 reconciliation:** The previous `desktopShellInlineScale` checker debt is resolved in current repo state. `scripts/qa/check-phase9-performance-contracts.mjs` now asserts `expandedScale.frameInlineScale`, `ResizeObserver` measurement paths, equality guards, and reduced-motion contracts instead of restoring removed props.
 - **Handoff:** Wave 12 mobile browse.
 
