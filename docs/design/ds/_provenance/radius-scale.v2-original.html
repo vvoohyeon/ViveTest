@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Spacing" name="Radius scale" subtitle="xs–2xl + pill · restrained corners" viewport="700x175" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 28px 32px; background: var(--canvas); display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; }
+  .item { display: grid; gap: 8px; justify-items: center; }
+  .box { width: 76px; height: 76px; background: var(--sage-100); border: 1.5px solid var(--sage-400); }
+  .lab { font: var(--code); color: var(--fg3); }
+</style></head>
+<body class="vive">
+  <div class="item"><div class="box" style="border-radius:var(--radius-xs)"></div><span class="lab">xs · 4</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-sm)"></div><span class="lab">sm · 6</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-md)"></div><span class="lab">md · 8</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-lg)"></div><span class="lab">lg · 12</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-xl)"></div><span class="lab">xl · 16</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-2xl)"></div><span class="lab">2xl · 20</span></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-pill)"></div><span class="lab">pill</span></div>
+</body></html>

@@ -62,7 +62,7 @@
   --sage-900: #1f382e;   /* [not realized] */
 
   /* Neutrals — surfaces, lines, and ink.
-     NOTE (finding D-01): steps 0–300 are warm (R > B); steps 500–900 are the
+     NOTE (finding D-01): steps 0–400 are warm (R > B); steps 500–900 are the
      catalog's neutral-cool ink ramp (B >= R). The scale therefore changes
      temperature between 400 and 500. Both halves are the realized product
      values and are frozen for this pass; whether to unify the temperature is a
@@ -101,9 +101,16 @@
      2. SEMANTIC ROLES — VIVE vocabulary (names unchanged)
      ====================================================================== */
 
-  /* Surfaces */
+  /* Surfaces.
+     `--surface` keeps the VIVE step it always had. The rebaseline briefly
+     pointed it at `--warm-0`, which made it identical to `--surface-raised` and
+     collapsed a rung out of the ladder — `color-tokens.html` showed the two as
+     one colour and every generic card, input, secondary button and active chip
+     moved to pure white. That was unforced: the catalog's exact-white card fill
+     is `--canvas-elevated`, which is what `catalog-components.css` consumes. A
+     catalog value must not overwrite a general role. */
   --canvas:          var(--warm-50);
-  --surface:         var(--warm-0);     /* catalog cards sit on exact white */
+  --surface:         var(--warm-25);
   --surface-raised:  var(--warm-0);
   --surface-sunken:  var(--warm-100);
   --surface-strong:  var(--warm-150);
@@ -245,13 +252,24 @@
      `linear`, and no `animation-timing-function` is declared anywhere, while
      `req-landing.md` §8.3 requires the easing to be unified on an ease-in-out
      curve. Code and contract disagree, and no test catches it. Which curve the
-     core motion takes is decided in the motion pass — do not read
-     `--ease-standard` below as that decision.
+     core motion takes is decided in the motion pass — none of the four curves
+     below is that decision.
+
+     NAME COLLISION, now resolved. `--ease-out` named two different curves:
+     `design.md` §5.11 binds it to `cubic-bezier(0.0, 0, 0.2, 1)`, and the
+     pre-rebaseline VIVE file bound it to `cubic-bezier(0.2, 0, 0, 1)`. The
+     first rebaseline pass kept the VIVE curve under the shared name and set
+     `--ease-standard: var(--ease-out)`, which made the two documents agree on
+     `--ease-standard` and silently disagree on `--ease-out` — the harder of the
+     two to notice. `design.md` wins on both names, since it is the routed
+     visual SSOT. The curve VIVE used to call `--ease-out` is unchanged and is
+     now reached by its `design.md` name, `--ease-standard`; generic components
+     that ask for `--ease-out` get a gentler decelerate than before.
      ====================================================================== */
-  --ease-out:      cubic-bezier(0.2, 0, 0, 1);
-  --ease-in-out:   cubic-bezier(0.45, 0, 0.2, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);    /* entrances, state changes */
+  --ease-out:      cubic-bezier(0.0, 0, 0.2, 1);
   --ease-in:       cubic-bezier(0.4, 0, 1, 1);
-  --ease-standard: var(--ease-out);   /* `design.md` §5.11 name — [OPEN] */
+  --ease-in-out:   cubic-bezier(0.45, 0, 0.2, 1); /* VIVE only — no `design.md` counterpart */
 
   --dur-micro:  120ms;   /* mobile normal-slot exit                     */
   --dur-fast:   140ms;   /* hover / focus skin transitions              */
@@ -278,9 +296,28 @@
 
   /* ======================================================================
      3. CATALOG ALIASES — `docs/design/design.md` §5 vocabulary
-     One rename against that document: its `--body` (a text colour) collides
-     with the VIVE `--body` (a font shorthand), so the colour is `--ink-body`
-     here. Nothing consumed the old name yet.
+
+     Three deviations from that document, all deliberate and all registered as
+     BQ-38 in `docs/decision-register.md`. Reading them out here so no one has
+     to discover them by diff:
+
+     1. `design.md` §5 opens with "Reuse these exact identifiers; do not rename
+        them." Its `--body` is a text colour, and the VIVE `--body` is a font
+        shorthand; two types cannot share one name in one `:root`. The colour is
+        `--ink-body` here. Nothing consumed the old name.
+     2. `design.md` §5.6 says the unavailable tag fill "is not promoted to a
+        global token before Wave 16", and §7.3 says the same of the `#757580`
+        AA correction. `--tag-bg-unavailable` and `--muted-aa` exist here
+        anyway. Those clauses govern the RUNTIME global layer,
+        `src/app/globals.css`, which this file is not and which this change does
+        not touch — the product still consumes its scoped values. Naming them in
+        a documentation stylesheet does not promote them into the runtime.
+     3. `--blog-readmore-ink` follows the same pattern and has no `design.md`
+        counterpart at all.
+
+     The general rule this leaves behind: a name may be added here, but a
+     `design.md` value may not be changed here. Where the two must differ, the
+     difference is registered before it is written.
      ====================================================================== */
 
   /* Surfaces */

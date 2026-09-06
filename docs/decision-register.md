@@ -346,6 +346,15 @@ This document is intended to provide information that can serve as the final bas
 
 ---
 
+## BQ-38
+- **Decision** — 2026-09-06 design-system rebaseline. wave 13–17의 per-wave 시각 교체 방식을 폐지하고, 저장소가 소유하는 단일 토큰 정의(`docs/design/ds/`)를 Claude Design의 **VIVE Design System v2**(`cd630eec-25e4-4613-a58f-c671c80297ca`)에 push해 양쪽이 같은 정의를 소비하는 단방향 동기화로 전환한다. 하위 결정 4건: **(A)** 토큰은 카탈로그 실현값 + VIVE 이름·구조의 2층 구성 — 값은 카탈로그, 이름과 척도는 VIVE. **(B)** `docs/req-landing.md` §8을 동결하고 나머지 표면을 그 실현값(280/180/140ms)에 정렬한다. §8 자체 개정은 모션 패스 이후 별건. **(C)** 카탈로그 카드 토큰·패턴은 동결하고 개선안은 별도 아트보드 제안으로만 낸다. **(D)** 구 디자인시스템 `825385f6`에서는 카드 컴포넌트와 썸네일 SVG만 흡수하고 나머지는 참조로 동결한다
+- **Source / 근거** — 사용자 결정(2026-09-06). 전환 근거는 시각 정본의 절반이 저장소 밖 하네스에 있어 코드와 세 차례 어긋난 이력(BQ-21 · R1 · R2)이며, BQ-34가 이미 "design.md §5를 공유 `tokens.css`로 추출해 양쪽이 소비"를 장기 방향으로 지목했다. 실행 근거는 실행 중 제품에서 `getComputedStyle`로 읽은 실측(2026-09-06): 카드 표면·hairline·radius·shadow·16px 패딩·8px 리듬·태그 칩·부제와 확장 카드의 색상·타이포가 토큰과 일치하고, 어긋난 것은 legacy 전역 테마가 비쳐 나온 4건뿐이다(D-05)
+- **Implementation impact** — `docs/design/ds/`(토큰 · 카탈로그 컴포넌트 스펙 CSS · 프리뷰 카드 · 동기화 계약 · 롤백 스냅샷) 신설. `AGENTS.md §1`·§2 라우팅 표와 `docs/agent-guides/project-rules.md §Visual-Design`이 이 번들을 가리키도록 갱신. **런타임 코드 무변경** — `src/**`는 theme cut(4단계)에서 처음 손댄다. `globals.css` 동결(BQ-04/21)·baseline 재생성 금지(BQ-07)는 불변
+- **Include in first implementation wave?** — No — numbered wave가 아니라 wave 13–17을 대체하는 별도 프로그램. 단계 계획은 `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
+- **Notes / caveats** — `design.md` §5 대비 **의도된 이탈 3건**을 여기서 승인한다. (1) `--body`(색) → `--ink-body` 개명 — §5 서두 "do not rename" 위반이나 VIVE `--body`(font shorthand)와 한 `:root`에서 이름이 충돌하며 옛 이름 소비처는 0이다. (2) `--tag-bg-unavailable` · `--muted-aa`를 이 파일 `:root`에 명명 — §5.6 · §7.3의 "Wave 16 전 전역 토큰 승격 금지"는 **런타임 전역 계층(`src/app/globals.css`)**을 대상으로 하며 문서용 스타일시트는 그 계층이 아니다. 제품은 여전히 scoped 값을 소비한다. (3) `--blog-readmore-ink` 신설(§ 대응 없음). 이후 규칙: **이름 추가는 허용, `design.md` 값 변경은 금지** — 달라져야 하면 쓰기 전에 등재한다. `--ease-out`은 `design.md` §5.11 값(`cubic-bezier(0.0,0,0.2,1)`)을 따르고 VIVE가 그 이름으로 쓰던 곡선은 `--ease-standard`가 갖는다. 미해결로 등재만 한 항목: **M-01**(랜딩 애니메이션 21개가 전부 `linear`, §8.3의 ease-in-out 요구와 불일치, 이를 잡는 테스트 없음) · **D-01**(중립 램프가 400/500에서 온도 분기) · **D-02**(Pretendard 미로드, 제품은 Avenir Next) · **D-03**(accent hover/pressed 미실현) · **D-05**(페이지 바닥 `#f5f7f7`+청록/파랑 워시, 카드 제목 legacy 잉크 2종, 서체)
+
+---
+
 ## 변경 이력
 
 기존 결정이 대체·조정된 기록이다. `BQ-NN` 블록은 그대로 남고 이 표가 무엇이 언제 왜 바뀌었는지를 가리킨다.
@@ -355,3 +364,6 @@ This document is intended to provide information that can serve as the final bas
 | 2026-09-03 | BQ-13 | workspace 운영 절반 대체 — wave별 워크트리 폐지, 격리 작업공간은 clone. `main` 착지·checkpoint read-only라는 브랜치 결정은 유지 | `docs/DECISIONS.md` · `AGENTS.md §4` |
 | 2026-09-03 | BQ-14 | 문구 조정 — "legacy worktree 수정 금지" → `legacy/reference` **브랜치** 수정 금지. 브랜치·기준 commit 보존 | `docs/DECISIONS.md` |
 | 2026-09-03 | BQ-15 | 문구 조정 — range checkpoint는 브랜치로만 존속, 워크트리 체크아웃 철거 | `docs/DECISIONS.md` |
+| 2026-09-06 | BQ-21 | 보완 — 시각 SSOT는 `docs/design/design.md`로 유지하되, 그 §5 토큰의 **실현 정의**는 `docs/design/ds/colors_and_type.css`가 갖는다. 값이 갈리면 등재 후에만 갈린다(BQ-38) | BQ-38 · `AGENTS.md §2` |
+| 2026-09-06 | BQ-34 | 실행 — "§5를 공유 토큰 파일로 추출해 코드와 하네스가 같은 정의를 소비" 방향을 `docs/design/ds/`로 실현. 단 코드 쪽 소비(전역 `:root` 전환)는 Wave 16 → theme cut(4단계)로 이월 유지 | BQ-38 |
+| 2026-09-06 | Wave 13–17 | 대체 — per-wave 시각 교체 방식을 폐지하고 rebaseline 프로그램으로 전환. wave 블록은 이력으로 보존 | BQ-38 · `docs/wave-roadmap.md` |

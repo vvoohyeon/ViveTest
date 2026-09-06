@@ -10,6 +10,9 @@ Last reconciled: HEAD `5a1da0f` / `2026-07-03`
 | 🔄 진행 | Implementation or validation is in progress. |
 | ⬜ 계획 | Planned / not yet implemented in the current repo. |
 | ⏸ deferred | Explicitly deferred; do not implement without a separate approved scope. |
+| ⤳ 대체 | Superseded by a later decision. The block stays as the record of what was planned; **do not execute it.** |
+
+> **Waves 13–17 are superseded (BQ-38, 2026-09-06).** The per-wave visual-replacement approach was retired in favour of the design-system rebaseline: the repository owns one token definition under `docs/design/ds/` and pushes it to Claude Design, and the remaining visual work runs as that program's steps rather than as numbered waves. Their scope is not cancelled — mobile expanded, GNB, the theme cut and the mobile menu all still have to happen — but it is planned in `docs/plans/2026-09-06-design-system-rebaseline-step*.md`, not here. Twelve places in this file still defer live work "to Wave 16" by name; read those as the theme cut, which is step 4 of that program.
 
 ## Wave Overview
 
@@ -27,11 +30,11 @@ Last reconciled: HEAD `5a1da0f` / `2026-07-03`
 | 10 | Landing grid height rhythm | ✅ 완료 | BQ-24, BQ-30, BQ-31, BQ-32 |
 | 11 | Landing desktop a11y/keyboard hardening | ✅ 완료 | BQ-12, BQ-21, BQ-24, BQ-26, BQ-33 |
 | 12 | Mobile browse card visual | ✅ 완료 | BQ-19, BQ-31/BQ-32 handoff, BQ-35, BQ-36 |
-| 13 | Mobile expanded shape/position | ⬜ 계획 | BQ-11, BQ-16, Wave 1 B14 deferred title-continuity |
-| 14 | Landing-only regression stabilization | ⬜ 계획 | BQ-07, BQ-12, BQ-21 |
-| 15 | Desktop GNB visual shell | ⬜ 계획 | BQ-03, BQ-21 |
-| 16 | Light-only theme cleanup + scoped visual-token consolidation | ⬜ 계획 | BQ-04, BQ-21, BQ-25, BQ-29, BQ-30, BQ-34 |
-| 17 | Mobile menu overlay visual | ⬜ 계획 | BQ-03, BQ-04, BQ-21 |
+| 13 | Mobile expanded shape/position | ⤳ 대체 (BQ-38) | BQ-11, BQ-16, Wave 1 B14 deferred title-continuity |
+| 14 | Landing-only regression stabilization | ⤳ 대체 (BQ-38) | BQ-07, BQ-12, BQ-21 |
+| 15 | Desktop GNB visual shell | ⤳ 대체 (BQ-38) | BQ-03, BQ-21 |
+| 16 | Light-only theme cleanup + scoped visual-token consolidation | ⤳ 대체 (BQ-38) | BQ-04, BQ-21, BQ-25, BQ-29, BQ-30, BQ-34 |
+| 17 | Mobile menu overlay visual | ⤳ 대체 (BQ-38) | BQ-03, BQ-04, BQ-21 |
 
 ### Inter-wave completed checkpoints
 
@@ -398,7 +401,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 13 — Mobile expanded shape/position
 
-- **Status:** ⬜ 계획
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
 - **Goal:** 모바일 Expanded 형태 및 위치 정의.
 - **Include:** full viewport width, GNB-flush top, natural height, scrim, no side radius, B14 mobile title-continuity `test.fixme` 해제 및 재정렬.
 - **Exclude:** swipe-down close, mobile menu, desktop keyboard/a11y behavior, GNB internals.
@@ -412,7 +415,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 14 — Landing-only regression stabilization
 
-- **Status:** ⬜ 계획
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
 - **Goal:** 랜딩 한정 회귀 안정화.
 - **Include:** fixes required by landing waves only — card/grid/a11y/routing regressions.
 - **Exclude:** product pipeline, GNB/theme, visual baseline.
@@ -426,7 +429,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 15 — Desktop GNB visual shell
 
-- **Status:** ⬜ 계획
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
 - **Goal:** 데스크톱 GNB 시각 셸 구성.
 - **Include:** static `English / ☀` pill visual, no gear/hamburger desktop.
 - **Exclude:** functional locale/theme switching, landing card behavior, mobile menu overlay.
@@ -440,7 +443,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 16 — Light-only theme cleanup
 
-- **Status:** ⬜ 계획
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
 - **Goal:** 라이트 테마 단일화 정리 + scoped 시각 토큰의 전역 통합.
 - **Include:**
   - light-first visible state cleanup; dark/system controls not active
@@ -459,7 +462,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 17 — Mobile menu overlay visual
 
-- **Status:** ⬜ 계획
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
 - **Goal:** 모바일 메뉴 오버레이 시각 구성.
 - **Include:** full-screen overlay visual, language/theme display shell.
 - **Exclude:** functional locale/theme switching, dark/system activation.

@@ -7,13 +7,20 @@
    Every value here was read off the running product on 2026-09-06 with
    `getComputedStyle`, not transcribed from a spec — see
    `docs/plans/2026-09-06-design-system-rebaseline-step1b.md` for the extraction
-   and the four places where the product and the tokens disagree.
+   and `preview/catalog-drift.html` for the places where the product and the
+   tokens disagree.
 
-   Where they disagree, THIS FILE FOLLOWS THE TOKENS. The drift is recorded in
-   `preview/catalog-drift.html` so it stays visible instead of being baked in.
-   Two colours are therefore intentionally different here from what the product
-   renders today: the card title (`--ink`, not the legacy `#161A20` / `#0F1218`)
-   and the thumbnail placeholder (a warm neutral, not the legacy cool tint).
+   Where they disagree, THIS FILE FOLLOWS THE TOKENS, and the drift is recorded
+   on that card so it stays visible instead of being baked in. One colour is
+   therefore intentionally different here from what the product renders today:
+   the card title, which is `--ink` rather than the legacy `#161A20` on test and
+   unavailable cards or `#0F1218` on blog cards.
+
+   THIS IS A SPECIMEN STYLESHEET. It is never imported by the app and never
+   could be: the product's card is a CSS Module with different class names,
+   measured geometry written per card from JavaScript, and a stage/frame/shell
+   layering this file deliberately flattens. Read it to design against; do not
+   try to adopt it.
    ============================================================================ */
 
 /* ---- Base card ------------------------------------------------------------ */
@@ -54,12 +61,18 @@
 
 /* ---- Card parts ----------------------------------------------------------- */
 
+/* The slot is always filled edge to edge by an opaque image — either a
+   per-variant asset or a generated placeholder — so the slot's own background
+   is never visible. Both sources are the same warm→sage wash, which is why the
+   gradient rather than a flat fill is the honest default here. (The product
+   ships exactly one real asset today, for `qmbti`; the other seven cards show
+   the generated placeholder.) */
 .vt-thumb {
   aspect-ratio: var(--thumb-ratio);
   width: 100%;
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--surface-muted);
+  background: linear-gradient(135deg, var(--canvas) 0%, var(--sage-soft) 100%);
 }
 
 .vt-title {
@@ -87,17 +100,24 @@
   text-overflow: ellipsis;
 }
 
-/* The tags row is bottom-anchored; this spacer carries the row's surplus so the
-   rows in a grid keep a common bottom rhythm. 8px is the realized base gap. */
+/* A STATIC STAND-IN, not the mechanism. In the product this gap is
+   `base_gap + comp_gap`, both written per card from measured values, and that
+   measured compensation is what puts every card's tags row on a common bottom
+   line. 8px is only the base half. A constant cannot absorb surplus, and
+   `req-landing.md` §6 explicitly bans faking the effect with a fixed minimum,
+   a floor or a spacer — so do not read this value as the rule. */
 .vt-tags-gap {
   height: var(--space-2);
 }
 
+/* The row keeps one line's height even with no chips in it, so an untagged
+   card still lands on the row's bottom rhythm. */
 .vt-tags {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-wrap: nowrap;
+  min-height: 28px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -113,6 +133,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Every tag but the last is pinned. Without this they all shrink together and
+   the row demonstrates the opposite of the documented behaviour: the product
+   keeps a whole left-to-right prefix and drops surplus tags from the DOM
+   entirely, rather than squashing them. */
+.vt-tag--fixed {
+  flex: 0 0 auto;
 }
 
 /* The last visible tag may flex and ellipsise down to this floor; shorter
@@ -150,12 +178,30 @@
   .vt-card--blog { transition: none; }
 }
 
+/* The CTA is a SIBLING of the tag list, not a member of it. Both sit in this
+   row, 12px apart, and the CTA is pushed to the right edge — putting it inside
+   the list instead leaves it stranded mid-row at the list's own 8px gap. */
+.vt-tag-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 28px;
+}
+
+.vt-tag-row .vt-tags {
+  min-width: 0;
+  min-height: 0;
+}
+
 /* Label and arrow are separate visual children inside one non-interactive
    affordance. Never underlined, and the colour does not react to its own hover. */
 .vt-readmore {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
+  flex: none;
+  margin-left: auto;
   width: max-content;
   color: var(--blog-readmore-ink);
   font: var(--t-tag);
@@ -180,11 +226,19 @@
 
 /* ---- Expanded test card --------------------------------------------------- */
 
+/* Two shadows, not one. The product draws them on two elements: a shadow plate
+   beneath the surface carries `--shadow-expanded` (the 12/32 lift plus a
+   `--hairline-strong` ring), and the surface above it carries the sage edge.
+   Flattening them onto one box — as the first pass did — drops the lift, and
+   the card then reads as sitting flat on the canvas instead of floating over
+   the grid. Composited here in one declaration because a specimen has no
+   z-layering to preserve; the lift is what matters. */
 .vt-expanded {
   background: var(--canvas-elevated);
   border-radius: var(--radius-lg);
-  /* The sage edge is drawn as an inset ring so it cannot affect layout. */
-  box-shadow: 0 0 0 1px var(--sage);
+  box-shadow:
+    var(--shadow-expanded),
+    0 0 0 1px var(--sage);
 }
 
 .vt-expanded__body {
@@ -234,19 +288,39 @@
     background-color var(--dur-fast) ease;
 }
 
-/* Hover deepens the edge to sage over a soft sage fill — a calm deepening,
-   never a colour change, and never a shadow. */
+/* Hover deepens the edge to sage over a soft sage fill, and the arrow travels
+   with it from `--muted` to `--sage`. No shadow, and the surface never changes
+   hue — but the arrow does change colour, and an earlier version of this file
+   said it must not. It does, in the product, on this element. */
 .vt-choice:hover,
 .vt-choice.is-hover {
   border-color: var(--sage);
   background: var(--sage-muted);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .vt-choice { transition: none; }
+.vt-choice:hover .vt-choice__arrow,
+.vt-choice.is-hover .vt-choice__arrow {
+  color: var(--sage);
 }
 
+/* The choice carries its own focus ring, distinct from the one on the expanded
+   surface: 2px sage at a 2px offset, on the choice itself. */
+.vt-choice:focus-visible,
+.vt-choice.is-focus {
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-choice,
+  .vt-choice__arrow { transition: none; }
+}
+
+/* `flex: 1` is load-bearing: without it the label sizes to its content and the
+   arrow lands right after the text instead of at the button's right edge,
+   which changes the component's whole silhouette on short labels. */
 .vt-choice__text {
+  flex: 1;
   min-width: 0;
   font: var(--t-choice);
   color: var(--ink-soft);
@@ -259,6 +333,7 @@
   flex: none;
   font: var(--t-choice);
   color: var(--muted);
+  transition: color var(--dur-fast) ease;
 }
 
 /* ---- Meta row ------------------------------------------------------------- */

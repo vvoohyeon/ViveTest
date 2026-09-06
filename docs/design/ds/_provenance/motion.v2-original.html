@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Spacing" name="Motion" subtitle="Calm easing · 120 / 180 / 260ms" viewport="700x210" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 28px 32px; background: var(--canvas); display: grid; gap: 18px; }
+  .track { display: flex; align-items: center; gap: 14px; }
+  .lab { font: var(--code); color: var(--fg3); width: 150px; flex: none; }
+  .rail { flex: 1; height: 36px; background: var(--surface-sunken); border-radius: var(--radius-pill); position: relative; overflow: hidden; }
+  .dot { position: absolute; top: 6px; left: 6px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); }
+  .a1 .dot { animation: slide 2.6s var(--ease-out) infinite alternate; }
+  .a2 .dot { animation: slide 2.6s var(--ease-in-out) infinite alternate; background: var(--accent2); }
+  @keyframes slide { from { left: 6px; } to { left: calc(100% - 30px); } }
+  .note { font: var(--caption); color: var(--fg3); }
+</style></head>
+<body class="vive">
+  <div class="track a1"><span class="lab">ease-out · 180ms</span><div class="rail"><div class="dot"></div></div></div>
+  <div class="track a2"><span class="lab">ease-in-out · 260ms</span><div class="rail"><div class="dot"></div></div></div>
+  <span class="note">Calm, single-direction easing. Fades and small translations only — no bounce, no decorative motion. Durations: 120 / 180 / 260ms.</span>
+</body></html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Catalog" name="Tag chips" subtitle="Borderless, lowercase, no dot · 56px flex floor" viewport="700x375" -->
+<!-- @dsCard group="Catalog" name="Tag chips" subtitle="Borderless, lowercase, no dot · 56px flex floor" viewport="700x495" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <link rel="stylesheet" href="../catalog-components.css">
@@ -17,15 +17,16 @@
 <body class="vive">
   <div class="row">
     <span class="lab"><b>Available</b> — <span class="t-code">--tag-bg</span> fill, <span class="t-code">--tag-fg</span> text, 13/500, 4px 9px, 5px radius</span>
-    <div class="frame"><ul class="vt-tags"><li class="vt-tag">rapid</li><li class="vt-tag">focus</li><li class="vt-tag vt-tag--flex">decision</li></ul></div>
+    <div class="frame"><ul class="vt-tags"><li class="vt-tag vt-tag--fixed">rapid</li><li class="vt-tag vt-tag--fixed">focus</li><li class="vt-tag vt-tag--flex">decision</li></ul></div>
   </div>
   <div class="row">
     <span class="lab"><b>Unavailable</b> — the darker <span class="t-code">--tag-bg-unavailable</span> fill on the warm card surface</span>
     <div class="frame frame--soft"><ul class="vt-tags"><li class="vt-tag vt-tag--flex">coming soon</li></ul></div>
   </div>
   <div class="row">
-    <span class="lab"><b>Overflow</b> — the last visible tag flexes and ellipsises toward its 56px floor; the rest disappear right-first</span>
-    <div class="frame"><ul class="vt-tags"><li class="vt-tag">workflow</li><li class="vt-tag">ipsum lorem long tag</li><li class="vt-tag vt-tag--flex">lorem long tag that keeps going</li></ul></div>
+    <span class="lab"><b>Overflow</b> — every tag but the last is pinned; only the last flexes and ellipsises, down to its 56px floor</span>
+    <div class="frame"><ul class="vt-tags"><li class="vt-tag vt-tag--fixed">workflow</li><li class="vt-tag vt-tag--fixed">ipsum lorem long tag</li><li class="vt-tag vt-tag--flex">lorem long tag that keeps going</li></ul></div>
   </div>
+  <span class="no"><b>This row is the outcome, not the mechanism.</b> What CSS can show is the pinned prefix and the ellipsised tail. In the product a hidden probe measures the full row first, and tags that do not fit are removed from the DOM entirely, right-first — they are never rendered small. A design that relies on a squashed tag being readable is designing against something the product will not produce.</span>
   <span class="no"><b>Never:</b> a border, a colour dot, a wrapped chip, or Title Case in a writing system that has case. Caseless scripts keep their localized value as written.</span>
 </body></html>

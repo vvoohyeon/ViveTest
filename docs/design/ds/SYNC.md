@@ -40,4 +40,17 @@ The Design System pane builds its card index from those markers. If a card does 
 
 **`_ds_manifest.json` is derived, and it lags.** Measured on the 2026-09-06 push: immediately after `write_files` succeeded, the manifest still listed the pre-push token values and did not contain the newly added card, because the Claude Design app recompiles it on its own schedule rather than on write. So it is not a way to check whether a push landed — use `list_files` and `get_file` for that — and a card added in a push was registered with `register_assets` to make it appear without waiting. Re-registering an existing card is also how a changed `name`, `subtitle` or `viewport` reaches the pane before the next recompile.
 
-Cards must reference tokens (`var(--accent)`), never literal hex. Two of them print token *values* as label text — `radius-scale.html` and `motion.html` — so those two have to be edited whenever the values they name change. Everything else follows `colors_and_type.css` automatically.
+Cards must reference tokens (`var(--accent)`), never literal hex — with one deliberate exception: `catalog-drift.html` prints literal hex on both sides of its table, because its whole subject is two values that differ.
+
+**Four files restate token values in text and therefore drift silently.** They have to be edited whenever a value they name changes; nothing detects it if you forget.
+
+| File | What it restates |
+|:---|:---|
+| `preview/radius-scale.html` | the whole radius ladder, as labels |
+| `preview/motion.html` | the duration ladder, as labels |
+| `preview/catalog-drift.html` | the drifting values, as literal hex |
+| `README.md` | roughly thirty values in prose — the palette, the radius ladder, the duration ladder, the container widths, the grid gutters |
+
+`README.md` is the one that catches people out, because it reads as narrative rather than as data and it is pushed alongside the CSS. An earlier version of this file claimed everything but two preview cards followed `colors_and_type.css` automatically; that was wrong.
+
+Everything else — every `card-*.html`, every `comp-*.html`, `color-*.html`, `spacing-scale.html`, `elevation-scale.html`, `type-*.html` — references tokens only and does follow the CSS automatically.

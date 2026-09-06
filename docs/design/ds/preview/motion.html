@@ -1,29 +1,30 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Spacing" name="Motion" subtitle="Realized 120 / 140 / 180 / 280ms · easing is OPEN (M-01)" viewport="700x380" -->
+<!-- @dsCard group="Spacing" name="Motion" subtitle="Realized 120 / 140 / 180 / 280ms · easing is OPEN (M-01)" viewport="700x460" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <style>
   body { margin: 0; }
-  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 14px; }
   .track { display: flex; align-items: center; gap: 14px; }
-  .lab { font: var(--code); color: var(--fg3); width: 168px; flex: none; }
-  .rail { width: 380px; flex: none; height: 32px; background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius-pill); position: relative; overflow: hidden; }
-  .dot { position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); }
+  .lab { font: var(--code); font-size: 13px; color: var(--fg3); width: 190px; flex: none; }
+  .rail { width: 360px; flex: none; height: 30px; background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius-pill); position: relative; overflow: hidden; }
+  .dot { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); }
 
   /* One 280ms transit each way — the product's realized core duration — with a
      hold between, so each start and stop is perceptible. 280 / 2400 = 11.67%. */
   @keyframes transit {
     0%      { transform: translateX(0); }
-    11.67%  { transform: translateX(348px); }
-    50%     { transform: translateX(348px); }
+    11.67%  { transform: translateX(330px); }
+    50%     { transform: translateX(330px); }
     61.67%  { transform: translateX(0); }
     100%    { transform: translateX(0); }
   }
-  .ships   .dot { animation: transit 2400ms linear infinite; }
-  .outc    .dot { animation: transit 2400ms cubic-bezier(0.2, 0, 0, 1) infinite; background: var(--sage-600); }
-  .inout   .dot { animation: transit 2400ms cubic-bezier(0.45, 0, 0.2, 1) infinite; background: var(--sage-700); }
+  .ships .dot { animation: transit 2400ms linear infinite; }
+  .std   .dot { animation: transit 2400ms var(--ease-standard) infinite; background: var(--sage-600); }
+  .out   .dot { animation: transit 2400ms var(--ease-out) infinite; background: var(--sage-600); }
+  .inout .dot { animation: transit 2400ms var(--ease-in-out) infinite; background: var(--sage-700); }
 
-  .flag { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); }
+  .flag { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 620px; }
   .flag b { color: var(--fg1); }
   .ladder { display: flex; gap: 18px; flex-wrap: wrap; font: var(--caption); color: var(--fg3); }
   .ladder b { color: var(--fg2); font-weight: 600; }
@@ -34,10 +35,11 @@
 </style></head>
 <body class="vive">
   <div class="track ships"><span class="lab">linear — ships today</span><div class="rail"><div class="dot"></div></div></div>
-  <div class="track outc"><span class="lab">ease-out</span><div class="rail"><div class="dot"></div></div></div>
-  <div class="track inout"><span class="lab">ease-in-out</span><div class="rail"><div class="dot"></div></div></div>
+  <div class="track std"><span class="lab">--ease-standard</span><div class="rail"><div class="dot"></div></div></div>
+  <div class="track out"><span class="lab">--ease-out</span><div class="rail"><div class="dot"></div></div></div>
+  <div class="track inout"><span class="lab">--ease-in-out</span><div class="rail"><div class="dot"></div></div></div>
 
-  <div class="flag"><b>M-01 — open.</b> All 21 landing-card animations ship <span class="t-code">linear</span>, and no <span class="t-code">animation-timing-function</span> is declared anywhere, while <span class="t-code">req-landing.md</span> §8.3 requires the easing to be unified on an ease-in-out curve. Code and contract disagree and no test catches it. Which curve the core motion takes is decided in the motion pass.</div>
+  <div class="flag"><b>M-01 — open.</b> All 21 landing-card animations ship <span class="t-code">linear</span>, and no <span class="t-code">animation-timing-function</span> is declared anywhere, while <span class="t-code">req-landing.md</span> §8.3 requires the easing to be unified on an ease-in-out curve. Code and contract disagree and no test catches it. The three candidates run above at the realized 280ms; none of them is the decision.</div>
 
   <div class="ladder">
     <span><b>120ms</b> slot exit</span>

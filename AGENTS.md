@@ -22,7 +22,7 @@ ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·
 | Request entry | 단일 진입 `src/proxy.ts` (middleware 없음). `[locale]/layout.tsx`: `dynamicParams = false` |
 | `next.config.ts` flags | `typedRoutes`, `experimental.globalNotFound`, `outputFileTracingRoot = cwd`, `allowedDevOrigins = ['127.0.0.1']`, `turbopack.root = cwd` |
 | Tech stack | `next@16.2.4`, `react@19.2.4`, `react-dom@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0`, `tailwindcss@4.1.0`, `typescript@5.9.3`; 테스트 `vitest`, `@playwright/test` |
-| Tokens/theme | Tailwind v4 tokens/base = `src/app/globals.css`(분할 금지). Landing grid/card motion + scoped visual-skin tokens(`--normal-*`/`--expanded-*`) = `src/features/landing/grid/landing-grid-card.module.css` |
+| Tokens/theme | **런타임**: Tailwind v4 tokens/base = `src/app/globals.css`(분할 금지). Landing grid/card motion + scoped visual-skin tokens(`--normal-*`/`--expanded-*`) = `src/features/landing/grid/landing-grid-card.module.css`. **설계 정의**(런타임 미소비): `docs/design/ds/colors_and_type.css`(BQ-38) |
 
 디렉터리 소유권 상세 → `docs/agent-guides/project-rules.md §Ownership`.
 
@@ -37,7 +37,7 @@ ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·
 | transition / telemetry / consent | `docs/req-landing.md §8, §12, §13` | `project-rules.md §Blog-Telemetry-Theme` | `verification-commands.md §telemetry` |
 | test flow / domain | `docs/req-test.md`, `docs/req-test-plan.md` | `project-rules.md §TestFlow` | `verification-commands.md §test-flow` |
 | variant registry / fixture | `docs/req-landing.md §12`, `docs/req-test.md §2`, `docs/project-analysis.md §5.3` | `project-rules.md §VariantRegistry` | `verification-commands.md §variant-registry` |
-| visual skin / design tokens / card visual | `docs/design/design.md` (+ §7 application layer) | `project-rules.md §Visual-Design` | `verification-commands.md §landing` |
+| visual skin / design tokens / card visual | `docs/design/design.md` (+ §7 application layer) · 토큰 **값**은 `docs/design/ds/colors_and_type.css` | `project-rules.md §Visual-Design` | `verification-commands.md §landing` |
 | blocker evidence | `docs/blocker-traceability.json` | — | — |
 
 `project-rules.md`·`verification-commands.md`는 `docs/agent-guides/` 아래에 있다. `docs/requirements.md` = 배경 컨텍스트(직접 SSOT 아님). `docs/archive/**` = 이력 참고(현행 계약 아님).
@@ -49,8 +49,9 @@ rebuild scope·wave 시퀀싱·legacy 비교·rollback 앵커가 걸린 작업�
 - `docs/wave-roadmap.md` — 승인된 wave 시퀀스·전제·include/exclude·리스크·handoff·검증 기대.
 - `docs/decision-register.md` — 확정 rebuild 결정(`BQ-NN`)·충돌 해소·scope guard·구현 caveat.
 - `docs/design/design.md` — 시각 권위(foundations → tokens → components → patterns/application). **visual-only(BQ-21)**: waves/scope/QA/routing/telemetry/storage/behavior/i18n/test-flow/a11y를 지배하지 않는다. 전역 토큰값은 target intent이며 전역 적용 시점은 wave 소관.
+- `docs/design/ds/` — **토큰과 카탈로그 컴포넌트의 실현 정의(BQ-38)**. `colors_and_type.css`가 §5 토큰의 실제 값을, `catalog-components.css`가 카드 시스템을 갖는다. 저장소가 소유하고 Claude Design의 VIVE Design System v2(`cd630eec`)에 단방향 push한다 — 동기화 절차·운영 함정은 `SYNC.md`, 미해결 항목(M-01 easing, D-01 온도, D-02 Pretendard, D-03 accent 상태, D-05 legacy 잔존 4건)은 `README.md`와 `preview/catalog-drift.html`. **런타임이 소비하지 않는 문서 계층**이며, `catalog-components.css`는 제품에 이식할 수 없는 스펙 스타일시트다.
 
-**Visual source precedence (BQ-21):** `decision-register.md` → product requirements / active rules → `docs/design/design.md` → patterns/application layer → mockup resources → 기존 구현 evidence → wave-specific CSS(예외만). design.md는 behavior/storage/telemetry/routing/i18n/test-flow/QA/a11y 계약을 override하지 않는다.
+**Visual source precedence (BQ-21, BQ-38로 보완):** `decision-register.md` → product requirements / active rules → `docs/design/design.md` → patterns/application layer → mockup resources → 기존 구현 evidence → wave-specific CSS(예외만). design.md는 behavior/storage/telemetry/routing/i18n/test-flow/QA/a11y 계약을 override하지 않는다. **토큰 값이 design.md §5와 `ds/colors_and_type.css`에서 갈리면 `ds/`가 실현값이고 design.md가 intent다** — 그 갈림은 등재된 것만 유효하며(현재 BQ-38의 3건), 새 갈림은 쓰기 전에 등재한다.
 
 ## 3. Repo coding principles (domain)
 
@@ -103,7 +104,7 @@ rebuild scope·wave 시퀀싱·legacy 비교·rollback 앵커가 걸린 작업�
 - `public/theme-bootstrap.js` · `src/features/telemetry/consent-source.ts` · `src/features/transition/`
 
 ### SSOT contracts
-동작·플로우·시각 계약 정본: `docs/req-landing.md`, `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), 그리고 이 파일과 `docs/agent-guides/**`. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.
+동작·플로우·시각 계약 정본: `docs/req-landing.md`, `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), `docs/design/ds/colors_and_type.css`(토큰 실현값, BQ-38), 그리고 이 파일과 `docs/agent-guides/**`. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.
 
 ### Always — modify freely
 `src/features/**` · `src/i18n/**` · `src/lib/routes/**` · `src/messages/**` · `tests/**` · `docs/**` · `public/**`(bootstrap 계약 유지) · `.planning/**`(문서·세션 상태만, 실행 코드 없음).

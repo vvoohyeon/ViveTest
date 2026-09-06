@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="700x595" -->
+<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="700x975" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <link rel="stylesheet" href="../catalog-components.css">
@@ -14,15 +14,21 @@
   td.what { color: var(--fg2); }
   .sw { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
   .dot { width: 13px; height: 13px; border-radius: 3px; border: 1px solid var(--border-strong); flex: none; }
-  .ok { color: var(--accent-fg); font-weight: 600; }
   .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 620px; }
   .note b { color: var(--fg1); }
+  .corr { font: var(--caption); color: var(--fg3); max-width: 620px; border-left: 2px solid var(--border-strong); padding: 8px 12px; }
+  .corr b { color: var(--fg2); font-weight: 600; }
 </style></head>
 <body class="vive">
-  <p class="lede"><b>Measured on the running product, 2026-09-06.</b> Surfaces, borders, radii, shadows, subtitle, tags, and the whole expanded card — surface, question, choices, arrow, meta row, focus ring — already match these tokens exactly. Four things do not, and all four are the legacy global theme showing through.</p>
+  <p class="lede"><b>Measured on the running product, 2026-09-06.</b> Card surfaces, borders, radii, shadows, subtitle and tags match these tokens exactly, and so do the expanded card's colours and typography — context label, question, choice fill and edge, choice text, the arrow and its sage hover, the meta row and its separators, and the focus ring. Four things do not match, and all four are the legacy global theme showing through.</p>
   <table>
     <thead><tr><th>What</th><th>Product renders</th><th>This system says</th></tr></thead>
     <tbody>
+      <tr>
+        <td class="what">Page ground</td>
+        <td><span class="sw"><span class="dot" style="background:linear-gradient(135deg,#e7f2ef,#eaf0fb 60%,#f5f7f7)"></span>#F5F7F7</span><br>plus a teal wash at 12% and a blue wash at 14%</td>
+        <td><span class="sw"><span class="dot" style="background:#fbfaf7"></span>#FBFAF7</span><br><span class="t-code">--canvas</span>, warm off-white, no wash</td>
+      </tr>
       <tr>
         <td class="what">Card title — test, unavailable</td>
         <td><span class="sw"><span class="dot" style="background:#161a20"></span>#161A20</span><br>legacy <span class="t-code">--ink</span></td>
@@ -34,16 +40,12 @@
         <td><span class="sw"><span class="dot" style="background:#1a1a1f"></span>#1A1A1F</span><br>the same as every other title</td>
       </tr>
       <tr>
-        <td class="what">Thumbnail placeholder</td>
-        <td><span class="sw"><span class="dot" style="background:#f2f2f3"></span>rgba(22,26,32,.05)</span><br>legacy <span class="t-code">--chip-bg</span>, a cool tint</td>
-        <td><span class="sw"><span class="dot" style="background:#ece8df"></span>--surface-muted</span><br>warm, in the sage family</td>
-      </tr>
-      <tr>
         <td class="what">Typeface</td>
         <td>Avenir Next → Noto Sans KR → Segoe UI</td>
-        <td>Pretendard Variable <span class="ok">(D-02)</span></td>
+        <td>Pretendard Variable</td>
       </tr>
     </tbody>
   </table>
-  <p class="note"><b>Why this matters more than four colours.</b> The blog title and the test title are different colours in the same grid, which no design decided. And every typographic judgement made on this catalog so far was made in a typeface the product does not load — so type sizes, weights and line-heights are worth re-reading once Pretendard is actually in place. All four resolve in the theme cut, when the legacy global layer is replaced.</p>
+  <p class="note"><b>The page ground is the largest of the four and the easiest to miss</b>, because it is painted on the body rather than on any card. The product floor is a cool grey carrying a teal and a blue radial wash — against a design that calls the floor "a warm off-white, never cool grey" and rules out "cold blue tech imagery". Every card in the catalog is judged against a ground its own design system does not describe. Next to that: the blog title and the test title are different colours in the same grid, which no design decided; and every typographic judgement made on this catalog so far was made in a typeface the product does not load. All four resolve in the theme cut.</p>
+  <p class="corr"><b>Corrected 2026-09-06.</b> An earlier version of this card listed the thumbnail placeholder as a drift — the slot's legacy cool tint beneath the image. Withdrawn: the slot is always covered edge to edge by an opaque image, and both the per-variant asset and the generated placeholder are the same warm→sage wash, so that tint is never visible to anyone. The same version claimed the expanded card matched "exactly", arrow included. It did not — the arrow's sage hover was missing from the specimen, not from the product. The card's geometry is still not represented here: shell scale, height floor and the choices↔meta spacer are outstanding.</p>
 </body></html>
