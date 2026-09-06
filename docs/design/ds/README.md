@@ -18,7 +18,9 @@ Findings recorded and **not** settled. Do not resolve them silently. (M-01, the 
 |:---|:---|:---|
 | D-01 | The neutral ramp is warm at steps 0–400 and cool at 500–900, so surfaces and ink disagree in temperature. | `preview/color-temperature.html` |
 | D-03 | The catalog defines no hover or pressed state for the accent; `--accent-hover` and `--accent-pressed` are derived here, not realized in the product. | `preview/color-sage.html` |
-| D-05 | Four values in the catalog still come from the legacy global theme, including two different title colours in the same grid. | `preview/catalog-drift.html` |
+| D-05 | Five values in the catalog still come from the legacy global theme, including two different title colours in the same grid and a cool shadow that replaces the expanded card's warm lift while focus is inside it. | `preview/catalog-drift.html` |
+| D-06 | `design.md` §4.3 states one global wrapping rule; the product applies it to the card title and subtitle only on the mobile tier, so a two-line Korean subtitle may break mid-word above mobile. | `preview/catalog-drift.html` |
+| D-07 | The blog `Read more →` carries a 140ms opacity fade that never runs, because the same element also switches `display`. Measured, not inferred. | `preview/catalog-drift.html` |
 
 ---
 

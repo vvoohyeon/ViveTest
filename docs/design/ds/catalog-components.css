@@ -40,7 +40,12 @@
 }
 
 /* The 16px padding lives on the card's own trigger, which is why the thumbnail
-   gets an even margin on all four sides without any negative offset. */
+   gets an even margin on all four sides without any negative offset.
+
+   That sentence depends on `colors_and_type.css`'s `box-sizing: border-box`
+   reset and was false without it: `width: 100%` plus padding resolved to the
+   full width PLUS the padding, so the margin appeared on the left and was eaten
+   on the right, and the thumbnail drew 32px too wide. Do not remove the reset. */
 .vt-card__pad {
   display: block;
   width: 100%;
@@ -75,12 +80,44 @@
   background: linear-gradient(135deg, var(--canvas) 0%, var(--sage-soft) 100%);
 }
 
+/* THE BASE IS UNCLAMPED, AND THE CLAMP IS A MODIFIER YOU MUST ASK FOR.
+
+   Title and subtitle behave differently per breakpoint, and mobile's behaviour is
+   the *opposite* of desktop's: `req-landing.md:285` forbids ellipsis on the mobile
+   title, `:287` forbids clamp and ellipsis on the mobile subtitle, and `:286` /
+   `:288` require exactly those on desktop and tablet. An earlier version of this
+   file clamped unconditionally under a comment saying mobile shows full text —
+   which reads as authoritative precisely because the prose is right, while the CSS
+   beneath it does the forbidden thing.
+
+   A media query cannot express this: the specimen renders inside a fixed-width
+   frame in the Design System pane, so `max-width` would fire on the pane's width
+   rather than on the tier being simulated. A container query cannot either — tier
+   is decided from the measured grid container (`req-landing.md` §6.2), never from
+   the card, and the mobile card (~358px of content) is in fact WIDER than a
+   desktop later-row card (292px).
+
+   So the tier is an explicit choice, and the base is deliberately the safe one:
+   forget the modifier and you get full text, which violates nothing. The old
+   arrangement failed the other way.
+
+   The modifiers are named for the behaviour (`--clamp1`) rather than the tier,
+   because the same clamp serves both desktop and tablet.
+
+   Both bases carry `design.md` §4.3's global wrapping rule. The product applies
+   only half of it above mobile — see D-06 on `preview/catalog-drift.html`. */
+
 .vt-title {
   margin: var(--space-2) 0 0;
   font: var(--t-card-title);
   letter-spacing: var(--track-tight);
   color: var(--ink);
-  /* Desktop and tablet: one line, ellipsised. Mobile shows the full text. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* Desktop and tablet Normal: one line, ellipsised. */
+.vt-title--clamp1 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
@@ -92,12 +129,33 @@
   margin: var(--space-2) 0 0;
   font: var(--t-card-subtitle);
   color: var(--ink-body);
-  /* Desktop and tablet: two lines. Mobile shows the full text. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* Desktop and tablet Normal: two lines, ellipsised. The ellipsis must be visibly
+   rendered on overflow, and the result must not change any sibling slot's
+   inline-size (`req-landing.md:288`, `:289`). */
+.vt-subtitle--clamp2 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---- Collapsed face presentations ------------------------------------------
+
+   The collapsed face has two presentations, not one. Under a desktop-expanded
+   card the same face renders its TITLE ONLY — no thumbnail, no subtitle, no tags
+   — and the title loses its top gap, because that gap is the thumbnail → title
+   rhythm and there is no thumbnail left for it to sit below.
+
+   `landing-grid-card.tsx:293` names the two presentations, `:604` returns the
+   title alone, `:598` switches the gap off, and `:1062` chooses between them by
+   whether the card is expanded on desktop. */
+.vt-face--title-only > .vt-title {
+  margin-top: 0;
 }
 
 /* A STATIC STAND-IN, not the mechanism. In the product this gap is
@@ -203,9 +261,43 @@
   flex: none;
   margin-left: auto;
   width: max-content;
-  color: var(--blog-readmore-ink);
+  color: var(--blog-read-more-ink);
   font: var(--t-tag);
   text-decoration: none;
+}
+
+/* THE REVEAL IS A MECHANISM, NOT A MARKUP DIFFERENCE.
+
+   An earlier version of this file showed the CTA by putting it in the hover
+   card's markup and leaving it out of the rest card's — which demonstrates the
+   outcome and hides the rule. The rule is that ONE card carries the CTA at all
+   times and the card's own hover / focus-within state reveals it. Both specimens
+   on `preview/card-blog.html` are now the same markup.
+
+   `focus-within` is not decoration: the card is a link, so a keyboard user
+   reaches it by tab, never by pointer, and without this the CTA is pointer-only.
+
+   Mobile shows it always — `req-landing.md:293` — hence `--always`, which the
+   mobile specimen consumes.
+
+   The reveal is INSTANT, and that is a finding rather than a choice. The product
+   writes a 140ms opacity transition next to a `display` switch on the same
+   element; a `display: none` element has no rendered previous frame, so the
+   transition never runs. Measured 2026-09-07: with the display switch the
+   element reports zero running animations and `opacity: 1` on the same frame,
+   while an otherwise identical element without it reports one running animation
+   and `opacity: 0`. Recorded as D-07. This file shows what the product renders,
+   so there is no transition here either — do not add one to "fix" the specimen;
+   the product is where it would have to change. */
+.vt-card--blog .vt-readmore {
+  display: none;
+}
+
+.vt-card--blog:hover .vt-readmore,
+.vt-card--blog:focus-within .vt-readmore,
+.vt-card--blog.is-hover .vt-readmore,
+.vt-card--blog .vt-readmore--always {
+  display: inline-flex;
 }
 
 /* ---- Unavailable card ----------------------------------------------------- */
@@ -460,6 +552,27 @@
    the normal state and the visible expanded surface in the expanded state. */
 .vt-card:has(:focus-visible),
 .vt-focus-demo {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* THREE RINGS, THREE BOXES. They are the same 2px sage at a 2px offset and they
+   are not interchangeable, because each one traces a different visible edge:
+
+     1. the collapsed card shell        — `.vt-card:has(:focus-visible)` above
+     2. the expanded surface            — this rule
+     3. an individual answer choice     — `.vt-choice:focus-visible`
+
+   The product keeps 1 and 2 mutually exclusive on purpose: its collapsed rule
+   excludes the overlay layer so that focusing inside an expanded card rings the
+   expanded surface only, never both boxes at once. Here the two selectors match
+   different elements, so the same exclusivity falls out.
+
+   A card in this state ALSO takes a cool legacy shadow in the product. That is a
+   leak, not part of the ring — D-05, fifth row on `preview/catalog-drift.html` —
+   so it is deliberately absent here and `--shadow-expanded` stays. */
+.vt-expanded:has(:focus-visible),
+.vt-expanded.is-focus {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }

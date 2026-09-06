@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Catalog" name="Blog card" subtitle="Rest and hover · whole-card link, no expanded state" viewport="700x520" -->
+<!-- @dsCard group="Catalog" name="Blog card" subtitle="Rest and hover · whole-card link, no expanded state" viewport="700x770" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <link rel="stylesheet" href="../catalog-components.css">
@@ -25,19 +25,20 @@
                 <circle cx="512" cy="128" r="48" fill="#e8f0ec"/>
               </svg>
             </span>
-            <span class="vt-title">Operational Handbook for Stable Releases</span>
-            <span class="vt-subtitle">Incident posture, deployment sequencing, rollback ergonomics, and a practical checklist.</span>
+            <span class="vt-title vt-title--clamp1">Operational Handbook for Stable Releases</span>
+            <span class="vt-subtitle vt-subtitle--clamp2">Incident posture, deployment sequencing, rollback ergonomics, and a practical checklist.</span>
             <span class="vt-tags-gap"></span>
             <span class="vt-tag-row">
               <span class="vt-tags">
                 <span class="vt-tag vt-tag--fixed">operations</span>
                 <span class="vt-tag vt-tag--flex">release</span>
               </span>
+              <span class="vt-readmore" aria-hidden="true"><span>Read more</span><span>→</span></span>
             </span>
           </span>
         </span>
       </a>
-      <span class="cap">Rest — CTA hidden, tags take the full row</span>
+      <span class="cap">Rest — the CTA is in the markup and hidden by the card’s own state; tags take the full row</span>
     </div>
     <div class="col">
       <a class="vt-card vt-card--blog is-hover" href="#">
@@ -50,8 +51,8 @@
                 <circle cx="512" cy="128" r="48" fill="#e8f0ec"/>
               </svg>
             </span>
-            <span class="vt-title">Operational Handbook for Stable Releases</span>
-            <span class="vt-subtitle">Incident posture, deployment sequencing, rollback ergonomics, and a practical checklist.</span>
+            <span class="vt-title vt-title--clamp1">Operational Handbook for Stable Releases</span>
+            <span class="vt-subtitle vt-subtitle--clamp2">Incident posture, deployment sequencing, rollback ergonomics, and a practical checklist.</span>
             <span class="vt-tags-gap"></span>
             <span class="vt-tag-row">
               <span class="vt-tags">
@@ -62,9 +63,11 @@
           </span>
         </span>
       </a>
-      <span class="cap">Hover — sage edge, soft glow, CTA revealed</span>
+      <span class="cap">Hover — sage edge, soft glow, the same CTA revealed. Identical markup; only the card’s state differs.</span>
     </div>
   </div>
-  <span class="no">This is the one card with a hover skin, because it navigates rather than expands. <span class="t-code">Read more →</span> sits at the right end of the one-line tags row — revealed on hover and focus on desktop and tablet, always visible on mobile — with label and arrow as separate children 6px apart. When it appears it has width priority: tags keep a left-to-right prefix, the last flexes toward its 56px floor, and surplus tags disappear right-first.</span>
+  <span class="no">This is the one card with a hover skin, because it navigates rather than expands. <span class="t-code">Read more →</span> sits at the right end of the one-line tags row, with label and arrow as separate children 6px apart. When it appears it has width priority: tags keep a left-to-right prefix, the last flexes toward its 56px floor, and surplus tags disappear right-first.</span>
+  <span class="no"><b>The reveal is a rule, not a markup difference.</b> Both cards above carry the same CTA; <span class="t-code">.vt-card--blog:hover</span> and <span class="t-code">:focus-within</span> are what show it. <span class="t-code">focus-within</span> is load-bearing rather than decorative — the card is a link, so a keyboard user arrives by tab and never by pointer. On mobile it is always visible, which <span class="t-code">.vt-readmore--always</span> expresses.</span>
+  <span class="no"><b>It appears instantly.</b> The product writes a 140ms opacity fade on this element and also switches its <span class="t-code">display</span>, and an element with no rendered previous frame cannot transition — so the fade never runs. Measured 2026-09-07: with the display switch, zero running animations and <span class="t-code">opacity: 1</span> on the same frame; without it, one running animation and <span class="t-code">opacity: 0</span>. Recorded as D-07. Do not add a fade here to make the specimen prettier than the product.</span>
   <span class="no"><b>Never:</b> an expanded state, an underline on the CTA, a colour change on the CTA's own hover, or a <span class="t-code">READ</span> eyebrow.</span>
 </body></html>

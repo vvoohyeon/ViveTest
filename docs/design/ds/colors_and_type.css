@@ -321,7 +321,7 @@
         `src/app/globals.css`, which this file is not and which this change does
         not touch — the product still consumes its scoped values. Naming them in
         a documentation stylesheet does not promote them into the runtime.
-     3. `--blog-readmore-ink` follows the same pattern and has no `design.md`
+     3. `--blog-read-more-ink` follows the same pattern and has no `design.md`
         counterpart at all.
 
      The general rule this leaves behind: a name may be added here, but a
@@ -368,7 +368,7 @@
 
   /* The blog card's `Read more →` affordance. A realized scoped value sitting
      between `--muted` and `--ink-body`; 5.26:1 on white. */
-  --blog-readmore-ink: #6b6b76;
+  --blog-read-more-ink: #6b6b76;
 
   /* Focus & scrim */
   --focus-ring:      var(--sage-500);
@@ -419,6 +419,22 @@
    SEMANTIC ELEMENT DEFAULTS — opt-in via the `.vive` scope so the tokens above
    can be reused without forcing global element styles.
    ============================================================================ */
+/* Every box in the system sizes by its border edge. Without this, any component
+   that pairs `width: 100%` with padding — `.vt-card__pad` is the one that matters
+   — resolves to the full width PLUS its padding and overflows its own parent, so
+   the padding appears on the left and is eaten on the right. Measured 2026-09-07:
+   the catalog card's content box came out 290px inside a 292px card and ran 15px
+   past its right edge, against a comment in `catalog-components.css` promising an
+   even margin on all four sides. The product does not have this problem because
+   Tailwind Preflight resets `box-sizing` globally; this bundle loads no reset, so
+   it states the rule itself. Scoped to `.vive` so it can never reach a host page. */
+.vive,
+.vive *,
+.vive *::before,
+.vive *::after {
+  box-sizing: border-box;
+}
+
 .vive {
   font: var(--body);
   color: var(--fg2);

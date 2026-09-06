@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="700x975" -->
+<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="760x1600" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <link rel="stylesheet" href="../catalog-components.css">
@@ -18,9 +18,11 @@
   .note b { color: var(--fg1); }
   .corr { font: var(--caption); color: var(--fg3); max-width: 620px; border-left: 2px solid var(--border-strong); padding: 8px 12px; }
   .corr b { color: var(--fg2); font-weight: 600; }
+  .sec { font: var(--h4); color: var(--fg1); margin: 10px 0 0; }
+  .sec em { color: var(--fg2); }
 </style></head>
 <body class="vive">
-  <p class="lede"><b>Measured on the running product, 2026-09-06.</b> Card surfaces, borders, radii, shadows, subtitle and tags match these tokens exactly, and so do the expanded card's colours and typography — context label, question, choice fill and edge, choice text, the arrow and its sage hover, the meta row and its separators, and the focus ring. Four things do not match, and all four are the legacy global theme showing through.</p>
+  <p class="lede"><b>Measured on the running product, 2026-09-06.</b> Card surfaces, borders, radii, shadows, subtitle and tags match these tokens exactly, and so do the expanded card's colours and typography — context label, question, choice fill and edge, choice text, the arrow and its sage hover, the meta row and its separators, and the focus ring. Five things do not match, and all five are the legacy global theme showing through.</p>
   <table>
     <thead><tr><th>What</th><th>Product renders</th><th>This system says</th></tr></thead>
     <tbody>
@@ -44,8 +46,30 @@
         <td>Avenir Next → Noto Sans KR → Segoe UI</td>
         <td>Pretendard Variable</td>
       </tr>
+      <tr>
+        <td class="what">Expanded card, focused</td>
+        <td>a cool <span class="t-code">0 14px 30px rgb(11 15 22 / 10%)</span><br>legacy <span class="t-code">--card-shadow</span>, replacing the warm lift for as long as focus is inside</td>
+        <td><span class="t-code">--shadow-expanded</span> stays<br>focus adds a ring, never a different shadow</td>
+      </tr>
     </tbody>
   </table>
-  <p class="note"><b>The page ground is the largest of the four and the easiest to miss</b>, because it is painted on the body rather than on any card. The product floor is a cool grey carrying a teal and a blue radial wash — against a design that calls the floor "a warm off-white, never cool grey" and rules out "cold blue tech imagery". Every card in the catalog is judged against a ground its own design system does not describe. Next to that: the blog title and the test title are different colours in the same grid, which no design decided; and every typographic judgement made on this catalog so far was made in a typeface the product does not load. All four resolve in the theme cut.</p>
+  <p class="note"><b>The page ground is the largest of the four and the easiest to miss</b>, because it is painted on the body rather than on any card. The product floor is a cool grey carrying a teal and a blue radial wash — against a design that calls the floor "a warm off-white, never cool grey" and rules out "cold blue tech imagery". Every card in the catalog is judged against a ground its own design system does not describe. Next to that: the blog title and the test title are different colours in the same grid, which no design decided; and every typographic judgement made on this catalog so far was made in a typeface the product does not load. And the fifth is the one that only appears while you are using the keyboard: focusing into an expanded card swaps its warm, ink-tinted lift for the cool legacy one, so the card changes temperature under the very interaction meant to make it legible. The step-1b extraction missed it because it read the resting and hover states and not the focused one — what you did not extract is silently assumed correct. All five resolve in the theme cut.</p>
+  <h2 class="sec">Two mismatches that are <em>not</em> the legacy theme</h2>
+  <p class="lede">Both are the product's own code disagreeing with its own design intent, so neither belongs in the table above and neither resolves in the theme cut. Recorded here because a designer reading the product's source would believe the intent.</p>
+  <table>
+    <thead><tr><th>#</th><th>Intent</th><th>What the product does</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="what">D-06</td>
+        <td><span class="t-code">design.md</span> §4.3 states one <b>global</b> wrapping rule: <span class="t-code">word-break: keep-all; overflow-wrap: anywhere</span>.</td>
+        <td>Applies it to the expanded question and the choice text unconditionally, and to the card title and subtitle <b>only on the mobile tier</b> (<span class="t-code">module.css:96-100</span>). Above mobile they carry <span class="t-code">overflow-wrap</span> alone (<span class="t-code">tsx:212</span>, <span class="t-code">:214</span>). Unobservable on the one-line title; <b>visible on the two-line subtitle</b>, where Korean may break mid-word against the rule. This system follows the intent, so both bases carry both properties.</td>
+      </tr>
+      <tr>
+        <td class="what">D-07</td>
+        <td>The blog <span class="t-code">Read more →</span> fades in over 140ms — <span class="t-code">transition-opacity duration-[140ms]</span> on the element itself.</td>
+        <td><b>It does not fade.</b> The same element also switches <span class="t-code">display</span> (<span class="t-code">module.css:144-150</span>), and an element with no rendered previous frame cannot transition, so the reveal is instant in both directions. Measured 2026-09-07: with the display switch, zero running animations and <span class="t-code">opacity: 1</span> on the flip frame; an otherwise identical element without it reports one running animation and <span class="t-code">opacity: 0</span>. Either the fade or the display switch is redundant; which one goes is a decision for the theme cut.</td>
+      </tr>
+    </tbody>
+  </table>
   <p class="corr"><b>Corrected 2026-09-06.</b> An earlier version of this card listed the thumbnail placeholder as a drift — the slot's legacy cool tint beneath the image. Withdrawn: the slot is always covered edge to edge by an opaque image, and both the per-variant asset and the generated placeholder are the same warm→sage wash, so that tint is never visible to anyone. The same version claimed the expanded card matched "exactly", arrow included. It did not — the arrow's sage hover was missing from the specimen, not from the product. The card's geometry is still not represented here: shell scale, height floor and the choices↔meta spacer are outstanding.</p>
 </body></html>

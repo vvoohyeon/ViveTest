@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Card states" subtitle="The states the card actually has — and the ones that look like nothing" viewport="980x1800" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 18px; justify-items: start; }
+  .lede { font: var(--caption); color: var(--fg2); max-width: 720px; }
+  .lede b { color: var(--fg1); font-weight: 600; }
+  h2 { font: var(--h4); color: var(--fg1); margin: 8px 0 0; }
+  .row { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .col { width: 292px; flex: none; display: grid; gap: 8px; align-content: start; }
+  .cap { font: var(--caption); color: var(--fg4); }
+  .cap b { color: var(--fg2); font-weight: 600; }
+  .no { font: var(--caption); color: var(--fg3); max-width: 720px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+  .prose-state { font: var(--caption); color: var(--fg3); max-width: 720px; border-left: 2px solid var(--border-strong); padding: 7px 12px; }
+  .prose-state b { color: var(--fg2); font-weight: 600; }
+  .link { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 720px; }
+  .link b { color: var(--fg1); }
+  .link a { color: var(--accent-fg); }
+  .rule { font: var(--caption); color: var(--fg4); }
+  /* ANNOTATION, not a style. Nothing in the card system draws this. */
+  .annot { outline: 1px dashed var(--accent); outline-offset: 0; }
+  .annot-key { font: var(--caption); color: var(--fg4); display: inline-flex; align-items: center; gap: 6px; }
+  .annot-key i { width: 22px; height: 0; border-top: 1px dashed var(--accent); display: inline-block; }
+</style></head>
+<body class="vive">
+
+  <p class="lede"><b>Every tile below is a state the implementation produces, checked against the line that produces it.</b> The states whose only difference is behavioural get a sentence instead of a tile — inventing a look for them is how a specimen starts lying. All cards are at 292px, the desktop later-row width, which is the tighter of the two.</p>
+
+  <h2>States with a visual difference</h2>
+  <div class="row">
+
+    <div class="col">
+      <div class="vt-card">
+        <div class="vt-card__pad">
+          <div class="vt-card__content">
+            <div class="vt-thumb">
+              <svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs>
+                <rect width="640" height="240" fill="url(#g1)"/>
+                <circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/>
+                <circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/>
+              </svg>
+            </div>
+            <h3 class="vt-title vt-title--clamp1">10m MBTI test</h3>
+            <p class="vt-subtitle vt-subtitle--clamp2">Find your default deep-work cadence.</p>
+            <div class="vt-tags-gap"></div>
+            <ul class="vt-tags">
+              <li class="vt-tag vt-tag--fixed">rapid</li>
+              <li class="vt-tag vt-tag--flex">focus</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <span class="cap"><b>Collapsed Normal</b> — the reference. Every other tile is a delta from this one.</span>
+    </div>
+
+    <div class="col">
+      <div class="vt-card">
+        <div class="vt-card__pad">
+          <div class="vt-card__content vt-face--title-only">
+            <h3 class="vt-title vt-title--clamp1">10m MBTI test</h3>
+          </div>
+        </div>
+      </div>
+      <span class="cap"><b>Collapsed face, <span class="t-code">expandedTitleOnly</span></b> — what stays in the grid while the same card is expanded above it. Title only, at the content inset, and the top gap is gone with the thumbnail that earned it. <span class="t-code">tsx:293</span>, <span class="t-code">:598</span>, <span class="t-code">:604</span>, <span class="t-code">:1062</span>.</span>
+    </div>
+
+    <div class="col">
+      <div class="vt-card">
+        <div class="vt-card__pad">
+          <div class="vt-card__content">
+            <div class="vt-thumb">
+              <svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs>
+                <rect width="640" height="240" fill="url(#g2)"/>
+                <circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/>
+                <circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/>
+              </svg>
+            </div>
+            <h3 class="vt-title vt-title--clamp1">Untagged variant</h3>
+            <p class="vt-subtitle vt-subtitle--clamp2">Same card, no chips to show.</p>
+            <div class="vt-tags-gap"></div>
+            <ul class="vt-tags annot"></ul>
+          </div>
+        </div>
+      </div>
+      <span class="annot-key"><i></i> the reserved row, 28px, holding nothing</span>
+      <span class="cap"><b>Empty tags row</b> — the slot still holds one line, so an untagged card lands on the same bottom rhythm as a tagged one. Zero chips rendered, and never a placeholder chip, a blank chip or a pseudo spacer. <span class="t-code">req-landing.md:325</span>; <span class="t-code">min-h-7</span> at <span class="t-code">tsx:218</span>.<br><b>The dashed rule above is an annotation</b> — an empty row is invisible, which is the whole difficulty. Nothing in the card system draws it, and the card is 28px taller than it would be without the slot.</span>
+    </div>
+
+    <div class="col">
+      <div class="vt-card vt-focus-demo">
+        <div class="vt-card__pad">
+          <div class="vt-card__content">
+            <div class="vt-thumb">
+              <svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs>
+                <rect width="640" height="240" fill="url(#g3)"/>
+                <circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/>
+                <circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/>
+              </svg>
+            </div>
+            <h3 class="vt-title vt-title--clamp1">10m MBTI test</h3>
+            <p class="vt-subtitle vt-subtitle--clamp2">Find your default deep-work cadence.</p>
+            <div class="vt-tags-gap"></div>
+            <ul class="vt-tags">
+              <li class="vt-tag vt-tag--fixed">rapid</li>
+              <li class="vt-tag vt-tag--flex">focus</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <span class="cap"><b>Focus — collapsed shell</b>. 2px sage at a 2px offset, tracing the card's own visible edge.</span>
+    </div>
+
+    <div class="col">
+      <div class="vt-expanded is-focus">
+        <div class="vt-expanded__body">
+          <p class="vt-context">10m MBTI test</p>
+          <p class="vt-question">At parties, what do you notice first?</p>
+          <ul class="vt-choices">
+            <li><button class="vt-choice" type="button"><span class="vt-choice__text">The room</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+          </ul>
+          <p class="vt-meta"><span><span class="vt-meta__lead">3 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>2,184 shared</span></p>
+        </div>
+      </div>
+      <span class="cap"><b>Focus — expanded surface</b>. The same ring on a different box, and the two are mutually exclusive: focusing inside an expanded card rings the surface, never both. <span class="t-code">module.css:158</span>.</span>
+    </div>
+
+    <div class="col">
+      <div class="vt-card vt-card--unavailable">
+        <div class="vt-card__pad" style="cursor:default">
+          <div class="vt-card__content">
+            <div class="vt-thumb">
+              <svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs><linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs>
+                <rect width="640" height="240" fill="url(#g4)"/>
+                <circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/>
+                <circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/>
+              </svg>
+            </div>
+            <h3 class="vt-title vt-title--clamp1">Creativity Profile</h3>
+            <p class="vt-subtitle vt-subtitle--clamp2">Upcoming variant under editorial review.</p>
+            <div class="vt-tags-gap"></div>
+            <ul class="vt-tags">
+              <li class="vt-tag vt-tag--flex">coming soon</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <span class="cap"><b>Unavailable</b> — kept here for comparison, specified on its own card. Warm surface, thumbnail at 0.72, text at full opacity.</span>
+    </div>
+
+  </div>
+
+  <h2>States that look like nothing</h2>
+
+  <p class="no">Each of these is real, and none of them has an appearance. Drawing a tile for one would mean inventing the look.</p>
+
+  <p class="prose-state"><b>Interaction-blocked, hover-locked, <span class="t-code">inert</span>.</b> Three separate guards, and <b>not one of them paints anything</b>. <span class="t-code">tsx:1154</span> sets <span class="t-code">pointerEvents: 'none'</span>, <span class="t-code">:1134</span> sets <span class="t-code">inert</span> in keyboard mode, and <span class="t-code">:1099</span> writes <span class="t-code">data-hover-lock-blocked</span> as a QA anchor with no style attached. A blocked card is pixel-identical to an open one. That is the design — the block exists to keep a transition deterministic, not to tell the user anything — so if you find yourself reaching for a dim or a cursor change here, the state you want is <em>unavailable</em>, which is a different card.</p>
+
+  <p class="prose-state"><b>Real thumbnail asset vs. generated placeholder — no difference either.</b> Checked byte for byte on 2026-09-07: the one shipped asset, <span class="t-code">public/landing-card-media/qmbti/thumbnail.svg</span>, is the <em>same artwork</em> as the runtime fallback at <span class="t-code">tsx:166</span> — the same warm→sage gradient and the same two circles at the same coordinates. Only the delivery path and an added <span class="t-code">&lt;title&gt;</span>/<span class="t-code">&lt;desc&gt;</span> pair differ. So the product renders exactly one illustration across all eight cards today, which is what the tiles above show. Real per-variant artwork exists in the older design system and is imported, unrealized, in a later unit.</p>
+
+  <p class="prose-state"><b>Mobile <span class="t-code">OPENING</span> / <span class="t-code">OPEN</span> / <span class="t-code">CLOSING</span>.</b> Visually distinct, and deliberately not drawn here: the mobile expanded card is a full-bleed sheet with its own header, close control and scrim, which is a card of its own rather than a tile in a matrix. <span class="t-code">tsx:959-961</span>, <span class="t-code">module.css:235-294</span>.</p>
+
+  <p class="link"><b>Motion states — enter, steady, exit, and the reduced-motion substitution — are in the Motion Lab</b>, where they run at the realized 280ms and can be slowed to 0.125× to be judged. A still tile cannot show a curve. <a href="https://claude.ai/code/artifact/747f8197-6e8a-40ca-a1a3-7e080cb3f819">ViveTest Motion Lab →</a></p>
+
+  <p class="no"><b>Never:</b> a disabled-button treatment on a blocked card, a spinner or skeleton on any card face, a dimmed title or subtitle anywhere, or a badge announcing a state the surface already carries.</p>
+
+</body></html>
