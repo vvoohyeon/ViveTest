@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="700x595" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; }
+  .lede { font: var(--caption); color: var(--fg2); max-width: 620px; }
+  .lede b { color: var(--fg1); font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font: var(--caption); }
+  th { text-align: left; font-weight: 600; color: var(--fg2); padding: 0 10px 6px 0; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--border); color: var(--fg3); vertical-align: top; }
+  td.what { color: var(--fg2); }
+  .sw { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .dot { width: 13px; height: 13px; border-radius: 3px; border: 1px solid var(--border-strong); flex: none; }
+  .ok { color: var(--accent-fg); font-weight: 600; }
+  .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 620px; }
+  .note b { color: var(--fg1); }
+</style></head>
+<body class="vive">
+  <p class="lede"><b>Measured on the running product, 2026-09-06.</b> Surfaces, borders, radii, shadows, subtitle, tags, and the whole expanded card — surface, question, choices, arrow, meta row, focus ring — already match these tokens exactly. Four things do not, and all four are the legacy global theme showing through.</p>
+  <table>
+    <thead><tr><th>What</th><th>Product renders</th><th>This system says</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="what">Card title — test, unavailable</td>
+        <td><span class="sw"><span class="dot" style="background:#161a20"></span>#161A20</span><br>legacy <span class="t-code">--ink</span></td>
+        <td><span class="sw"><span class="dot" style="background:#1a1a1f"></span>#1A1A1F</span><br><span class="t-code">--ink</span></td>
+      </tr>
+      <tr>
+        <td class="what">Card title — blog</td>
+        <td><span class="sw"><span class="dot" style="background:#0f1218"></span>#0F1218</span><br>legacy <span class="t-code">--link-ink</span>, because the whole card is a link</td>
+        <td><span class="sw"><span class="dot" style="background:#1a1a1f"></span>#1A1A1F</span><br>the same as every other title</td>
+      </tr>
+      <tr>
+        <td class="what">Thumbnail placeholder</td>
+        <td><span class="sw"><span class="dot" style="background:#f2f2f3"></span>rgba(22,26,32,.05)</span><br>legacy <span class="t-code">--chip-bg</span>, a cool tint</td>
+        <td><span class="sw"><span class="dot" style="background:#ece8df"></span>--surface-muted</span><br>warm, in the sage family</td>
+      </tr>
+      <tr>
+        <td class="what">Typeface</td>
+        <td>Avenir Next → Noto Sans KR → Segoe UI</td>
+        <td>Pretendard Variable <span class="ok">(D-02)</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="note"><b>Why this matters more than four colours.</b> The blog title and the test title are different colours in the same grid, which no design decided. And every typographic judgement made on this catalog so far was made in a typeface the product does not load — so type sizes, weights and line-heights are worth re-reading once Pretendard is actually in place. All four resolve in the theme cut, when the legacy global layer is replaced.</p>
+</body></html>

@@ -1,0 +1,295 @@
+/* ============================================================================
+   ViveTest catalog components
+   ----------------------------------------------------------------------------
+   The catalog's card system, expressed in the tokens from `colors_and_type.css`.
+   Load that file first, then this one, and scope markup with `class="vive"`.
+
+   Every value here was read off the running product on 2026-09-06 with
+   `getComputedStyle`, not transcribed from a spec — see
+   `docs/plans/2026-09-06-design-system-rebaseline-step1b.md` for the extraction
+   and the four places where the product and the tokens disagree.
+
+   Where they disagree, THIS FILE FOLLOWS THE TOKENS. The drift is recorded in
+   `preview/catalog-drift.html` so it stays visible instead of being baked in.
+   Two colours are therefore intentionally different here from what the product
+   renders today: the card title (`--ink`, not the legacy `#161A20` / `#0F1218`)
+   and the thumbnail placeholder (a warm neutral, not the legacy cool tint).
+   ============================================================================ */
+
+/* ---- Base card ------------------------------------------------------------ */
+
+.vt-card {
+  position: relative;
+  display: block;
+  background: var(--canvas-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-rest);
+  /* The blog card is itself an anchor, so the link defaults have to be cleared
+     here: nothing on a catalog card is ever underlined, and the title must not
+     pick up a link colour — every card title is `--ink`. */
+  color: inherit;
+  text-decoration: none;
+}
+
+/* The 16px padding lives on the card's own trigger, which is why the thumbnail
+   gets an even margin on all four sides without any negative offset. */
+.vt-card__pad {
+  display: block;
+  width: 100%;
+  padding: var(--card-pad);
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.vt-card__content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Card parts ----------------------------------------------------------- */
+
+.vt-thumb {
+  aspect-ratio: var(--thumb-ratio);
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.vt-title {
+  margin: var(--space-2) 0 0;
+  font: var(--t-card-title);
+  letter-spacing: var(--track-tight);
+  color: var(--ink);
+  /* Desktop and tablet: one line, ellipsised. Mobile shows the full text. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vt-subtitle {
+  margin: var(--space-2) 0 0;
+  font: var(--t-card-subtitle);
+  color: var(--ink-body);
+  /* Desktop and tablet: two lines. Mobile shows the full text. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The tags row is bottom-anchored; this spacer carries the row's surplus so the
+   rows in a grid keep a common bottom rhythm. 8px is the realized base gap. */
+.vt-tags-gap {
+  height: var(--space-2);
+}
+
+.vt-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: nowrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vt-tag {
+  display: block;
+  padding: var(--tag-pad);
+  border-radius: var(--radius-xs);
+  background: var(--tag-bg);
+  color: var(--tag-fg);
+  font: var(--t-tag);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The last visible tag may flex and ellipsise down to this floor; shorter
+   labels stay whole or disappear with the suffix. */
+.vt-tag--flex {
+  min-width: min(100%, var(--tag-min-width));
+  flex: 0 1 auto;
+}
+
+/* ---- Blog card ------------------------------------------------------------ */
+
+/* Blog is the one card with a hover skin, because it navigates rather than
+   expands. The normal test card must never grow one — expansion is its hover
+   response, and a border would contradict it. */
+.vt-card--blog {
+  transition:
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vt-card--blog:hover,
+  .vt-card--blog.is-hover {
+    border-color: var(--sage);
+    box-shadow: var(--shadow-blog-hover);
+  }
+}
+
+.vt-card--blog.is-hover {
+  border-color: var(--sage);
+  box-shadow: var(--shadow-blog-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-card--blog { transition: none; }
+}
+
+/* Label and arrow are separate visual children inside one non-interactive
+   affordance. Never underlined, and the colour does not react to its own hover. */
+.vt-readmore {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  width: max-content;
+  color: var(--blog-readmore-ink);
+  font: var(--t-tag);
+  text-decoration: none;
+}
+
+/* ---- Unavailable card ----------------------------------------------------- */
+
+.vt-card--unavailable {
+  background: var(--surface-soft);
+}
+
+.vt-card--unavailable .vt-thumb {
+  opacity: 0.72;
+}
+
+/* Title and subtitle keep full opacity — the surface carries the state, not a
+   dimmed text layer. */
+.vt-card--unavailable .vt-tag {
+  background: var(--tag-bg-unavailable);
+}
+
+/* ---- Expanded test card --------------------------------------------------- */
+
+.vt-expanded {
+  background: var(--canvas-elevated);
+  border-radius: var(--radius-lg);
+  /* The sage edge is drawn as an inset ring so it cannot affect layout. */
+  box-shadow: 0 0 0 1px var(--sage);
+}
+
+.vt-expanded__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--card-pad);
+}
+
+.vt-context {
+  margin: 0;
+  font: var(--t-context-label);
+  color: var(--muted-aa);
+}
+
+.vt-question {
+  margin: 0;
+  font: var(--t-expanded-question);
+  letter-spacing: var(--track-tight);
+  color: var(--ink);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.vt-choices {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vt-choice {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--choice-pad);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  background: var(--canvas-elevated);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+
+/* Hover deepens the edge to sage over a soft sage fill — a calm deepening,
+   never a colour change, and never a shadow. */
+.vt-choice:hover,
+.vt-choice.is-hover {
+  border-color: var(--sage);
+  background: var(--sage-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-choice { transition: none; }
+}
+
+.vt-choice__text {
+  min-width: 0;
+  font: var(--t-choice);
+  color: var(--ink-soft);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* Decorative only — it carries no meaning and is hidden from assistive tech. */
+.vt-choice__arrow {
+  flex: none;
+  font: var(--t-choice);
+  color: var(--muted);
+}
+
+/* ---- Meta row ------------------------------------------------------------- */
+
+.vt-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  font: var(--t-tag);
+  color: var(--muted-aa);
+}
+
+/* Only the leading duration item is emphasised; the rest stay plain. */
+.vt-meta__lead {
+  font-weight: 600;
+  color: var(--ink-body);
+}
+
+.vt-meta__sep {
+  color: color-mix(in srgb, var(--muted-aa) 55%, transparent);
+}
+
+/* ---- Focus ---------------------------------------------------------------- */
+
+/* Always visible, never removed. It follows the visible card-shell boundary in
+   the normal state and the visible expanded surface in the expanded state. */
+.vt-card:has(:focus-visible),
+.vt-focus-demo {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

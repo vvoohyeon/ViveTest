@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Tag chips" subtitle="Borderless, lowercase, no dot · 56px flex floor" viewport="700x375" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; }
+  .row { display: grid; gap: 7px; }
+  .lab { font: var(--caption); color: var(--fg3); }
+  .lab b { color: var(--fg2); font-weight: 600; }
+  .frame { width: 292px; padding: 10px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); background: var(--canvas-elevated); }
+  .frame--soft { background: var(--surface-soft); }
+  .no { font: var(--caption); color: var(--fg3); }
+  .no b { color: var(--fg1); font-weight: 600; }
+</style></head>
+<body class="vive">
+  <div class="row">
+    <span class="lab"><b>Available</b> — <span class="t-code">--tag-bg</span> fill, <span class="t-code">--tag-fg</span> text, 13/500, 4px 9px, 5px radius</span>
+    <div class="frame"><ul class="vt-tags"><li class="vt-tag">rapid</li><li class="vt-tag">focus</li><li class="vt-tag vt-tag--flex">decision</li></ul></div>
+  </div>
+  <div class="row">
+    <span class="lab"><b>Unavailable</b> — the darker <span class="t-code">--tag-bg-unavailable</span> fill on the warm card surface</span>
+    <div class="frame frame--soft"><ul class="vt-tags"><li class="vt-tag vt-tag--flex">coming soon</li></ul></div>
+  </div>
+  <div class="row">
+    <span class="lab"><b>Overflow</b> — the last visible tag flexes and ellipsises toward its 56px floor; the rest disappear right-first</span>
+    <div class="frame"><ul class="vt-tags"><li class="vt-tag">workflow</li><li class="vt-tag">ipsum lorem long tag</li><li class="vt-tag vt-tag--flex">lorem long tag that keeps going</li></ul></div>
+  </div>
+  <span class="no"><b>Never:</b> a border, a colour dot, a wrapped chip, or Title Case in a writing system that has case. Caseless scripts keep their localized value as written.</span>
+</body></html>

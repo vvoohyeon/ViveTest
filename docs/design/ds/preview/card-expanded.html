@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Test card — expanded" subtitle="Context → question → choices → meta · sage edge, no labels, no badges" viewport="700x440" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 14px; justify-items: start; }
+  .spec { width: 397px; }
+  .cap { font: var(--caption); color: var(--fg4); }
+  .no { font: var(--caption); color: var(--fg3); max-width: 620px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+</style></head>
+<body class="vive">
+  <div class="spec">
+    <div class="vt-expanded">
+      <div class="vt-expanded__body">
+        <p class="vt-context">10m MBTI test</p>
+        <p class="vt-question">At parties or birthday celebrations, what do you usually notice first?</p>
+        <ul class="vt-choices">
+          <li><button class="vt-choice" type="button"><span class="vt-choice__text">Early morning blocks</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+          <li><button class="vt-choice is-hover" type="button"><span class="vt-choice__text">Late-night sprints</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
+        </ul>
+        <p class="vt-meta"><span><span class="vt-meta__lead">3 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>2,184 shared</span><span class="vt-meta__sep" aria-hidden="true">·</span><span>15,236 completed</span></p>
+      </div>
+    </div>
+  </div>
+  <span class="cap">Second choice shown hovered. Thumbnail, subtitle and tags are gone in this state; the card is at least as tall as the resting card it replaces, and surplus goes between the last choice and the meta row.</span>
+  <span class="no"><b>Never:</b> a <span class="t-code">PREVIEW QUESTION</span> label, A/B letter badges, a divider above the meta row, a truncated choice, a min-height on a choice, an abbreviated count, or <span class="t-code">taken</span> in place of <span class="t-code">completed</span>.</span>
+</body></html>

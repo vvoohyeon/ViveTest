@@ -19,6 +19,7 @@ Three findings are recorded and **not** settled. Do not resolve them silently.
 | M-01 | All 21 landing-card animations ship `linear`, while `req-landing.md` §8.3 requires an ease-in-out curve. No test catches the gap. | `preview/motion.html` |
 | D-01 | The neutral ramp is warm at steps 0–400 and cool at 500–900, so surfaces and ink disagree in temperature. | `preview/color-temperature.html` |
 | D-03 | The catalog defines no hover or pressed state for the accent; `--accent-hover` and `--accent-pressed` are derived here, not realized in the product. | `preview/color-sage.html` |
+| D-05 | Four values in the catalog still come from the legacy global theme, including two different title colours in the same grid. | `preview/catalog-drift.html` |
 
 ---
 
@@ -142,6 +143,7 @@ The complete answer to "what does VIVE *look* like." Tokens live in `colors_and_
 Root foundations:
 - **`colors_and_type.css`** — all tokens: base palette, VIVE semantic roles, and the catalog's own alias vocabulary; type scale, spacing, radius, elevation, motion, layout. Load this first.
 - **`vive-components.css`** — reusable component styles (buttons, inputs, cards, badges, chips, switch, avatar, menu) built on the tokens. Load after the tokens; scope markup with `class="vive"`.
+- **`catalog-components.css`** — the ViveTest catalog's card system: the four card states, tag chips, answer choices and the meta row, every value read off the running product. Load after the tokens when you are building the catalog surface.
 - **`README.md`** — this file.
 - **`SKILL.md`** — Agent-Skills-compatible entry point for using VIVE in Claude Code or as a downloaded skill.
 

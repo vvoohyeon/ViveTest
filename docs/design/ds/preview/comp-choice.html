@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Answer choice" subtitle="Rest · hover · focus — text plus a decorative arrow" viewport="700x470" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 14px; }
+  .row { display: grid; gap: 7px; width: 365px; }
+  .lab { font: var(--caption); color: var(--fg3); }
+  .lab b { color: var(--fg2); font-weight: 600; }
+  .no { font: var(--caption); color: var(--fg3); max-width: 620px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+</style></head>
+<body class="vive">
+  <div class="row">
+    <span class="lab"><b>Rest</b> — white fill, 1px <span class="t-code">--hairline-strong</span>, 12px radius, 12px 14px padding</span>
+    <button class="vt-choice" type="button"><span class="vt-choice__text">Early morning blocks</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button>
+  </div>
+  <div class="row">
+    <span class="lab"><b>Hover</b> — edge deepens to <span class="t-code">--sage</span> over a <span class="t-code">--sage-muted</span> fill, 140ms</span>
+    <button class="vt-choice is-hover" type="button"><span class="vt-choice__text">Late-night sprints</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button>
+  </div>
+  <div class="row">
+    <span class="lab"><b>Long text</b> — wraps freely, never truncated, arrow stays top-aligned</span>
+    <button class="vt-choice" type="button"><span class="vt-choice__text">I notice how the room is arranged and who is standing where before I notice anyone in particular</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button>
+  </div>
+  <span class="no"><b>Never:</b> an A/B letter badge, a hover shadow, a min-height, unequal top and bottom padding, or a truncated label. The arrow is decorative and hidden from assistive technology — the text alone carries the choice.</span>
+</body></html>

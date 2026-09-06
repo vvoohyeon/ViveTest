@@ -13,6 +13,7 @@ The repository owns the **content**. Claude Design owns the **rendering and the 
 | Path | Pushed | Note |
 |:---|:---|:---|
 | `colors_and_type.css` | yes | the shared token definition |
+| `catalog-components.css` | yes | the catalog's card system, expressed in those tokens |
 | `README.md` | yes | the system's own documentation |
 | `SKILL.md` | yes | agent entry point |
 | `preview/*.html` | yes | specimen cards; first line carries the `@dsCard` marker |

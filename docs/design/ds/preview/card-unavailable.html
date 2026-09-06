@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Unavailable card" subtitle="Warm surface, dimmed thumbnail, standard coming soon tag" viewport="700x450" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 14px; justify-items: start; }
+  .spec { width: 292px; }
+  .cap { font: var(--caption); color: var(--fg4); }
+  .no { font: var(--caption); color: var(--fg3); max-width: 620px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+</style></head>
+<body class="vive">
+  <div class="spec">
+    <div class="vt-card vt-card--unavailable">
+      <div class="vt-card__pad" style="cursor:default">
+        <div class="vt-card__content">
+          <div class="vt-thumb">
+            <svg viewBox="0 0 640 240" width="100%" height="100%" aria-hidden="true">
+              <rect width="640" height="240" fill="#ece8df"/>
+              <circle cx="320" cy="120" r="58" fill="none" stroke="#7a7a85" stroke-opacity="0.32" stroke-width="7"/>
+              <path d="M320 84 V 124 L 348 140" fill="none" stroke="#7a7a85" stroke-opacity="0.4" stroke-width="7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 class="vt-title">Creativity Profile</h3>
+          <p class="vt-subtitle">Upcoming variant under editorial review.</p>
+          <div class="vt-tags-gap"></div>
+          <ul class="vt-tags">
+            <li class="vt-tag vt-tag--flex">coming soon</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="cap">Thumbnail at 0.72 · title and subtitle at full opacity</span>
+  <span class="no">The warm <span class="t-code">--surface-soft</span> fill carries the state, one step away from the available cards, and the tag says it in words so the state never rests on colour alone. No hover, no click, no tap; removed from the tab order and skipped during keyboard handoff.</span>
+  <span class="no"><b>Never:</b> dimmed title or subtitle — a greyed-out card reads as broken rather than forthcoming. No dashed pill, no dot in the tag, and never the styling of a disabled button.</span>
+</body></html>

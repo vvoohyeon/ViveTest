@@ -320,6 +320,10 @@
   --tag-fg: var(--warm-700);
   --tag-bg-unavailable: var(--warm-200);
 
+  /* The blog card's `Read more →` affordance. A realized scoped value sitting
+     between `--muted` and `--ink-body`; 5.26:1 on white. */
+  --blog-readmore-ink: #6b6b76;
+
   /* Focus & scrim */
   --focus-ring:      var(--sage-500);
   --focus-ring-soft: rgba(92, 142, 120, 0.22);   /* blog hover glow */

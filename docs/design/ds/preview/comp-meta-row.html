@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Meta row" subtitle="Quiet data line · dot separators, full-digit counts" viewport="700x320" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; }
+  .row { display: grid; gap: 7px; }
+  .lab { font: var(--caption); color: var(--fg3); }
+  .lab b { color: var(--fg2); font-weight: 600; }
+  .frame { width: 365px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--canvas-elevated); }
+  .no { font: var(--caption); color: var(--fg3); max-width: 620px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+</style></head>
+<body class="vive">
+  <div class="row">
+    <span class="lab"><b>Expanded card</b> — leading duration emphasised, the rest plain</span>
+    <div class="frame">
+      <p class="vt-meta"><span><span class="vt-meta__lead">3 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>2,184 shared</span><span class="vt-meta__sep" aria-hidden="true">·</span><span>15,236 completed</span></p>
+    </div>
+  </div>
+  <div class="row">
+    <span class="lab"><b>Wrapping</b> — the row wraps rather than truncating, keeping its baseline alignment</span>
+    <div class="frame" style="width:220px">
+      <p class="vt-meta"><span><span class="vt-meta__lead">12 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>128,940 shared</span><span class="vt-meta__sep" aria-hidden="true">·</span><span>96,412 completed</span></p>
+    </div>
+  </div>
+  <span class="no"><b>Never:</b> <span class="t-code">taken</span> or <span class="t-code">have taken</span> as the label, an abbreviated count such as <span class="t-code">15.2k</span>, a divider rule above the row, or emphasis on more than the duration.</span>
+</body></html>
