@@ -378,6 +378,19 @@ This document is intended to provide information that can serve as the final bas
 - **기본 타입 계층이 컴포넌트 계층을 누르고 있었다(신규 발견).** `.vive p`(0,1,1)가 `.vt-question`(0,1,0)을 이겨, 카탈로그 여섯 타입 역할 중 **넷이 한 번도 토큰 크기로 렌더된 적이 없다**. 실측: `.vt-subtitle`이 `<p>`에서 16px/25.6, `<span>`에서 15px/21.75 — 같은 클래스가 태그에 따라 다른 크기였다. `.vt-question`은 21px여야 할 것이 16px, `.vt-context`·`.vt-meta`도 같다. 같은 규칙의 `margin: 0`이 `.vt-title`·`.vt-subtitle`의 8px 리듬(`req-landing.md` §6.7)까지 지우고 있었다. 요소 기본값을 `:where()`로 감싸 특정도 0으로 낮춰 해소했다. 이 교정으로 카드 기하가 다시 움직였고(`card-test` 397×258 → **397×270**, 제품 산술 270.6과 썸네일 반올림 내에서 일치) viewport 11건을 재측정했다. 함정 원장 `L06`에 등재.
 - **적용 범위** — 문서 계층뿐이다. `src/**` 무변경.
 
+### BQ-38 후속 — 모바일·브랜드 에셋·전체 재측정 (2026-09-07, U4)
+
+- **모바일 추출 — 390 × 844, resize 후 reload.** 티어는 로드 시점에 결정되므로 resize 만으로는 `data-card-viewport-tier` 가 낡은 채 남는다. 실측 전문은 `docs/done/2026-09-07-mobile-extraction.md`. 핵심: 카드 358 × 255.25(페이지 좌우 패딩 16, 거터 15), 콘텐츠 324, 썸네일 324 × 121.5. **제목·부제 모두 `-webkit-line-clamp: none` · `overflow: visible`** — U2 가 base 를 clamp 없는 쪽으로 둔 판단이 제품에서 확인됐다. 모바일 카드(358px)는 데스크톱 later-row 카드(292px)보다 **넓다** — 티어를 카드 폭에서 유도할 수 없는 이유다.
+- **모바일 확장은 좁은 카드가 아니라 다른 형태다.** 390px 전폭 · `border-radius: 0` · 패딩이 안쪽으로(`0 16px 16px`) · sticky 헤더(z 4, 흰 배경, 상 16 / 하 14) · 닫기 40 × 40 · backdrop `rgb(4 6 10 / 64%)` z 10. 레이어 순서 GNB 1100 > 카드 20 > backdrop 10 으로 §8.5 와 일치하고 backdrop 이 카드를 덮지 않는다. **모바일에는 shell scale 이 없다** — question 이 21 × 1.04 가 아니라 21px 이다.
+- **소스만 읽으면 틀리는 지점.** `landing-grid-card-mobile-transient-shell` 이 `rounded-[var(--landing-card-radius)]` 를 갖지만 그것은 OPENING/CLOSING 전용 셸이고, 정상 OPEN 상태는 다른 원소이며 radius 0 이다. 실행 중인 제품이 판정했다.
+- **`design.md` §7.8 대비 미달 3건을 기록만 한다(결정 C).** Wave 13 미구현 + BQ-38 대체이므로 결함 목록이 아니라 디자인 패스 입력이다. ⑴ GNB 하단 flush 요구에 대해 실제는 GNB 하단 57 · 시트 상단 338.59 로 **281.59px** 벌어짐 ⑵ `--sage` 하단 엣지 없음(체인 전체 `border-width: 0`) ⑶ **닫기 40 × 40** — §4.10 이 닫기 버튼을 44 × 44 로 이름 지어 요구하므로 이것만은 미구현 wave 가 아니라 접근성 미달이다. 선택지는 47.75 로 충족한다. 셋 다 런타임 변경이라 5단계 소관.
+- **D-05 6건으로 확장.** 여섯째는 모바일 scrim — `design.md` §5.7 이 `--overlay-scrim: rgba(26,26,31,0.48)`(warm ink 48%)로 정의하는데 제품은 `globals.css:97` 의 `--overlay-scrim-medium`(cool near-black 64%)을 칠한다. 색상과 강도가 모두 다르고, 모바일 플로우가 칠하는 가장 큰 표면이다.
+- **D-08 · D-09 신규 등재.** D-08 — 제품은 카드 8장에 썸네일 1개를 쓰고 그마저 생성 fallback 과 같은 그림이라 카탈로그가 렌더하는 일러스트는 사실상 하나다. D-09 — 모바일 닫기 버튼 40 × 40.
+- **결정 D 실행.** `825385f6` 의 썸네일 7종 + `answer-arrow.svg` 를 무수정으로 `docs/design/ds/assets/` 에 수입하고 `preview/brand-thumbnails.html` 에 **"available artwork · not realized"** 로 명시해 올렸다. 카드 명세에는 넣지 않는다 — 명세는 제품이 렌더하는 것을 보인다. 채택 전 결정 사항 둘을 카드가 갖는다: 비율이 3:2 로 슬롯의 16:6 과 다르고(candidates_9 소관), accent 색을 5종(sage·violet·gold·terracotta·blue) 갖고 있어 단일 accent 체계와 충돌한다.
+- **카드 명세 3종의 손그림 SVG 를 제품의 실제 생성 그라디언트로 교체.** 번들이 제품 하나에 대해 서로 다른 그림 세 개를 보이던 상태가 끝났다.
+- **폰트 로드 상태에서 17개 카드 전체 재측정.** `document.fonts.check('16px "Pretendard Variable"')` 가 17개 iframe 전부에서 `true`(각 iframe 에서 `document.fonts.ready` 대기 후 측정). **기존 카드 높이는 하나도 변하지 않았다** — U1 이 이미 착지해 U3 의 측정도 폰트 로드 상태였기 때문이며, candidates_6 이 우려한 "실제 서체에서 줄이 늘어 viewport 를 넘침"은 발생하지 않았다. 신규 4건과 drift 카드의 viewport 만 움직였고 17개 전부 28px 이상 헤드룸을 갖는다.
+- **적용 범위** — 문서 계층뿐이다. `src/**` 무변경.
+
 ---
 
 ## 변경 이력
@@ -395,3 +408,4 @@ This document is intended to provide information that can serve as the final bas
 | 2026-09-07 | BQ-38 | 후속 — M-01 을 `--ease-in-out` 으로 확정하고 구현(21개 animation). 답변 버튼 타입 `.vt-choice--answer` 신설, 제출 CTA `.vt-cta` 유지 | BQ-38 후속 항목 |
 | 2026-09-07 | BQ-38 | 후속(U2) — D-05 4→5건, D-06·D-07 신규 등재, `--blog-read-more-ink` 개명, `box-sizing` 리셋 신설. 반응형 텍스트 modifier·블로그 CTA 기전·확장 표면 포커스 링·`preview/card-states.html` 추가 | BQ-38 후속 항목 · `docs/plans/2026-09-07-tier2-execution-plan.md` |
 | 2026-09-07 | BQ-38 | 후속(U3) — `.vt-grid`·row stretch·`.vt-tags-gap` 기전·`preview/grid-rhythm.html` 신설, 확장 카드를 해상 기하(437/413px)로 재렌더하고 3박스+픽셀 floor 시연. 기본 타입 계층이 컴포넌트를 누르던 문제를 `:where()`로 해소(L06) | BQ-38 후속 항목 · `docs/plans/2026-09-07-tier2-execution-plan.md` |
+| 2026-09-07 | BQ-38 | 후속(U4) — 모바일 표본 2종·`preview/brand-thumbnails.html` 신설, 결정 D 에셋 8종 수입, 손그림 SVG 를 제품 그라디언트로 교체. D-05 5→6건, D-08·D-09 신규. 폰트 로드 상태에서 17개 카드 전체 재측정. 함정 원장 L07 등재 | BQ-38 후속 항목 · `docs/plans/2026-09-07-tier2-execution-plan.md` |

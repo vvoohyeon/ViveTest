@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Catalog" name="Mobile browse card" subtitle="358px in a 390px frame · nothing is clamped, and the card is wider than a desktop one" viewport="960x1110" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; justify-items: start; }
+  .lede { font: var(--caption); color: var(--fg2); max-width: 740px; }
+  .lede b { color: var(--fg1); font-weight: 600; }
+  .row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+  .col { display: grid; gap: 8px; align-content: start; }
+  /* The phone frame is an annotation — it shows the 16px page padding that gives
+     the card its 358px, and nothing in the card system draws it. */
+  .phone { width: 390px; padding: 0 16px; background: var(--canvas); outline: 1px dashed var(--border-strong); }
+  .stack { display: grid; gap: var(--grid-gutter-mobile); padding: 16px 0; }
+  .cap { font: var(--caption); color: var(--fg4); max-width: 390px; }
+  .cap b { color: var(--fg2); font-weight: 600; }
+  .no { font: var(--caption); color: var(--fg3); max-width: 740px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+  .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 740px; }
+  .note b { color: var(--fg1); }
+  table { border-collapse: collapse; font: var(--caption); }
+  th { text-align: left; font-weight: 600; color: var(--fg2); padding: 0 18px 6px 0; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 6px 18px 6px 0; border-bottom: 1px solid var(--border); color: var(--fg3); white-space: nowrap; }
+  td.k { color: var(--fg2); }
+</style></head>
+<body class="vive">
+
+  <p class="lede"><b>Every other specimen in this bundle is 397px or 292px — the two desktop widths. This is the third one, and it is the widest of the three.</b> A mobile card carries 358px of content against a desktop later-row card's 292px, which is why the viewport tier can never be derived from a card's own width: the product decides it from the measured grid container, and the mobile card is bigger than the desktop card it is narrower than the page for.</p>
+
+  <div class="row">
+    <div class="col">
+      <div class="phone">
+        <div class="stack">
+
+          <div class="vt-card">
+            <div class="vt-card__pad"><div class="vt-card__content">
+              <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="m1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#m1)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg></div>
+              <h3 class="vt-title">Collaboration Read — the long title a desktop card would have cut after one line</h3>
+              <p class="vt-subtitle">What you notice first when you walk into a room, what you reach for when the room goes quiet, and what both of those cost you three months later.</p>
+              <div class="vt-tags-gap"></div>
+              <ul class="vt-tags"><li class="vt-tag vt-tag--fixed">teams</li><li class="vt-tag vt-tag--fixed">signals</li><li class="vt-tag vt-tag--flex">habits</li></ul>
+            </div></div>
+          </div>
+
+          <div class="vt-card">
+            <div class="vt-card__pad"><div class="vt-card__content">
+              <div class="vt-thumb"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="m2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#m2)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg></div>
+              <h3 class="vt-title">10m MBTI test</h3>
+              <p class="vt-subtitle">Find your default deep-work cadence.</p>
+              <div class="vt-tags-gap"></div>
+              <ul class="vt-tags"><li class="vt-tag vt-tag--fixed">rapid</li><li class="vt-tag vt-tag--flex">focus</li></ul>
+            </div></div>
+          </div>
+
+        </div>
+      </div>
+      <span class="cap"><b>Two cards at the 15px mobile gutter.</b> The dashed edge is the 390px viewport; the 16px inside it is page padding, which is where 358 comes from. Neither is drawn by the card system.</span>
+    </div>
+
+    <div class="col">
+      <table>
+        <thead><tr><th>Measured at 390 × 844</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td class="k">page side padding</td><td>16px</td></tr>
+          <tr><td class="k">grid template</td><td>358px, single column</td></tr>
+          <tr><td class="k">gutter</td><td>15px — <span class="t-code">--grid-gutter-mobile</span></td></tr>
+          <tr><td class="k">card</td><td>358 wide, radius 16px</td></tr>
+          <tr><td class="k">trigger padding</td><td>16px, <span class="t-code">min-height: 100%</span></td></tr>
+          <tr><td class="k">content box</td><td>324 — <span class="t-code">358 − 2 − 32</span></td></tr>
+          <tr><td class="k">thumbnail</td><td>324 × 121.5, radius 12px</td></tr>
+          <tr><td class="k">title</td><td>20px/26 600, <span class="t-code">margin-top: 8px</span></td></tr>
+          <tr><td class="k">subtitle</td><td>15px/21.75 400, <span class="t-code">margin-top: 8px</span></td></tr>
+          <tr><td class="k">tags gap</td><td>8px — base 8 + comp 0</td></tr>
+          <tr><td class="k">tags row</td><td><span class="t-code">min-height: 28px</span>, gap 8px</td></tr>
+        </tbody>
+      </table>
+      <span class="cap">Read with <span class="t-code">getComputedStyle</span> on the running product, after a reload at 390 × 844. Full extraction: <span class="t-code">docs/done/2026-09-07-mobile-extraction.md</span>.</span>
+    </div>
+  </div>
+
+  <p class="note"><b>Nothing here is clamped, and that is the whole point of the card.</b> The title and subtitle use the unclamped bases — no <span class="t-code">--clamp1</span>, no <span class="t-code">--clamp2</span> — because <span class="t-code">req-landing.md:285</span> forbids ellipsis on the mobile title and <span class="t-code">:287</span> forbids clamp and ellipsis on the mobile subtitle. Verified on the product: both report <span class="t-code">-webkit-line-clamp: none</span>, <span class="t-code">overflow: visible</span>, <span class="t-code">text-overflow: clip</span>. This is why the bases are unclamped and the desktop behaviour is the modifier — forget the modifier and you get this, which violates nothing; the old arrangement failed the other way.</p>
+
+  <p class="no"><b>Never:</b> a clamp or an ellipsis on either line at this tier. No hover skin — there is no hover on a touch device, and the card's response to a tap is to expand. No second column: below 768px the grid is one column with no first-row exception.</p>
+
+</body></html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="760x1330" -->
+<!-- @dsCard group="Catalog" name="Code ↔ token drift" subtitle="What the product still renders from the legacy theme — finding D-05" viewport="760x1450" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
 <link rel="stylesheet" href="../catalog-components.css">
@@ -22,7 +22,7 @@
   .sec em { color: var(--fg2); }
 </style></head>
 <body class="vive">
-  <p class="lede"><b>Measured on the running product, 2026-09-06.</b> Card surfaces, borders, radii, shadows, subtitle and tags match these tokens exactly, and so do the expanded card's colours and typography — context label, question, choice fill and edge, choice text, the arrow and its sage hover, the meta row and its separators, and the focus ring. Five things do not match, and all five are the legacy global theme showing through.</p>
+  <p class="lede"><b>Measured on the running product, 2026-09-06.</b> Card surfaces, borders, radii, shadows, subtitle and tags match these tokens exactly, and so do the expanded card's colours and typography — context label, question, choice fill and edge, choice text, the arrow and its sage hover, the meta row and its separators, and the focus ring. Six things do not match, and all six are the legacy global theme showing through.</p>
   <table>
     <thead><tr><th>What</th><th>Product renders</th><th>This system says</th></tr></thead>
     <tbody>
@@ -47,13 +47,18 @@
         <td>Pretendard Variable</td>
       </tr>
       <tr>
+        <td class="what">Mobile scrim</td>
+        <td><span class="sw"><span class="dot" style="background:rgba(4,6,10,0.64)"></span>rgb(4 6 10 / 64%)</span><br>legacy <span class="t-code">--overlay-scrim-medium</span>, a cool near-black at 64%</td>
+        <td><span class="sw"><span class="dot" style="background:rgba(26,26,31,0.48)"></span>rgba(26 26 31 / 48%)</span><br><span class="t-code">--overlay-scrim</span>, warm ink at 48% — <span class="t-code">design.md</span> §5.7</td>
+      </tr>
+      <tr>
         <td class="what">Expanded card, focused</td>
         <td>a cool <span class="t-code">0 14px 30px rgb(11 15 22 / 10%)</span><br>legacy <span class="t-code">--card-shadow</span>, replacing the warm lift for as long as focus is inside</td>
         <td><span class="t-code">--shadow-expanded</span> stays<br>focus adds a ring, never a different shadow</td>
       </tr>
     </tbody>
   </table>
-  <p class="note"><b>The page ground is the largest of the four and the easiest to miss</b>, because it is painted on the body rather than on any card. The product floor is a cool grey carrying a teal and a blue radial wash — against a design that calls the floor "a warm off-white, never cool grey" and rules out "cold blue tech imagery". Every card in the catalog is judged against a ground its own design system does not describe. Next to that: the blog title and the test title are different colours in the same grid, which no design decided; and every typographic judgement made on this catalog so far was made in a typeface the product does not load. And the fifth is the one that only appears while you are using the keyboard: focusing into an expanded card swaps its warm, ink-tinted lift for the cool legacy one, so the card changes temperature under the very interaction meant to make it legible. The step-1b extraction missed it because it read the resting and hover states and not the focused one — what you did not extract is silently assumed correct. All five resolve in the theme cut.</p>
+  <p class="note"><b>The page ground is the largest of the four and the easiest to miss</b>, because it is painted on the body rather than on any card. The product floor is a cool grey carrying a teal and a blue radial wash — against a design that calls the floor "a warm off-white, never cool grey" and rules out "cold blue tech imagery". Every card in the catalog is judged against a ground its own design system does not describe. Next to that: the blog title and the test title are different colours in the same grid, which no design decided; and every typographic judgement made on this catalog so far was made in a typeface the product does not load. And the fifth is the one that only appears while you are using the keyboard: focusing into an expanded card swaps its warm, ink-tinted lift for the cool legacy one, so the card changes temperature under the very interaction meant to make it legible. The step-1b extraction missed it because it read the resting and hover states and not the focused one — what you did not extract is silently assumed correct. The sixth is the largest surface the mobile flow paints: §5.7 defines the scrim as warm ink at 48%, and the product covers the whole viewport in a cool near-black at 64%, so the one moment the catalog is most visible is also the moment it is furthest from its own palette. All six resolve in the theme cut.</p>
   <h2 class="sec">Two mismatches that are <em>not</em> the legacy theme</h2>
   <p class="lede">Both are the product's own code disagreeing with its own design intent, so neither belongs in the table above and neither resolves in the theme cut. Recorded here because a designer reading the product's source would believe the intent.</p>
   <table>

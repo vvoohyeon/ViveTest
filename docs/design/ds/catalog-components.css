@@ -628,6 +628,99 @@
   transition: color var(--dur-fast) ease;
 }
 
+/* ---- Mobile expanded sheet -------------------------------------------------
+
+   A DIFFERENT SHAPE, NOT A NARROWER ONE. On mobile the expanded card stops being
+   a card: it spans the whole viewport, drops every corner radius, and moves its
+   padding inside so the sticky header can sit flush against the top edge. The
+   desktop `.vt-expanded` above is unchanged and still carries `--radius-lg` —
+   `design.md` §7.8 requires the mobile surface to have no side radius because
+   "it reads as chrome, not a floating card".
+
+   All values measured on the running product at 390 × 844 on 2026-09-07, after a
+   reload — the viewport tier is decided at load, and a resize alone leaves
+   `data-card-viewport-tier` stale. Full extraction:
+   `docs/done/2026-09-07-mobile-extraction.md`.
+
+   One correction that reading the source alone gets wrong: the class carrying the
+   16px radius (`landing-grid-card-mobile-transient-shell`) is the OPENING/CLOSING
+   shell, anchored at the card's own left and width. The steady OPEN state is a
+   different element and is full-bleed at radius 0. This block describes OPEN.
+
+   There is no shell scale here. Mobile does not scale its type — the question is
+   21px on screen, not 21 × 1.04. */
+.vt-expanded--mobile {
+  width: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--canvas-elevated);
+}
+
+.vt-expanded--mobile .vt-expanded__body {
+  /* The top padding is gone so the sticky header reaches the edge; the sides and
+     the bottom stay at `--card-pad`. */
+  padding: 0 var(--card-pad) var(--card-pad);
+  gap: 0;
+}
+
+/* Sticky, and opaque, because the body scrolls beneath it. */
+.vt-mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--card-pad) 0 14px;
+  background: var(--canvas-elevated);
+}
+
+.vt-mobile-header__title {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  font: var(--t-context-label);
+  color: var(--muted-aa);
+}
+
+/* 40 × 40 in the product, against the 44 × 44 `design.md` §4.10 requires of the
+   close button by name. The gap is real and it is recorded rather than quietly
+   corrected here — raising it is a runtime change, so it belongs to the surface
+   work, not to a specimen. The specimen renders what ships. */
+.vt-mobile-close {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  background: var(--chip-bg);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Behind the sheet, never over it. `req-landing.md` §8.5 fixes the layer order as
+   GNB > expanded > backdrop > other cards, and the product realizes it as
+   1100 > 20 > 10. Closing is the X or a backdrop tap, and nothing else — no
+   swipe-down, which `design.md` §7.8 declines to authorize. */
+.vt-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--overlay-scrim);
+  transition: opacity var(--dur-base) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-scrim { transition: none; }
+}
+
 /* ---- Meta row ------------------------------------------------------------- */
 
 .vt-meta {

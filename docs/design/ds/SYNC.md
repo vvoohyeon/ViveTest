@@ -17,11 +17,16 @@ The repository owns the **content**. Claude Design owns the **rendering and the 
 | `README.md` | yes | the system's own documentation |
 | `SKILL.md` | yes | agent entry point |
 | `preview/*.html` | yes | specimen cards; first line carries the `@dsCard` marker |
+| `assets/*.svg` | yes | the seven thumbnails and the arrow taken from `825385f6` under decision D, unmodified |
 | `SYNC.md` | **no** | this file — repo process, not system content |
 | `fonts/PretendardVariable.woff2` | **no** | mirrored into the repo so local renders match; the design system already holds an identical copy |
 | `_provenance/*` | **no** | pre-rebaseline snapshots kept for rollback |
 
-Files that exist in the Claude Design project but not here — `vive-components.css`, `assets/`, `ui_kits/`, `uploads/`, `_ds_bundle.js`, `_ds_manifest.json` — are **not** mirrored. They are untouched by the rebaseline, and nothing in the catalog work consumes them. `_ds_manifest.json` is compiled by the Claude Design app from the `@dsCard` markers; never hand-write it.
+**Uploading an SVG rewrites it.** Verified on `assets/thumb-values.svg` immediately after `write_files`: the file that comes back through `get_file` carries a `<metadata><c2pa:manifest>` block the local file does not have — roughly 5 KB of base64 provenance injected by the upload path, not by anything in this bundle. **The drawing is byte-identical**; only the metadata differs. So a future byte comparison of `assets/` between the two sides will report all eight files as differing and none of them will have a real difference. Compare the drawing, not the file. This is a property of the upload path, so expect it on every SVG pushed here.
+
+`assets/` now exists on both sides but they are **not the same set**: the repo holds the eight files imported from the older system `825385f6` under decision D, and `cd630eec` additionally holds `vive-logo.svg` and `vive-mark.svg`, which the catalog work does not consume and does not mirror. Pushing `assets/` therefore adds files and never removes any.
+
+Files that exist in the Claude Design project but not here — `vive-components.css`, `ui_kits/`, `uploads/`, `_ds_bundle.js`, `_ds_manifest.json` — are **not** mirrored. They are untouched by the rebaseline, and nothing in the catalog work consumes them. `_ds_manifest.json` is compiled by the Claude Design app from the `@dsCard` markers; never hand-write it.
 
 `fonts/` **is** mirrored, and it is the one path that travels in the opposite direction: the repo copy exists so that a local render resolves the same typeface the design system serves, not so that it can be pushed. Pushing it would be a 2 MB write of a file already present there, twice.
 

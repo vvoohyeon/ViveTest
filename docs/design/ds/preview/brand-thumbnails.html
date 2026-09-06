@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Brand" name="Catalog thumbnail artwork" subtitle="Available material from the older system — not realized in the product" viewport="900x1090" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; }
+  .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; justify-items: start; }
+  .lede { font: var(--caption); color: var(--fg2); max-width: 780px; }
+  .lede b { color: var(--fg1); font-weight: 600; }
+  .flag { font: var(--label); color: #b06a3b; border: 1px dashed #b06a3b; border-radius: var(--radius-sm); padding: 6px 12px; }
+  h2 { font: var(--h4); color: var(--fg1); margin: 10px 0 0; }
+  .grid { display: grid; grid-template-columns: repeat(4, 180px); gap: 18px; }
+  .item { display: grid; gap: 6px; }
+  .art { width: 180px; aspect-ratio: 3 / 2; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--hairline); }
+  .art img { width: 100%; height: 100%; display: block; }
+  .name { font: var(--code); color: var(--fg4); }
+  .hue { display: inline-flex; align-items: center; gap: 5px; font: var(--caption); color: var(--fg3); }
+  .dot { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--border-strong); flex: none; }
+  .no { font: var(--caption); color: var(--fg3); max-width: 780px; }
+  .no b { color: var(--fg1); font-weight: 600; }
+  .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 780px; }
+  .note b { color: var(--fg1); }
+  .cmp { display: flex; gap: 18px; align-items: flex-start; }
+  .cmpcol { display: grid; gap: 6px; }
+  .real { width: 292px; aspect-ratio: 16 / 6; border-radius: var(--radius-md); overflow: hidden; }
+</style></head>
+<body class="vive">
+
+  <p class="flag">Available artwork · <b>not realized in the product</b> · imported under BQ-38 decision D</p>
+
+  <p class="lede"><b>The product ships one thumbnail for eight cards.</b> <span class="t-code">public/landing-card-media/</span> holds exactly one file, for <span class="t-code">qmbti</span>, and it is byte-for-byte the same artwork as the runtime fallback — the same warm→sage gradient and the same two circles. So every catalog card renders one illustration today. These seven, plus an arrow, are what decision <b>D</b> approved taking from the older design system (<span class="t-code">825385f6</span>); they are on this card as material for the design pass and are deliberately kept out of the card specimens, which show what ships.</p>
+
+  <h2>The seven, unmodified</h2>
+  <div class="grid">
+    <div class="item"><div class="art"><img src="../assets/thumb-personality.svg" alt="Personality thumbnail"></div><span class="name">thumb-personality</span><span class="hue"><span class="dot" style="background:#5C8E78"></span>#5C8E78 sage</span></div>
+    <div class="item"><div class="art"><img src="../assets/thumb-work.svg" alt="Work thumbnail"></div><span class="name">thumb-work</span><span class="hue"><span class="dot" style="background:#8A7BB5"></span>#8A7BB5 violet</span></div>
+    <div class="item"><div class="art"><img src="../assets/thumb-decision.svg" alt="Decision thumbnail"></div><span class="name">thumb-decision</span><span class="hue"><span class="dot" style="background:#C9A24A"></span>#C9A24A gold</span></div>
+    <div class="item"><div class="art"><img src="../assets/thumb-relationships.svg" alt="Relationships thumbnail"></div><span class="name">thumb-relationships</span><span class="hue"><span class="dot" style="background:#C4704A"></span>#C4704A terracotta</span></div>
+    <div class="item"><div class="art"><img src="../assets/thumb-values.svg" alt="Values thumbnail"></div><span class="name">thumb-values</span><span class="hue"><span class="dot" style="background:#4A6FA5"></span>#4A6FA5 blue</span></div>
+    <div class="item"><div class="art"><img src="../assets/thumb-blog.svg" alt="Blog thumbnail"></div><span class="name">thumb-blog</span><span class="hue"><span class="dot" style="background:#7A7A85"></span>#7A7A85 grey</span></div>
+    <div class="item"><div class="art"><img src="../assets/thumb-comingsoon.svg" alt="Coming soon thumbnail"></div><span class="name">thumb-comingsoon</span><span class="hue"><span class="dot" style="background:#A6A6AE"></span>#A6A6AE grey</span></div>
+    <div class="item"><div class="art" style="display:grid;place-items:center;background:var(--canvas-elevated)"><img src="../assets/answer-arrow.svg" alt="Answer arrow" style="width:32px;height:32px;color:var(--muted)"></div><span class="name">answer-arrow</span><span class="hue"><span class="dot" style="background:currentColor"></span>currentColor</span></div>
+  </div>
+
+  <h2>Against what the product actually renders</h2>
+  <div class="cmp">
+    <div class="cmpcol">
+      <div class="real"><svg viewBox="0 0 640 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="bt" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#bt)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg></div>
+      <span class="name">the one artwork, at 16 : 6 — all eight cards</span>
+    </div>
+    <div class="cmpcol">
+      <div class="real" style="aspect-ratio: 3 / 2; width: 195px;"><img src="../assets/thumb-personality.svg" alt="" style="width:100%;height:100%;display:block"></div>
+      <span class="name">the imported artwork, at 3 : 2</span>
+    </div>
+  </div>
+
+  <p class="note"><b>Two things stand between these files and the product, and both are decisions rather than work.</b> First, <b>the aspect ratios do not match</b>: the imported set is authored at <span class="t-code">viewBox="0 0 300 200"</span>, which is 3 : 2, against the card slot's <span class="t-code">16 / 6</span>. Dropping one into the slot crops a third of its height, and every one of them centres its subject vertically. Second, <b>they carry five accent hues</b> — sage, violet, gold, terracotta and blue — where this system has exactly one accent and a warm-neutral ground. Adopting them as they are would introduce a per-category palette the catalog has never had. Neither is resolved here; both are inputs to the design pass.</p>
+
+  <p class="no"><b>Never:</b> these files in a card specimen. A specimen shows what the product renders, and the product renders the gradient above. That rule is what this card exists to hold — unlabelled absence is what produced three different hand-drawn stand-ins in the first place.</p>
+
+</body></html>

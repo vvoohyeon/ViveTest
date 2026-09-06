@@ -18,9 +18,11 @@ Findings recorded and **not** settled. Do not resolve them silently. (M-01, the 
 |:---|:---|:---|
 | D-01 | The neutral ramp is warm at steps 0–400 and cool at 500–900, so surfaces and ink disagree in temperature. | `preview/color-temperature.html` |
 | D-03 | The catalog defines no hover or pressed state for the accent; `--accent-hover` and `--accent-pressed` are derived here, not realized in the product. | `preview/color-sage.html` |
-| D-05 | Five values in the catalog still come from the legacy global theme, including two different title colours in the same grid and a cool shadow that replaces the expanded card's warm lift while focus is inside it. | `preview/catalog-drift.html` |
+| D-05 | Six values in the catalog still come from the legacy global theme, including two different title colours in the same grid, a cool shadow that replaces the expanded card's warm lift while focus is inside it, and a mobile scrim at a different hue and strength from the token. | `preview/catalog-drift.html` |
 | D-06 | `design.md` §4.3 states one global wrapping rule; the product applies it to the card title and subtitle only on the mobile tier, so a two-line Korean subtitle may break mid-word above mobile. | `preview/catalog-drift.html` |
 | D-07 | The blog `Read more →` carries a 140ms opacity fade that never runs, because the same element also switches `display`. Measured, not inferred. | `preview/catalog-drift.html` |
+| D-08 | The product ships one thumbnail for eight cards, and it is the same artwork as the generated fallback — so the catalog renders exactly one illustration. Seven candidates exist in `825385f6` at a different aspect ratio and in five accent hues. | `preview/brand-thumbnails.html` |
+| D-09 | The mobile expanded sheet's close button is 40 × 40 against the 44 × 44 `design.md` §4.10 requires of it by name. | `preview/card-mobile-expanded.html` |
 
 ---
 
