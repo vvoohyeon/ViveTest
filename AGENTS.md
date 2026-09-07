@@ -22,7 +22,7 @@ ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·
 | Request entry | 단일 진입 `src/proxy.ts` (middleware 없음). `[locale]/layout.tsx`: `dynamicParams = false` |
 | `next.config.ts` flags | `typedRoutes`, `experimental.globalNotFound`, `outputFileTracingRoot = cwd`, `allowedDevOrigins = ['127.0.0.1']`, `turbopack.root = cwd` |
 | Tech stack | `next@16.2.4`, `react@19.2.4`, `react-dom@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0`, `tailwindcss@4.1.0`, `typescript@5.9.3`; 테스트 `vitest`, `@playwright/test` |
-| Tokens/theme | **런타임**: Tailwind v4 tokens/base = `src/app/globals.css`(분할 금지). Landing grid/card motion + scoped visual-skin tokens(`--normal-*`/`--expanded-*`) = `src/features/landing/grid/landing-grid-card.module.css`. **설계 정의**(런타임 미소비): `docs/design/ds/colors_and_type.css`(BQ-38) |
+| Tokens/theme | **런타임**: Tailwind v4 tokens/base = `src/app/globals.css`(분할 금지). 그 안의 `@mirror-begin`/`@mirror-end` 구간은 **설계 정의의 사본**이며 값을 여기서 고치지 않는다 — 설계 정의를 고치고 다시 베낀다(theme cut, 2026-09-07). Landing grid/card motion = `src/features/landing/grid/landing-grid-card.module.css`; 그 파일의 `--normal-*`/`--expanded-*` 는 이제 리터럴이 아니라 전역 토큰을 가리킨다. **설계 정의**(런타임 미소비): `docs/design/ds/colors_and_type.css`(BQ-38) |
 
 디렉터리 소유권 상세 → `docs/agent-guides/project-rules.md §Ownership`.
 

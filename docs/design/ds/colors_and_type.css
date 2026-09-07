@@ -201,9 +201,24 @@
   /* ======================================================================
      TYPE
      ====================================================================== */
-  --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system,
-               BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
-               'Helvetica Neue', Arial, 'Noto Sans KR', sans-serif;
+  /* The stack carries a per-script fallback for every locale the product ships,
+     not only Korean. ViveTest serves twelve — en kr zs zt ja es fr pt de hi id ru
+     — and the previous stack named `Noto Sans KR` and nothing for Han or
+     Devanagari, so `zs` `zt` `ja` `hi` fell through to the generic `sans-serif`
+     and rendered in whatever the platform picked.
+
+     Pretendard's own Han coverage could not be established reliably from the
+     browser: width comparison cannot separate "the face has this glyph" from
+     "both fallbacks resolved to the same system font", and a canvas raster
+     comparison disagreed with it. The stack is written so the answer does not
+     matter — every script has a named face behind Pretendard, and a face is only
+     consulted for glyphs the ones before it lack. */
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system,
+               BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Hiragino Sans',
+               'PingFang SC', 'PingFang TC', 'Segoe UI', 'Yu Gothic UI',
+               'Microsoft YaHei', 'Microsoft JhengHei', Roboto, 'Noto Sans KR',
+               'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC',
+               'Noto Sans Devanagari', 'Helvetica Neue', Arial, sans-serif;
   /* JetBrains Mono substitutes for a bespoke mono. [not realized] */
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code',
                Menlo, Consolas, monospace;
@@ -414,9 +429,13 @@
   --tag-fg: var(--warm-700);
   --tag-bg-unavailable: var(--warm-200);
 
-  /* The blog card's `Read more →` affordance. A realized scoped value sitting
-     between `--muted` and `--ink-body`; 5.26:1 on white. */
-  --blog-read-more-ink: #6b6b76;
+  /* The blog card's `Read more →` affordance, sitting between `--muted` and
+     `--ink-body`; 5.26:1 on white. Warmed 2026-09-07 with the rest of the ramp —
+     D-01 moved steps 500–900 and missed this one because it is a standalone hex
+     rather than a ramp step, so it stayed cool (−11) inside a warm system. Same
+     matched-luminance solve as the ramp: `#6b6b76` -> `#716b64`, +13 warm, and
+     the contrast does not move (5.26 on white, 5.04 on the canvas). */
+  --blog-read-more-ink: #716b64;
 
   /* Focus & scrim */
   --focus-ring:      var(--sage-500);

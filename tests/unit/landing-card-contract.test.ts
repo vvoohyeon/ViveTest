@@ -31,6 +31,10 @@ function readLandingGridCardSource(): string {
   return readFileSync(new URL('../../src/features/landing/grid/landing-grid-card.tsx', import.meta.url), 'utf8');
 }
 
+function readGlobalTokens(): string {
+  return readFileSync(new URL('../../src/app/globals.css', import.meta.url), 'utf8');
+}
+
 function extractSourceAssignment(source: string, constantName: string): string {
   const assignment = source.match(new RegExp(`const ${constantName}\\s*=\\s*([\\s\\S]*?);`, 'u'))?.[1];
 
@@ -349,7 +353,12 @@ describe('landing card slot contract', () => {
     expect(mobileNormalTextRule).toContain('overflow-wrap: anywhere;');
     expect(sharedTagRule).toBeDefined();
     expect(sharedTagRule).toContain('line-height: 1.35;');
-    expect(cardCss).toContain('--blog-read-more-ink: #6b6b76;');
+    // 2026-09-07 theme cut: 이 토큰은 카드 모듈의 스코프 리터럴에서 전역 계층으로 올라갔다
+    // (BQ-21 namespace 정착). 모듈이 값을 갖지 않는 것이 이제 계약이며, 값 자체는 전역이 갖는다.
+    // 지킬 불변식은 CTA 가 자기 잉크 토큰을 갖는다는 것 — 아래 두 줄과 `--muted-ink` 금지 —
+    // 이지 특정 hex 가 어느 파일에 있느냐가 아니다.
+    expect(cardCss).not.toContain('--blog-read-more-ink:');
+    expect(readGlobalTokens()).toMatch(/^\s*--blog-read-more-ink:\s*#[0-9a-f]{6};/mu);
     expect(blogReadMoreRule).toContain('color: var(--blog-read-more-ink);');
     expect(blogReadMoreRule).toContain('text-decoration: none;');
     expect(extractSourceAssignment(cardSource, 'LANDING_GRID_CARD_TAG_CHIP_CLASSNAME')).not.toContain(

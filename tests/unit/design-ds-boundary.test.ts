@@ -18,7 +18,23 @@ import {readdirSync} from 'node:fs';
 import path from 'node:path';
 
 const RUNTIME_ROOTS = ['src', 'public'];
-const FORBIDDEN = [/docs\/design\/ds/u, /catalog-components\.css/u, /colors_and_type\.css/u];
+
+/**
+ * 금지 대상은 **소비**다 — import / @import / url() / require / fetch 로 ds/ 를 끌어오는 것.
+ *
+ * 종전 패턴은 경로가 텍스트로 나타나기만 해도 걸렸고, 2026-09-07 theme cut 에서 처음으로
+ * 그 과잉이 드러났다: `globals.css` 가 자기 토큰이 **어느 파일에서 베껴졌는지** 주석으로
+ * 밝히자 가드가 걸었다. 출처 표기는 AGENTS.md §3-1 이 요구하는 것이고 위험이 아니다 —
+ * 주석은 파일을 읽지 않는다. 그래서 위험의 모양(가져오기 구문)으로 좁힌다.
+ */
+const FORBIDDEN = [
+  /@import\s+['"][^'"]*(?:docs\/design\/ds|catalog-components\.css|colors_and_type\.css|app-components\.css)/u,
+  // `from '…'`, `require('…')`, `import('…')` AND the bare side-effect form
+  // `import '…';`, which is how a stylesheet would actually be pulled in and which
+  // an earlier version of this pattern let through — caught by fault injection.
+  /(?:from|require\(|import\(|import)\s*['"][^'"]*(?:docs\/design\/ds|catalog-components\.css|colors_and_type\.css|app-components\.css)/u,
+  /url\(\s*['"]?[^'")]*(?:docs\/design\/ds|catalog-components\.css|colors_and_type\.css|app-components\.css)/u
+];
 
 function walk(directory: string): string[] {
   const absolute = path.join(REPO_ROOT, directory);

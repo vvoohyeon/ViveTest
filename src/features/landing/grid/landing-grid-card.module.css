@@ -1,16 +1,34 @@
 .root {
-  /* Wave 3 Normal collapsed-face skin tokens (design.md §4). Strategy A: consumed only by
-     collapsed Normal selectors, so no shared global token is mutated. */
-  --normal-card-surface: #ffffff;
-  --normal-card-border: #e6e2d8;
-  --normal-card-shadow: 0 1px 2px rgb(26 26 31 / 4%);
-  --normal-focus-ring: #5c8e78;
-  --normal-thumb-radius: 12px;
-  --normal-subtitle-ink: #4a4a55;
-  --normal-tag-bg: #ece8df;
-  --normal-tag-ink: #4a4a55;
-  --normal-tag-radius: 5px;
-  --tag-min-width: 56px;
+  /* WAVE-16 MIGRATION, 2026-09-07 (the theme cut).
+
+     These tokens were literal hexes, copied from `design.md` §5 and scoped here
+     under "Strategy A" with the comments below all saying the same thing: *until
+     Wave 16 global token migration*. That is this commit. Every value now points
+     at the global token it was duplicating, which settles four deferrals at once
+     — BQ-21 (namespace), BQ-27 and BQ-28 and BQ-30 (token promotion) — and
+     removes BQ-29's scoped `#757580` exception further down.
+
+     IT ALSO FIXES A DEFECT NOBODY HAD RECORDED. Twenty-two literal hexes with no
+     `[data-theme]` branch anywhere in this file meant the landing card never
+     adapted to the dark theme at all: a white card, warm-white tags and near-black
+     ink, on a dark page. No baseline covers it — the theme matrix declares
+     `landing-normal` but only the test-flow cases have snapshots on disk — so
+     nothing was ever going to catch it. Pointing at the semantic layer makes the
+     card inherit both themes without a branch of its own.
+
+     `--tag-min-width` and `--blog-read-more-ink` are simply gone from this block:
+     the global layer declares both under the same name, so re-declaring them here
+     would either shadow the system or, written as `var()` of themselves, resolve
+     to nothing. */
+  --normal-card-surface: var(--canvas-elevated);
+  --normal-card-border: var(--hairline);
+  --normal-card-shadow: var(--shadow-rest);
+  --normal-focus-ring: var(--focus-ring);
+  --normal-thumb-radius: var(--radius-md);
+  --normal-subtitle-ink: var(--ink-body);
+  --normal-tag-bg: var(--tag-bg);
+  --normal-tag-ink: var(--tag-fg);
+  --normal-tag-radius: var(--radius-xs);
 
   /* M-01 (BQ-38, 2026-09-07): the core expand/collapse easing. Every animation
      below shipped `linear` while `docs/req-landing.md` §8.3 required the easing to
@@ -22,33 +40,39 @@
      the open. */
   --landing-card-motion-ease: cubic-bezier(0.45, 0, 0.2, 1);
 
-  /* Wave 8 Blog hover skin tokens; scoped here until Wave 16 global token migration. */
-  --blog-hover-border: #5c8e78;
-  --blog-hover-shadow: 0 4px 14px rgb(92 142 120 / 22%);
-  --blog-read-more-ink: #6b6b76;
+  /* Wave 8 Blog hover skin. `--shadow-blog-hover` is `0 4px 14px var(--focus-ring-soft)`,
+     which resolves to exactly the value this file used to spell out. */
+  --blog-hover-border: var(--accent);
+  --blog-hover-shadow: var(--shadow-blog-hover);
 
-  /* Wave 9 unavailable-card skin (design.md §7.5). Strategy A: values are scoped here until
-     Wave 16 global migration. */
-  --unavailable-surface: #f4f1ea; /* = design.md §5.2 --surface-soft */
-  --unavailable-tag-bg: #e6e2d8;
+  /* Wave 9 unavailable-card skin (design.md §7.5). BQ-30 deferred the tag fill's
+     promotion to wave 16; `--tag-bg-unavailable` is that promoted token. */
+  --unavailable-surface: var(--surface-soft);
+  --unavailable-tag-bg: var(--tag-bg-unavailable);
   --unavailable-thumb-opacity: 0.72; /* design.md §7.5 "subtle dim"; concrete value per BQ-26/§8 */
 
-  /* Wave 5 expanded-test skin tokens (design.md §6.5/§7). Strategy A: consumed only by
-     expanded-test selectors (question/choice/arrow), so no shared global token is mutated. */
-  --expanded-question-ink: #1a1a1f;
-  --expanded-choice-surface: #ffffff;
-  --expanded-choice-border: #d6d1c4;
-  --expanded-choice-ink: #2e2e36;
-  --expanded-choice-arrow-ink: #7a7a85;
-  --expanded-choice-accent: #5c8e78;
-  --expanded-choice-accent-surface: #e8f0ec;
-  --expanded-card-surface: #ffffff;
-  --expanded-card-border: #5c8e78;
-  --expanded-card-shadow:
-    0 12px 32px rgb(26 26 31 / 8%),
-    0 0 0 1px #d6d1c4;
-  --expanded-context-ink: #757580;
-  --expanded-meta-strong: #4a4a55;
+  /* Wave 5 expanded-test skin (design.md §6.5/§7). `--shadow-expanded` is
+     `var(--shadow-lg), 0 0 0 1px var(--hairline-strong)` — the same two layers this
+     file used to write out by hand.
+
+     `--expanded-context-ink` was BQ-29's scoped exception: `--muted` measures
+     4.23:1 on white, below AA for normal text, so R1 pinned this one surface to a
+     literal `#757580` and deferred the system-wide correction to wave 16. It is now
+     `--muted-aa`, the system's own correction — and that value was itself re-solved
+     in step 3, because `#757580` had been derived against white alone and missed AA
+     on the canvas (4.36) and on the sunken surface (4.04). */
+  --expanded-question-ink: var(--ink);
+  --expanded-choice-surface: var(--canvas-elevated);
+  --expanded-choice-border: var(--hairline-strong);
+  --expanded-choice-ink: var(--ink-soft);
+  --expanded-choice-arrow-ink: var(--muted);
+  --expanded-choice-accent: var(--accent);
+  --expanded-choice-accent-surface: var(--sage-muted);
+  --expanded-card-surface: var(--canvas-elevated);
+  --expanded-card-border: var(--accent);
+  --expanded-card-shadow: var(--shadow-expanded);
+  --expanded-context-ink: var(--muted-aa);
+  --expanded-meta-strong: var(--ink-body);
 }
 
 /* Collapsed Normal focus ring — sage outline (design.md §6.2). Excludes the desktop overlay
