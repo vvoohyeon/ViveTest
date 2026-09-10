@@ -4,6 +4,12 @@ import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
 import {expectBufferToMatchLocalSnapshot} from './helpers/local-snapshot';
 
+// BQ-07: webkit ghosting baseline 은 저장소에 한 장도 없다(추적 0). 생성이 이연돼 있는 동안
+// 없는 baseline 은 생성-후-통과로 남긴다 — 이연이 풀리면 이 상수와 인자를 함께 지운다.
+const GHOSTING_BASELINE_DEFERRAL = {
+  allowMissingBaseline: {reason: 'BQ-07 — safari ghosting baseline 생성 이연 (추적 0)'}
+} as const;
+
 // Safari ghosting baselines are captured through helper wrappers that delegate to Playwright `toMatchSnapshot`.
 
 const DESKTOP_VIEWPORT = {width: 1440, height: 980} as const;
@@ -175,7 +181,7 @@ async function expectSteadyExpandedShadowSnapshot(input: {
   const screenshot = await input.page.screenshot({
     clip: buildStageClip(settledBox)
   });
-  await expectBufferToMatchLocalSnapshot(screenshot, input.snapshotName, input.testInfo);
+  await expectBufferToMatchLocalSnapshot(screenshot, input.snapshotName, input.testInfo, GHOSTING_BASELINE_DEFERRAL);
 }
 
 async function readDesktopExpandedOverlayMetrics(card: Locator) {
@@ -249,7 +255,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     const screenshot = await page.screenshot({
       clip: buildStageClip(firstCardBox)
     });
-    await expectBufferToMatchLocalSnapshot(screenshot, 'hover-out-row1-settled.png', testInfo);
+    await expectBufferToMatchLocalSnapshot(screenshot, 'hover-out-row1-settled.png', testInfo, GHOSTING_BASELINE_DEFERRAL);
   });
 
   test('@smoke @gate lower-row same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}, testInfo) => {
@@ -267,7 +273,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     const screenshot = await page.screenshot({
       clip: buildStageClip(lowerRowCardBox)
     });
-    await expectBufferToMatchLocalSnapshot(screenshot, 'hover-out-lower-row-settled.png', testInfo);
+    await expectBufferToMatchLocalSnapshot(screenshot, 'hover-out-lower-row-settled.png', testInfo, GHOSTING_BASELINE_DEFERRAL);
   });
 
   test('@smoke @gate row1 handoff source skips close and cleanup phases', async ({page}) => {
@@ -352,6 +358,6 @@ test.describe('Safari hover-out ghosting regression', () => {
     const screenshot = await page.screenshot({
       clip: buildSettingsPanelClip(panelBox!)
     });
-    await expectBufferToMatchLocalSnapshot(screenshot, 'settings-panel-top-seam-free.png', testInfo);
+    await expectBufferToMatchLocalSnapshot(screenshot, 'settings-panel-top-seam-free.png', testInfo, GHOSTING_BASELINE_DEFERRAL);
   });
 });

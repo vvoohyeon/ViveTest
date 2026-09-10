@@ -174,7 +174,11 @@ async function captureRepresentativeState(input: {
     await input.settle(page);
   }
 
-  await expectLocatorToMatchLocalSnapshot(page.locator('.page-shell'), input.screenshotName, input.testInfo);
+  await expectLocatorToMatchLocalSnapshot(page.locator('.page-shell'), input.screenshotName, input.testInfo, {
+    // BQ-07: 이 매트릭스는 168 장을 요구하는데 저장소가 갖는 것은 48 장이고, 나머지 생성은
+    // 이연돼 있다. 그때까지 없는 baseline 은 생성-후-통과로 남긴다 — 이연이 풀리면 이 옵션만 지운다.
+    allowMissingBaseline: {reason: 'BQ-07 — theme-matrix baseline 생성 이연 (168 중 48 만 추적)'}
+  });
   await page.close();
 }
 

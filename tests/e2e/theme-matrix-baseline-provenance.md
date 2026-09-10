@@ -81,3 +81,18 @@ and verification result. The PNG baselines themselves remain local-only under
   `expanded-focus-shell.png` baseline regenerated after Phase A predicate
   injection refactor, which is structural only and has no intended visual output
   change.
+
+## State Smoke Baseline — tracked under the name Playwright actually resolves (2026-09-11)
+
+- Date generated: 2026-09-11 02:26:51 KST
+- Git commit SHA: 21e1de4 (`main` at generation time)
+- OS: macOS Darwin 25.6.0 arm64
+- Node version: v24.2.0
+- Playwright version: 1.57.0
+- Regeneration command:
+  `PLAYWRIGHT_SERVER_MODE=preview npx playwright test --project=chromium --workers=1 -g "expanded keyboard focus boundary" --update-snapshots`
+- Regeneration result: `1 passed`; produced `expanded-focus-shell-chromium-darwin.png` at 398x293, 25,862 bytes. Re-ran the comparison three times unchanged.
+- Gate verification command:
+  `PLAYWRIGHT_SERVER_MODE=preview npx playwright test --project=chromium --workers=1 tests/e2e/state-smoke.spec.ts`
+- Gate verification result: ` 27 passed (34.9s) `
+- Reason for regeneration: **the previous baseline was never compared, and the one that was compared was never in the repository.** `62a4121` (2026-03-16) added the named `projects` block to `playwright.config.ts`, so from that commit Playwright resolved `expanded-focus-shell-chromium-darwin.png` while the repository tracked `expanded-focus-shell-darwin.png`. The tracked file was orphaned in that commit and has not been read since; the resolved name existed only as an ignored file on one machine, generated 2026-05-10. The geometry difference between them is not a regression — `f3acb9f` (2026-06-02, adopt `design.md` as visual SSOT) moved the thumbnail slot from `aspect-[6/1]` to `aspect-[16/6]` and the card title to the 20px/1.3 scale, taking the expanded card from 403x211 to 403x291 in one commit; `docs/done/2026-06-01-rc-w1w5-normal-spacing-title-arrow.md` recorded that same reading at the time and deferred the baseline under `BQ-07`. This entry closes that deferral for this one baseline only: it is now tracked under the resolved name, the two orphans are deleted, and `tests/e2e/helpers/local-snapshot.ts` no longer passes a test whose baseline is missing. User-authorized regeneration (2026-09-11).
