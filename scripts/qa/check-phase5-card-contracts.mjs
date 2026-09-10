@@ -1,7 +1,91 @@
 import {createChecker, fileExists, read} from './_utils.mjs';
-import {e2e, landing} from './_path-config.mjs';
+import {e2e, landing, styles} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
+
+/* WAVE-16 FOLLOW-UP, 2026-09-10. The three tag values below were asserted as
+   literal hexes inside the card CSS. The 2026-09-07 theme cut (986a956) moved
+   them to the global token layer, so the literals were gone and this checker had
+   been red ever since while the product rendered byte-for-byte the same values.
+
+   It now follows the chain instead of the spelling: read what the card points
+   at, resolve the reference through the light `:root` of `globals.css`, and
+   compare the final value. `[data-theme='dark']` redeclares the same names, so
+   only blocks whose selector is exactly `:root` are collected — the dark branch
+   must never be able to satisfy a light expectation. An unresolvable reference
+   is a failure, not a pass: `var()` of anything is not evidence of anything. */
+
+const TAG_FILL_EXPECTATIONS = [
+  ['--normal-tag-bg', '#ece8df'],
+  ['--unavailable-tag-bg', '#e6e2d8']
+];
+const EXPECTED_TAG_MIN_WIDTH = '56px';
+const MAX_TOKEN_CHAIN_DEPTH = 4;
+
+function stripCssComments(css) {
+  return css.replace(/\/\*[\s\S]*?\*\//gu, '');
+}
+
+function collectCustomProperties(css, matchesSelector) {
+  const source = stripCssComments(css);
+  const tokens = new Map();
+  let depth = 0;
+  let selectorStart = 0;
+  let blockStart = 0;
+  let selector = '';
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (char === '{') {
+      if (depth === 0) {
+        selector = source.slice(selectorStart, index).trim();
+        blockStart = index + 1;
+      }
+      depth += 1;
+      continue;
+    }
+
+    if (char !== '}') {
+      continue;
+    }
+
+    depth -= 1;
+    if (depth > 0) {
+      continue;
+    }
+
+    if (matchesSelector(selector)) {
+      for (const [, name, value] of source
+        .slice(blockStart, index)
+        .matchAll(/(--[a-z0-9-]+)\s*:\s*([^;{}]+)/giu)) {
+        tokens.set(name.toLowerCase(), value.trim());
+      }
+    }
+    selectorStart = index + 1;
+  }
+
+  return tokens;
+}
+
+function resolveToken(value, tokens) {
+  let current = value;
+
+  for (let step = 0; step <= MAX_TOKEN_CHAIN_DEPTH; step += 1) {
+    const reference = /^var\(\s*(--[a-z0-9-]+)\s*\)$/iu.exec(current.trim());
+    if (!reference) {
+      return current.trim().toLowerCase();
+    }
+
+    const next = tokens.get(reference[1].toLowerCase());
+    if (next === undefined) {
+      return null;
+    }
+    current = next;
+  }
+
+  return null;
+}
 
 const requiredFiles = [
   landing.grid.gridCard,
@@ -62,14 +146,39 @@ if (fileExists(landing.grid.gridCardCss)) {
   const cardCss = read(landing.grid.gridCardCss);
   const tagChipCssBlocks =
     cardCss.match(/[^{}]*landing-grid-card-tag-chip[^{}]*\{[^{}]*\}/gu)?.join('\n') ?? '';
+  const cardRootTokens = collectCustomProperties(cardCss, (selector) => selector === '.root');
+  const lightRootTokens = fileExists(styles.globals)
+    ? collectCustomProperties(read(styles.globals), (selector) => selector === ':root')
+    : new Map();
+  const tokens = new Map([...lightRootTokens, ...cardRootTokens]);
 
-  if (
-    !/--normal-tag-bg\s*:\s*#ece8df/u.test(cardCss) ||
-    !/--unavailable-tag-bg\s*:\s*#e6e2d8/u.test(cardCss) ||
-    !/--tag-min-width\s*:\s*56px/u.test(cardCss)
-  ) {
-    fail('LandingGridCard CSS must keep the Wave 10 available/unavailable fills and 56px tag minimum.');
+  for (const [name, expected] of TAG_FILL_EXPECTATIONS) {
+    const declared = cardRootTokens.get(name);
+
+    if (declared === undefined) {
+      fail(`LandingGridCard CSS must declare ${name} on its .root block.`);
+      continue;
+    }
+
+    const resolved = resolveToken(declared, tokens);
+    if (resolved !== expected) {
+      fail(
+        `LandingGridCard ${name} must resolve to ${expected} through the light :root of ${styles.globals}; ` +
+          `declared as "${declared}", resolved to ${resolved ?? 'an unresolved reference'}.`
+      );
+    }
   }
+
+  const declaredTagMinWidth = tokens.get('--tag-min-width');
+  const resolvedTagMinWidth =
+    declaredTagMinWidth === undefined ? null : resolveToken(declaredTagMinWidth, tokens);
+  if (resolvedTagMinWidth !== EXPECTED_TAG_MIN_WIDTH) {
+    fail(
+      `The landing tag minimum must resolve to ${EXPECTED_TAG_MIN_WIDTH}; ` +
+        `resolved to ${resolvedTagMinWidth ?? 'nothing declared in the card CSS or the light :root'}.`
+    );
+  }
+
   if (/--normal-tag-border/u.test(cardCss) || /\bborder(?:-[a-z]+)?\s*:/u.test(tagChipCssBlocks)) {
     fail('LandingGridCard CSS must not restore a tag-chip border token or declaration.');
   }

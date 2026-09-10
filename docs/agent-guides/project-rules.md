@@ -30,7 +30,7 @@
 | `src/messages/*.json` | Shared UI copy — namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent` |
 | `public/theme-bootstrap.js` | Pre-hydration theme bootstrap |
 | `scripts/qa/*.mjs` | Machine-enforced contract checks |
-| `docs/blocker-traceability.json` | Blocker evidence registry — 68 entries across blockers `1..30` (59 `automated_assertion`, 7 `manual_checkpoint`, 2 `scenario_test`; verified 2026-09-10) |
+| `docs/blocker-traceability.json` | Blocker evidence registry — 67 entries across blockers `1..30` (58 `automated_assertion`, 7 `manual_checkpoint`, 2 `scenario_test`; verified 2026-09-10) |
 | `tests/e2e/helpers/landing-fixture.ts` | Representative route anchor SSOT |
 
 Path audit *(2026-09-09)*: the ownership paths above exist in the current

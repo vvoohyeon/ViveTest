@@ -51,12 +51,6 @@
     "blocker": 5,
     "kind": "automated_assertion",
     "file": "tests/e2e/state-smoke.spec.ts",
-    "assertionId": "assertion:B5-overlay-focus"
-  },
-  {
-    "blocker": 5,
-    "kind": "automated_assertion",
-    "file": "tests/e2e/state-smoke.spec.ts",
     "assertionId": "assertion:B5-mobile-keyboard-handoff"
   },
   {
