@@ -1,0 +1,35 @@
+/* MOBILE FIRST-PAINT, 2026-09-10.
+
+   `req-landing.md` §11.1 forbids reading `window` in the initial render path, so the
+   first plan must come from a constant; §6.2 makes the container's measured grid
+   inline-size the source of truth for the column rule. Together they force "paint a
+   neutral plan, then re-plan from the measurement" — which is right, except that the
+   neutral (`desktop-wide`) is wrong for every viewport whose grid measures under
+   1160px. A 390px phone therefore painted a squeezed 3/4-column desktop grid and
+   snapped to one column ~70ms later. Measured before this change: CLS 0.13647 at
+   390x812, 0.25045 at 768x1024, 0.22699 at 1100x800.
+
+   The grid now waits for its own measurement — but only where the neutral cannot be
+   right. The gate is a container query on the very inline-size §6.2 names, so it is
+   the measured value rather than a viewport estimate, and it needs no JS branch.
+
+   The cost is desktop LCP 40 -> 52ms (9 paired runs). It was NOT attributable to the
+   containment, to this stylesheet, or to the reveal effect — each was measured away
+   in isolation and the 8ms A-side delta survived all three — so it is not bought back
+   by scoping `container-type` behind a viewport media query, which was measured and
+   removed. A viewport gate is therefore all cost and no benefit here, and it would
+   trade §6.2's measured value for an estimate that a scrollbar or a padding change
+   can silently shift.
+
+   The 1160px literal is `DESKTOP_WIDE_MIN_GRID_INLINE_SIZE`; a container query cannot
+   read a token, so `tests/unit/landing-grid-first-paint.test.ts` pins the two. */
+.shell {
+  container-type: inline-size;
+  container-name: landing-grid;
+}
+
+@container landing-grid (width < 1160px) {
+  .container[data-measured='false'] {
+    visibility: hidden;
+  }
+}

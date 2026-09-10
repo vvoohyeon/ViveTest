@@ -164,9 +164,15 @@ function formatMetaValue(value: number): string {
   return metaValueFormatter.format(Math.max(0, Math.trunc(value)));
 }
 
-function createThumbnailFallbackDataUri(): string {
-  // Calm abstract placeholder (design §4.9): warm-neutral → sage wash with soft circles, no text.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FBFAF7"/><stop offset="100%" stop-color="#C9DBD1"/></linearGradient></defs><rect width="640" height="240" fill="url(#g)"/><circle cx="556" cy="120" r="82" fill="#E8F0EC" opacity="0.6"/><circle cx="602" cy="70" r="40" fill="#5C8E78" opacity="0.14"/></svg>`;
+export function createThumbnailFallbackDataUri(): string {
+  // Safety net for a variant that ships without its own drawing (design §4.9: no text).
+  //
+  // It used to be the *same artwork* as `qmbti/thumbnail.svg`, and since only that one
+  // variant had an asset, the catalog rendered one illustration eight times (D-08).
+  // So this is deliberately NOT one of the compositions: a single tinted slot, with
+  // nothing to mistake for cadence, layers, signal or any other member of the set.
+  // Ground stays transparent so it inherits the card surface in both themes.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" width="640" height="240" role="img" aria-hidden="true" data-thumbnail-fallback="true"><rect x="0" y="0" width="640" height="240" rx="0" fill="#e8f0ec" opacity="0.55"/></svg>`;
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }

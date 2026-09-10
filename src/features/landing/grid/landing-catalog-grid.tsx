@@ -23,6 +23,7 @@ import {resolveDesktopTransformOriginX} from '@/features/landing/grid/hover-inte
 import {useLandingInteractionController} from '@/features/landing/grid/use-landing-interaction-controller';
 import {useGridGeometryController} from '@/features/landing/grid/use-grid-geometry-controller';
 import {useLandingTransition} from '@/features/transition/use-landing-transition';
+import gridStyles from '@/features/landing/grid/landing-catalog-grid.module.css';
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
 const INITIAL_GRID_INLINE_SIZE = CONTAINER_MAX_WIDTH - TABLET_DESKTOP_SIDE_PADDING * 2;
@@ -160,10 +161,20 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
     };
   }, []);
 
+  // The container ships `data-measured="false"` in the SSR HTML — a constant, so the
+  // initial render stays deterministic (§11.1) — and the first layout pass flips it.
+  // The flip is written straight to the DOM rather than held in React state: the
+  // attribute is an external system this effect synchronises, and routing it through
+  // `setState` would cost a cascading render on every landing mount for a value that
+  // never changes again.
+  useLayoutEffect(() => {
+    containerRef.current?.setAttribute('data-measured', 'true');
+  }, []);
+
   return (
     <section
       ref={shellRef}
-      className="landing-grid-shell relative pb-5"
+      className={`landing-grid-shell relative pb-5 ${gridStyles.shell}`}
       aria-label="Landing Catalog Grid"
       data-testid="landing-grid-shell"
       data-grid-tier={plan.tier}
@@ -197,7 +208,8 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
       ) : null}
       <div
         ref={containerRef}
-        className="landing-grid-container relative grid gap-[15px] md:gap-5 xl:gap-6"
+        className={`landing-grid-container relative grid gap-[15px] md:gap-5 xl:gap-6 ${gridStyles.container}`}
+        data-measured="false"
         data-testid="landing-grid-container"
       >
         {plan.rows.map((row) => {

@@ -1801,10 +1801,16 @@ test.describe('Phase 4 grid smoke', () => {
     expect(thumbnailRatio).toBeGreaterThan(2.4);
     expect(thumbnailRatio).toBeLessThan(2.9);
 
+    // D-08: every variant now ships its own drawing, so no card falls back. The second
+    // assertion used to require a `data:` URI here — which was the defect itself, since
+    // the fallback was the same artwork as `qmbti` and eight cards shared one picture.
+    // Fallback content is covered where it lives now: `tests/unit/landing-card-thumbnails.test.ts`.
     const assetThumbnailSrc = await assetBackedCard.locator('.landing-grid-card-thumbnail').getAttribute('src');
-    const fallbackThumbnailSrc = await emptyTagsCard.locator('.landing-grid-card-thumbnail').getAttribute('src');
+    const emptyTagsThumbnailSrc = await emptyTagsCard.locator('.landing-grid-card-thumbnail').getAttribute('src');
+    const emptyTagsVariant = await emptyTagsCard.getAttribute('data-card-variant');
     expect(assetThumbnailSrc).toContain(`/landing-card-media/${PRIMARY_AVAILABLE_TEST_VARIANT}/thumbnail.svg`);
-    expect(fallbackThumbnailSrc).toMatch(/^data:image\/svg\+xml,/u);
+    expect(emptyTagsThumbnailSrc).toBe(`/landing-card-media/${emptyTagsVariant}/thumbnail.svg`);
+    expect(emptyTagsThumbnailSrc).not.toBe(assetThumbnailSrc);
 
     const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await expect(unavailableCard).toHaveAttribute('data-card-availability', 'unavailable');
@@ -2253,5 +2259,95 @@ test.describe('Phase 4 grid smoke', () => {
       .map((frame) => frame.columnMode)
       .filter((mode, index, all) => index === 0 || mode !== all[index - 1]);
     expect(columnModeChanges).toHaveLength(2);
+  });
+});
+
+test.describe('Landing first paint', () => {
+  /**
+   * 모바일 첫 페인트가 **한 번만** 그려지는지 지표로 고정한다.
+   *
+   * 계산값이 아니라 `layout-shift` 합계를 본다 — 컬럼 수를 단언하면 정착 상태만 보게 되고,
+   * 이 결함은 정착 상태가 아니라 **정착까지 가는 길**에 있었다(수정 전 0.13647).
+   *
+   * 전제를 함께 단언한다(L16). 관찰이 아무 엔트리도 못 받으면 CLS 합계는 0 이 되어 검사가
+   * 조용히 초록이 되고, 재플랜이 일어나지 않았다면 결함이 날 기회 자체가 없었던 것이다.
+   */
+  test('@smoke mobile landing paints its grid once — no hydration re-plan shift', async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
+    await page.setViewportSize({width: 390, height: 812});
+    await page.addInitScript(() => {
+      const probe: {shifts: number[]; paints: number; plans: string[]} = {shifts: [], paints: 0, plans: []};
+      (window as unknown as {__firstPaintProbe: typeof probe}).__firstPaintProbe = probe;
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const shift = entry as PerformanceEntry & {value: number; hadRecentInput: boolean};
+          if (!shift.hadRecentInput) {
+            probe.shifts.push(shift.value);
+          }
+        }
+      }).observe({type: 'layout-shift', buffered: true});
+      new PerformanceObserver((list) => {
+        probe.paints += list.getEntries().length;
+      }).observe({type: 'paint', buffered: true});
+
+      const record = (element: Element) => {
+        probe.plans.push(
+          `${element.getAttribute('data-grid-tier')}|${element.getAttribute('data-grid-column-mode')}`
+        );
+      };
+      const attach = () => {
+        const shell = document.querySelector('[data-testid="landing-grid-shell"]');
+        if (!shell) {
+          return false;
+        }
+        record(shell);
+        new MutationObserver(() => record(shell)).observe(shell, {
+          attributes: true,
+          attributeFilter: ['data-grid-tier', 'data-grid-column-mode']
+        });
+        return true;
+      };
+      // init script 는 DOM 보다 먼저 돈다 — `document.documentElement` 가 아직 없으므로
+      // 여기서 바로 observe 하면 throw 하고, 그러면 plans 가 비어 검사가 조용히 초록이 된다.
+      if (!attach()) {
+        document.addEventListener(
+          'DOMContentLoaded',
+          () => {
+            if (attach()) {
+              return;
+            }
+            const pending = new MutationObserver(() => {
+              if (attach()) {
+                pending.disconnect();
+              }
+            });
+            pending.observe(document.documentElement, {childList: true, subtree: true});
+          },
+          {once: true}
+        );
+      }
+    });
+
+    await page.goto('/en', {waitUntil: 'load'});
+    await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', 'mobile');
+    await page.waitForTimeout(1500);
+
+    const probe = await page.evaluate(
+      () => (window as unknown as {__firstPaintProbe: {shifts: number[]; paints: number; plans: string[]}}).__firstPaintProbe
+    );
+
+    // 전제 1 — 관찰이 살아 있었다. 이것이 없으면 합계 0 은 「이동 없음」이 아니라 「못 봤음」이다.
+    expect(probe.paints, 'PerformanceObserver received no paint entry').toBeGreaterThan(0);
+    // 전제 2 — 중립 플랜에서 모바일로 실제로 재플랜했다. 재플랜이 없으면 결함이 날 자리가 없다.
+    expect(probe.plans.length, 'grid never re-planned from the neutral').toBeGreaterThan(1);
+    expect(probe.plans[0]).toBe('desktop|desktop-wide');
+    expect(probe.plans[probe.plans.length - 1]).toBe('mobile|mobile');
+
+    // 임계값: 수정 전 실측 0.13647, 수정 후 0. 잡음 여유를 주되 결함의 1/2 보다 훨씬 아래에 둔다.
+    const cumulativeLayoutShift = probe.shifts.reduce((total, value) => total + value, 0);
+    expect(cumulativeLayoutShift).toBeLessThan(0.05);
+
+    // 정착 상태는 1 컬럼이다(§6.2 Mobile).
+    await expect(page.getByTestId('landing-grid-row-0')).toHaveAttribute('data-columns', '1');
   });
 });
