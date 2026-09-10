@@ -45,9 +45,13 @@ const colorTransitionPropertyClassName = '[transition-property:background-color,
 /**
  * 상자와 활자. **색은 여기 없다.**
  *
- * 바탕에 `border-transparent` 를 두었을 때 실측: 세 변종이 각자 적은 `border-[var(…)]` 가
- * 전부 졌고 모든 버튼의 테두리가 투명이었다 — 한 원소 위에서 같은 속성을 두 유틸리티가
- * 정하면 명시도가 같아 emit 순서가 승자를 정한다(L10). 그래서 색은 변종만 정한다.
+ * 바탕에 `border-transparent` 를 두었을 때 실측: 세 변종이 각자 적은 테두리 색 임의값
+ * 유틸리티가 전부 졌고 모든 버튼의 테두리가 투명이었다 — 한 원소 위에서 같은 속성을 두
+ * 유틸리티가 정하면 명시도가 같아 emit 순서가 승자를 정한다(L10). 그래서 색은 변종만 정한다.
+ *
+ * 이 문단은 그 유틸리티를 **철자로 적지 않는다.** Tailwind v4 는 주석까지 훑어 클래스
+ * 후보를 뽑으므로, 산문에 자리표시자를 넣은 임의값(`…`)을 적으면 그대로 무효 CSS 가
+ * 생성돼 dev 서버의 PostCSS 가 죽는다. 규율은 `tests/unit/tailwind-candidate-hygiene.test.ts` 가 갖는다.
  *
  * `min-height: 46px` 는 실현값 그대로다. 4px 그리드에서 벗어나 있지만 `design.md` §4.10 의
  * 44px 바닥을 이미 넘고, 실제 규칙을 만족하는 실제 값은 토큰에 맞춰 반올림할 이유가 없다.
