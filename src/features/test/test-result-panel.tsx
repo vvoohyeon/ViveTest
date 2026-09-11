@@ -56,7 +56,11 @@ export function TestResultPanel({
   const t = useTranslations('test');
 
   useEffect(() => {
-    // TODO: Replace with IntersectionObserver on derived_type block in 2위 result pipeline session; add derived_type to payload at that time.
+    // 마운트 발화는 임시가 아니라 **현재 계약**이다 — `req-test.md:75` 가 그것을 적고
+    // `tests/unit/test-result-panel.test.ts` 가 고정한다. 지금 이 표면에는 결과 콘텐츠가
+    // 없으므로(결과 fixture 는 `{variantId}` 뿐이고 Result content schema 는 Phase 9 소유,
+    // `req-test.md:94`·`:1035`) 관측할 `derived_type` 블록 자체가 존재하지 않는다.
+    // 교체 조건과 순서: `docs/plans/2026-05-17-result-pipeline-todos.md`.
     trackResultViewed({
       locale,
       route,
