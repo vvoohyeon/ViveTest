@@ -401,7 +401,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 13 — Mobile expanded shape/position
 
-- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌고, 그 프로그램은 2026-09-11 에 종결됐다 — 이 문서 끝의 §Programme close 를 보라.
 - **Goal:** 모바일 Expanded 형태 및 위치 정의.
 - **Include:** full viewport width, GNB-flush top, natural height, scrim, no side radius, B14 mobile title-continuity `test.fixme` 해제 및 재정렬.
 - **Exclude:** swipe-down close, mobile menu, desktop keyboard/a11y behavior, GNB internals.
@@ -415,7 +415,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 14 — Landing-only regression stabilization
 
-- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌고, 그 프로그램은 2026-09-11 에 종결됐다 — 이 문서 끝의 §Programme close 를 보라.
 - **Goal:** 랜딩 한정 회귀 안정화.
 - **Include:** fixes required by landing waves only — card/grid/a11y/routing regressions.
 - **Exclude:** product pipeline, GNB/theme, visual baseline.
@@ -429,7 +429,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 15 — Desktop GNB visual shell
 
-- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌고, 그 프로그램은 2026-09-11 에 종결됐다 — 이 문서 끝의 §Programme close 를 보라.
 - **Goal:** 데스크톱 GNB 시각 셸 구성.
 - **Include:** static `English / ☀` pill visual, no gear/hamburger desktop.
 - **Exclude:** functional locale/theme switching, landing card behavior, mobile menu overlay.
@@ -443,7 +443,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 16 — Light-only theme cleanup
 
-- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌고, 그 프로그램은 2026-09-11 에 종결됐다 — 이 문서 끝의 §Programme close 를 보라.
 - **Goal:** 라이트 테마 단일화 정리 + scoped 시각 토큰의 전역 통합.
 - **Include:**
   - light-first visible state cleanup; dark/system controls not active
@@ -462,7 +462,7 @@ Deferred candidates are logged in the Decision Register.
 
 ### Wave 17 — Mobile menu overlay visual
 
-- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌다: `docs/plans/2026-09-06-design-system-rebaseline-step*.md`
+- **Status:** ⤳ 대체 (BQ-38, 2026-09-06) — 이 블록은 당시 계획의 기록이다. 실행하지 않는다. 이 범위는 취소된 것이 아니라 design-system rebaseline 프로그램의 단계로 옮겨졌고, 그 프로그램은 2026-09-11 에 종결됐다 — 이 문서 끝의 §Programme close 를 보라.
 - **Goal:** 모바일 메뉴 오버레이 시각 구성.
 - **Include:** full-screen overlay visual, language/theme display shell.
 - **Exclude:** functional locale/theme switching, dark/system activation.
@@ -473,3 +473,25 @@ Deferred candidates are logged in the Decision Register.
 - **BQ refs:** BQ-03, BQ-04, BQ-19, BQ-21.
 - **Completion note:** Not completed.
 - **Handoff:** 이후 별도 승인 범위.
+
+---
+
+## Programme close — design-system rebaseline (`BQ-38`), 2026-09-11
+
+**Waves 13–17 were replaced, not cancelled, and the programme that replaced them is now finished.** 위 다섯 블록의 ⤳ 대체 표시는 그대로 두되, 그 범위가 어디로 가서 어떻게 끝났는지는 여기가 갖는다. 로드맵에 이 절이 없으면 「대체됨」이 영원히 미완으로 읽힌다.
+
+| 단계 | 무엇 | 기록 |
+|:---|:---|:---|
+| 1 · 1b | 저장소가 소유하는 토큰 정의와 카탈로그 표본 추출 | `docs/done/2026-09-06-design-system-rebaseline-step1.md` · `-step1b.md` |
+| 중간 점검 tier 1 | 8 항목 | `docs/done/2026-09-06-design-system-rebaseline-review-tier1.md` |
+| 2 | 모션 패스 · M-01 확정 | `docs/done/2026-09-07-design-system-rebaseline-step2-motion.md` |
+| tier 2 | `candidates_1` … `6` | `docs/done/2026-09-07-tier2-*.md` |
+| 3 | 디자인 패스 · 미설계 표면 추출 | `docs/done/2026-09-07-step3-*.md` |
+| 4 | theme cut (`986a956`) | `docs/done/2026-09-09-step5c-*.md` 계열 |
+| 5 | 표면별 리스킨 | `docs/done/2026-09-07-step5a-*.md` · `-step5b-*.md` |
+| 6 | 시각 baseline 재생성과 마감 | `docs/done/2026-09-11-bq07-baseline-closeout.md` |
+| tier 3 | `candidates_7` · `10` 구현, `8` 미구현 종결, `9` 는 3 단계에서 조기 종결 | `docs/done/2026-09-11-ds-value-drift-and-parity-gate.md` · `docs/done/closed/2026-09-07-candidates_8-token-role-remap.md` |
+
+**프로그램이 남긴 것.** 시각 정의의 정본이 저장소 안(`docs/design/ds/`)으로 들어왔고 Claude Design 으로 **단방향** push 된다 — 값이 저장소 밖 하네스에 있어 세 번 어긋났던(BQ-21 · R1 · R2) 구조가 사라졌다. theme cut 이 런타임 토큰을 그 정의로 수렴시켰고, 다크 테마가 정의를 갖게 됐으며(D-10), `BQ-07` 이 이연해 둔 시각 회귀망이 실제로 섰다(theme-matrix 164/164 · safari 5/5). 표류를 사람의 주의력이 아니라 게이트가 본다 — `scripts/qa/check-design-token-parity.mjs` 와 `tests/unit/design-tokens-dark-parity.test.ts`.
+
+**프로그램이 남기지 **않은** 것.** wave 13–17 의 원래 범위 중 이 프로그램이 다루지 않은 것들은 `docs/done/2026-09-07-step6-baseline-and-closeout.md` 의 §Open items 가 갖는다 — 폰트 페이로드(1.96 MB), 태블릿 티어와 열 개 로케일의 미추출, 모바일 `OPENING`/`CLOSING` 미명세, `--landing-answer-*`·`--muted-ink` 의 오칭. 어느 것도 이 프로그램의 미완이 아니라 **다음 범위**다.

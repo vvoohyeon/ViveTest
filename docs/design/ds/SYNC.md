@@ -2,7 +2,7 @@
 
 **Repo-only file. Not pushed to Claude Design.**
 
-This directory is the repository's copy of the Claude Design project **VIVE Design System v2** (`cd630eec-25e4-4613-a58f-c671c80297ca`, type `PROJECT_TYPE_DESIGN_SYSTEM`). Paths mirror the project root 1:1, so a diff between the two is a plain file comparison.
+This directory is the repository's copy of the Claude Design project **VIVE Design System v2** (`cd630eec-25e4-4613-a58f-c671c80297ca`, type `PROJECT_TYPE_DESIGN_SYSTEM`). Paths mirror the project root 1:1, so a diff between the two is a plain file comparison — **for the paths that are mirrored.** The two sides hold different *sets*; the measured difference is below.
 
 ## What each side owns
 
@@ -27,7 +27,17 @@ The repository owns the **content**. Claude Design owns the **rendering and the 
 
 `assets/` now exists on both sides but they are **not the same set**: the repo holds the eight files imported from the older system `825385f6` under decision D, and `cd630eec` additionally holds `vive-logo.svg` and `vive-mark.svg`, which the catalog work does not consume and does not mirror. Pushing `assets/` therefore adds files and never removes any.
 
-Files that exist in the Claude Design project but not here — `vive-components.css`, `ui_kits/`, `uploads/`, `_ds_bundle.js`, `_ds_manifest.json` — are **not** mirrored. They are untouched by the rebaseline, and nothing in the catalog work consumes them. `_ds_manifest.json` is compiled by the Claude Design app from the `@dsCard` markers; never hand-write it.
+**The two sides are not the same set, and this is the measured list** (`list_files`, 2026-09-11, at the programme's closing push: 46 files here, 82 there).
+
+Files that exist in the Claude Design project but **not** here are not mirrored — they are untouched by the rebaseline and nothing in the catalog work consumes them:
+
+- `vive-components.css` · `ui_kits/app/**` · `ui_kits/catalog/**` · `uploads/` · `_ds_bundle.js` · `_ds_manifest.json` · `_adherence.oxlintrc.json`
+- `assets/vive-logo.svg` · `assets/vive-mark.svg`
+- **nineteen preview cards** — `brand-icons` · `brand-logo` · `color-clay` · `color-neutrals` · `color-semantic` · `color-tokens` · `comp-badges` · `comp-button-states` · `comp-buttons` · `comp-cards` · `comp-controls` · `comp-inputs` · `comp-menu` · `elevation-scale` · `spacing-scale` · `type-body` · `type-display` · `type-headings` · `type-pretendard`
+
+Files that exist here but **not** there: `SYNC.md` and `_provenance/**`, both by the table above.
+
+`_ds_manifest.json` is compiled by the Claude Design app from the `@dsCard` markers; never hand-write it.
 
 `fonts/` **is** mirrored, and it is the one path that travels in the opposite direction: the repo copy exists so that a local render resolves the same typeface the design system serves, not so that it can be pushed. Pushing it would be a 2 MB write of a file already present there, twice.
 
@@ -86,7 +96,9 @@ Cards must reference tokens (`var(--accent)`), never literal hex — with one de
 
 An earlier version of this file claimed everything but two preview cards followed `colors_and_type.css` automatically; that was wrong.
 
-Everything else — every `card-*.html`, every `comp-*.html`, `color-*.html`, `nav-*.html`, `test-flow.html`, `secondary-surfaces.html`, `spacing-scale.html`, `elevation-scale.html`, `type-*.html` — references tokens only and does follow the CSS automatically.
+The repository's other specimen cards — `brand-thumbnails` · every `card-*` · `catalog-drift` · `color-sage` · `color-temperature` · `comp-answer-button` · `comp-choice` · `comp-meta-row` · `comp-tag-chip` · `dark-theme` · `grid-rhythm` · `nav-desktop` · `nav-mobile` · `secondary-surfaces` · `test-flow` · `thumb-proposal` — reference tokens only and do follow the CSS automatically.
+
+**The nineteen cards listed above as project-only are outside this claim entirely**: the repository does not hold them, so nothing here can say whether they restate a value. An earlier version of this paragraph named several of them (`spacing-scale`, `elevation-scale`, `type-*`, the generic `comp-*` and `color-*` cards) as if they were ours, which read as an assurance about files this side has never seen.
 
 ## Auditing contrast
 

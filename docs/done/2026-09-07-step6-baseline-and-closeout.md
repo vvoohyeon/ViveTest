@@ -4,13 +4,23 @@
 
 ---
 
-## 이 문서에 남은 것 — baseline 절반은 2026-09-11 에 닫혔다 (§「The one thing this step exists for」 · §「Before regenerating」)
+## CLOSED 2026-09-11 — 네 항목 전부
 
-두 절이 요구한 두 질문은 사용자에게 올라갔고 승인됐으며, 재생성은 끝났다: theme-matrix **164/164**(선언만 있던 케이스 생성 포함), safari ghosting **5/5**(종전 추적 0), `test:e2e:gate` **122 passed · 0 failed**. 경위·도달 불가 케이스 넷의 교정·재현성 셋은 `docs/done/2026-09-11-bq07-baseline-closeout.md` 와 `tests/e2e/theme-matrix-baseline-provenance.md` 가 갖는다. 선언된 18 케이스 중 `mobile-landing-blog-expanded` 는 **제품이 가질 수 없는 상태**로 판명돼 manifest 에서 빠졌다(18 → 17, 168 → 164 장).
+이 문서가 요구한 것은 넷이었고 넷 다 끝났다.
 
-**아래 §「D-08」 절은 낡았다.** 그 절은 제안이 「채택되지 않았다」고 적지만 Step 4 가 채택해 16:6 네이티브 썸네일 **열 장**을 착지시켰다(`docs/done/2026-09-10-step4-mobile-cls-and-card-thumbnails.md`). 이 문서를 여는 세션은 그 절을 근거로 쓰지 말 것.
+| # | 요구 | 결말 |
+|:--|:--|:--|
+| — | **baseline** — 두 질문을 사용자에게 올리고, 답을 받은 뒤에만 재생성 | 승인 후 재생성. theme-matrix **164/164**(선언만 있던 케이스 포함) · safari ghosting **5/5**(종전 0) · `test:e2e:gate` **122 passed · 0 failed**. 재생성 **전에** 도달 불가 케이스 넷을 먼저 고쳤다 — 경위는 `docs/done/2026-09-11-bq07-baseline-closeout.md` |
+| 1 | 착지한 계획을 같은 커밋에서 `docs/done/` 으로 | 프로그램 문서 전부 이관. 이 문서가 마지막이다 |
+| 2 | `docs/wave-roadmap.md` 상태 갱신 | §Programme close 신설 — 대체된 wave 13–17 이 어디로 가서 어떻게 끝났는지, 그리고 **이 프로그램이 남기지 않은 것**까지 |
+| 3 | `docs/design/ds/` 최종 상태를 `cd630eec` 로 push | 38 장 push(`README.md` · `SKILL.md` · 3 CSS · preview 24 · assets 8). `SYNC.md`·`fonts/`·`_provenance/` 제외. push 직후 `list_files` 로 양쪽 집합을 실측해 `SYNC.md` 의 「원격에만 있는 것」 목록을 고쳤다 — 종전 목록이 **preview 카드 19 장과 asset 2 장을 빠뜨리고** 있었고, 「나머지 카드는 토큰만 참조한다」는 문장이 저장소가 갖지도 않은 파일을 보증하고 있었다 |
+| 4 | `decision-register.md` 에 프로그램 종결 기록 | `BQ-38` 후속으로 등재 |
 
-**따라서 이 문서에 남은 활성 항목은 §「The tier-3 backlog」(7 → 8 → 10)와 §「Open items that belong to no step yet」뿐이다.**
+**tier-3 도 함께 닫혔다** — 아래 §The tier-3 backlog 표가 결말을 갖는다.
+
+**아래 §D-08 절은 낡았다.** 그 절은 제안이 「채택되지 않았다」고 적지만 Step 4 가 채택해 16:6 네이티브 썸네일 **열 장**을 착지시켰다(`docs/done/2026-09-10-step4-mobile-cls-and-card-thumbnails.md`). 근거로 쓰지 말 것.
+
+**살아남는 것은 §Open items that belong to no step yet 하나뿐이고, 그것은 이 프로그램의 미완이 아니라 다음 범위다** — `docs/wave-roadmap.md` §Programme close 가 그렇게 적는다.
 
 ---
 
