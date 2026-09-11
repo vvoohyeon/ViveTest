@@ -64,15 +64,17 @@ So step 6's baseline work is two decisions, not one, and the second is the user'
 
 ---
 
-## The tier-3 backlog, still open
+## The tier-3 backlog — closed 2026-09-11
 
-These were scored in the 2026-09-07 mid-review and deliberately scheduled after the design pass. `docs/plans/2026-09-07-candidates_0-overview.md` is the map. `candidates_9` was closed early during step 3 (it gated the D-08 thumbnail proposal) and lives in `docs/done/`.
+셋 다 닫혔으므로 이 절은 기록이다. 지도는 `docs/done/2026-09-07-candidates_0-overview.md` 로 옮겨 갔다.
 
-| # | Item | 공수 | Note added by later steps |
-|:---|:---|:---:|:---|
-| 7 | `README.md` restates ~30 token values in prose, is pushed, and drifts | S | Step 3 corrected the *values* it was wrong about; the **duplication** is untouched, so it will drift again. The four-file drift list is in `SYNC.md`. |
-| 8 | radius / shadow / duration were revalued at the **role** level, so generic VIVE components inherited catalog decisions | M | Needs `vive-components.css` mirrored into the repo first — it exists only on the Claude Design side, and editing it there breaks the one-way rule. **Does not affect ViveTest surfaces**: `app-components.css` is a separate layer and its `--radius-md` use matches `design.md` §6.4's own choice for controls. |
-| 10 | nothing detects drift between the four places these values live | M | **Partly built.** Step 4 added a mirror guard for `globals.css` ↔ `colors_and_type.css`, with fault injection. What remains is `design.md` §5 ↔ `colors_and_type.css` and the prose in `README.md`. Run it last: item 7 removes most of the prose it would have to parse. |
+| # | Item | 결말 |
+|:---|:---|:---|
+| 7 | `README.md` restates ~30 token values in prose, is pushed, and drifts | **구현 2026-09-11.** *Visual foundations* 가 값 대신 토큰 이름을 부르고, 살아남은 리터럴은 `<!-- ds-literal: kind -->` 표식을 단다. `SYNC.md` 의 표류 파일이 넷 → 셋 |
+| 8 | radius / shadow / duration were revalued at the **role** level | **미구현 종결(CANCELLED) 2026-09-11.** 계획서가 지목한 결정의 답이 「일반 컴포넌트는 배포하지 않는 참조물」이었다. 값은 그대로 두고 layer-2 머리말에 가드 문장 한 줄만 남겼다 |
+| 10 | nothing detects drift between the four places these values live | **구현 2026-09-11.** `scripts/qa/check-design-token-parity.mjs`, `qa:rules` 의 열세 번째 검사. 면제 목록은 `decision-register.md` 의 표에서 읽는다 |
+
+경위: `docs/done/2026-09-11-ds-value-drift-and-parity-gate.md`.
 
 ---
 

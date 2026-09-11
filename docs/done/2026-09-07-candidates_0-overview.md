@@ -8,6 +8,12 @@ The session that produced these findings ends when the motion pass opens. Nothin
 
 ---
 
+## 이 문서에 남은 것 — 항목 열 개가 전부 닫혔다 (2026-09-11)
+
+tier 2 의 `candidates_1`…`6` 과 tier 3 의 `7` · `9` · `10` 은 구현돼 `docs/done/` 에, `8` 은 미구현 종결로 `docs/done/closed/` 에 있다. **아래 §The map 은 그 결말을 행마다 적고 있고, 이 문서에 남은 값어치는 §Insight register 와 §What the review upheld 다** — 그 둘은 다시 감사하지 말라는 기록이지 지시가 아니다. 새 작업의 근거로 쓰기 전에 해당 사실을 다시 측정한다(함정 원장 `L29`).
+
+---
+
 ## Shared frame
 
 **Program.** The 2026-09-06 design-system rebaseline (`BQ-38`) replaces waves 13–17 of `docs/wave-roadmap.md`. The repository owns one token definition under `docs/design/ds/` and pushes it one-way to the Claude Design project **VIVE Design System v2** (`cd630eec-25e4-4613-a58f-c671c80297ca`). The sync procedure and its operational traps are in `docs/design/ds/SYNC.md`.
@@ -51,7 +57,7 @@ Tier 2 runs **after the motion pass and before the design pass**, because every 
 | 5 | `candidates_5-missing-states` | 2 | Nine card states the implementation supports have no specimen | M | 중 | 중 |
 | 6 | `candidates_6-bundle-assets-and-remeasure` | 2 | The bundle is one file of a multi-file system: no fonts, no thumbnails, so local rendering ≠ design-system rendering and decision D is unexecuted | S | 중 | 중 |
 | 7 | ~~`candidates_7-readme-value-drift`~~ | 3 | **Landed 2026-09-11.** *Visual foundations* now names tokens; the literals that teach something carry an `ds-literal` marker; the column claim was replaced with §7.7's asymmetric rule. Moved to `docs/done/`. | S | 중 | 중 |
-| 8 | `candidates_8-token-role-remap` | 3 | Radius and shadow were revalued at the *role* level, so generic components inherited catalog decisions | M | 중 | 중 |
+| 8 | ~~`candidates_8-token-role-remap`~~ | 3 | **Closed unimplemented 2026-09-11 (CANCELLED).** The decision it asked for — whether the general system's components matter — came back "no": they are reference material the product does not ship. The values stay; the layer-2 header now carries the guard sentence. Moved to `docs/done/closed/`. | M | 중 | 중 |
 | 9 | ~~`candidates_9-thumbnail-ratio-conflict`~~ | 3 | **Landed 2026-09-07** during the design pass — `req-landing.md` §6.8 now reads `16 / 6`. Moved to `docs/done/`. | S | 중 | 중 |
 | 10 | ~~`candidates_10-drift-gate`~~ | 3 | **Landed 2026-09-11** as `scripts/qa/check-design-token-parity.mjs`, the thirteenth `qa:rules` check. Moved to `docs/done/`. | M | 중 | 중 |
 
@@ -109,7 +115,7 @@ Repeat this before each major gate, and keep the reviewers' scope disjoint: one 
 
 Step 1 revalued `--surface` from `--warm-25` to `--warm-0` because the catalog's cards are exact white. That collapsed `--surface` and `--surface-raised` to the same colour, and with them the general system's surface ladder — visible in `preview/color-tokens.html`, which exists to show those four roles as distinct swatches. Nothing required it: the catalog's white is already exposed as `--canvas-elevated`, and `catalog-components.css` uses that name.
 
-Tier 1 restored `--surface`. The same mistake is still standing in the radius and shadow scales, where the fix is to remap consumers rather than to revalue roles — `candidates_8`.
+Tier 1 restored `--surface`. The same mistake stood in the radius and shadow scales, and on 2026-09-11 it was closed by **decision rather than by remap**: the affected components are the general system's, which the product does not ship, so the values stay. What the episode leaves behind is the rule, now in the layer-2 header of `colors_and_type.css` — *a catalog value may be introduced under a catalog alias; it may not change a VIVE role that generic components consume.* That sentence, not a remap, is what stops the third instance.
 
 ---
 

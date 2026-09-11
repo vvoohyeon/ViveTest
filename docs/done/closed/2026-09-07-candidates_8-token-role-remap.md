@@ -1,5 +1,12 @@
 # Candidate 8 — radius and shadow were revalued at the role level, so generic components inherited catalog decisions
 
+> **CLOSED — 미구현 종결 (CANCELLED), 2026-09-11.** 계획서가 사용자에게 물으라고 지목한 결정(「일반 시스템의 컴포넌트가 애초에 중요한가」)의 답이 **「아니다」**였다. 일반 VIVE 컴포넌트는 ViveTest 이 배포하지 않는 참조물이고 제품은 `app-components.css` 를 쓴다 — `--radius-md` 사용도 `design.md` §6.4 의 선택과 일치한다. 따라서 계획서의 두 번째 결정(`vive-components.css` 를 저장소로 미러할 것인가)도 함께 「아니오」가 된다: 미러링은 remap 을 하기 위한 전제였고 remap 을 하지 않는다.
+>
+> **실제로 반영된 것은 가드 문장 하나다.** `colors_and_type.css` 의 layer-2 머리말이 이제 「카탈로그 값은 카탈로그 별칭으로 들여보낼 수 있지만, 일반 컴포넌트가 소비하는 VIVE 역할을 바꿀 수는 없다」를 규칙으로 적고, 이미 두 번 일어난 사례(`--surface` → `--warm-0`, radius/shadow 역할 재평가)와 이 종결을 함께 기록한다. 계획서 자신이 "writing it down is what stops the third instance" 라고 적은 그 문장이다.
+>
+> 값은 바뀌지 않았다 — `--radius-md` 는 12px 그대로다. 아래 본문은 2026-09-07 당시의 기록이며 지시가 아니다.
+
+
 **Date:** 2026-09-07 · **Tier:** 3 — run after the design pass · **Task mode:** Implementation (documentation surface only) · **공수** M · **효과** 중 · **심각도** 중
 
 ---

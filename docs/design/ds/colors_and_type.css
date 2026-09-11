@@ -124,6 +124,21 @@
 
   /* ======================================================================
      2. SEMANTIC ROLES — VIVE vocabulary (names unchanged)
+
+     THE RULE FOR THIS LAYER, IN ONE SENTENCE: a catalog value may be introduced
+     under a catalog alias (layer 3); it may NOT change a VIVE role that generic
+     components consume. Revaluing a role is the shortcut, and it moves every
+     component nobody is looking at — `vive-components.css` reads `--radius-md`
+     for `.btn`/`.input`/`.textarea`/`.select`, `--radius-lg` for `.card`/`.menu`
+     and `--shadow-md` for the raised card. It has already happened twice:
+     `--surface` was pointed at `--warm-0` and collapsed a rung out of the
+     surface ladder (restored in tier 1), and radius/shadow were revalued at the
+     role level so generic controls round 12px where they used to round 8px.
+     The second one was closed by decision on 2026-09-11 rather than by remap —
+     the general components are reference material the product does not ship, so
+     the values stay and this sentence is what stops the third instance
+     (`docs/done/closed/2026-09-07-candidates_8-token-role-remap.md`). If a
+     catalog decision needs a different value, give it a catalog alias.
      ====================================================================== */
 
   /* Surfaces.
