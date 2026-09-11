@@ -36,7 +36,7 @@ interface SiteGnbProps {
 // accepts either mark above `scrollY > 4px`; the hairline is the one 6.7 asks for.
 const gnbShellClassName =
   'gnb-shell sticky top-0 z-[1100] border-b border-transparent bg-[var(--gnb-surface)] [backdrop-filter:blur(12px)] [-webkit-backdrop-filter:blur(12px)] [transition:border-color_180ms_ease] motion-reduce:transition-none data-[elevated=true]:border-[var(--hairline)]';
-const gnbInnerClassName = 'gnb-inner mx-auto flex max-w-[1280px] items-center px-4 md:px-6 min-[768px]:max-[899px]:px-5';
+const gnbInnerClassName = 'gnb-inner mx-auto flex max-w-[1280px] items-center px-[var(--shell-gutter)]';
 const gnbDesktopInnerClassName = `${gnbInnerClassName} gnb-desktop hidden h-16 md:flex`;
 const gnbMobileInnerClassName = `${gnbInnerClassName} gnb-mobile flex h-14 md:hidden`;
 const gnbLeadingColumnClassName = 'gnb-column gnb-column-leading flex min-w-0 flex-1 items-center justify-start';

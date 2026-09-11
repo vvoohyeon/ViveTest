@@ -5,7 +5,8 @@ import {
   DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE,
   DESKTOP_WIDE_MIN_GRID_INLINE_SIZE,
   MOBILE_MAX_VIEWPORT_WIDTH,
-  NARROW_TABLET_SIDE_PADDING,
+  NARROW_PADDING_MAX_VIEWPORT_WIDTH,
+  TABLET_DESKTOP_SIDE_PADDING,
   type LandingGridColumnMode
 } from '../../src/features/landing/grid/layout-plan';
 import {resolveLandingCatalog} from '../../src/features/variant-registry';
@@ -407,8 +408,17 @@ test.describe('Phase 4 grid smoke', () => {
   test('@smoke threshold sweeps stay monotonic and keep tablet region two-column', async ({page}) => {
     await page.goto('/en');
 
-    const desktopWideBoundaryViewport = DESKTOP_WIDE_MIN_GRID_INLINE_SIZE + NARROW_TABLET_SIDE_PADDING * 2;
-    const desktopMediumBoundaryViewport = DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE + NARROW_TABLET_SIDE_PADDING * 2;
+    // 컬럼 임계는 grid inline-size 기준이므로, 그 임계에 닿는 viewport 폭은 그 폭에서
+    // 실제로 적용되는 좌우 여백으로 환산해야 한다. 두 경계 모두 좁은-폭 구간
+    // (`NARROW_PADDING_MAX_VIEWPORT_WIDTH` 이하) 위에 있으므로 여백은 24px 이다 —
+    // 그 전제가 깨지면 아래 sweep 이 조용히 옆 tier 를 훑게 되므로 먼저 단언한다.
+    const desktopWideBoundaryViewport =
+      DESKTOP_WIDE_MIN_GRID_INLINE_SIZE + TABLET_DESKTOP_SIDE_PADDING * 2;
+    const desktopMediumBoundaryViewport =
+      DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE + TABLET_DESKTOP_SIDE_PADDING * 2;
+
+    expect(desktopWideBoundaryViewport).toBeGreaterThan(NARROW_PADDING_MAX_VIEWPORT_WIDTH);
+    expect(desktopMediumBoundaryViewport).toBeGreaterThan(NARROW_PADDING_MAX_VIEWPORT_WIDTH);
 
     const wideSamples: GridSweepSample[] = [];
     for (const viewportWidth of createDescendingViewportSweep(desktopWideBoundaryViewport, 6)) {

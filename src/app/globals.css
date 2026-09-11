@@ -302,6 +302,37 @@
   --theme-preview-dark-hover-bg:      #332e28;
   --theme-preview-dark-hover-border:  #817a72;
   --theme-preview-dark-hover-shadow:  0 1px 3px rgb(5 4 3 / 36%), 0 1px 2px rgb(5 4 3 / 28%);
+
+  /* -- shared shell gutter --------------------------------------------------
+     `req-landing.md` §6.4 의 좌우 여백 계약을 실현하는 단 하나의 선언이다. 값의
+     정본은 `features/landing/grid/layout-plan.ts` 의 세 상수이고
+     (`MOBILE_SIDE_PADDING` · `NARROW_TABLET_SIDE_PADDING` ·
+     `TABLET_DESKTOP_SIDE_PADDING`), 경계는 `MOBILE_MAX_VIEWPORT_WIDTH` 와
+     `NARROW_PADDING_MAX_VIEWPORT_WIDTH` 다 — `tests/unit/shared-shell-gutter.test.ts`
+     가 아래 세 값과 그 상수들이 같은지 검사한다.
+
+     토큰으로 만든 이유는 취향이 아니다. 종전에는 `page-shell.tsx` 와 `site-gnb.tsx`
+     가 같은 3 단 규칙을 각자 다른 유틸리티 철자로 적었고, Tailwind v4 가 named
+     breakpoint(`md:`)를 arbitrary breakpoint(`min-[...]`) 뒤에 emit 하는 바람에
+     **둘 다 자기 arbitrary 규칙을 잃었다**. 실측(2026-09-11, chromium): 768px 이상
+     모든 폭에서 main 은 20px, GNB 는 24px — 계약의 `≥900 → 24px` 도, 좁은 폭
+     20px 도 출시된 적이 없고 두 표면은 4px 어긋난 채 렌더됐다. 단일 유틸리티
+     `px-[var(--shell-gutter)]` 는 같은 속성을 두고 경쟁할 규칙이 없으므로 emit 순서가
+     결과를 바꿀 수 없다. 여기에 값을 더 두지 말고, 여백이 필요한 표면은 이 토큰을
+     읽는다. */
+  --shell-gutter: 16px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --shell-gutter: 20px;
+  }
+}
+
+@media (min-width: 900px) {
+  :root {
+    --shell-gutter: 24px;
+  }
 }
 
 /* ---------------------------------------------------------------------------

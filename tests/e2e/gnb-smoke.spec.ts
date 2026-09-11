@@ -1,6 +1,14 @@
 import {expect, test, type Locator, type Page} from '@playwright/test';
 
 import {localeOptions, type AppLocale} from '../../src/config/site';
+import {
+  CONTAINER_MAX_WIDTH,
+  MOBILE_MAX_VIEWPORT_WIDTH,
+  MOBILE_SIDE_PADDING,
+  NARROW_PADDING_MAX_VIEWPORT_WIDTH,
+  NARROW_TABLET_SIDE_PADDING,
+  TABLET_DESKTOP_SIDE_PADDING
+} from '../../src/features/landing/grid/layout-plan';
 import {seedTelemetryConsent} from './helpers/consent';
 import {
   buildLocalizedBlogDetailRoute,
@@ -255,6 +263,84 @@ test.describe('Phase 3 gnb shell smoke', () => {
       expect(metrics.main.width).toBeCloseTo(1280, 0);
       expect(metrics.gnb.width).toBeCloseTo(1280, 0);
       expect(metrics.main.left).toBeCloseTo(metrics.gnb.left, 1);
+    }
+  });
+
+  test('@smoke shared page shell and GNB carry one gutter at every declared tier', async ({page}) => {
+    // 계약: req-landing.md §6.4 — Desktop/Tablet 24px(좁은 폭 20px), Mobile 16px.
+    // 상수는 layout-plan.ts 가 갖고, 값은 globals.css 의 `--shell-gutter` 한 곳에서 온다.
+    const expectedGutter = (viewportWidth: number) => {
+      if (viewportWidth <= MOBILE_MAX_VIEWPORT_WIDTH) {
+        return MOBILE_SIDE_PADDING;
+      }
+
+      if (viewportWidth <= NARROW_PADDING_MAX_VIEWPORT_WIDTH) {
+        return NARROW_TABLET_SIDE_PADDING;
+      }
+
+      return TABLET_DESKTOP_SIDE_PADDING;
+    };
+
+    const widths = [
+      390,
+      MOBILE_MAX_VIEWPORT_WIDTH,
+      MOBILE_MAX_VIEWPORT_WIDTH + 1,
+      NARROW_PADDING_MAX_VIEWPORT_WIDTH,
+      NARROW_PADDING_MAX_VIEWPORT_WIDTH + 1,
+      1024,
+      1100,
+      CONTAINER_MAX_WIDTH,
+      1600
+    ];
+
+    await page.goto('/en');
+
+    for (const width of widths) {
+      await page.setViewportSize({width, height: 900});
+
+      const measured = await page.evaluate(() => {
+        const main = document.querySelector<HTMLElement>('.page-shell-main');
+        const gnbInner = document.querySelector<HTMLElement>('.gnb-inner');
+
+        if (!main || !gnbInner) {
+          throw new Error('Expected shared shell landmarks to be present.');
+        }
+
+        const read = (element: HTMLElement) => {
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+
+          return {
+            paddingLeft: Number.parseFloat(style.paddingLeft),
+            paddingRight: Number.parseFloat(style.paddingRight),
+            contentLeft: rect.left + Number.parseFloat(style.paddingLeft)
+          };
+        };
+
+        return {
+          // 전제: 고전 스크롤바가 있으면 미디어 쿼리가 보는 폭이 viewport 폭보다 좁아져
+          // 경계 케이스가 조용히 옆 tier 를 측정하게 된다. 전제를 먼저 깬다.
+          cssViewportWidth: document.documentElement.clientWidth,
+          innerWidth: window.innerWidth,
+          main: read(main),
+          gnb: read(gnbInner)
+        };
+      });
+
+      expect(measured.cssViewportWidth, `viewport ${width}: 스크롤바가 CSS viewport 폭을 줄였다`).toBe(
+        measured.innerWidth
+      );
+
+      const gutter = expectedGutter(width);
+
+      expect(measured.main.paddingLeft, `main padding-left @ ${width}`).toBe(gutter);
+      expect(measured.main.paddingRight, `main padding-right @ ${width}`).toBe(gutter);
+      expect(measured.gnb.paddingLeft, `gnb padding-left @ ${width}`).toBe(gutter);
+      expect(measured.gnb.paddingRight, `gnb padding-right @ ${width}`).toBe(gutter);
+      expect(measured.main.contentLeft, `content left edges @ ${width}`).toBeCloseTo(
+        measured.gnb.contentLeft,
+        1
+      );
     }
   });
 

@@ -19,7 +19,7 @@ export function PageShell({locale, context, currentRoute, showDefaultConsentBann
     <div className="page-shell min-h-screen" data-page-context={context}>
       <TransitionGnbOverlay locale={locale} context={context} currentRoute={currentRoute} />
       <SiteGnb locale={locale} context={context} currentRoute={currentRoute} />
-      <main className="page-shell-main mx-auto max-w-[1280px] px-4 pt-20 pb-6 md:px-5 md:pt-[88px] md:pb-8 min-[900px]:px-6">
+      <main className="page-shell-main mx-auto max-w-[1280px] px-[var(--shell-gutter)] pt-20 pb-6 md:pt-[88px] md:pb-8">
         {children}
       </main>
       {showDefaultConsentBanner ? <TelemetryConsentBanner /> : null}
