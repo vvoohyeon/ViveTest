@@ -74,16 +74,17 @@ The Design System pane builds its card index from those markers. If a card does 
 
 Cards must reference tokens (`var(--accent)`), never literal hex — with one deliberate exception: `catalog-drift.html` prints literal hex on both sides of its table, because its whole subject is two values that differ.
 
-**Four files restate token values in text and therefore drift silently.** They have to be edited whenever a value they name changes; nothing detects it if you forget.
+**Three files restate token values in text and therefore drift silently.** They have to be edited whenever a value they name changes; nothing detects it if you forget.
 
 | File | What it restates |
 |:---|:---|
 | `preview/radius-scale.html` | the whole radius ladder, as labels |
 | `preview/motion.html` | the duration ladder, as labels |
-| `preview/catalog-drift.html` | the drifting values, as literal hex |
-| `README.md` | roughly thirty values in prose — the palette, the radius ladder, the duration ladder, the container widths, the grid gutters |
+| `preview/catalog-drift.html` | the drifting values, as literal hex — deliberate, that card's subject is two values that differ |
 
-`README.md` is the one that catches people out, because it reads as narrative rather than as data and it is pushed alongside the CSS. An earlier version of this file claimed everything but two preview cards followed `colors_and_type.css` automatically; that was wrong.
+**`README.md` left this list on 2026-09-11.** It used to restate roughly thirty values in prose — the palette, the radius ladder, the container widths — and it was the one that caught people out, because it reads as narrative rather than as data and it is pushed alongside the CSS. Its *Visual foundations* section now names tokens instead of values, and the literals that genuinely teach something (contrast ratios, the shape of the type / spacing / duration ladders, the grid gutters, component specs like the focus ring) each carry an `<!-- ds-literal: kind -->` marker so a checker can find them without parsing English. `scripts/qa/check-design-token-parity.mjs` enforces both halves — no hex in that section, and every remaining numeric literal marked.
+
+An earlier version of this file claimed everything but two preview cards followed `colors_and_type.css` automatically; that was wrong.
 
 Everything else — every `card-*.html`, every `comp-*.html`, `color-*.html`, `nav-*.html`, `test-flow.html`, `secondary-surfaces.html`, `spacing-scale.html`, `elevation-scale.html`, `type-*.html` — references tokens only and does follow the CSS automatically.
 

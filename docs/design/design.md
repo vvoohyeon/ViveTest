@@ -222,12 +222,12 @@ Layout spacing scale (reference rhythm for gaps, padding, and grid gutters):
 --space-xs:      8px;    /* tag gap, choice-list gap */
 --space-sm:      12px;   /* card content gap, choice inner gap */
 --space-md:      16px;   /* base card internal padding (realized) */
---space-lg:      24px;   /* desktop grid gutter, container side padding */
+--space-lg:      24px;   /* desktop grid gutter, container side padding at >=900px */
 --space-xl:      32px;   /* intent-only */
 --space-2xl:     48px;   /* intent-only */
 --space-section: 96px;   /* intent-only — non-catalog editorial band rhythm */
 ```
-`--space-2xs … --space-lg` are realized in the catalog (24px is the desktop grid gutter and the desktop/tablet container side padding); `--space-xl` and larger are **intent-only** until a non-catalog surface uses them. Some component paddings sit deliberately off this 4px grid (choice button `12px 14px`, tag `4px 9px`); those are component-specific values and live with their components (§6.3, §6.4), not in this scale. These tokens document rhythm — the codebase may realize spacing via utility classes rather than consuming these names directly.
+`--space-2xs … --space-lg` are realized in the catalog (24px is the desktop grid gutter, and the container side padding **at 900px and wider** — below that it steps to 20px and then 16px on mobile, per `req-landing.md` §6.1); `--space-xl` and larger are **intent-only** until a non-catalog surface uses them. Some component paddings sit deliberately off this 4px grid (choice button `12px 14px`, tag `4px 9px`); those are component-specific values and live with their components (§6.3, §6.4), not in this scale. These tokens document rhythm — the codebase may realize spacing via utility classes rather than consuming these names directly.
 
 ### 5.11 Motion tokens
 ```css

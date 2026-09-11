@@ -10,7 +10,7 @@ The system is bilingual by default (Korean + Latin) thanks to the **Pretendard**
 
 This file and `colors_and_type.css` are **one definition shared with the ViveTest repository**. They live there at `docs/design/ds/` and are pushed to this project at the same paths. Neither side re-types the other's values.
 
-The token **values** are now the ones the ViveTest product actually ships, read from its realized stylesheets rather than from an intent document. The token **names and structure** stay VIVE's. Generic components therefore round one step softer than before (`--radius-md` is 12px, not 8px), cards sit on exact white, and the accent is a slightly more saturated, more teal sage. That is intended: the design system now speaks the product's language, so a screen generated here can be implemented without translation.
+The token **values** are now the ones the ViveTest product actually ships, read from its realized stylesheets rather than from an intent document. The token **names and structure** stay VIVE's. Generic components therefore round one step softer than before (`--radius-md` moved up one step on the ladder), cards sit on exact white, and the accent is a slightly more saturated, more teal sage. That is intended: the design system now speaks the product's language, so a screen generated here can be implemented without translation.
 
 Findings are recorded here and closed here. **Do not close a row silently** — a row becomes *Resolved* only once someone has read the answer out of the running product, and the row says where they read it. (M-01, the core easing, was settled on 2026-09-07 — see Motion below.)
 
@@ -86,33 +86,33 @@ How VIVE products *talk*. The voice matches the visuals: calm, plain, and respec
 The complete answer to "what does VIVE *look* like." Tokens live in `colors_and_type.css`; component patterns in `vive-components.css`.
 
 ### Color & vibe
-- **Atmosphere:** warm-neutral, low-contrast calm. The page floor is `--canvas` (`#fbfaf7`) — a warm off-white, never cool grey or pure white. Ink is `--fg1` (`#1e1a16`), a near-black that carries the same warmth as the surfaces: **one ramp, one temperature, end to end** (D-01).
-- **Primary accent:** **Sage / moss** (`--accent` `#5c8e78`). A green-grey that signals trust without shouting. Hover steps to `#4b7764`, pressed to `#396050`. Tints (`--accent-subtle` `#e8f0ec`) carry selection and quiet emphasis.
+- **Atmosphere:** warm-neutral, low-contrast calm. The page floor is `--canvas` — a warm off-white, never cool grey or pure white. Ink is `--fg1`, a near-black that carries the same warmth as the surfaces: **one ramp, one temperature, end to end** (D-01).
+- **Primary accent:** **Sage / moss** (`--accent`). A green-grey that signals trust without shouting. Hover steps to `--accent-hover`, pressed to `--accent-pressed`. Tints (`--accent-subtle`) carry selection and quiet emphasis. The whole ramp renders in `preview/color-sage.html`.
 - **Sage as a fill under a label:** use `--accent-solid` (and `-hover` / `-pressed`), never `--accent` — see D-12.
-- **Sage as text:** `--accent` on white measures **3.75:1**. That clears AA for large text and for borders, focus rings and other non-text UI — every way the product uses it — but it is **below AA for normal-size text**. Use `--accent-fg` (`#396050`, 7.09:1) whenever sage has to be read as text.
-- **Secondary accent:** **Clay** (`--accent2` `#c2855b`), a warm earthy tone used *sparingly* — a highlighted avatar, an occasional category, an illustration accent. Never competes with sage. The catalog does not use it.
+- **Sage as text:** `--accent` on white measures **3.75:1**. That clears AA for large text and for borders, focus rings and other non-text UI — every way the product uses it — but it is **below AA for normal-size text**. Use `--accent-fg` (**7.09:1**) whenever sage has to be read as text. <!-- ds-literal: contrast -->
+- **Secondary accent:** **Clay** (`--accent2`), a warm earthy tone used *sparingly* — a highlighted avatar, an occasional category, an illustration accent. Never competes with sage. The catalog does not use it.
 - **Semantic hues are muted** to stay in the calm family: success is a soft forest green, warning a dim amber, danger a dusty brick red, info a slate blue. Each ships a `subtle` tint, a base, and a readable `fg`. The catalog does not use them.
 - **Dark theme:** one ramp, read from the other end. Surfaces come from `--warm-900…975` and ink from `--warm-50…400`; the accent anchors on `--sage-400` because `--sage-500` measures 3.75:1 on white and cannot serve both grounds. Dark is a **remap of the semantic layer**, not a second palette — every dark value resolves to a step of the same ramp, and no component stylesheet changes. Set it with `data-theme="dark"` on any element, or let `prefers-color-scheme` pick it up.
 - **Imagery vibe (when used):** warm, natural, soft daylight; low saturation. No neon, no cold blue tech imagery, no heavy duotones. Photography sits inside `--radius-md` containers.
 
 ### Type
 - **One family does everything: Pretendard Variable.** It covers Korean + Latin with matched metrics, so bilingual layouts stay even. Weights used: 400 / 500 / 600 / 700 (the variable face spans 45–920).
-- **Display** (56 / 44 / 36px, weight 700, tracking `-0.02em`) for hero and marketing moments only. The catalog has no hero band and does not use this scale.
-- **Headings** H1–H4 (30 / 24 / 20 / 18px, 600–700). **Body** 16px / 1.6 line-height for comfortable reading. **Label** 14/500 for UI. **Overline** 12px uppercase tracked for eyebrows. **Code** in JetBrains Mono (see *Substitutions*).
-- **Catalog roles** sit alongside the general scale where the product needs a size the scale does not carry: `--t-card-title` 20/600, `--t-card-subtitle` 15/400, `--t-expanded-question` 21/600, `--t-choice` 15/400, `--t-tag` 13/500.
+- **Display** — `--display-xl` / `--display-lg` / `--display-md`, a 56 / 44 / 36px ladder at weight 700, tracking `-0.02em` — for hero and marketing moments only. The catalog has no hero band and does not use this scale. <!-- ds-literal: ladder -->
+- **Headings** `--h1`…`--h4`, a 30 / 24 / 20 / 18px ladder at 600–700. **Body** `--body` at 16px / 1.6 for comfortable reading, with `--body-lg` and `--body-sm` a step either side. **Label** `--label` for UI. **Overline** `--overline`, uppercase and tracked, for eyebrows. **Code** in JetBrains Mono (see *Substitutions*). <!-- ds-literal: ladder -->
+- **Catalog roles** sit alongside the general scale where the product needs a size the scale does not carry: `--t-card-title` 20/600, `--t-card-subtitle` 15/400, `--t-expanded-question` 21/600, `--t-choice` 15/400, `--t-tag` 13/500. The sizes are listed because the point is that they fall *between* the general steps. <!-- ds-literal: ladder -->
 - **Tracking:** slightly negative on display and headings (`-0.01 / -0.02em`); normal on body; wide (`0.08em`) on the uppercase overline.
 - **Wrapping:** bilingual text wraps with `word-break: keep-all` and `overflow-wrap: anywhere`, so Korean breaks on word boundaries and long Latin strings still break rather than overflow.
 
 ### Spacing & layout
-- **4px base unit.** Tokens `--space-1…24` (4 → 96px), with a t-shirt alias set (`--space-2xs…--space-section`) for surfaces that prefer it. Section rhythm is generous (48–96px between major bands); component padding clusters around 16–24px.
-- **Containers:** `--container` 1280px standard, `--container-narrow` 760px for reading/forms. Content is centered with comfortable gutters.
-- **Layout primitives:** prefer CSS grid / flex with `gap`. Cards lay out 3-up desktop → 2-up tablet → 1-up mobile. The catalog's realized gutters are 24px desktop, 20px tablet, 15px mobile.
+- **4px base unit.** Tokens `--space-1…24` climb 4 → 96px, with a t-shirt alias set (`--space-2xs…--space-section`) for surfaces that prefer it. Section rhythm is generous (`--space-12`…`--space-24` between major bands); component padding clusters around `--space-4`…`--space-6`. <!-- ds-literal: ladder -->
+- **Containers:** `--container` is the standard max width, `--container-narrow` the reading/form width. Content is centered with comfortable gutters.
+- **Layout primitives:** prefer CSS grid / flex with `gap`. The catalog's column rule is **asymmetric by decision** and `design.md` §7.7 owns it: wide desktop lays the first row in 3 wider columns and every following row in 4; medium is 2 → 3; lower tablet 2 → 2; mobile a single column. Top-row prominence comes from the wider columns alone — no divider, heading or hero band. `preview/grid-rhythm.html` renders it. The realized grid gutters are 24px desktop, 20px tablet, 15px mobile. <!-- ds-literal: gutter -->
 - **Fixed elements:** top nav / app header is sticky and flat (no shadow until content scrolls under it, then `--shadow-sm`). Side nav is a fixed rail on desktop, a drawer on mobile.
 
 ### Corners, borders & cards
-- **Radius is restrained** — softer than playful, firmer than sharp: `--radius-xs` 5px for tag chips, `--radius-sm` 8px for small controls, `--radius-md` 12px for choice buttons and thumbnails, `--radius-lg` 16px for cards, `--radius-xl` 24px for overlay panels, `pill` for chips/badges/toggles.
-- **Borders are hairlines:** 1px `--border` (`#e6e2d8`). A `--border-strong` (`#d6d1c4`) exists for inputs and emphasized edges. Borders do the structural work; color does not.
-- **Cards** = `--surface` fill (exact white) + 1px hairline + a *whisper* of `--shadow-xs`. Raised variants use `--shadow-md`. Sunken/well areas drop the shadow and use `--surface-sunken`. **No** colored left-border accent cards, **no** tilt, **no** thick drop shadows.
+- **Radius is restrained** — softer than playful, firmer than sharp. One step per role: `--radius-xs` for tag chips, `--radius-sm` for small controls, `--radius-md` for choice buttons and thumbnails, `--radius-lg` for cards, `--radius-xl` for overlay panels, `pill` for chips/badges/toggles. `preview/radius-scale.html` renders the ladder.
+- **Borders are hairlines:** 1px `--border`. A `--border-strong` exists for inputs and emphasized edges. Borders do the structural work; color does not. <!-- ds-literal: component-spec -->
+- **Cards** = `--surface` fill (exact white) + 1px hairline + a *whisper* of `--shadow-xs`. Raised variants use `--shadow-md`. Sunken/well areas drop the shadow and use `--surface-sunken`. **No** colored left-border accent cards, **no** tilt, **no** thick drop shadows. <!-- ds-literal: component-spec -->
 
 ### Elevation & depth
 - **Depth is a whisper.** Five low-alpha shadow steps (`--shadow-xs…xl`) tinted with the ink color (`rgba(30,26,22,…)`) at 4–18% — never pure black, never large blur halos.
@@ -121,20 +121,21 @@ The complete answer to "what does VIVE *look* like." Tokens live in `colors_and_
 
 ### Interaction states (all components encode these)
 - **Hover:** a small, calm shift — the accent steps one shade **toward higher contrast with the ground**; neutral surfaces pick up `--surface-sunken`; cards deepen to `--shadow-md`. Never a color *change*, just a deepening. On a light ground that step is darker (500 → 600); on a dark ground it is lighter (400 → 300). Stated as "one shade darker" the rule silently inverts to *less* visible in dark, which is why it is written as a direction rather than a value.
-- **Pressed:** one more step in the same direction + a 0.5px nudge down (`translateY`). No squish/scale beyond that.
-- **Focus:** **strong and always visible** — `:focus-visible` gets a 2px sage outline with a 2px offset. Inputs use a 3px `--accent-subtle` glow + accent border. Focus is never removed.
+- **Pressed:** one more step in the same direction + a 0.5px nudge down (`translateY`). No squish/scale beyond that. <!-- ds-literal: component-spec -->
+- **Focus:** **strong and always visible** — `:focus-visible` gets a 2px sage outline with a 2px offset. Inputs use a 3px `--accent-subtle` glow + accent border. Focus is never removed. <!-- ds-literal: component-spec -->
 - **Disabled:** neutral fill + `--fg-disabled` text, `not-allowed` cursor, no shadow.
-- **Loading:** label hides, a 16px spinner (currentColor, 0.7s linear) appears; control is non-interactive.
+- **Loading:** label hides, a 16px spinner (currentColor, 0.7s linear) appears; control is non-interactive. <!-- ds-literal: component-spec -->
 - **Error / success:** border + tint shift to the semantic hue; helper text swaps to the semantic `fg`.
 
 ### Motion
-- **Calm and purposeful.** Durations are the product's realized ladder: **120ms** slot exit, **140ms** hover and focus skins, **180ms** general UI and the reduced-motion core, **280ms** expand and collapse, with a **40 / 100 / 160ms** stagger on staged reveals.
-- **Core easing is `--ease-in-out` (M-01, decided 2026-09-07).** The expand and collapse had shipped `linear` on all 21 animations, against the behaviour contract; the three candidates were compared side by side at the realized 280ms in `preview/motion.html`, and the symmetric curve won because the close has to return on the same curve as the open. `--ease-standard` remains the curve for one-way entrances and reveals.
-- **Allowed:** opacity fades, small (≤8px) translations, color transitions, shadow depth. **Banned:** bounce, spring overshoot, parallax, card tilt, auto-playing decorative motion. Respect `prefers-reduced-motion` — reduced motion drops translations and keeps opacity only.
+- **Calm and purposeful.** Durations are the product's realized ladder: **120ms** slot exit, **140ms** hover and focus skins, **180ms** general UI and the reduced-motion core, **280ms** expand and collapse, with a **40 / 100 / 160ms** stagger on staged reveals. `preview/motion.html` runs each step side by side. <!-- ds-literal: ladder -->
+- **Core easing is `--ease-in-out` (M-01, decided 2026-09-07).** The expand and collapse had shipped `linear` on all 21 animations, against the behaviour contract; the three candidates were compared side by side at the realized expand duration in `preview/motion.html`, and the symmetric curve won because the close has to return on the same curve as the open. `--ease-standard` remains the curve for one-way entrances and reveals.
+- **Allowed:** opacity fades, small (≤8px) translations, color transitions, shadow depth. <!-- ds-literal: component-spec -->
+- **Banned:** bounce, spring overshoot, parallax, card tilt, auto-playing decorative motion. Respect `prefers-reduced-motion` — reduced motion drops translations and keeps opacity only.
 
 ### Transparency & blur
-- Used rarely and quietly: a sticky header may use a subtle `backdrop-filter: blur(8px)` over a translucent `--canvas`. Scrims behind dialogs and mobile sheets are `--overlay-scrim` (`rgba(30,26,22,0.48)`). No frosted-glass everywhere.
-- **A dark overlay separates by its edge, not by its scrim.** Measured: the light scrim dims its ground 3.12:1, and the same treatment dims the dark ground 1.04:1 — deepening it to 85% only reaches 1.08:1, because you cannot darken a page that is already near-black. So in dark a floating surface draws a 1px `--border-strong` edge, which measures 4.73:1 against the scrimmed ground and 3.18:1 against the panel. In light, the scrim alone is enough.
+- Used rarely and quietly: a sticky header may use a subtle `backdrop-filter: blur(8px)` over a translucent `--canvas`. Scrims behind dialogs and mobile sheets are `--overlay-scrim`. No frosted-glass everywhere. <!-- ds-literal: component-spec -->
+- **A dark overlay separates by its edge, not by its scrim.** Measured: the light scrim dims its ground 3.12:1, and the same treatment dims the dark ground 1.04:1 — deepening it to 85% only reaches 1.08:1, because you cannot darken a page that is already near-black. So in dark a floating surface draws a 1px `--border-strong` edge, which measures 4.73:1 against the scrimmed ground and 3.18:1 against the panel. In light, the scrim alone is enough. <!-- ds-literal: contrast -->
 
 ---
 

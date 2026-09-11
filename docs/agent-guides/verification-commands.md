@@ -60,6 +60,7 @@ node scripts/qa/check-phase7-state-contracts.mjs
 node scripts/qa/check-phase8-accessibility-contracts.mjs
 node scripts/qa/check-phase9-performance-contracts.mjs
 node scripts/qa/check-phase10-transition-contracts.mjs
+node scripts/qa/check-design-token-parity.mjs
 npm test -- \
   tests/unit/landing-interaction-dom.test.ts \
   tests/unit/landing-hover-intent.test.ts \

@@ -149,7 +149,7 @@ npm run build        # next build
 ### Reference commands
 ```bash
 npm run qa:static        # lint + typecheck + qa:rules
-npm run qa:rules         # scripts/qa/run-all.mjs (12 contract checks) — Default Done gate 제외, release-level
+npm run qa:rules         # scripts/qa/run-all.mjs (13 contract checks) — Default Done gate 제외, release-level
 npm run test:e2e         # playwright test
 npm run test:e2e:smoke   # @smoke subset (preview server)
 npm run test:e2e:gate    # @gate subset (preview server)

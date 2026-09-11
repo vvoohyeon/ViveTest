@@ -13,7 +13,8 @@ const scripts = [
   'check-phase11-telemetry-contracts.mjs',
   'check-variant-registry-contracts.mjs',
   'check-variant-only-contracts.mjs',
-  'check-blocker-traceability.mjs'
+  'check-blocker-traceability.mjs',
+  'check-design-token-parity.mjs'
 ];
 
 function runScript(script) {
