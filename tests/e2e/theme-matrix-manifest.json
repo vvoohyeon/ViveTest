@@ -25,7 +25,6 @@
       "test-question": ["desktop-wide", "tablet-wide"],
       "test-result": ["desktop-wide", "tablet-wide"],
       "mobile-landing-test-expanded": ["mobile"],
-      "mobile-landing-blog-expanded": ["mobile"],
       "mobile-landing-menu-open": ["mobile"],
       "mobile-blog-menu-open": ["mobile"],
       "mobile-history-menu-open": ["mobile"],
@@ -140,15 +139,6 @@
       "suite": "state",
       "routeTemplate": "/{locale}",
       "settleRecipe": "mobile-landing-test-expanded",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"],
-      "gate": true
-    },
-    {
-      "id": "mobile-landing-blog-expanded",
-      "suite": "state",
-      "routeTemplate": "/{locale}",
-      "settleRecipe": "mobile-landing-blog-expanded",
       "localeKeys": ["en", "kr"],
       "viewportKeys": ["mobile"],
       "gate": true

@@ -38,6 +38,12 @@ export default defineConfig({
     {
       name: 'webkit-ghosting',
       testMatch: /safari-hover-ghosting\.spec\.ts/,
+      // 이 스펙만 파일 안에서 직렬로 돈다. 여섯 케이스가 각각 실제 포인터를 20 회 움직이며
+      // **스쳐 지나가는** 셸 위상(`closing` · `cleanup-pending`)을 읽는데, 같은 기계에서 여섯
+      // webkit 컨텍스트가 동시에 그것을 하면 전이가 폴링 간격보다 빨리 지나가 버린다. 실측
+      // (2026-09-11): 병렬로 세 번 돌려 4·3·4 통과(붉은 자리가 실행마다 달랐다), `--workers=1`
+      // 로 세 번 돌려 6·6·6 통과. 제품 결함이 아니라 이 스펙이 CPU 를 나눠 쓸 수 없다는 뜻이다.
+      fullyParallel: false,
       use: {
         browserName: 'webkit'
       }

@@ -1,7 +1,7 @@
 import {expect, test, type Browser, type Page, type TestInfo, type ViewportSize} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_VARIANT, SECONDARY_BLOG_VARIANT} from './helpers/landing-fixture';
 import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
 import rawThemeMatrixManifest from './theme-matrix-manifest.json';
 
@@ -23,7 +23,6 @@ type SettleRecipe =
   | 'test-question'
   | 'test-result'
   | 'mobile-landing-test-expanded'
-  | 'mobile-landing-blog-expanded'
   | 'mobile-menu-open';
 type ViewportTier = 'desktop' | 'tablet' | 'mobile';
 type ViewportKey =
@@ -137,6 +136,23 @@ function buildGateThemeMatrixCases(manifest: ThemeMatrixManifest): ThemeMatrixCa
   return cases;
 }
 
+/**
+ * 폰트가 실제로 도착한 뒤에 찍는다.
+ *
+ * Pretendard 는 `font-display: swap` 이고 preload 하지 않는다(`globals.css` 의 TYPEFACE 절 —
+ * 전체 face 가 1.96 MB 라 본문이 폰트를 기다리면 안 된다). 그래서 스크린샷 시점이 swap 보다
+ * 빠르면 같은 화면이 fallback 으로 찍히고, 한국어는 줄바꿈 위치까지 달라진다 — provenance 가
+ * 2026-05-17 에 기록한 `theme-layout-test-instruction-kr-*` 6 장의 「환경 표류」가 이것이었고,
+ * 재생성 직후 재실행에서도 같은 두 장이 다시 어긋났다(실측 2026-09-11: 2,342px · 706px).
+ * `document.fonts.ready` 를 기다리면 그 경주가 사라진다 — baseline 이 스스로를 재현하지
+ * 못하면 그 baseline 은 회귀를 판정할 수 없다.
+ */
+async function waitForWebFonts(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
 async function setTheme(page: Page, theme: MatrixTheme) {
   await page.addInitScript(
     ([storageKey, nextTheme]) => {
@@ -169,30 +185,47 @@ async function captureRepresentativeState(input: {
   const page = await openThemedPage(input.browser, input.theme, input.viewport);
   await page.goto(`${PREVIEW_HOST}${input.route}`);
   await expect(page.locator('.page-shell')).toBeVisible();
+  await waitForWebFonts(page);
 
   if (input.settle) {
     await input.settle(page);
   }
 
-  await expectLocatorToMatchLocalSnapshot(page.locator('.page-shell'), input.screenshotName, input.testInfo, {
-    // BQ-07: 이 매트릭스는 168 장을 요구하는데 저장소가 갖는 것은 48 장이고, 나머지 생성은
-    // 이연돼 있다. 그때까지 없는 baseline 은 생성-후-통과로 남긴다 — 이연이 풀리면 이 옵션만 지운다.
-    allowMissingBaseline: {reason: 'BQ-07 — theme-matrix baseline 생성 이연 (168 중 48 만 추적)'}
-  });
+  // BQ-07 의 생성 이연은 2026-09-11 에 풀렸다 — 이 매트릭스의 baseline 은 전부 추적된다.
+  // 따라서 `allowMissingBaseline` 을 넘기지 않는다: 없는 baseline 은 생성-후-통과가 아니라
+  // 실패여야 한다(L11).
+  await expectLocatorToMatchLocalSnapshot(page.locator('.page-shell'), input.screenshotName, input.testInfo);
   await page.close();
 }
 
-async function expandLandingCard(page: Page, cardVariant: string) {
+/**
+ * 데스크톱 랜딩 카드의 hover 상태로 정착시킨다 — 클릭은 확장이 아니라 **진입**이다.
+ *
+ * 종전 이 함수는 트리거를 실제로 클릭했다. 트리거는 blog 카드에서 `<Link>`, test 카드에서
+ * `onClick` 이 전이를 여는 `<button>` 이므로 클릭은 라우팅을 일으킨다. 그래서
+ * `landing-test-expanded` · `landing-blog-expanded` 두 state 케이스는 **도달 자체가 불가능**했고
+ * (실측: 카드가 `normal` 인 채로 남았다가 문서에서 사라진다), 그 상태로 `--update` 를 쳤다면
+ * 랜딩 확장 카드의 baseline 자리에 **블로그 상세 페이지**가 들어앉았을 것이다.
+ *
+ * 두 카드 종류의 hover 상태는 같지 않다. 데스크톱/태블릿에서 확장 셸은 **test 카드만** 갖는다
+ * (`landing-grid-card.tsx` 의 `DesktopExpandedShell` 이 `isTestCard` 로 막혀 있다). blog 카드의
+ * hover 처리는 read-more 노출과 태그 절삭이고 `data-card-state` 는 `normal` 로 남는다 — 실측으로
+ * 확인했다. 그래서 종착 단언이 종류별로 갈린다. 케이스 이름(`landing-blog-expanded`)은 모바일
+ * 대응 케이스와 짝을 이루므로 그대로 둔다.
+ */
+async function settleLandingCardHover(page: Page, cardVariant: string) {
   const card = page.locator(`[data-card-variant="${cardVariant}"]`);
-  await card.getByTestId('landing-grid-card-trigger').click();
-  await expect(card).toHaveAttribute('data-card-state', 'expanded');
-  await expect(card).toHaveAttribute('data-desktop-motion-role', 'steady');
-  const cardBox = await card.boundingBox();
-  if (cardBox) {
-    await page.mouse.move(cardBox.x + 28, cardBox.y + 28);
+  await card.getByTestId('landing-grid-card-trigger').hover();
+
+  if ((await card.getAttribute('data-card-content-type')) === 'blog') {
+    await expect(card.locator('[data-slot="blogReadMore"]')).toHaveCSS('visibility', 'visible');
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
+  } else {
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-desktop-motion-role', 'steady');
   }
-  await expect(card).toHaveAttribute('data-card-state', 'expanded');
-  await expect(card).toHaveAttribute('data-desktop-motion-role', 'steady');
+
+  await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
 async function openDesktopSettings(page: Page) {
@@ -286,10 +319,10 @@ async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
     case 'test-instruction':
       return;
     case 'landing-test-expanded':
-      await expandLandingCard(page, PRIMARY_AVAILABLE_TEST_VARIANT);
+      await settleLandingCardHover(page, PRIMARY_AVAILABLE_TEST_VARIANT);
       return;
     case 'landing-blog-expanded':
-      await expandLandingCard(page, 'build-metrics');
+      await settleLandingCardHover(page, SECONDARY_BLOG_VARIANT);
       return;
     case 'desktop-settings-open':
       await openDesktopSettings(page);
@@ -302,9 +335,6 @@ async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
       return;
     case 'mobile-landing-test-expanded':
       await openMobileExpandedCard(page, PRIMARY_AVAILABLE_TEST_VARIANT);
-      return;
-    case 'mobile-landing-blog-expanded':
-      await openMobileExpandedCard(page, 'build-metrics');
       return;
     case 'mobile-menu-open':
       await openMobileMenu(page);

@@ -4,6 +4,16 @@
 
 ---
 
+## 이 문서에 남은 것 — baseline 절반은 2026-09-11 에 닫혔다 (§「The one thing this step exists for」 · §「Before regenerating」)
+
+두 절이 요구한 두 질문은 사용자에게 올라갔고 승인됐으며, 재생성은 끝났다: theme-matrix **164/164**(선언만 있던 케이스 생성 포함), safari ghosting **5/5**(종전 추적 0), `test:e2e:gate` **122 passed · 0 failed**. 경위·도달 불가 케이스 넷의 교정·재현성 셋은 `docs/done/2026-09-11-bq07-baseline-closeout.md` 와 `tests/e2e/theme-matrix-baseline-provenance.md` 가 갖는다. 선언된 18 케이스 중 `mobile-landing-blog-expanded` 는 **제품이 가질 수 없는 상태**로 판명돼 manifest 에서 빠졌다(18 → 17, 168 → 164 장).
+
+**아래 §「D-08」 절은 낡았다.** 그 절은 제안이 「채택되지 않았다」고 적지만 Step 4 가 채택해 16:6 네이티브 썸네일 **열 장**을 착지시켰다(`docs/done/2026-09-10-step4-mobile-cls-and-card-thumbnails.md`). 이 문서를 여는 세션은 그 절을 근거로 쓰지 말 것.
+
+**따라서 이 문서에 남은 활성 항목은 §「The tier-3 backlog」(7 → 8 → 10)와 §「Open items that belong to no step yet」뿐이다.**
+
+---
+
 ## Shared frame — repeated so this document is standalone
 
 **Programme.** The 2026-09-06 rebaseline (`BQ-38`) replaces waves 13–17. The repository owns the visual definition under `docs/design/ds/` and pushes it **one way** to **VIVE Design System v2** (`cd630eec-25e4-4613-a58f-c671c80297ca`). Procedure and traps: `docs/design/ds/SYNC.md`.

@@ -109,7 +109,6 @@ const allowedSettleRecipes = new Set([
   'test-question',
   'test-result',
   'mobile-landing-test-expanded',
-  'mobile-landing-blog-expanded',
   'mobile-menu-open'
 ]);
 

@@ -24,11 +24,19 @@ function registeredIds(): string[] {
   return [...readRepoFile(REGISTER).matchAll(/^## (BQ-\d+)\s*$/gmu)].map((match) => match[1]);
 }
 
-/** 추적 중인 파일 전체에서 인용을 모은다 — 원장 자신과 역사 기록은 뺀다. */
+/**
+ * 추적 중인 파일 전체에서 인용을 모은다 — 원장 자신과 역사 기록은 뺀다.
+ *
+ * `-I` 는 바이너리를 건너뛴다. 없으면 `git grep` 이 바이너리에 대해 매치 텍스트 대신
+ * `Binary file <path> matches` 한 줄을 뱉고, `-o` 도 그 줄에는 듣지 않는다 — 그 줄이
+ * 그대로 「인용된 번호」로 파싱돼 원장에 없는 이름으로 붉어진다. 2026-09-11 에 실제로 났다:
+ * theme-matrix baseline 164 장이 추적되기 시작하자 그중 한 PNG 의 바이트열이 우연히
+ * 패턴에 걸렸다. 텍스트 census 는 텍스트만 읽어야 한다.
+ */
 function citedIds(): Map<string, string[]> {
   const output = execFileSync(
     'git',
-    ['grep', '-ohE', 'BQ-[0-9]+', '--', ':!docs/decision-register.md', ':!docs/archive'],
+    ['grep', '-IohE', 'BQ-[0-9]+', '--', ':!docs/decision-register.md', ':!docs/archive'],
     {cwd: REPO_ROOT, encoding: 'utf8'}
   );
   const cited = new Map<string, string[]>();
