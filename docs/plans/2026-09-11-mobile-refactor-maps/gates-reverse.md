@@ -172,7 +172,7 @@
 | `sheets-loader.test.ts` | GoogleAuth readonly scope, Landing flat locale 컬럼 → source card union, 빈 시트, 오류 전파 | 동작 | no | — |
 | `sheets-row-normalizer.test.ts` | locale suffix 파싱, LocalizedText 재조합, 결측 locale 키 미생성, 공백-only 결측 처리 | 동작 | no | — |
 | `sync-orchestration.test.ts` | env 결측·variant 불일치 시 exit(1) 무변경, 동일 시 무작업, 상이 시 전체 쓰기 + git, push 실패 복구 | 동작 | no | — |
-| `tailwind-candidate-hygiene.test.ts` | **작업 트리 전체(`git ls-files --cached --others`, `.md` 포함)에 자리표시자 든 임의값 유틸리티 후보 부재** | 하네스 | **yes** | 계획서·설계 문서에 `border-[color:var(TOKEN)]` 류를 예시로 적으면 붉어진다 — dev 서버 500 을 막는 유일한 가드다 |
+| `tailwind-candidate-hygiene.test.ts` | **작업 트리 전체(`git ls-files --cached --others`, `.md` 포함)에 자리표시자 든 임의값 유틸리티 후보 부재** | 하네스 | **yes** | 계획서·설계 문서에 임의값 유틸리티 예시를 **리터럴로** 적으면 그 줄이 Tailwind 후보가 돼 붉어진다(모양은 가드의 머리말이 조립해 보여 준다) — dev 서버 500 을 막는 유일한 가드다 |
 | `telemetry-consent-banner.test.ts` | UNKNOWN 시 en/kr/ja 배너 렌더, accept/deny 후 즉시 숨김, 이미 결정된 상태에서 미표시 | 동작 | 조건부 | 모바일 배너를 sticky/바텀시트로 바꾸면 `consent-smoke` 와 함께 |
 | `telemetry-question-answered.test.ts` | question_answered/result_viewed 검증 7 건 + 런타임 매핑 4 건 | 동작 | 조건부 | telemetry 개정 시 |
 | `telemetry-route.test.ts` | `/api/telemetry` 400 4 종 · 204 1 종 (B18 서버측) | 동작 | 조건부 | telemetry 개정 시 |

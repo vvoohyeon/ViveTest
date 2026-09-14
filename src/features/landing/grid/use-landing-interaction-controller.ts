@@ -1,6 +1,4 @@
 import type {
-  FocusEvent as ReactFocusEvent,
-  KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   RefObject
 } from 'react';
@@ -24,28 +22,24 @@ import {
 import type {LandingCardInteractionBindings} from '@/features/landing/grid/landing-card-interaction-bindings';
 import {
   initialLandingInteractionState,
-  isKeyboardModeBlocked,
   reduceLandingInteractionState,
-  resolveKeyboardFocusDisposition,
-  resolveCardStateForVariant,
-  resolveCardTabIndex,
-  resolveVisualState,
   type LandingInteractionState
 } from '@/features/landing/model/interaction-state';
+import {
+  isKeyboardModeBlocked,
+  resolveCardStateForVariant,
+  resolveCardTabIndex,
+  resolveVisualState
+} from '@/features/landing/model/interaction-selectors';
 import {LANDING_TRANSITION_CLEANUP_EVENT} from '@/features/transition/store';
 import {useDesktopMotionController} from '@/features/landing/grid/use-desktop-motion-controller';
+import {useDesktopCardCloseController} from '@/features/landing/grid/use-desktop-card-close-controller';
 import {useHoverIntentController} from '@/features/landing/grid/use-hover-intent-controller';
 import {
   useMobileCardLifecycle,
   type MobileBackdropBindings
 } from '@/features/landing/grid/use-mobile-card-lifecycle';
 import {useKeyboardHandoff} from '@/features/landing/grid/use-keyboard-handoff';
-import {
-  focusCardByVariant,
-  hasOpenHigherPriorityOverlay,
-  isCardFocusExit,
-  queueFocusCardByVariant
-} from '@/features/landing/grid/interaction-dom';
 
 interface UseLandingInteractionControllerInput {
   cards: LandingCard[];
@@ -298,182 +292,18 @@ export function useLandingInteractionController({
     setDesktopTransitionReason
   ]);
 
-  const closeDesktopCard = useCallback(
-    (input: {
-      sourceCardVariant: string;
-      reason: 'collapse' | 'handoff';
-      focusDisposition: 'return-trigger' | 'preserve-destination';
-      nowMs: number;
-    }) => {
-      if (isMobileViewport) {
-        return;
-      }
-
-      const sourceOwnsInteraction =
-        interactionState.focusedCardVariant === input.sourceCardVariant ||
-        interactionState.expandedCardVariant === input.sourceCardVariant;
-      if (!sourceOwnsInteraction) {
-        return;
-      }
-
-      cancelPendingHoverIntent();
-      if (input.focusDisposition === 'return-trigger') {
-        focusCardByVariant(shellRef.current, input.sourceCardVariant);
-      }
-      setDesktopTransitionReason(input.reason);
-      setTransitionSourceCardVariant(null);
-      dispatchInteraction({
-        type: 'CARD_COLLAPSE',
-        nowMs: input.nowMs,
-        interactionMode,
-        cardVariant: input.sourceCardVariant
-      });
-      if (input.focusDisposition === 'return-trigger') {
-        queueFocusCardByVariant(shellRef.current, input.sourceCardVariant);
-      }
-    },
-    [
-      cancelPendingHoverIntent,
+  const {focusCardFromKeyboard, handleCardKeyDown, handleCardBlur} =
+    useDesktopCardCloseController({
       interactionMode,
-      interactionState.expandedCardVariant,
-      interactionState.focusedCardVariant,
       isMobileViewport,
+      shellRef,
+      focusedCardVariant: interactionState.focusedCardVariant,
+      expandedCardVariant: interactionState.expandedCardVariant,
+      dispatchInteraction,
+      cancelPendingHoverIntent,
       setDesktopTransitionReason,
-      shellRef
-    ]
-  );
-
-  const focusCardFromKeyboard = useCallback(
-    (input: {
-      cardVariant: string;
-      cardEnterable: boolean;
-      cardExpandable: boolean;
-      nowMs: number;
-    }) => {
-      cancelPendingHoverIntent();
-      const disposition = resolveKeyboardFocusDisposition({
-        isMobileViewport,
-        cardEnterable: input.cardEnterable,
-        cardExpandable: input.cardExpandable
-      });
-
-      if (disposition === 'preserve-mobile') {
-        dispatchInteraction({
-          type: 'CARD_FOCUS',
-          nowMs: input.nowMs,
-          interactionMode,
-          cardVariant: input.cardVariant,
-          available: input.cardEnterable
-        });
-        return;
-      }
-
-      if (
-        disposition === 'expand' &&
-        interactionState.focusedCardVariant === input.cardVariant &&
-        interactionState.expandedCardVariant === input.cardVariant
-      ) {
-        return;
-      }
-
-      if (
-        disposition === 'focus-only' &&
-        interactionState.focusedCardVariant === input.cardVariant &&
-        interactionState.expandedCardVariant === null
-      ) {
-        return;
-      }
-
-      const previousExpandedCardVariant = interactionState.expandedCardVariant;
-      if (previousExpandedCardVariant && previousExpandedCardVariant !== input.cardVariant) {
-        closeDesktopCard({
-          sourceCardVariant: previousExpandedCardVariant,
-          reason: disposition === 'expand' ? 'handoff' : 'collapse',
-          focusDisposition: 'preserve-destination',
-          nowMs: input.nowMs,
-        });
-      } else if (disposition === 'expand') {
-        setDesktopTransitionReason('expand');
-      }
-
-      dispatchInteraction(
-        disposition === 'expand'
-          ? {
-              type: 'CARD_EXPAND',
-              nowMs: input.nowMs,
-              interactionMode,
-              cardVariant: input.cardVariant,
-              available: input.cardEnterable
-            }
-          : {
-              type: 'CARD_FOCUS',
-              nowMs: input.nowMs,
-              interactionMode,
-              cardVariant: input.cardVariant,
-              available: false
-            }
-      );
-    },
-    [
-      cancelPendingHoverIntent,
-      closeDesktopCard,
-      interactionMode,
-      interactionState.expandedCardVariant,
-      interactionState.focusedCardVariant,
-      isMobileViewport,
-      setDesktopTransitionReason
-    ]
-  );
-
-  const handleCardKeyDown = useCallback(
-    (card: LandingCard, event: ReactKeyboardEvent<HTMLElement>) => {
-      if (
-        isMobileViewport ||
-        card.type !== 'test' ||
-        !isEnterableCard(card) ||
-        event.key !== 'Escape' ||
-        event.defaultPrevented ||
-        hasOpenHigherPriorityOverlay(event.currentTarget.ownerDocument)
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      closeDesktopCard({
-        sourceCardVariant: card.variant,
-        reason: 'collapse',
-        focusDisposition: 'return-trigger',
-        nowMs: event.timeStamp
-      });
-    },
-    [closeDesktopCard, isMobileViewport]
-  );
-
-  const handleCardBlur = useCallback(
-    (card: LandingCard, event: ReactFocusEvent<HTMLElement>) => {
-      if (isMobileViewport || card.type !== 'test' || !isEnterableCard(card)) {
-        return;
-      }
-
-      const ownerDocument = event.currentTarget.ownerDocument;
-      if (event.relatedTarget === null && !ownerDocument.hasFocus()) {
-        return;
-      }
-
-      if (!isCardFocusExit(event.currentTarget, event.relatedTarget)) {
-        return;
-      }
-
-      closeDesktopCard({
-        sourceCardVariant: card.variant,
-        reason: 'collapse',
-        focusDisposition: 'preserve-destination',
-        nowMs: event.timeStamp
-      });
-    },
-    [closeDesktopCard, isMobileViewport]
-  );
+      setTransitionSourceCardVariant
+    });
 
   useEffect(() => {
     const handleTransitionCleanup = () => {

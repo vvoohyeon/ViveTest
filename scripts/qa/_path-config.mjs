@@ -2,7 +2,14 @@ export const landing = {
   grid: {
     catalogGrid: 'src/features/landing/grid/landing-catalog-grid.tsx',
     catalogGridLoader: 'src/features/landing/grid/landing-catalog-grid-loader.tsx',
+    // 카드는 2026-09-14 step 1 이음매 분리 이후 다섯 파일이다. `gridCard` 는 오케스트레이터
+    // (root 속성 · 트리거 분기 · 자식 선택)이고, 계약 문자열은 이름을 따라 아래 파일들이 갖는다.
     gridCard: 'src/features/landing/grid/landing-grid-card.tsx',
+    gridCardClassnames: 'src/features/landing/grid/landing-grid-card-classnames.ts',
+    gridCardNormalFace: 'src/features/landing/grid/landing-grid-card-normal-face.tsx',
+    gridCardExpandedBody: 'src/features/landing/grid/landing-grid-card-expanded-body.tsx',
+    gridCardDesktopShell: 'src/features/landing/grid/landing-grid-card-desktop-shell.tsx',
+    gridCardMobileSurfaces: 'src/features/landing/grid/landing-grid-card-mobile-surfaces.tsx',
     gridCardCss: 'src/features/landing/grid/landing-grid-card.module.css',
     geometryController: 'src/features/landing/grid/use-grid-geometry-controller.ts',
     interactionController: 'src/features/landing/grid/use-landing-interaction-controller.ts',

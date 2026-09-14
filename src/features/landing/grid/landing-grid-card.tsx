@@ -1,123 +1,60 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import type {
-  CSSProperties,
-  FocusEventHandler,
-  KeyboardEventHandler,
-  MouseEvent,
-  MouseEventHandler,
-  PointerEventHandler,
-  RefObject,
-  WheelEventHandler
-} from 'react';
-import {Fragment, useId, useRef} from 'react';
+import type {CSSProperties} from 'react';
+import {useId, useRef} from 'react';
 
-import type {AppLocale} from '@/config/site';
 import {
-  type LandingCardTitleSplit,
-  useLandingCardTitleSplit
-} from '@/features/landing/grid/landing-card-title-continuity';
-import {
-  type LandingCardDesktopMotionRole,
-  type LandingCardDesktopShellPhase,
   isDesktopShellLogicallyInteractive,
   shouldRenderDesktopStageShell
 } from '@/features/landing/grid/desktop-shell-phase';
-import {CONSENT_BANNER_AVOID_ATTRIBUTE} from '@/features/landing/shell/consent-banner';
+import {useLandingCardTitleSplit} from '@/features/landing/grid/landing-card-title-continuity';
+import type {
+  LandingCardSpacingContract,
+  LandingCardVisualState,
+  LandingGridCardProps
+} from '@/features/landing/grid/landing-card-contract';
+import {
+  joinClassNames,
+  resolveTransformOriginClassName,
+  LANDING_GRID_CARD_CONTENT_CLASSNAME,
+  LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME,
+  LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME,
+  LANDING_GRID_CARD_ROOT_CLASSNAME,
+  LANDING_GRID_CARD_SHELL_GHOST_CLASSNAME,
+  LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME
+} from '@/features/landing/grid/landing-grid-card-classnames';
+import {DesktopExpandedShell} from '@/features/landing/grid/landing-grid-card-desktop-shell';
+import {
+  MobileExpandedSurface,
+  MobileTransientShell
+} from '@/features/landing/grid/landing-grid-card-mobile-surfaces';
+import {
+  NormalCardFace,
+  NormalCardGhostBody
+} from '@/features/landing/grid/landing-grid-card-normal-face';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 import {LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
-import {useCardExpandedScale, useCardInlineGeometry} from '@/features/landing/grid/use-card-inline-geometry';
-import type {LandingCardVisualState} from '@/features/landing/model/interaction-state';
-import {
-  isUnavailablePresentation,
-  resolveTestPreviewPayload,
-  type LandingCard
-} from '@/features/variant-registry';
+import {useCardExpandedScale} from '@/features/landing/grid/use-card-inline-geometry';
+import {isUnavailablePresentation} from '@/features/variant-registry';
 import styles from '@/features/landing/grid/landing-grid-card.module.css';
 
-const metaValueFormatter = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 0
-});
-const thumbnailDataUriCache = new Map<string, string>();
 const SPACING_PRECISION_SCALE = 10000;
 
-export type {LandingCardVisualState} from '@/features/landing/model/interaction-state';
-export type LandingCardInteractionMode = 'hover' | 'tap';
-export type LandingCardViewportTier = 'mobile' | 'tablet' | 'desktop';
-export type LandingCardMobilePhase = 'NORMAL' | 'OPENING' | 'OPEN' | 'CLOSING';
-export type LandingCardMobileTransientMode = 'NONE' | 'OPENING' | 'CLOSING';
-
-export interface LandingMobileSnapshotView {
-  cardHeightPx: number;
-  anchorTopPx: number;
-  cardLeftPx: number;
-  cardWidthPx: number;
-  titleTopPx: number;
-  restoreReady: boolean;
-}
-
-export interface LandingCardSpacingContract {
-  baseGapPx: number;
-  compGapPx: number;
-  needsComp: boolean;
-  naturalHeightPx: number;
-  rowMaxNaturalHeightPx: number;
-}
-
-export interface LandingCardCopy {
-  comingSoon: string;
-  close: string;
-  closeExpandedAria: string;
-  metaEstimated: string;
-  metaShares: string;
-  metaAttempts: string;
-  metaReadTime: string;
-  metaViews: string;
-  readMore: string;
-}
-
-interface LandingGridCardProps {
-  card: LandingCard;
-  hasAssetMedia?: boolean;
-  locale: AppLocale;
-  state?: LandingCardVisualState;
-  interactionMode?: LandingCardInteractionMode;
-  viewportTier?: LandingCardViewportTier;
-  mobilePhase?: LandingCardMobilePhase;
-  mobileTransientMode?: LandingCardMobileTransientMode;
-  mobileRestoreReady?: boolean;
-  desktopMotionRole?: LandingCardDesktopMotionRole;
-  desktopShellPhase?: LandingCardDesktopShellPhase;
-  reducedMotion?: boolean;
-  mobileSnapshot?: LandingMobileSnapshotView | null;
-  desktopTransformOriginX?: '0%' | '50%' | '100%';
-  spacing?: LandingCardSpacingContract;
-  expandedRestingFloorPx?: number;
-  copy: LandingCardCopy;
-  sequence?: number;
-  tabIndex?: number;
-  ariaDisabled?: boolean;
-  interactionBlocked?: boolean;
-  keyboardModeBlocked?: boolean;
-  hoverLockEnabled?: boolean;
-  keyboardMode?: boolean;
-  onCardKeyDown?: KeyboardEventHandler<HTMLElement>;
-  onCardBlur?: FocusEventHandler<HTMLElement>;
-  onFocus?: FocusEventHandler<HTMLElement>;
-  onKeyDown?: KeyboardEventHandler<HTMLElement>;
-  onClick?: MouseEventHandler<HTMLElement>;
-  onMouseEnter?: MouseEventHandler<HTMLElement>;
-  onMouseLeave?: MouseEventHandler<HTMLElement>;
-  onExpandedBodyKeyDown?: KeyboardEventHandler<HTMLElement>;
-  onPointerMove?: PointerEventHandler<HTMLElement>;
-  onMouseDown?: MouseEventHandler<HTMLElement>;
-  onWheel?: WheelEventHandler<HTMLElement>;
-  onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-  onMobileClose?: MouseEventHandler<HTMLButtonElement>;
-}
+export type {
+  LandingCardVisualState,
+  LandingCardInteractionMode,
+  LandingCardViewportTier,
+  LandingCardMobilePhase,
+  LandingCardMobileTransientMode,
+  LandingMobileSnapshotView,
+  LandingCardSpacingContract,
+  LandingCardCopy,
+  LandingGridCardProps
+} from '@/features/landing/grid/landing-card-contract';
+export {getDefaultCardCopy} from '@/features/landing/grid/landing-card-contract';
+export {createThumbnailFallbackDataUri} from '@/features/landing/grid/landing-grid-card-normal-face';
 
 function roundSpacing(value: number): number {
   return Math.round(value * SPACING_PRECISION_SCALE) / SPACING_PRECISION_SCALE;
@@ -156,772 +93,10 @@ function resolveSpacingContract(spacing: LandingCardSpacingContract | undefined)
   };
 }
 
-function formatMetaValue(value: number): string {
-  if (!Number.isFinite(value)) {
-    return '0';
-  }
-
-  return metaValueFormatter.format(Math.max(0, Math.trunc(value)));
-}
-
-export function createThumbnailFallbackDataUri(): string {
-  // Safety net for a variant that ships without its own drawing (design §4.9: no text).
-  //
-  // It used to be the *same artwork* as `qmbti/thumbnail.svg`, and since only that one
-  // variant had an asset, the catalog rendered one illustration eight times (D-08).
-  // So this is deliberately NOT one of the compositions: a single tinted slot, with
-  // nothing to mistake for cadence, layers, signal or any other member of the set.
-  // Ground stays transparent so it inherits the card surface in both themes.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" width="640" height="240" role="img" aria-hidden="true" data-thumbnail-fallback="true"><rect x="0" y="0" width="640" height="240" rx="0" fill="#e8f0ec" opacity="0.55"/></svg>`;
-
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-function resolveVariantMediaSource(variant: string, hasAssetMedia: boolean): string {
-  if (hasAssetMedia) {
-    return `/landing-card-media/${variant}/thumbnail.svg`;
-  }
-
-  const cacheKey = variant.trim();
-  const cached = thumbnailDataUriCache.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  const dataUri = createThumbnailFallbackDataUri();
-  thumbnailDataUriCache.set(cacheKey, dataUri);
-  return dataUri;
-}
-
-function resolveTransformOriginClassName(originX: '0%' | '50%' | '100%'): string {
-  switch (originX) {
-    case '0%':
-      return '[--landing-card-shell-extra-start:0%] [--landing-card-shell-extra-end:calc((var(--landing-card-shell-inline-scale)-1)*100%)]';
-    case '100%':
-      return '[--landing-card-shell-extra-start:calc((var(--landing-card-shell-inline-scale)-1)*100%)] [--landing-card-shell-extra-end:0%]';
-    case '50%':
-    default:
-      return '[--landing-card-shell-extra-start:calc((var(--landing-card-shell-inline-scale)-1)*50%)] [--landing-card-shell-extra-end:calc((var(--landing-card-shell-inline-scale)-1)*50%)]';
-  }
-}
-
-function joinClassNames(...classNames: Array<string | false | null | undefined>): string {
-  return classNames.filter(Boolean).join(' ');
-}
-
-const LANDING_GRID_CARD_ROOT_CLASSNAME =
-  'landing-grid-card group relative isolate min-w-0 overflow-visible rounded-[var(--landing-card-radius)] [--landing-card-radius:16px] [--landing-card-stage-shadow-bleed-x:72px] [--landing-card-stage-shadow-bleed-top:56px] [--landing-card-stage-shadow-bleed-bottom:192px] [--landing-card-origin-y:0%] [--landing-card-shell-scale:1.04] [--landing-card-shell-inline-scale:1] [--landing-card-shell-extra-start:0%] [--landing-card-shell-extra-end:0%] [--landing-card-motion-ms:280ms]';
-const LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME =
-  'landing-grid-card-trigger relative block w-full rounded-[inherit] [border:0] bg-transparent text-left [color:inherit] cursor-pointer focus:outline-none aria-[disabled=true]:cursor-default';
-const LANDING_GRID_CARD_CONTENT_CLASSNAME =
-  'landing-grid-card-content relative z-[1] flex min-w-0 flex-col justify-start';
-const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
-  'landing-grid-card-title relative z-[3] m-0 [font:var(--t-card-title)] [letter-spacing:var(--track-tight)] [overflow-wrap:anywhere]';
-const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
-  'landing-grid-card-subtitle min-w-0 [font:var(--t-card-subtitle)] text-[var(--normal-subtitle-ink)] [overflow-wrap:anywhere]';
-const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
-  'landing-grid-card-thumbnail-slot relative aspect-[16/6] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--surface-muted)_85%,transparent)]';
-const LANDING_GRID_CARD_TAGS_CLASSNAME =
-  'landing-grid-card-tags m-0 flex min-h-7 min-w-0 shrink-0 list-none items-center gap-2 overflow-hidden p-0';
-const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
-  'landing-grid-card-tags-gap h-[calc(var(--landing-card-base-gap)_+_var(--landing-card-comp-gap))]';
-const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
-const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
-  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium text-[var(--normal-tag-ink)]';
-const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME =
-  'landing-grid-card-preview-question m-0 [font:var(--t-expanded-question)] [letter-spacing:var(--track-tight)] text-[var(--expanded-question-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
-const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
-const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
-  'landing-grid-card-answer-choice group/answerChoice flex items-start gap-3 cursor-pointer overflow-visible rounded-[12px] border border-[var(--expanded-choice-border)] bg-[var(--expanded-choice-surface)] px-3.5 py-3 text-left text-clip transition-[border-color,background-color] duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none disabled:cursor-default hover:border-[var(--expanded-choice-accent)] hover:bg-[var(--expanded-choice-accent-surface)] focus-visible:[outline:2px_solid_var(--expanded-choice-accent)] focus-visible:[outline-offset:2px]';
-const LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME =
-  'landing-grid-card-answer-choice-text min-w-0 flex-1 [font:var(--t-choice)] text-[var(--expanded-choice-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
-const LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME =
-  'landing-grid-card-answer-choice-arrow shrink-0 [font:var(--t-choice)] text-[var(--expanded-choice-arrow-ink)] transition-colors duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/answerChoice:text-[var(--expanded-choice-accent)]';
-// design §6.10 quiet data row: horizontal wrapping row, dot separators, 13px/500/--muted,
-// with the complete duration item emphasized. Inline value+label per item (no dt/dd stack).
-const LANDING_GRID_CARD_META_ROW_CLASSNAME =
-  'landing-grid-card-meta-row m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] font-medium leading-[1.35] text-[var(--expanded-context-ink)]';
-const LANDING_GRID_CARD_META_ITEM_CLASSNAME =
-  'landing-grid-card-meta-item inline-flex items-baseline gap-1 whitespace-nowrap';
-const LANDING_GRID_CARD_META_ITEM_LEAD_CLASSNAME =
-  'landing-grid-card-meta-item landing-grid-card-meta-item-lead inline-flex items-baseline gap-1 whitespace-nowrap font-semibold text-[var(--expanded-meta-strong)]';
-const LANDING_GRID_CARD_META_SEPARATOR_CLASSNAME =
-  'landing-grid-card-meta-separator select-none [color:color-mix(in_srgb,var(--expanded-context-ink)_55%,transparent)]';
-const LANDING_GRID_CARD_META_VALUE_CLASSNAME = 'landing-grid-card-meta-value';
-const LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME =
-  'landing-grid-card-meta-value landing-grid-card-meta-value-lead';
-const LANDING_GRID_CARD_META_LABEL_CLASSNAME = 'landing-grid-card-meta-label';
-const LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME =
-  'landing-grid-card-title [font:var(--label)] text-[var(--expanded-context-ink)] [overflow-wrap:anywhere]';
-// Desktop overlay expandedBody is a flex column so the BQ-24 height-floor surplus can be absorbed
-// by a single spacer (design §7.3). Mobile expanded/transient bodies keep their own grid layout.
-const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4';
-// desktop-overlay-floor body chain: flex-1 body fills the floored expandedBody; the single spacer
-// (flex:1, min-height 14px) sits between the last choice / subtitle and the meta(+CTA) group so the
-// meta anchors to the bottom and the card grows downward (content-fit) when content overflows.
-const LANDING_GRID_CARD_EXPANDED_FLOOR_BODY_CLASSNAME = 'landing-grid-card-expanded-floor-body flex min-w-0 flex-1 flex-col';
-const LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME = 'landing-grid-card-expanded-floor-group flex min-w-0 flex-col gap-[10px]';
-const LANDING_GRID_CARD_EXPANDED_FLOOR_SPACER_CLASSNAME = 'landing-grid-card-expanded-floor-spacer min-h-[14px] flex-1';
-const LANDING_GRID_CARD_SHELL_GHOST_CLASSNAME = 'landing-grid-card-shell-ghost invisible';
-const LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME = 'landing-grid-card-desktop-stage absolute inset-0 z-[3] pointer-events-none';
-const LANDING_GRID_CARD_EXPANDED_LAYER_CLASSNAME =
-  'landing-grid-card-expanded-layer pointer-events-none absolute z-[1] [inset:var(--landing-card-stage-shadow-bleed-top)_var(--landing-card-stage-shadow-bleed-x)_var(--landing-card-stage-shadow-bleed-bottom)_var(--landing-card-stage-shadow-bleed-x)]';
-const LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME =
-  'landing-grid-card-expanded-shell-frame relative left-0 min-h-full min-w-0 w-full pointer-events-none will-change-[left,width] [backface-visibility:hidden] [-webkit-backface-visibility:hidden]';
-const LANDING_GRID_CARD_EXPANDED_SHELL_CLASSNAME =
-  'landing-grid-card-expanded-shell relative min-h-full min-w-0 w-full pointer-events-none [transform:scale(var(--landing-card-shell-scale))] [transform-origin:var(--landing-card-origin-x)_var(--landing-card-origin-y)] will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden]';
-const LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME =
-  'landing-grid-card-expanded-shadow pointer-events-none absolute inset-0 z-0 rounded-[var(--landing-card-radius)] [box-shadow:var(--expanded-card-shadow)]';
-const LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME =
-  'landing-grid-card-expanded-surface relative z-[1] min-h-full w-full rounded-[var(--landing-card-radius)] [background:var(--expanded-card-surface)] [box-shadow:0_0_0_1px_var(--expanded-card-border)] pointer-events-auto';
-// D-09, the card's instance of it. design.md 4.10 names the close button at 44x44.
-const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
-  'landing-grid-card-mobile-close relative inline-flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--hairline-strong)] bg-[var(--surface-strong)] p-0 font-semibold [color:var(--ink)]';
-const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
-  `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} cursor-pointer disabled:cursor-default disabled:opacity-70`;
-const LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME =
-  `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} landing-grid-card-mobile-close-ghost pointer-events-none`;
-const LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME =
-  'landing-grid-card-mobile-expanded grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-auto overscroll-contain px-4 pb-4';
-const LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME =
-  'landing-grid-card-mobile-header sticky top-0 z-[4] flex items-start justify-between gap-3 bg-[var(--expanded-card-surface)] pt-4 pb-[14px]';
-const LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME =
-  `${LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME} landing-grid-card-mobile-title min-w-0 flex-1`;
-const LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME = 'landing-grid-card-mobile-body grid min-w-0 gap-[10px]';
-const LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME =
-  'landing-grid-card-mobile-transient-shell fixed left-[var(--landing-mobile-card-left,0px)] top-[var(--landing-mobile-anchor-top,0px)] z-[21] max-h-[calc(100dvh-116px)] max-w-full w-[var(--landing-mobile-card-width,100vw)] overflow-hidden rounded-[var(--landing-card-radius)] [box-shadow:var(--expanded-card-shadow)] pointer-events-none isolate';
-const LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME =
-  'landing-grid-card-mobile-transient-panel pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[var(--expanded-card-surface)]';
-const LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME =
-  'landing-grid-card-mobile-transient-surface relative z-[1] grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-hidden px-4 pb-4';
-const LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME =
-  `${LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} landing-grid-card-mobile-transient-header relative z-[1] bg-transparent`;
-type LandingTestCard = Extract<LandingCard, {type: 'test'}>;
-
-type NormalCardFacePresentation = 'collapsed' | 'expandedTitleOnly';
-
-// 'desktop-overlay-floor' opts the expanded body into the BQ-24 floor layout (flex column + single
-// bottom spacer). 'flow' keeps the shared mobile expanded/transient grid layout untouched.
-type ExpandedBodyLayoutMode = 'flow' | 'desktop-overlay-floor';
-
-interface NormalCardFaceProps {
-  card: LandingCard;
-  hasAssetMedia: boolean;
-  interactionMode?: LandingCardInteractionMode;
-  isMobileViewport: boolean;
-  exposePublicSlots: boolean;
-  presentation: NormalCardFacePresentation;
-  readMoreLabel?: string;
-  comingSoonLabel?: string;
-  titleId?: string;
-  statusId?: string;
-  titleRef?: RefObject<HTMLHeadingElement | null>;
-  subtitleRef?: RefObject<HTMLParagraphElement | null>;
-}
-
-interface NormalCardTitleProps {
-  card: LandingCard;
-  isMobileViewport: boolean;
-  exposePublicSlot: boolean;
-  // Pure base_gap above the title in the collapsed face (thumbnail → title rhythm, req-landing §6.7).
-  // Off in expandedTitleOnly, where the thumbnail is absent and the title sits at the content inset.
-  topGap: boolean;
-  titleId?: string;
-  titleRef?: RefObject<HTMLHeadingElement | null>;
-}
-
-interface NormalCardThumbnailProps {
-  card: LandingCard;
-  hasAssetMedia: boolean;
-  exposePublicSlot: boolean;
-}
-
-interface NormalCardSubtitleProps {
-  card: LandingCard;
-  isMobileViewport: boolean;
-  exposePublicSlot: boolean;
-  subtitleRef?: RefObject<HTMLParagraphElement | null>;
-}
-
-interface NormalCardTagRowProps {
-  card: LandingCard;
-  exposePublicSlot: boolean;
-  interactionMode?: LandingCardInteractionMode;
-  readMoreLabel?: string;
-  comingSoonLabel?: string;
-  statusId?: string;
-}
-
-function LandingCardSubtitleText({
-  text,
-  clamp,
-  textRef,
-  slot,
-  motionSlot,
-  isMobileViewport = false
-}: {
-  text: string;
-  clamp: 'normal' | 'expanded';
-  textRef?: RefObject<HTMLParagraphElement | null>;
-  slot?: string;
-  motionSlot?: string;
-  isMobileViewport?: boolean;
-}) {
-  return (
-    <p
-      ref={textRef}
-      className={joinClassNames(
-        LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME,
-        `landing-grid-card-subtitle-${clamp}`,
-        clamp === 'normal'
-          ? joinClassNames(
-              'mt-[var(--landing-card-base-gap)] shrink-0',
-              isMobileViewport ? 'overflow-visible text-clip' : 'overflow-hidden text-ellipsis line-clamp-2',
-              styles.normalSubtitle
-            )
-          : joinClassNames('m-0 overflow-hidden text-ellipsis line-clamp-4', styles.motionStageEarly)
-      )}
-      data-slot={slot}
-      data-motion-slot={motionSlot}
-    >
-      {text}
-    </p>
-  );
-}
-
-function NormalCardTitle({
-  card,
-  isMobileViewport,
-  exposePublicSlot,
-  topGap,
-  titleId,
-  titleRef
-}: NormalCardTitleProps) {
-  return (
-    <h2
-      id={titleId}
-      ref={titleRef}
-      className={joinClassNames(
-        LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
-        'landing-grid-card-title-normal min-w-0',
-        topGap && 'mt-[var(--landing-card-base-gap)]',
-        isMobileViewport ? 'block overflow-visible text-clip' : 'overflow-hidden text-ellipsis line-clamp-1',
-        styles.normalTitle
-      )}
-      data-slot={exposePublicSlot ? 'cardTitle' : undefined}
-    >
-      {card.title}
-    </h2>
-  );
-}
-
-function NormalCardThumbnail({card, hasAssetMedia, exposePublicSlot}: NormalCardThumbnailProps) {
-  return (
-    <div
-      className={joinClassNames(LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME, styles.normalThumbnail)}
-      data-slot={exposePublicSlot ? 'cardThumbnail' : undefined}
-      aria-hidden="true"
-    >
-      <Image
-        className="landing-grid-card-thumbnail object-cover"
-        src={resolveVariantMediaSource(card.variant, hasAssetMedia)}
-        alt=""
-        fill
-        sizes="100vw"
-        unoptimized
-      />
-    </div>
-  );
-}
-
-function NormalCardSubtitle({card, isMobileViewport, exposePublicSlot, subtitleRef}: NormalCardSubtitleProps) {
-  return (
-    <LandingCardSubtitleText
-      text={card.subtitle}
-      clamp="normal"
-      textRef={subtitleRef}
-      slot={exposePublicSlot ? 'cardSubtitle' : undefined}
-      isMobileViewport={isMobileViewport}
-    />
-  );
-}
-
-function NormalCardTagRow({
-  card,
-  exposePublicSlot,
-  interactionMode = 'tap',
-  readMoreLabel,
-  comingSoonLabel,
-  statusId
-}: NormalCardTagRowProps) {
-  const rowRef = useRef<HTMLElement | null>(null);
-  const probeRef = useRef<HTMLDivElement | null>(null);
-  const normalizedTags = comingSoonLabel ? [comingSoonLabel] : card.tags;
-  const {decision} = useCardInlineGeometry({
-    rowRef,
-    probeRef,
-    tagCount: normalizedTags.length,
-    requiredVisiblePrefixCount: comingSoonLabel ? 1 : 0,
-    ctaVisibility: readMoreLabel ? (interactionMode === 'hover' ? 'hover-focus' : 'always') : 'never'
-  });
-  const visibleTags = normalizedTags.slice(0, decision.visibleCount);
-  const tags = (
-    <ul
-      ref={readMoreLabel ? undefined : (rowRef as RefObject<HTMLUListElement | null>)}
-      className={joinClassNames(
-        LANDING_GRID_CARD_TAGS_CLASSNAME,
-        styles.normalTags,
-        readMoreLabel && 'flex-1 [flex-shrink:1]'
-      )}
-      data-slot={exposePublicSlot ? 'tags' : undefined}
-      data-tag-count={normalizedTags.length}
-      data-visible-tag-count={decision.visibleCount}
-      data-tag-tail-ellipsis={decision.tailMayEllipsize ? 'true' : 'false'}
-    >
-      {visibleTags.map((tag, index) => (
-        <li
-          key={`${card.variant}-${tag}`}
-          className={joinClassNames(
-            LANDING_GRID_CARD_TAG_ITEM_CLASSNAME,
-            decision.tailMayEllipsize && index === decision.tailIndex ? styles.flexibleTagItem : styles.fixedTagItem
-          )}
-        >
-          <span
-            id={comingSoonLabel ? statusId : undefined}
-            className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME}
-            data-slot={comingSoonLabel && exposePublicSlot ? 'comingSoonTag' : undefined}
-          >
-            {tag}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-
-  const readMore = readMoreLabel ? (
-    <span
-      className={joinClassNames(
-        'landing-grid-card-blog-read-more ml-auto inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap text-[13px] font-medium leading-[1.35] no-underline',
-        styles.blogReadMore,
-        interactionMode === 'hover'
-          ? joinClassNames(
-              styles.blogReadMoreHover,
-              'opacity-0 duration-[140ms] ease-out group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none'
-            )
-          : 'opacity-100'
-      )}
-      data-slot="blogReadMore"
-      aria-hidden="true"
-    >
-      <span data-slot="blogReadMoreLabel">{readMoreLabel}</span>
-      <span data-slot="blogReadMoreArrow">→</span>
-    </span>
-  ) : null;
-  const probe = (
-    <div
-      ref={probeRef}
-      className={styles.tagMeasurementProbe}
-      data-slot="tagMeasurementProbe"
-      aria-hidden="true"
-      inert
-    >
-      {normalizedTags.map((tag) => (
-        <span key={`${card.variant}-${tag}-probe`} className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME} data-inline-probe-tag>
-          {tag}
-        </span>
-      ))}
-      {readMoreLabel ? (
-        <span
-          className={joinClassNames(
-            styles.blogReadMore,
-            'inline-flex items-center gap-[6px] whitespace-nowrap text-[13px] font-medium leading-[1.35]'
-          )}
-          data-slot="blogReadMoreProbe"
-        >
-          <span>{readMoreLabel}</span>
-          <span>→</span>
-        </span>
-      ) : null}
-    </div>
-  );
-
-  return (
-    <>
-      <div className={joinClassNames(LANDING_GRID_CARD_TAGS_GAP_CLASSNAME, styles.normalTagsGap)} aria-hidden="true" />
-
-      {readMore ? (
-        <div ref={rowRef as RefObject<HTMLDivElement | null>} className="landing-grid-card-tag-row relative flex min-h-7 min-w-0 shrink-0 items-center gap-3">
-          {tags}
-          {readMore}
-          <div className={styles.tagMeasurementProbeAnchor}>{probe}</div>
-        </div>
-      ) : (
-        <>
-          {tags}
-          <div className={styles.tagMeasurementProbeAnchor}>{probe}</div>
-        </>
-      )}
-    </>
-  );
-}
-
-function NormalCardGhostBody({
-  card,
-  hasAssetMedia,
-  subtitleRef
-}: Pick<NormalCardFaceProps, 'card' | 'hasAssetMedia' | 'subtitleRef'>) {
-  return (
-    <>
-      <NormalCardThumbnail card={card} hasAssetMedia={hasAssetMedia} exposePublicSlot={false} />
-      <NormalCardSubtitle
-        card={card}
-        isMobileViewport={false}
-        exposePublicSlot={false}
-        subtitleRef={subtitleRef}
-      />
-      <NormalCardTagRow card={card} exposePublicSlot={false} />
-    </>
-  );
-}
-
-function NormalCardFace({
-  card,
-  hasAssetMedia,
-  interactionMode,
-  isMobileViewport,
-  exposePublicSlots,
-  presentation,
-  readMoreLabel,
-  comingSoonLabel,
-  titleId,
-  statusId,
-  titleRef,
-  subtitleRef
-}: NormalCardFaceProps) {
-  const title = (
-    <NormalCardTitle
-      card={card}
-      isMobileViewport={isMobileViewport}
-      exposePublicSlot={exposePublicSlots}
-      topGap={presentation === 'collapsed'}
-      titleId={titleId}
-      titleRef={titleRef}
-    />
-  );
-
-  if (presentation === 'expandedTitleOnly') {
-    return title;
-  }
-
-  return (
-    <>
-      <NormalCardThumbnail card={card} hasAssetMedia={hasAssetMedia} exposePublicSlot={exposePublicSlots} />
-      {title}
-      <NormalCardSubtitle
-        card={card}
-        isMobileViewport={isMobileViewport}
-        exposePublicSlot={exposePublicSlots}
-        subtitleRef={subtitleRef}
-      />
-      <NormalCardTagRow
-        card={card}
-        exposePublicSlot={exposePublicSlots}
-        interactionMode={interactionMode}
-        readMoreLabel={readMoreLabel}
-        comingSoonLabel={comingSoonLabel}
-        statusId={statusId}
-      />
-    </>
-  );
-}
-
-interface ExpandedCardBodyProps {
-  card: LandingTestCard;
-  locale: AppLocale;
-  copy: LandingCardCopy;
-  interactive: boolean;
-  layoutMode?: ExpandedBodyLayoutMode;
-  onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-}
-
-interface ExpandedTestBodyProps {
-  card: LandingTestCard;
-  locale: AppLocale;
-  copy: LandingCardCopy;
-  interactive: boolean;
-  layoutMode: ExpandedBodyLayoutMode;
-  onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-}
-
-interface DesktopExpandedShellProps {
-  stageClassName: string;
-  phase: LandingCardDesktopShellPhase;
-  isVisible: boolean;
-  isInteractive: boolean;
-  card: LandingTestCard;
-  locale: AppLocale;
-  copy: LandingCardCopy;
-  // Layout floor in CSS pixels (resting outer height / shell scale), applied to expandedBody only.
-  floorPx?: number;
-  titleSplit: LandingCardTitleSplit;
-  onExpandedBodyKeyDown?: KeyboardEventHandler<HTMLElement>;
-  onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-}
-
-function ExpandedTestAnswerChoice({
-  choice,
-  label,
-  interactive,
-  onSelect
-}: {
-  choice: 'A' | 'B';
-  label: string;
-  interactive: boolean;
-  onSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME}
-      data-slot={interactive ? `answerChoice${choice}` : undefined}
-      onClick={(event) => {
-        if (interactive) {
-          onSelect?.(choice, event);
-        }
-      }}
-      tabIndex={interactive ? undefined : -1}
-      aria-hidden={interactive ? undefined : 'true'}
-    >
-      <span className={LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME}>{label}</span>
-      <span className={LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME} aria-hidden="true">→</span>
-    </button>
-  );
-}
-
-interface ExpandedMetaEntry {
-  label: string;
-  value: number;
-}
-
-// Quiet data row (design §6.10): inline "value label" items separated by decorative dots,
-// with the complete duration item emphasized. data-slot/data-motion-slot preserved for QA + motion.
-function ExpandedMetaRow({entries, interactive}: {entries: [ExpandedMetaEntry, ...ExpandedMetaEntry[]]; interactive: boolean}) {
-  return (
-    <p
-      className={joinClassNames(LANDING_GRID_CARD_META_ROW_CLASSNAME, styles.motionStageMiddle)}
-      data-slot={interactive ? 'meta' : undefined}
-      data-motion-slot="meta"
-    >
-      {entries.map((entry, index) => (
-        <Fragment key={entry.label}>
-          {index > 0 ? (
-            <span className={LANDING_GRID_CARD_META_SEPARATOR_CLASSNAME} aria-hidden="true">
-              ·
-            </span>
-          ) : null}
-          {index === 0 ? (
-            <strong className={LANDING_GRID_CARD_META_ITEM_LEAD_CLASSNAME}>
-              <span className={LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME}>{formatMetaValue(entry.value)}</span>
-              <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
-            </strong>
-          ) : (
-            <span className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-              <span className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(entry.value)}</span>
-              <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
-            </span>
-          )}
-        </Fragment>
-      ))}
-    </p>
-  );
-}
-
-function ExpandedTestBody({card, locale, copy, interactive, layoutMode, onAnswerChoiceSelect}: ExpandedTestBodyProps) {
-  // Preserve the registry resolver boundary; card UI must not read fixture source directly.
-  const previewPayload = resolveTestPreviewPayload(card.variant, locale);
-  const bodyDataSlot = interactive ? undefined : 'mobileTransientExpandedBody';
-
-  const previewQuestion = (
-    <p
-      className={joinClassNames(LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME, styles.motionStageEarly)}
-      data-slot={interactive ? 'previewQuestion' : undefined}
-      data-motion-slot="preview"
-    >
-      {previewPayload.previewQuestion}
-    </p>
-  );
-
-  const answerChoices = (
-    <div
-      className={joinClassNames(LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME, styles.motionStageMiddle)}
-      data-slot={interactive ? 'answerChoices' : undefined}
-      data-motion-slot="answerChoices"
-    >
-      <ExpandedTestAnswerChoice
-        choice="A"
-        label={previewPayload.answerChoiceA}
-        interactive={interactive}
-        onSelect={onAnswerChoiceSelect}
-      />
-      <ExpandedTestAnswerChoice
-        choice="B"
-        label={previewPayload.answerChoiceB}
-        interactive={interactive}
-        onSelect={onAnswerChoiceSelect}
-      />
-    </div>
-  );
-
-  const meta = (
-    <ExpandedMetaRow
-      interactive={interactive}
-      entries={[
-        {label: copy.metaEstimated, value: card.test.meta.durationM},
-        {label: copy.metaShares, value: card.test.meta.sharedC},
-        {label: copy.metaAttempts, value: card.test.meta.engagedC}
-      ]}
-    />
-  );
-
-  if (layoutMode === 'desktop-overlay-floor') {
-    // Single spacer between the last choice and the meta row (design §7.3).
-    return (
-      <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_BODY_CLASSNAME} data-slot={bodyDataSlot}>
-        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME}>
-          {previewQuestion}
-          {answerChoices}
-        </div>
-        <div className={LANDING_GRID_CARD_EXPANDED_FLOOR_SPACER_CLASSNAME} aria-hidden="true" />
-        {meta}
-      </div>
-    );
-  }
-
-  return (
-    <div className={LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME} data-slot={bodyDataSlot}>
-      {previewQuestion}
-      {answerChoices}
-      {meta}
-    </div>
-  );
-}
-
-function ExpandedCardBody({
-  card,
-  locale,
-  copy,
-  interactive,
-  layoutMode = 'flow',
-  onAnswerChoiceSelect
-}: ExpandedCardBodyProps) {
-  return (
-    <ExpandedTestBody
-      card={card}
-      locale={locale}
-      copy={copy}
-      interactive={interactive}
-      layoutMode={layoutMode}
-      onAnswerChoiceSelect={onAnswerChoiceSelect}
-    />
-  );
-}
-
-function DesktopExpandedShell({
-  stageClassName,
-  phase,
-  isVisible,
-  isInteractive,
-  card,
-  locale,
-  copy,
-  floorPx,
-  titleSplit,
-  onExpandedBodyKeyDown,
-  onAnswerChoiceSelect
-}: DesktopExpandedShellProps) {
-  const floorStyle =
-    typeof floorPx === 'number' && Number.isFinite(floorPx) && floorPx > 0
-      ? ({
-          minHeight: `${floorPx}px`
-        } as CSSProperties)
-      : undefined;
-
-  return (
-    <div
-      className={stageClassName}
-      data-testid="landing-grid-card-desktop-stage"
-      data-slot="desktopStage"
-      data-phase={phase}
-      aria-hidden={isInteractive ? undefined : 'true'}
-    >
-      {/* Desktop shell wrapper depth and slot names are CSS/QA geometry contracts. */}
-      {isVisible ? (
-        <div className={LANDING_GRID_CARD_EXPANDED_LAYER_CLASSNAME} data-slot="expandedLayer">
-          {/* 확장 카드가 실제로 그리는 상자다 — 동의 배너가 이 사각형을 피한다. */}
-          <div
-            className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME, styles.expandedShellFrame)}
-            {...{[CONSENT_BANNER_AVOID_ATTRIBUTE]: ''}}
-          >
-            <div className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SHELL_CLASSNAME, styles.expandedShell)} data-slot="expandedShell">
-              <div
-                className={LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME}
-                data-slot="expandedShadowPlate"
-                aria-hidden="true"
-              />
-              <div className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME, styles.expandedSurface)} data-slot="expandedSurface">
-                <div
-                  className={joinClassNames(LANDING_GRID_CARD_EXPANDED_CLASSNAME, styles.expandedBody)}
-                  data-slot="expandedBody"
-                  style={floorStyle}
-                  onKeyDown={onExpandedBodyKeyDown}
-                >
-                  <h2
-                    className={joinClassNames(
-                      LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME,
-                      'landing-grid-card-expanded-title m-0 grid min-w-0 gap-0'
-                    )}
-                    data-slot="cardTitleExpanded"
-                  >
-                    <DesktopExpandedTitle
-                      line1Text={titleSplit.line1Text}
-                      overflowText={titleSplit.overflowText}
-                    />
-                  </h2>
-                  <ExpandedCardBody
-                    card={card}
-                    locale={locale}
-                    copy={copy}
-                    interactive={isInteractive}
-                    layoutMode="desktop-overlay-floor"
-                    onAnswerChoiceSelect={onAnswerChoiceSelect}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-interface DesktopExpandedTitleProps {
-  line1Text: string;
-  overflowText: string;
-}
-
-function DesktopExpandedTitle({line1Text, overflowText}: DesktopExpandedTitleProps) {
-  return (
-    <>
-      <span className="landing-grid-card-expanded-title-line1 block min-w-0" data-title-layer="line1">
-        {line1Text}
-      </span>
-      <span className="landing-grid-card-expanded-title-overflow block min-w-0 empty:hidden" data-title-layer="overflow">
-        {overflowText}
-      </span>
-    </>
-  );
-}
+// prop → 파생 플래그 → root 속성 → 자식 선택. 이 파일이 하는 일은 그 하나다.
+// 얼굴·확장 본문·데스크톱 셸·모바일 표면은 각자의 파일이 그리고, 클래스 문자열과 공개 타입도
+// 각자의 파일이 갖는다. root `<div>` 의 `data-*` 28 개는 QA 가 읽는 계약 표면이므로
+// 여기 모여 있는 것이 옳다 — 그것이 이 오케스트레이터의 산출물이다.
 
 export function LandingGridCard({
   card,
@@ -956,9 +131,6 @@ export function LandingGridCard({
   onMouseEnter,
   onMouseLeave,
   onExpandedBodyKeyDown,
-  onPointerMove,
-  onMouseDown,
-  onWheel,
   onAnswerChoiceSelect,
   onMobileClose
 }: LandingGridCardProps) {
@@ -1148,9 +320,6 @@ export function LandingGridCard({
       onBlur={onCardBlur}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      onPointerMove={onPointerMove}
-      onMouseDown={onMouseDown}
-      onWheel={onWheel}
       style={
         {
           '--landing-card-base-gap': `${resolvedSpacing.baseGapPx}px`,
@@ -1223,86 +392,27 @@ export function LandingGridCard({
       ) : null}
 
       {showMobileExpandedBody && isTestCard ? (
-        <div
-          className={joinClassNames(LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME, styles.mobileExpanded, styles.expandedBody)}
-          data-slot="expandedBody"
-          {...{[CONSENT_BANNER_AVOID_ATTRIBUTE]: ''}}
-          onKeyDown={onExpandedBodyKeyDown}
-        >
-          <div className={LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} data-slot="mobileHeader">
-            <h2 className={LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME} data-slot="cardTitle">
-              {card.title}
-            </h2>
-            <button
-              type="button"
-              className={LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME}
-              aria-label={copy.closeExpandedAria}
-              data-slot="mobileClose"
-              onClick={onMobileClose}
-              disabled={mobileTransientMode === 'CLOSING'}
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          </div>
-          <ExpandedCardBody
-            card={card}
-            locale={locale}
-            copy={copy}
-            interactive
-            onAnswerChoiceSelect={onAnswerChoiceSelect}
-          />
-        </div>
+        <MobileExpandedSurface
+          card={card}
+          locale={locale}
+          copy={copy}
+          closeDisabled={mobileTransientMode === 'CLOSING'}
+          onClose={onMobileClose}
+          onExpandedBodyKeyDown={onExpandedBodyKeyDown}
+          onAnswerChoiceSelect={onAnswerChoiceSelect}
+        />
       ) : null}
 
       {showMobileTransientShell && isTestCard ? (
-        <div
-          className={resolvedTransientShellClassName}
-          data-slot="mobileTransientShell"
-          data-state={mobileTransientMode}
-          {...{[CONSENT_BANNER_AVOID_ATTRIBUTE]: ''}}
-          aria-hidden="true"
-        >
-          <div
-            className={joinClassNames(LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME, styles.transientPanel)}
-            data-slot="mobileTransientPanel"
-          />
-          <div className={LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME}>
-            <div className={LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME}>
-              <h2 className={LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME} data-slot="cardTitleTransient">
-                {card.title}
-              </h2>
-              <span
-                className={LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME}
-                data-slot="mobileCloseGhost"
-              >
-                <span aria-hidden="true">×</span>
-              </span>
-            </div>
-            <ExpandedCardBody
-              card={card}
-              locale={locale}
-              copy={copy}
-              interactive={false}
-              onAnswerChoiceSelect={onAnswerChoiceSelect}
-            />
-          </div>
-        </div>
+        <MobileTransientShell
+          card={card}
+          locale={locale}
+          copy={copy}
+          shellClassName={resolvedTransientShellClassName}
+          transientMode={mobileTransientMode}
+          onAnswerChoiceSelect={onAnswerChoiceSelect}
+        />
       ) : null}
-
     </div>
   );
-}
-
-export function getDefaultCardCopy(): LandingCardCopy {
-  return {
-    comingSoon: 'coming soon',
-    close: 'Close',
-    closeExpandedAria: 'Close expanded card',
-    metaEstimated: 'Est. time',
-    metaShares: 'Shares',
-    metaAttempts: 'Completed',
-    metaReadTime: 'Read time',
-    metaViews: 'Views',
-    readMore: 'Read more'
-  };
 }

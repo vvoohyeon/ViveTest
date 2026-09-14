@@ -3,7 +3,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   RefObject
 } from 'react';
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 
 import {isEnterableCard, type LandingCard} from '@/features/variant-registry';
 import {
@@ -23,6 +23,7 @@ import type {
   LandingInteractionState
 } from '@/features/landing/model/interaction-state';
 import type {DesktopTransitionReason} from '@/features/landing/grid/use-desktop-motion-controller';
+import {useHoverScrollHold} from '@/features/landing/grid/use-hover-scroll-hold';
 
 type LandingInteractionDispatch = Dispatch<LandingInteractionEvent>;
 
@@ -84,16 +85,26 @@ export function useHoverIntentController({
    * collapse 를 성립시킨다. 그래서 이벤트 종류를 보고 올린다.
    */
   const pointerMoveSeqRef = useRef(0);
-  const scrollHeldCardVariantRef = useRef<string | null>(null);
-  const detachScrollHoldListenerRef = useRef<(() => void) | null>(null);
+  const collapseCard = useCallback(
+    (cardVariant: string, nowMs: number) => {
+      setDesktopTransitionReason('collapse');
+      dispatch({
+        type: 'CARD_COLLAPSE',
+        nowMs: typeof window !== 'undefined' ? window.performance.now() : nowMs,
+        interactionMode,
+        cardVariant
+      });
+    },
+    [dispatch, interactionMode, setDesktopTransitionReason]
+  );
 
-  const releaseScrollHold = useCallback(() => {
-    scrollHeldCardVariantRef.current = null;
-    if (detachScrollHoldListenerRef.current) {
-      detachScrollHoldListenerRef.current();
-      detachScrollHoldListenerRef.current = null;
-    }
-  }, []);
+  const {scrollHeldCardVariant, beginScrollHold, releaseScrollHold} = useHoverScrollHold({
+    shellRef,
+    interactionMode,
+    isMobileViewport,
+    expandedCardVariant: state.expandedCardVariant,
+    collapseCard
+  });
 
   const clearHoverTimerOnly = useCallback(() => {
     if (hoverTimerRef.current !== null) {
@@ -131,67 +142,6 @@ export function useHoverIntentController({
       return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     },
     [shellRef]
-  );
-
-  const collapseCard = useCallback(
-    (cardVariant: string, nowMs: number) => {
-      setDesktopTransitionReason('collapse');
-      dispatch({
-        type: 'CARD_COLLAPSE',
-        nowMs: typeof window !== 'undefined' ? window.performance.now() : nowMs,
-        interactionMode,
-        cardVariant
-      });
-    },
-    [dispatch, interactionMode, setDesktopTransitionReason]
-  );
-
-  /**
-   * hold 를 걸고, 그동안만 존재하는 passive `scroll` 리스너를 단다.
-   *
-   * 해제 조건 ⑵: 카드가 뷰포트를 **완전히** 벗어나면 hold 를 풀고 그 시점 판정으로 collapse
-   * 한다. 「조금 스크롤해 읽는다」와 「지나쳐 버렸다」를 가시성으로 가르는 자리이며, 이것이
-   * 없으면 확장 본문의 답변 버튼·CTA 가 화면 밖 탭 스톱으로 남고 grid plan freeze 도 풀리지
-   * 않는다. 교차 판정은 `IntersectionObserver` 가 아니라 rect 로 한다 — 저장소에 런타임
-   * 선례가 없고 jsdom 이 그것을 제공하지 않는 반면, rect 교차는 바로 위
-   * `isPointerInsideCardBoundary` 가 이미 쓰는 방식이다.
-   */
-  const beginScrollHold = useCallback(
-    (cardVariant: string) => {
-      releaseScrollHold();
-      scrollHeldCardVariantRef.current = cardVariant;
-
-      const handleScroll = (event: Event) => {
-        if (scrollHeldCardVariantRef.current !== cardVariant) {
-          return;
-        }
-
-        const boundaryElement = resolveCardBoundaryElement(shellRef.current, cardVariant);
-        if (!boundaryElement) {
-          return;
-        }
-
-        const rect = boundaryElement.getBoundingClientRect();
-        const intersectsViewport =
-          rect.bottom > 0 &&
-          rect.right > 0 &&
-          rect.top < window.innerHeight &&
-          rect.left < window.innerWidth;
-        if (intersectsViewport) {
-          return;
-        }
-
-        releaseScrollHold();
-        collapseCard(cardVariant, event.timeStamp);
-      };
-
-      const scrollListenerOptions: AddEventListenerOptions = {passive: true};
-      window.addEventListener('scroll', handleScroll, scrollListenerOptions);
-      detachScrollHoldListenerRef.current = () => {
-        window.removeEventListener('scroll', handleScroll, scrollListenerOptions);
-      };
-    },
-    [collapseCard, releaseScrollHold, shellRef]
   );
 
   /**
@@ -323,17 +273,17 @@ export function useHoverIntentController({
       // collapse 를 예약한다. 카드 소유권이 이미 다른 카드로 넘어갔으면(handoff 등) 여기서는
       // 아무것도 하지 않는다: handoff 가 우선이며 두 경로가 각각 collapse 를 예약해 이중
       // 전이를 만들면 안 된다.
-      const scrollHeldCardVariant = scrollHeldCardVariantRef.current;
-      if (scrollHeldCardVariant !== null && event.type === 'pointermove') {
+      const heldCardVariant = scrollHeldCardVariant();
+      if (heldCardVariant !== null && event.type === 'pointermove') {
         releaseScrollHold();
 
         if (
-          state.expandedCardVariant === scrollHeldCardVariant &&
+          state.expandedCardVariant === heldCardVariant &&
           !state.hoverLock.keyboardMode &&
-          nextCardVariant !== scrollHeldCardVariant &&
-          !isPointerInsideCardBoundary(scrollHeldCardVariant)
+          nextCardVariant !== heldCardVariant &&
+          !isPointerInsideCardBoundary(heldCardVariant)
         ) {
-          scheduleCollapseForCard(scrollHeldCardVariant, event.timeStamp);
+          scheduleCollapseForCard(heldCardVariant, event.timeStamp);
         }
 
         return;
@@ -355,31 +305,11 @@ export function useHoverIntentController({
       isPointerInsideCardBoundary,
       releaseScrollHold,
       scheduleCollapseForCard,
+      scrollHeldCardVariant,
       state.expandedCardVariant,
       state.hoverLock.keyboardMode
     ]
   );
-
-  /**
-   * 해제 조건 ⑶ — 카드가 다른 이유로 접히거나(Escape · handoff · 전환 시작) hover 모드를
-   * 벗어나면 hold 가 남아 다음 `pointermove` 에서 엉뚱한 카드를 닫는 일이 없어야 한다.
-   */
-  useEffect(() => {
-    const scrollHeldCardVariant = scrollHeldCardVariantRef.current;
-    if (scrollHeldCardVariant === null) {
-      return;
-    }
-
-    if (
-      interactionMode !== 'hover' ||
-      isMobileViewport ||
-      state.expandedCardVariant !== scrollHeldCardVariant
-    ) {
-      releaseScrollHold();
-    }
-  }, [interactionMode, isMobileViewport, releaseScrollHold, state.expandedCardVariant]);
-
-  useEffect(() => releaseScrollHold, [releaseScrollHold]);
 
   const resolveHoverHandlers = useCallback(
     (card: LandingCard) => {

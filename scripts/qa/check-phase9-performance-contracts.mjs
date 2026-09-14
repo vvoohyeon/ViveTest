@@ -50,15 +50,18 @@ if (fileExists(landing.grid.catalogGrid)) {
 if (fileExists(landing.grid.gridCard)) {
   const cardFile = read(landing.grid.gridCard);
 
+  // 커서 정책은 클래스 문자열 자체에 적혀 있고, 그 문자열은 클래스명 모듈이 갖는다.
+  const classnamesFile = fileExists(landing.grid.gridCardClassnames) ? read(landing.grid.gridCardClassnames) : '';
+
   if (
     !/LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME\s*=\s*[^;]*cursor-pointer[^;]*aria-\[disabled=true\]:cursor-default[^;]*;/u.test(
-      cardFile
+      classnamesFile
     ) ||
     !/LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME\s*=\s*[^;]*cursor-pointer[^;]*disabled:cursor-default[^;]*;/u.test(
-      cardFile
+      classnamesFile
     ) ||
     !/LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME\s*=\s*[^;]*cursor-pointer[^;]*disabled:cursor-default[^;]*;/u.test(
-      cardFile
+      classnamesFile
     )
   ) {
     fail('LandingGridCard must keep interactive cursor policy explicit in component-owned class sources.');

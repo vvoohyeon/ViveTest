@@ -129,3 +129,17 @@ baseline 이 스스로를 재현하지 못하면 회귀를 판정할 수 없다.
 - **웹폰트** — Pretendard 는 `swap` 이고 preload 하지 않으므로 캡처가 swap 보다 빠르면 fallback 이 찍힌다. 한국어는 줄바꿈 위치까지 달라진다(2026-05-17 provenance 가 「환경 표류」로 적은 `theme-layout-test-instruction-kr-*` 가 이것이다). 두 스펙 모두 캡처 전에 `document.fonts.ready` 를 기다린다.
 - **애니메이션** — 게이트 전체를 돌리면 webkit 스펙이 chromium 120 여 케이스와 CPU 를 나눠 쓰고, 단독으로 4/4 초록이던 스펙이 게이트 안에서 107px 차이로 붉었다. 버퍼 캡처 경로에 `animations: 'disabled'` 를 넘겨 전이를 종료 상태로 고정한다.
 - **스쳐 지나가는 위상** — `toHaveAttribute('closing')` 은 살아 있는 속성을 폴링하므로 전이가 폴링 간격보다 빠르면 놓치고, 놓친 것은 「일어나지 않았다」와 구별되지 않는다. 이미 있던 MutationObserver 로그 위에서 기다리고 단언한다. `webkit-ghosting` 프로젝트는 `fullyParallel: false` 로 직렬화했다(병렬 3 회 4·3·4 통과 대 직렬 3 회 6·6·6 통과).
+
+## `expanded-focus-shell.png` 은 기계마다 다른 크기로 렌더된다 — 2026-09-14 검증(재생성 없음)
+
+`expanded-focus-shell-chromium-darwin.png` 는 2026-09-11 에 **398×293** 으로 재생성됐고 그 기계에서 3 회 재현됐다. 다른 기계(macOS Darwin 25.6.0)에서 같은 커밋을 돌리면 **395×292** 가 나오고 1,800 px(전체의 0.02)이 다르다 — 폭 3px · 높이 1px. `maxDiffPixels: 20` 이므로 확정 실패다.
+
+**이것은 회귀가 아니다.** 2026-09-14 에 `origin/main`(`c05850e`)만 체크아웃한 대조 clone 과 step 1 이음매 분리가 적용된 clone에서 **같은 수치**(398×293 기대 · 395×292 수신 · 1,800 px)가 나왔고, 대조 clone 에서 3 회 반복해도 값이 흔들리지 않았다. 즉 이 차이는 커밋의 함수가 아니라 기계의 함수다.
+
+- 검증 명령: `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/state-smoke.spec.ts --grep "expanded keyboard focus boundary"`
+- 대조군: `c05850e` 만 체크아웃한 별도 clone (소스 변경 0)
+- 결과: 양쪽 동일 · 3 회 반복 동일
+
+**재생성하지 않았다** — baseline `--update` 는 사람 승인이 필요하고(`AGENTS.md` §4 Hard stops), 재생성하면 이 기계의 값이 정답이 되어 반대편 기계가 붉어진다. 값을 어느 기계에 맞출지는 결정 사항이다.
+
+**주의: `npm run test:e2e` 로는 어떤 스냅샷도 판정할 수 없다.** 그 명령은 `PLAYWRIGHT_SERVER_MODE` 기본값인 **dev** 서버로 돌고, baseline 은 전부 `preview` 로 채취돼 있다. dev 는 Next.js 개발 인디케이터를 그려 넣으므로 `landing-normal` 24 장이 전부 붉어진다(2026-09-14 실측: 같은 트리에서 `test:e2e` 는 24 장 붉고 `test:e2e:smoke` 는 전부 초록). 스냅샷을 보는 상위 게이트는 `npm run test:e2e:smoke` 다.

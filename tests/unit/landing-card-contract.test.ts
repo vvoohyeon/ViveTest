@@ -27,8 +27,20 @@ function readLandingGridCardCss(): string {
   );
 }
 
-function readLandingGridCardSource(): string {
-  return readFileSync(new URL('../../src/features/landing/grid/landing-grid-card.tsx', import.meta.url), 'utf8');
+// 카드는 다섯 파일이다(step 1 이음매 분리). 클래스 문자열 상수는 `-classnames.ts` 가, 접힌
+// 얼굴의 인라인 클래스는 `-normal-face.tsx` 가 갖는다 — 아래 두 계약은 이름을 따라 옮겨 간다.
+function readLandingGridCardClassnamesSource(): string {
+  return readFileSync(
+    new URL('../../src/features/landing/grid/landing-grid-card-classnames.ts', import.meta.url),
+    'utf8'
+  );
+}
+
+function readLandingGridCardNormalFaceSource(): string {
+  return readFileSync(
+    new URL('../../src/features/landing/grid/landing-grid-card-normal-face.tsx', import.meta.url),
+    'utf8'
+  );
 }
 
 function readGlobalTokens(): string {
@@ -340,7 +352,8 @@ describe('landing card slot contract', () => {
 
   it('anchors Wave 12 mobile Normal typography, shared tag, and Blog CTA source contracts', () => {
     const cardCss = readLandingGridCardCss();
-    const cardSource = readLandingGridCardSource();
+    const cardClassnamesSource = readLandingGridCardClassnamesSource();
+    const cardNormalFaceSource = readLandingGridCardNormalFaceSource();
     // D-06: `design.md` §4.3 states ONE global wrapping rule, so this is no longer
     // scoped to the mobile tier. The tier attribute must NOT reappear on it.
     const normalTextRule = cardCss.match(
@@ -367,10 +380,10 @@ describe('landing card slot contract', () => {
     expect(readGlobalTokens()).toMatch(/^\s*--blog-read-more-ink:\s*#[0-9a-f]{6};/mu);
     expect(blogReadMoreRule).toContain('color: var(--blog-read-more-ink);');
     expect(blogReadMoreRule).toContain('text-decoration: none;');
-    expect(extractSourceAssignment(cardSource, 'LANDING_GRID_CARD_TAG_CHIP_CLASSNAME')).not.toContain(
+    expect(extractSourceAssignment(cardClassnamesSource, 'LANDING_GRID_CARD_TAG_CHIP_CLASSNAME')).not.toContain(
       'leading-[1.2]'
     );
-    expect(extractReadMoreClassSource(cardSource)).not.toContain('text-[var(--ink-body)]');
+    expect(extractReadMoreClassSource(cardNormalFaceSource)).not.toContain('text-[var(--ink-body)]');
   });
 
   it('forces unavailable cards to stay normal even when expanded state is requested', () => {

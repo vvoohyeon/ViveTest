@@ -109,16 +109,27 @@ if (fileExists(landing.grid.catalogGrid)) {
 
 if (fileExists(landing.grid.gridCard)) {
   const cardFile = read(landing.grid.gridCard);
+  // 계약 문자열은 이름을 따라 옮겨 갔다 — 슬롯 이름은 그것을 그리는 파일에서 찾는다.
+  const normalFaceFile = fileExists(landing.grid.gridCardNormalFace) ? read(landing.grid.gridCardNormalFace) : '';
+  const expandedBodyFile = fileExists(landing.grid.gridCardExpandedBody) ? read(landing.grid.gridCardExpandedBody) : '';
+  const mobileSurfacesFile = fileExists(landing.grid.gridCardMobileSurfaces)
+    ? read(landing.grid.gridCardMobileSurfaces)
+    : '';
+  const classnamesFile = fileExists(landing.grid.gridCardClassnames) ? read(landing.grid.gridCardClassnames) : '';
+  const cardFamily = [cardFile, normalFaceFile, expandedBodyFile, mobileSurfacesFile, classnamesFile].join('\n');
 
-  if (!/data-slot=(["'])cardTitle\1/u.test(cardFile) || !/cardThumbnail/u.test(cardFile)) {
+  if (
+    !/data-slot=(["'])cardTitle\1/u.test(normalFaceFile + mobileSurfacesFile) ||
+    !/cardThumbnail/u.test(normalFaceFile)
+  ) {
     fail('LandingGridCard must define normal slot markers.');
   }
 
   if (
-    !/data-slot=\{interactive \? 'previewQuestion' : undefined\}/u.test(cardFile) ||
+    !/data-slot=\{interactive \? 'previewQuestion' : undefined\}/u.test(expandedBodyFile) ||
     !/\(isUnavailable \|\| isBlogCard\) && state === 'expanded' \? 'normal' : state/u.test(cardFile) ||
     !/\{isBlogCard \? \([\s\S]*<Link[\s\S]*data-slot="primaryTrigger"/u.test(cardFile) ||
-    /cardSubtitleExpanded/u.test(cardFile)
+    /cardSubtitleExpanded/u.test(cardFamily)
   ) {
     fail('LandingGridCard must keep Test-only expanded slots and Blog whole-card Normal navigation.');
   }
@@ -128,15 +139,15 @@ if (fileExists(landing.grid.gridCard)) {
   }
 
   if (
-    !/data-visible-tag-count/u.test(cardFile) ||
-    !/data-tag-tail-ellipsis/u.test(cardFile) ||
-    !/isMobileViewport\s*\?\s*'overflow-visible text-clip'\s*:\s*'overflow-hidden text-ellipsis line-clamp-2'/u.test(cardFile)
+    !/data-visible-tag-count/u.test(normalFaceFile) ||
+    !/data-tag-tail-ellipsis/u.test(normalFaceFile) ||
+    !/isMobileViewport\s*\?\s*'overflow-visible text-clip'\s*:\s*'overflow-hidden text-ellipsis line-clamp-2'/u.test(normalFaceFile)
   ) {
     fail('LandingGridCard must keep visible-prefix markers and the Mobile/full versus Desktop/Tablet clamp branch.');
   }
 
   const tagChipClassSource =
-    cardFile.match(/const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME\s*=\s*([\s\S]*?);/u)?.[1] ?? '';
+    classnamesFile.match(/const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME\s*=\s*([\s\S]*?);/u)?.[1] ?? '';
   if (!tagChipClassSource || /\bborder(?:\s|-\[)/u.test(tagChipClassSource)) {
     fail('LandingGridCard tag-chip utility source must be borderless.');
   }

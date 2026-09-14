@@ -1,16 +1,18 @@
 import {describe, expect, it} from 'vitest';
 
 import {
+  isKeyboardModeBlocked,
+  resolveCardStateForVariant,
+  resolveCardTabIndex,
+  resolveVisualState
+} from '../../src/features/landing/model/interaction-selectors';
+import {
   ALLOWED_PAGE_TRANSITIONS,
   ACTIVE_RAMP_UP_MS,
   initialLandingInteractionState,
   isAllowedPageTransition,
-  isKeyboardModeBlocked,
   reduceLandingInteractionState,
   resolveKeyboardFocusDisposition,
-  resolveCardStateForVariant,
-  resolveVisualState,
-  resolveCardTabIndex,
   type LandingInteractionEvent
 } from '../../src/features/landing/model/interaction-state';
 

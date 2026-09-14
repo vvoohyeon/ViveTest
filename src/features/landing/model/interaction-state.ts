@@ -1,6 +1,4 @@
-import type {CardState, PageState} from '@/features/landing/model/state-types';
-
-export type LandingCardVisualState = 'normal' | 'expanded' | 'focused';
+import type {PageState} from '@/features/landing/model/state-types';
 
 export const ACTIVE_RAMP_UP_MS = 140;
 export const PAGE_STATE_PRIORITY: Record<PageState, number> = {
@@ -423,82 +421,4 @@ export function reduceLandingInteractionState(
     default:
       return settledState;
   }
-}
-
-export function resolveCardStateForVariant(
-  state: LandingInteractionState,
-  cardVariant: string
-): CardState {
-  if (state.pageState === 'INACTIVE' || state.pageState === 'TRANSITIONING') {
-    return 'NORMAL';
-  }
-
-  if (state.expandedCardVariant === cardVariant) {
-    return 'EXPANDED';
-  }
-
-  if (state.focusedCardVariant === cardVariant) {
-    return 'FOCUSED';
-  }
-
-  return 'NORMAL';
-}
-
-export function resolveVisualState(input: {
-  cardEnterable: boolean;
-  cardState: CardState;
-  desktopCleanupPending: boolean;
-  desktopClosingVisible: boolean;
-  transitionExpanded: boolean;
-}): LandingCardVisualState {
-  const {
-    cardEnterable,
-    cardState,
-    desktopCleanupPending,
-    desktopClosingVisible,
-    transitionExpanded
-  } = input;
-
-  if (
-    transitionExpanded ||
-    desktopClosingVisible ||
-    desktopCleanupPending ||
-    (cardState === 'EXPANDED' && cardEnterable)
-  ) {
-    return 'expanded';
-  }
-
-  return cardState === 'FOCUSED' ? 'focused' : 'normal';
-}
-
-export function isKeyboardModeBlocked(
-  state: LandingInteractionState,
-  cardVariant: string
-): boolean {
-  if (!state.hoverLock.enabled || !state.hoverLock.keyboardMode) {
-    return false;
-  }
-
-  return state.hoverLock.cardVariant !== cardVariant;
-}
-
-export function resolveCardTabIndex(
-  state: LandingInteractionState,
-  cardVariant: string,
-  enterable: boolean
-): number {
-  // D1/BQ-26: unavailable(non-enterable) 카드는 모든 상태에서 tab order에서 제외한다.
-  if (!enterable) {
-    return -1;
-  }
-
-  if (!state.hoverLock.enabled) {
-    return 0;
-  }
-
-  if (state.hoverLock.cardVariant === cardVariant) {
-    return 0;
-  }
-
-  return state.hoverLock.keyboardMode ? 0 : -1;
 }

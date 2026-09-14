@@ -62,11 +62,15 @@ if (fileExists(landing.grid.gridCard)) {
     fail('LandingGridCard must expose spacing contract metrics in data attributes.');
   }
 
-  if (!/landing-grid-card-tags-gap/u.test(cardFile)) {
+  // 태그 간격은 접힌 얼굴이 그리고, 그 높이를 계산하는 클래스 문자열은 클래스명 모듈이 갖는다.
+  const normalFaceFile = fileExists(landing.grid.gridCardNormalFace) ? read(landing.grid.gridCardNormalFace) : '';
+  const classnamesFile = fileExists(landing.grid.gridCardClassnames) ? read(landing.grid.gridCardClassnames) : '';
+
+  if (!/landing-grid-card-tags-gap/u.test(normalFaceFile + classnamesFile)) {
     fail('LandingGridCard must render explicit tags-gap element for base_gap + comp_gap model.');
   }
 
-  if (!/LANDING_GRID_CARD_TAGS_GAP_CLASSNAME[\s\S]*calc\(var\(--landing-card-base-gap\)_\+_var\(--landing-card-comp-gap\)\)/u.test(cardFile)) {
+  if (!/LANDING_GRID_CARD_TAGS_GAP_CLASSNAME[\s\S]*calc\(var\(--landing-card-base-gap\)_\+_var\(--landing-card-comp-gap\)\)/u.test(classnamesFile)) {
     fail('LandingGridCard must compute tags-gap height from base_gap + comp_gap in component-owned class source.');
   }
 }

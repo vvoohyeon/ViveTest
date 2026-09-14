@@ -98,7 +98,9 @@ Route tree
             │         ├─ src/features/test/fixtures/results/**
             │         ├─ src/features/landing/grid/use-landing-interaction-controller.ts
             │         │    ├─ interaction-dom.ts
+            │         │    ├─ use-desktop-card-close-controller.ts
             │         │    ├─ use-hover-intent-controller.ts
+            │         │    │    └─ use-hover-scroll-hold.ts
             │         │    ├─ use-desktop-motion-controller.ts
             │         │    ├─ use-mobile-card-lifecycle.ts
             │         │    └─ use-keyboard-handoff.ts
@@ -108,6 +110,12 @@ Route tree
             │         └─ src/features/landing/grid/landing-catalog-grid.tsx
             │              ├─ use-grid-geometry-controller.ts
             │              └─ landing-grid-card.tsx + landing-grid-card.module.css
+            │                   ├─ landing-card-contract.ts (public types + default copy)
+            │                   ├─ landing-grid-card-classnames.ts
+            │                   ├─ landing-grid-card-normal-face.tsx
+            │                   ├─ landing-grid-card-expanded-body.tsx
+            │                   ├─ landing-grid-card-desktop-shell.tsx
+            │                   └─ landing-grid-card-mobile-surfaces.tsx
             ├─ src/app/[locale]/blog/page.tsx (list-only blog index)
             ├─ src/app/[locale]/blog/[variant]/page.tsx (route-keyed blog detail)
             ├─ src/app/[locale]/test/[variant]/page.tsx
@@ -231,7 +239,7 @@ The most technically distinctive part of the codebase. The pre-refactor monolith
 
 Pure or model-focused modules:
 
-- `src/features/landing/model/interaction-state.ts` — page/card/hover-lock state transitions
+- `src/features/landing/model/interaction-state.ts` — page/card/hover-lock state transitions; `interaction-selectors.ts` derives per-card presentation from that state (the reducer has one consumer, the selectors have several)
 - `src/features/landing/grid/layout-plan.ts` — row plans
 - `src/features/landing/grid/spacing-plan.ts` — row-local compensation
 - `src/features/landing/grid/mobile-lifecycle.ts` — mobile expansion phases
@@ -240,9 +248,9 @@ Pure or model-focused modules:
 Runtime ownership after the 2026-04-30 split:
 
 - `src/features/landing/grid/landing-catalog-grid-loader.tsx` — subscribes to `useTelemetryConsentSource()` and resolves the catalog through `resolveLandingCatalog(locale, {consentState})`, so consent-aware card visibility is a loader/catalog concern rather than a card-render concern.
-- `src/features/landing/grid/use-landing-interaction-controller.ts` — **738 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, card focus/expand commands, per-card binding composition, and transition-start callback composition. Pure visual projection is split: `interaction-state.ts` derives card visual state via `resolveVisualState`, and `desktop-shell-phase.ts` derives desktop motion roles via `resolveDesktopMotionRole`.
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — **568 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, card focus/expand commands, per-card binding composition, and transition-start callback composition. Pure visual projection is split: `interaction-selectors.ts` derives card visual state via `resolveVisualState`, and `desktop-shell-phase.ts` derives desktop motion roles via `resolveDesktopMotionRole`. Desktop close paths (explicit close, keyboard focus disposition, Escape, blur) live in `use-desktop-card-close-controller.ts`.
 - `src/features/landing/grid/interaction-dom.ts` — DOM/focus helpers: card-root lookup, expanded focusable selection, adjacent-card resolution, queued focus callbacks, mobile-card detection, and card-boundary resolution.
-- `src/features/landing/grid/use-hover-intent-controller.ts` — hover timers/tokens, last pointer position, card-boundary containment checks, and trigger `onMouseEnter` / `onMouseLeave` handlers.
+- `src/features/landing/grid/use-hover-intent-controller.ts` — hover timers/tokens, last pointer position, card-boundary containment checks, and trigger `onMouseEnter` / `onMouseLeave` handlers. The BQ-39 R1 scroll hold (hold state, its scroll listener, and the three release conditions) lives in `use-hover-scroll-hold.ts`.
 - `src/features/landing/grid/use-desktop-motion-controller.ts` — desktop opening/closing/handoff visual state, transition reason ref, cleanup timers, and double-RAF cleanup.
 - `src/features/landing/grid/use-mobile-card-lifecycle.ts` — **287 lines**, owns mobile lifecycle orchestration, queued close, keyboard handoff, viewport reset, open/close timer coordination (including transient shell teardown after both open and close timers), and public API composition.
 - `src/features/landing/grid/use-mobile-scroll-lock.ts` — **27 lines**, owns phase-based body scroll lock.
@@ -256,7 +264,7 @@ Runtime ownership after the 2026-04-30 split:
 - `src/features/landing/grid/use-card-keyboard-handler.ts` — **313 lines**, per-card focus/key handlers, expanded-body traversal, mobile keyboard handoff, and desktop transition intent handoff.
 - `src/features/landing/grid/use-grid-geometry-controller.ts` — **446 lines**, spacing model, row baseline snapshots, reducer-owned `BASELINE_READY`/`BASELINE_FROZEN` freeze/release, 32ms release timer lock, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
 - `src/features/landing/grid/landing-catalog-grid.tsx` — **274 lines**, keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, `LandingGridPlan` calculation, render assembly, and data attributes.
-- `src/features/landing/grid/landing-grid-card.tsx` — **1,294 lines**, owns the visual card component, semantic CSS-module class mapping, normal/expanded/mobile/transient render branches, inline CSS custom properties for runtime geometry, and public `data-*` QA/debug anchors.
+- `src/features/landing/grid/landing-grid-card.tsx` — **418 lines**, the card orchestrator: props → derived flags → root attributes → child selection. Inline CSS custom properties for runtime geometry and the public `data-*` QA/debug anchors are its output and stay here. The render branches are siblings: `landing-grid-card-normal-face.tsx` (collapsed face + ghost body), `landing-grid-card-expanded-body.tsx` (question/choices/meta, shared by both surfaces), `landing-grid-card-desktop-shell.tsx` (overlay shell + expanded title), `landing-grid-card-mobile-surfaces.tsx` (in-flow expanded body + transient shell); utility class strings live in `landing-grid-card-classnames.ts` and the public types in `landing-card-contract.ts`.
 
 The core risk is still choreography complexity across hover, keyboard, mobile, desktop shell phases, transition cleanup, and geometry timing, but ownership is now explicit and testable at narrower seams. Styling ownership is hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` remaps raw runtime state into semantic style classes consumed by `landing-grid-card.module.css` for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors and are the runtime contract that a future visual-system replacement must preserve.
 
@@ -717,9 +725,9 @@ Primary checks: `tests/unit/question-source-parser.test.ts` · `tests/unit/varia
 
 **Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is 738 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
 
-**Landing visual-system replacement is possible only if runtime contracts stay intact.** `landing-grid-card.tsx` is now the largest landing file at 1,294 lines and mixes visual render branches with contract attributes. A visual rewrite should treat the card component and CSS module as replaceable UI surface, but preserve `LandingCardInteractionBindings`, transition callbacks, focus/keyboard hooks, mobile snapshot CSS variables, `inert`/`aria-disabled` behavior, and the existing `data-*` anchors used by unit/E2E/QA scripts.
+**Landing visual-system replacement is possible only if runtime contracts stay intact.** The card is now a family of six files (orchestrator 418 lines plus contract, classnames, normal face, expanded body, desktop shell, mobile surfaces), so the contract attributes and the visual render branches no longer share a file. A visual rewrite should treat the render-branch siblings, the classnames module, and the CSS module as replaceable UI surface, but preserve `LandingCardInteractionBindings`, transition callbacks, focus/keyboard hooks, mobile snapshot CSS variables, `inert`/`aria-disabled` behavior, and the existing `data-*` anchors used by unit/E2E/QA scripts.
 
-**Shared runtime namespaces are now split by concern.** GNB, telemetry, transition, and blog destination code live under `src/features/gnb`, `src/features/telemetry`, `src/features/transition`, and `src/features/blog`, leaving `src/features/landing` focused on the landing runtime, grid, shell, and storage. Current pressure points are `src/features/gnb/site-gnb.tsx` (401 lines), `src/features/landing/grid/use-landing-interaction-controller.ts` (738 lines), `src/features/landing/grid/use-grid-geometry-controller.ts` (446 lines), `src/features/landing/grid/use-card-keyboard-handler.ts` (313 lines), and `src/features/landing/grid/landing-grid-card.tsx` (1,294 lines). `use-keyboard-handoff.ts` is now a 95-line composition layer rather than a pressure point. GNB behavior pressure is split across focused desktop settings, mobile menu, back-navigation, keyboard DOM, landing entry mode, target discovery, and Tab-routing modules; keyboard-mode tracking has an exported hook reserved for future wiring after §7.5 compliance review. `use-mobile-card-lifecycle.ts` is now 287 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (120), and `use-mobile-transient-shell.ts` (57; independent auto-reset timer removed — teardown now driven by the orchestrator's open and close timers).
+**Shared runtime namespaces are now split by concern.** GNB, telemetry, transition, and blog destination code live under `src/features/gnb`, `src/features/telemetry`, `src/features/transition`, and `src/features/blog`, leaving `src/features/landing` focused on the landing runtime, grid, shell, and storage. Current pressure points are `src/features/gnb/site-gnb.tsx` (401 lines), `src/features/landing/grid/use-landing-interaction-controller.ts` (568 lines), `src/features/landing/grid/use-grid-geometry-controller.ts` (446 lines), `src/features/landing/grid/use-hover-intent-controller.ts` (457 lines), and `src/features/landing/grid/use-card-keyboard-handler.ts` (313 lines); `landing-grid-card.tsx` left that list on 2026-09-14 when the card split into six files (orchestrator 418 lines). `use-keyboard-handoff.ts` is now a 95-line composition layer rather than a pressure point. GNB behavior pressure is split across focused desktop settings, mobile menu, back-navigation, keyboard DOM, landing entry mode, target discovery, and Tab-routing modules; keyboard-mode tracking has an exported hook reserved for future wiring after §7.5 compliance review. `use-mobile-card-lifecycle.ts` is now 287 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (120), and `use-mobile-transient-shell.ts` (57; independent auto-reset timer removed — teardown now driven by the orchestrator's open and close timers).
 
 **Test entry orchestration is now split from the client.** `use-test-entry-orchestrator.ts` owns the entry action handler (`executeInstructionAction`) and composes the qualifier wizard plus auto-commit scheduling. `use-qualifier-overlay-wizard.ts` owns qualifier step/re-entry draft state; entry side effects remain inline in the orchestrator and call `setTelemetryConsentState`, `markInstructionSeen`, and `clearLandingIngress` directly. `use-auto-commit.ts` owns instruction-seen auto-entry for non-qualifier variants. `test-question-client.tsx` retains `instructionVisible` derivation and renders connector props. The orchestrator path does not own telemetry — `trackAttemptStart` and `trackFinalSubmit` remain in `use-test-run-controller.ts`, while `question_answered` fires from `use-answer-handler.ts`.
 

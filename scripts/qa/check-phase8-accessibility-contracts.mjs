@@ -21,11 +21,14 @@ for (const relativePath of requiredFiles) {
 
 if (fileExists(landing.grid.gridCard)) {
   const cardFile = read(landing.grid.gridCard);
+  // 트리거 클래스 문자열은 클래스명 모듈이 갖는다. 카드 파일에는 import 된 **이름**만 남으므로
+  // 여기서 찾으면 상수 정의가 아니라 import 문에 걸린다 — 정의가 있는 파일에서 본다.
+  const classnamesFile = fileExists(landing.grid.gridCardClassnames) ? read(landing.grid.gridCardClassnames) : '';
 
   if (
     !/type="button"/u.test(cardFile) ||
     !/className=\{resolvedTriggerClassName\}/u.test(cardFile) ||
-    !/LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME[\s\S]*landing-grid-card-trigger/u.test(cardFile)
+    !/LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME\s*=\s*[^;]*landing-grid-card-trigger/u.test(classnamesFile)
   ) {
     fail('LandingGridCard must render a semantic primary trigger button.');
   }

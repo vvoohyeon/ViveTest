@@ -21,6 +21,18 @@ import {describe, expect, it} from 'vitest';
  */
 const CANDIDATE_WITH_PLACEHOLDER =
   /[a-z][a-z0-9-]*-\[[^\]\s]*\([^)\]\s]*(?:…|\.\.\.)[^)\]\s]*\)[^\]\s]*\]/u;
+/**
+ * 두 번째 형태 — `var()` 의 인자가 커스텀 프로퍼티가 아닌 것.
+ *
+ * 위 검사는 자리표시자 글자(`…`/`...`)만 본다. 그런데 dev 를 죽이는 조건은 자리표시자가
+ * 아니라 **무효 CSS 선언이 생성되는 것**이고, 문서가 토큰 자리에 평범한 단어를 적으면
+ * (예: `var` 의 인자로 대문자 식별자) 같은 일이 난다 — CSS 커스텀 프로퍼티는 `--` 로
+ * 시작해야 하므로 그 선언은 파싱되지 않는다. 2026-09-14 실측: `origin/main`(`c05850e`)의
+ * 계획서 한 줄이 그 형태였고 `npm run dev` 와 전체 `npm run test:e2e` 가 그 자리에서 죽었다.
+ * 첫 검사는 글자 모양을 보므로 이것을 구조적으로 놓친다.
+ */
+const CANDIDATE_WITH_INVALID_VAR =
+  /[a-z][a-z0-9-]*-\[[^\]\s]*\bvar\(\s*(?!--)[^)\]\s]*\)[^\]\s]*\]/u;
 const SCANNED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.css', '.md', '.html', '.json']);
 
 const repoRoot = process.cwd();
@@ -61,13 +73,29 @@ describe('Tailwind 후보 위생', () => {
     expect(CANDIDATE_WITH_PLACEHOLDER.test('[font:var(--button)]')).toBe(false);
   });
 
+  it('탐지기가 커스텀 프로퍼티가 아닌 var() 인자를 잡는다', () => {
+    // 여기서도 문자열을 조립한다 — 리터럴로 적으면 이 파일이 스스로 후보가 된다(L03).
+    const invalid = (utility: string, prefix: string, argument: string) =>
+      `${utility}-[${prefix}var(${argument})]`;
+
+    // 2026-09-14 에 dev 를 죽인 형태.
+    expect(CANDIDATE_WITH_INVALID_VAR.test(invalid('border', 'color:', 'TOKEN'))).toBe(true);
+    expect(CANDIDATE_WITH_INVALID_VAR.test(invalid('bg', '', 'someToken'))).toBe(true);
+
+    // 제품 코드의 정상 형태 — 인자가 커스텀 프로퍼티다.
+    expect(CANDIDATE_WITH_INVALID_VAR.test(invalid('bg', '', '--expanded-card-surface'))).toBe(false);
+    expect(CANDIDATE_WITH_INVALID_VAR.test(invalid('text', '', '--normal-tag-ink'))).toBe(false);
+    expect(CANDIDATE_WITH_INVALID_VAR.test('min-h-[var(--tap-min)]')).toBe(false);
+    expect(CANDIDATE_WITH_INVALID_VAR.test('min-h-[46px]')).toBe(false);
+  });
+
   it('자리표시자를 품은 임의값 후보가 저장소에 없다', () => {
     const offenders: string[] = [];
 
     for (const file of trackedFiles) {
       const lines = readFileSync(path.join(repoRoot, file), 'utf8').split('\n');
       lines.forEach((line, index) => {
-        const matched = CANDIDATE_WITH_PLACEHOLDER.exec(line);
+        const matched = CANDIDATE_WITH_PLACEHOLDER.exec(line) ?? CANDIDATE_WITH_INVALID_VAR.exec(line);
         if (matched) {
           offenders.push(`${file}:${index + 1} → ${matched[0]}`);
         }

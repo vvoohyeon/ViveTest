@@ -95,13 +95,14 @@ if (fileExists('src/app/[locale]/blog/[variant]/page.tsx')) {
   }
 }
 
-if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
-  const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
-  if (!/data-slot=\{exposePublicSlot \? 'cardThumbnail' : undefined\}/u.test(cardFile)) {
+// 썸네일은 접힌 얼굴이 그린다(step 1 이음매 분리) — 슬롯 이름과 variant-only 해석을 거기서 본다.
+if (fileExists('src/features/landing/grid/landing-grid-card-normal-face.tsx')) {
+  const normalFaceFile = read('src/features/landing/grid/landing-grid-card-normal-face.tsx');
+  if (!/data-slot=\{exposePublicSlot \? 'cardThumbnail' : undefined\}/u.test(normalFaceFile)) {
     fail('LandingGridCard must expose the canonical cardThumbnail slot name.');
   }
 
-  if (!/resolveVariantMediaSource\(card\.variant, hasAssetMedia\)/u.test(cardFile)) {
+  if (!/resolveVariantMediaSource\(card\.variant, hasAssetMedia\)/u.test(normalFaceFile)) {
     fail('LandingGridCard thumbnail media must resolve from variant only.');
   }
 }
