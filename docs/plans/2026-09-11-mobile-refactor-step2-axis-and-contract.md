@@ -161,6 +161,18 @@ cd "$(git rev-parse --show-toplevel)" && npm run lint && npm run typecheck && np
 
 **점수표의 `basis` 를 그대로 개정 근거로 인용하지 마라.** 규범 근거 37 건 중 19 건에서 검증이 그 조항을 기각·축소했는데 `basis` 문장은 남아 있다. `정정` 열에 ✓ 가 있으면 렌즈 문서의 「검증이 붙인 정정」을 먼저 읽는다.
 
+## 4-2. 단위 3-1 — 로케일 별칭 표 (blocker 둘을 함께 닫는다)
+
+제품 locale 코드(`kr`·`zs`·`zt`)가 BCP 47 이 아니라서 두 결함이 **같은 원인으로** 난다 — `<html lang>` 이 유효하지 않고(WCAG 3.1.1), **동시에** BCP 47 로 쓴 경로가 전부 404 다(실측: `/ko`·`/zh`·`/zh-Hans`·`/en-US`·`/pt-BR`·`/KR`·`/jp` 전부 404, 반면 `/kr`·`/zs`·`/ja` 는 200).
+
+**할 일**: `src/config/site.ts` 의 `localeMetadata` 각 항목에 `htmlLang` 을 더하고(`kr→ko` · `zs→zh-Hans` · `zt→zh-Hant` · 나머지 9 개는 코드 그대로), 같은 표에 진입 별칭을 둔다. `src/app/layout.tsx` 와 locale-html-lang 동기화가 `htmlLang` 을 읽고, `src/proxy.ts` 가 별칭을 canonical 세그먼트로 redirect 한다. **URL 세그먼트·스토리지 키·telemetry 필드의 정본은 그대로 둔다** — 바뀌는 것은 표시용 태그와 진입 별칭뿐이다.
+
+**함께 붉어질 것**: `tests/e2e/routing-smoke.spec.ts:150` 의 `<html lang="{locale}">` 정규식 · `tests/unit/locale-config.test.ts:7` 의 12 개 코드 · `req-landing.md` §5.1(`:117`)·§5.3(`:142`)·§12(`:789`) · `AGENTS.md` §1 Runtime surface 의 Locales 표(**Ask-First**).
+
+## 4-3. 단위 3-2 — 랜딩 키보드 진입을 skip link 로 교체 (확정)
+
+`req-landing.md` §7.6 `:480-481` 이 「첫 Tab 이 GNB 를 건너뛰고 첫 카드로 간다」를 요구하고, 구현이 GNB DOM 을 CSS 선택자로 뒤지는 계층 위반을 **스스로 인정한다**(`use-landing-keyboard-entry.ts:17-29` 의 `@future-move R-06`). 탭 순서를 상태에 따라 바꾸는 것은 예측 가능성을 해친다. **표준 대안(skip link)으로 교체하고 §7.6 `:480-481` 을 개정한다.** `use-landing-gnb-entry-mode.ts`(87행)와 `use-landing-keyboard-entry.ts`(65행)가 사라지고 `site-gnb.tsx` 의 `tabIndex` 분기 여섯이 함께 정리된다.
+
 ## 5. 단위 4 — `theme-color` · manifest · OG (작고 독립적)
 
 축과 무관하고 위험이 0 이며 모바일 체감에 직결하는 넷을 이 단계에 붙인다. ⑴ `theme-color` meta 가 없어 모바일 브라우저 크롬이 테마를 따라가지 않는다 — 라이트/다크 두 값을 `media` 로 준다. ⑵ web app manifest 가 없다. ⑶ `description` 이 `Reset baseline placeholder` 인 채로 프로덕션에 나간다. ⑷ OG 태그가 0 이라 **결과 공유 링크의 미리보기가 비어 있다** — 이 제품의 핵심 행동이 공유다.

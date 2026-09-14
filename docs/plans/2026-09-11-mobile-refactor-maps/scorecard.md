@@ -590,3 +590,32 @@
 | `catalog-thumbnails-are-light-theme-only-literals` | landing | 카탈로그 썸네일 11장이 라이트 전용 하드코딩이고 단위 테스트가 그 상태를 집행한다 | 네 축에서 무너진다. ⑴ **바탕은 이미 테마 인식형이다.** 10 장의 SVG 에 full-bleed ground rect 가 없고(qmbti/thumbnail.svg 전문 확인: 도형 3 개뿐, `data-drawn-against` 는 주석성 속성), 지면은 슬롯의 CSS 배경 `bg-[color-mix(in_srgb,var(--surface-muted)_85%,transparent)]` 이 담당한다 — 실측 라이트 `srgb .9255 .9098 .8745/.85`, 다크 `srgb .2 … |
 | `grid-gutter-desktop-value-starts-at-1280-not-1024` | landing | §7.7 의 「24px desktop gutter」가 1024–1279px 구간에서 참이 아니다 — tier 와 gutter 가 다른 폭에서 계단을 오른다 | 측정은 옳지만 이미 검토돼 수용된 결정이다. 런타임 실측(preview 4199, 7개 폭)으로 1024·1180·1279 에서 tier=desktop·gap=20px, 1280 에서 24px 을 확인했으므로 현상 자체는 사실이다. 그러나 BQ-37(decision-register.md:341-345)이 바로 이 구조를 확정했다 — :343 이 「gutter tier 신호 = viewport breakpoint(옵션 A) — column-mode는 측정 grid-inline-size 계약」이라고… |
 | `design-consistency-gate-covers-only-section-5` | global | 시각 일관성 게이트가 §5 토큰 한 층만 덮고 §4·§6·§7·§10 은 자동 검사가 0건이다 | 「§4·§6·§7·§10 은 자동 검사가 0건」은 측정으로 거짓이다. 네 층 전부에 design.md 조항을 앵커로 단 단언이 있다: §4.3 전역 wrapping(landing-card-contract.test.ts:344-357 — word-break: keep-all · overflow-wrap: anywhere 를 단언하고 mobile tier 스코프 재등장을 금지) · §4.10 44×44 닫기(:721-723) · §6.10 meta row 구조(:205-219 — 3개 item · … |
+
+---
+
+## 확정된 제품 결정이 처분한 행 (2026-09-14)
+
+분석 문서 §15 의 확정 결정 열둘이 아래 행들의 처분을 이미 정했다. **해당 행을 열기 전에 이 표를 먼저 보라** — 이미 결론이 난 것을 다시 결정하려 들면 안 된다.
+
+| 행 / 클러스터 | 처분 |
+|:---|:---|
+| `모바일 OPEN 이 스크롤을 잠그지 않아 닫기 X 가 사라진다` 클러스터(5행) | **바텀시트로 대체되어 소멸한다.** 시트는 열린 동안 배경을 잠그므로 「스크림 뒤에서 배경이 스크롤된다」가 성립하지 않는다 |
+| `mobile-expanded-in-flow-mandate` · `mobile-close-paths-enumerated` | **바텀시트 결정이 이미 답이다.** `req-landing.md` §8.5 전면 재작성 — 지우지 말고 「연속성」과 「복귀 정확성」 두 성질로 다시 쓴다 |
+| `design-md-bans-swipe-dismiss` | **§10 Never Reintroduce 에서 내린다.** `decision-register.md:104,108`(BQ-11)은 「미결정」이었지 영구 금지가 아니었다. BQ 로 재등재 |
+| `no-persistent-primary-nav-on-mobile` | **기각.** 화면이 일곱뿐이라 탭 바가 과하고 하단 밴드 경쟁을 영구화한다. GNB 드로어를 유지한다 |
+| `consent-banner-occludes-the-browse-band` · `consent-banner-raf-avoidance` · `i18n-consent-banner-vertical-budget` · `consent-spacer-desktop-estimate-and-innerheight` | **동의를 비모달 바텀시트로 옮기면 함께 소멸한다.** 회피 rAF 루프 91행도 사라진다 |
+| `Consent Preferences no-op · 되돌리기 불가` 클러스터(4행) | **GNB 드로어에 `Privacy` 행을 추가한다**(step 3 §2-2) |
+| `landing-scroll-is-density-not-ia` · `mobile-subtitle-clamp-ban` · `타입 스케일에 뷰포트 축이 없다` 클러스터 | **밀도는 중간안 확정** — 1 열 유지, 썸네일 16:6 → 16:4, 모바일 clamp 도입, 목표 약 3.0 화면. **2 열 그리드는 사용자가 배제했다** |
+| `font-2mb-unsubset-unpreloaded` · `i18n-font-payload-vs-coverage` · `webfont-swaps-without-metric-overrides` | **로케일별 subset + preload 확정.** 커버리지를 잃지 않는 subset 이어야 하고, 한자·데바나가리는 별도 전략을 등재해 정한다 |
+| `result-screen-has-no-url` · `share-and-search-surface-is-placeholder` · `web-share-absent` | **이번 리팩터 범위에 들어온다** — 라우트와 동적 OG 까지. 결과 **내용** 스키마는 Phase 9 소유 |
+| `gnb-drawer-100vh-beats-dvh` 클러스터(4행) | **`h-screen max-h-screen` 두 유틸리티를 지운다.** Tailwind 4.1 컴파일러 실측: `.[height:100dvh]` 155행 · `.h-screen` **158행** — 뒤에 나와 이긴다. 드로어 내용 하단 812px 이 `100vh`(844) 의미에서 **67px 화면 밖** |
+| `html lang` 클러스터 + `bcp47-locale-paths-hard-404` | **같은 원인이므로 로케일 별칭 표 하나로 함께 닫는다**(step 2 §4-2) |
+| `landing-hamburger-not-in-forward-tab-order` · 랜딩 키보드 진입 | **skip link 로 교체 확정**(step 2 §4-3). `req-landing.md` §7.6 `:480-481` 개정 |
+| `mobile-dead-geometry-measurement` | **동결 `phase` 는 필요하고 스냅샷 **값**은 아니다.** `data-baseline-top`/`-bottom`/`-height` 는 읽는 곳이 0 — step 3 에서 제거. 동결 자체는 접힘 구간 억제이므로 **보존** |
+| 제목 연속성 관련 행 | **보존 확정.** 측정: 확장 1 회당 layout 22~23 회 · 1× 23.9ms · 4× 74.9ms · 6× 115.5ms. 결정 2 이후 hover 가능 기기에만 존재하므로 6× 는 대상이 아니다 |
+| `theme-transition-2500ms` 클러스터(4행) | **교체 확정** — `design.md:373` 의 상한 260ms 어휘 안으로. 계약이 없으므로 `decision-register.md` 등재가 의무다 |
+| `rotation-discards-expanded-card` | **결정 2 로 부수적으로 해소된다.** 원인은 가로에서 폰이 폭 844 라 `tier=tablet` 이 되는 것이고, 입력 축으로 옮기면 터치 생명주기가 유지된다. **E2E 로 고정한다** |
+| `test-error-reflects-unvalidated-query-into-h1` | **성립하되 XSS 가 아니다** — React 가 이스케이프한다(실측: `<img src=x>` → `&lt;img src=x&gt;`). registry 멤버십 확인으로 닫는다 |
+| `back-gesture-closes-nothing` | **바텀시트가 history 항목을 만들면서 해소된다**(step 3 §1-1) |
+| 모바일 뒤로가기 220ms | **동작은 계약(`req-landing.md:244`)이고 값은 아니다.** 값을 유지하되 `decision-register.md` 에 R 로 등재한다 |
+| 유령 GNB 관련 행 | **이번 범위 밖.** View Transition 공유 요소 교체는 전환 계약 전체를 건드리므로 별도 단위 |

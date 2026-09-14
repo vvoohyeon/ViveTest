@@ -123,6 +123,8 @@ cd "$(git rev-parse --show-toplevel)" && npm run lint && npm run typecheck && np
 
 ---
 
+**④ 행 베이스라인 스냅샷 값이 읽히지 않는다.** `use-grid-geometry-controller.ts` 가 확장할 때마다 행마다 `getBoundingClientRect()` 를 불러 `top`/`bottom`/`height` 를 저장하고, `landing-catalog-grid.tsx:227-229` 가 그것을 `data-baseline-top`/`-bottom`/`-height` 로 내보낸다. 그런데 `src`·`tests`·`scripts` 전수 grep 결과 **읽는 곳이 0** 이다(읽히는 것은 `data-baseline-phase` 와 `data-baseline-frozen-rows` 뿐이다). **동결 자체는 필요하다** — `activeVisualCardVariant !== null` 이 확장 구간을 막고, `phase` 항이 그 억제를 **접힘 애니메이션이 끝날 때까지 연장**한다(없으면 접히는 중 기하로 spacing 을 계산한다). 필요 없는 것은 **값**뿐이다. **판단하지 말고 보고한다** — 속성을 지우면 DOM 이 바뀌어 F2 지문이 달라지므로 0단계의 「행동 무변경」과 충돌한다. step 3 에서 처리할 대상으로 넘긴다.
+
 ## 5. 행동 무변경의 증명
 
 ### 5-1. 세 겹의 증거 — 각각이 보는 것이 다르다
