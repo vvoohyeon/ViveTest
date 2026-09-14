@@ -595,7 +595,7 @@
 
 ## 확정된 제품 결정이 처분한 행 (2026-09-14)
 
-분석 문서 §15 의 확정 결정 열둘이 아래 행들의 처분을 이미 정했다. **해당 행을 열기 전에 이 표를 먼저 보라** — 이미 결론이 난 것을 다시 결정하려 들면 안 된다.
+분석 문서 §15 의 확정 결정 열여섯이 아래 행들의 처분을 이미 정했다. **해당 행을 열기 전에 이 표를 먼저 보라** — 이미 결론이 난 것을 다시 결정하려 들면 안 된다. 이 표와 `docs/plans/2026-09-14-mobile-refactor-design-spec.md` 가 어긋나면 **명세가 이긴다** — 2026-09-14 외부 리뷰 개정에서 명세 이전 결정을 담고 있던 네 행을 명세에 맞췄다.
 
 | 행 / 클러스터 | 처분 |
 |:---|:---|
@@ -603,11 +603,16 @@
 | `mobile-expanded-in-flow-mandate` · `mobile-close-paths-enumerated` | **바텀시트 결정이 이미 답이다.** `req-landing.md` §8.5 전면 재작성 — 지우지 말고 「연속성」과 「복귀 정확성」 두 성질로 다시 쓴다 |
 | `design-md-bans-swipe-dismiss` | **§10 Never Reintroduce 에서 내린다.** `decision-register.md:104,108`(BQ-11)은 「미결정」이었지 영구 금지가 아니었다. BQ 로 재등재 |
 | `no-persistent-primary-nav-on-mobile` | **기각.** 화면이 일곱뿐이라 탭 바가 과하고 하단 밴드 경쟁을 영구화한다. GNB 드로어를 유지한다 |
-| `consent-banner-occludes-the-browse-band` · `consent-banner-raf-avoidance` · `i18n-consent-banner-vertical-budget` · `consent-spacer-desktop-estimate-and-innerheight` | **동의를 비모달 바텀시트로 옮기면 함께 소멸한다.** 회피 rAF 루프 91행도 사라진다 |
-| `Consent Preferences no-op · 되돌리기 불가` 클러스터(4행) | **GNB 드로어에 `Privacy` 행을 추가한다**(step 3 §2-2) |
+| `consent-banner-occludes-the-browse-band` · `consent-banner-raf-avoidance` · `i18n-consent-banner-vertical-budget` · `consent-spacer-desktop-estimate-and-innerheight` | **동의는 하단 배너로 남는다**(명세 규칙 4 — 바텀시트 안은 리뷰에서 번복됐다). 배너가 버튼 둘로 줄고 본문에 줄 수 예산(390px 2 줄 · 320px 3 줄)이 생기며, 사전질문 시트가 배너 위 층으로 오면서 회피 rAF 루프 91행의 전제가 바뀐다 — step 3 §3 이 `:609` 를 다시 읽고 처분한다 |
+| `Consent Preferences no-op · 되돌리기 불가` 클러스터(4행) | **재호출 경로 셋** — 드로어 설정 블록의 우측 정렬 얇은 링크(행이 아니다) · 데스크톱 최하단 중앙 링크 · `OPTED_OUT` 고지 행의 `동의 변경`(명세 §2-5, step 3 §3). 재호출 배너에만 닫기 X |
+| `consent-optout-catalog-collapse-unexplained` | **그리드 상단 고지 한 줄**(명세 §2-1) — 숨은 개수 + `동의 변경` 링크. 필터링 자체와 첫 페인트 후 축소는 그대로 |
+| `instruction 시트 CTA 위치·스크롤` · `i18n-instruction-action-row-wraps` · `instruction-overlay-form-pinned` · scroll-viewport F5 | **instruction 을 모달 바텀시트로 바꾼다**(명세 §2-3 · §3-4, step 3 §1-2). 액션 행은 하단 고정 세로 스택, 본문만 스크롤. 행동 파일 넷은 불변 |
+| `랜딩 히어로가 design.md No hero 를 어긴다` | **밴드를 걷고 페이지 제목(한 줄 + 부제 한 줄)만 남긴다**(명세 §2-12). `design.md` §7.1 문장을 다듬어 등재 |
+| `no-history-entry-for-overlays` · `gnb-drawer-*` 닫기 경로 | **오버레이 층 전부가 시스템 뒤로가기로 닫힌다**(명세 규칙 3). 예외는 instruction 시트 하나 |
+| `no-forward-control-in-runtime` · `answer-pair-mistap-cost` | **기각 — 자동 진행 확정.** 「다음」 버튼을 두지 않는다. 오탭 복구는 이전-삭제 개정 뒤의 「이전」이다(사용자 확정, 2026-09-14) |
 | `landing-scroll-is-density-not-ia` · `mobile-subtitle-clamp-ban` · `타입 스케일에 뷰포트 축이 없다` 클러스터 | **밀도는 중간안 확정** — 1 열 유지, 썸네일 16:6 → 16:4, 모바일 clamp 도입, 목표 약 3.0 화면. **2 열 그리드는 사용자가 배제했다** |
 | `font-2mb-unsubset-unpreloaded` · `i18n-font-payload-vs-coverage` · `webfont-swaps-without-metric-overrides` | **로케일별 subset + preload 확정.** 커버리지를 잃지 않는 subset 이어야 하고, 한자·데바나가리는 별도 전략을 등재해 정한다 |
-| `result-screen-has-no-url` · `share-and-search-surface-is-placeholder` · `web-share-absent` | **이번 리팩터 범위에 들어온다** — 라우트와 동적 OG 까지. 결과 **내용** 스키마는 Phase 9 소유 |
+| `result-screen-has-no-url` · `share-and-search-surface-is-placeholder` · `web-share-absent` | **라우트와 정적 OG 까지만 이번 범위다**(명세 §2-6 · step 2 §5). **동적 OG 카드와 결과 내용 스키마는 다음 phase** — 이 행이 종전에 「동적 OG 까지」라고 적혀 있던 것은 명세 이전 결정이다. 결과 URL 은 `/test/{variant}` 항목을 `replace` 한다 |
 | `gnb-drawer-100vh-beats-dvh` 클러스터(4행) | **`h-screen max-h-screen` 두 유틸리티를 지운다.** Tailwind 4.1 컴파일러 실측: `.[height:100dvh]` 155행 · `.h-screen` **158행** — 뒤에 나와 이긴다. 드로어 내용 하단 812px 이 `100vh`(844) 의미에서 **67px 화면 밖** |
 | `html lang` 클러스터 + `bcp47-locale-paths-hard-404` | **같은 원인이므로 로케일 별칭 표 하나로 함께 닫는다**(step 2 §4-2) |
 | `landing-hamburger-not-in-forward-tab-order` · 랜딩 키보드 진입 | **skip link 로 교체 확정**(step 2 §4-3). `req-landing.md` §7.6 `:480-481` 개정 |

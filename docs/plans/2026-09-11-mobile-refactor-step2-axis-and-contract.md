@@ -177,7 +177,7 @@ cd "$(git rev-parse --show-toplevel)" && npm run lint && npm run typecheck && np
 
 ## 5. 단위 4 — `theme-color` · manifest · OG (작고 독립적)
 
-축과 무관하고 위험이 0 이며 모바일 체감에 직결하는 넷을 이 단계에 붙인다. ⑴ `theme-color` meta 가 없어 모바일 브라우저 크롬이 테마를 따라가지 않는다 — 라이트/다크 두 값을 `media` 로 준다. ⑵ web app manifest 가 없다. ⑶ `description` 이 `Reset baseline placeholder` 인 채로 프로덕션에 나간다. ⑷ OG 태그가 0 이라 **결과 공유 링크의 미리보기가 비어 있다** — 이 제품의 핵심 행동이 공유다.
+축과 무관하고 위험이 0 이며 모바일 체감에 직결하는 다섯을 이 단계에 붙인다. ⑴ `theme-color` meta 가 없어 모바일 브라우저 크롬이 테마를 따라가지 않는다 — **`media` 두 값만으로 끝내지 않는다.** `media` 는 OS 를 따르므로 OS-다크에서 라이트를 고른 사용자의 크롬이 다크로 남아 theme F5 와 같은 결함을 새로 만든다. 두 값을 SSR 로 내고, `theme-bootstrap.js` 와 preference 변경 경로가 `meta[name=theme-color]` 의 `content` 를 **해석된 테마**로 갱신한다. ⑵ web app manifest 가 없다. ⑶ `description` 이 `Reset baseline placeholder` 인 채로 프로덕션에 나간다. ⑷ OG 태그가 0 이라 **결과 공유 링크의 미리보기가 비어 있다** — 이 제품의 핵심 행동이 공유다. ⑸ `viewport-fit=cover` 가 없어 `env(safe-area-inset-*)` 두 곳이 지금까지 한 번도 0 이 아닌 적이 없다 — `src/app/layout.tsx`(Ask-First) 의 viewport 에 더한다. step 3 의 시트가 홈 인디케이터와 겹치는 첫 표면이라 여기서 먼저 열어 둔다.
 
 **정적 OG 까지만 넣는다.** 결과별로 달라지는 **동적 OG 카드는 이번 리팩터 범위 밖**이다(분석 §15 결정 8) — 결과 화면의 내용 스키마가 정해진 뒤에야 만들 수 있고, 그것은 다음 phase 소유다.
 
