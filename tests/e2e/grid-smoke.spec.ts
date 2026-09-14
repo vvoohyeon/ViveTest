@@ -12,6 +12,7 @@ import {
 import {resolveLandingCatalog} from '../../src/features/variant-registry';
 import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT, PRIMARY_BLOG_VARIANT, PRIMARY_OPT_OUT_TEST_VARIANT} from './helpers/landing-fixture';
+import {setTouchViewport} from './helpers/touch-context';
 
 const W12_MOBILE_VIEWPORTS = [360, 390, MOBILE_MAX_VIEWPORT_WIDTH] as const;
 
@@ -392,7 +393,7 @@ test.describe('Phase 4 grid smoke', () => {
   });
 
   test('@smoke mobile keeps one-column rows', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
@@ -485,7 +486,7 @@ test.describe('Phase 4 grid smoke', () => {
   });
 
   test('@smoke mobile full subtitle preserves tag-row geometry across all 12 locales', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
 
     for (const locale of locales) {
       await page.goto(`/${locale}`);
@@ -815,7 +816,7 @@ test.describe('Phase 4 grid smoke', () => {
   test('@smoke visual reconciliation R1 mobile Normal and Expanded titles keep full text with muted expanded context type', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator('[data-card-variant="rhythm-b"]');
@@ -1008,7 +1009,7 @@ test.describe('Phase 4 grid smoke', () => {
     test.setTimeout(75_000);
 
     for (const viewportWidth of W12_MOBILE_VIEWPORTS) {
-      await page.setViewportSize({width: viewportWidth, height: 844});
+      await setTouchViewport(page, {width: viewportWidth, height: 844});
       await page.goto('/en');
 
       const shell = page.getByTestId('landing-grid-shell');
@@ -1199,7 +1200,7 @@ test.describe('Phase 4 grid smoke', () => {
     test.setTimeout(120_000);
 
     for (const viewportWidth of W12_MOBILE_VIEWPORTS) {
-      await page.setViewportSize({width: viewportWidth, height: 844});
+      await setTouchViewport(page, {width: viewportWidth, height: 844});
 
       for (const locale of locales) {
         const catalog = resolveLandingCatalog(locale);
@@ -1452,7 +1453,7 @@ test.describe('Phase 4 grid smoke', () => {
     await container.evaluate((element) => {
       (element as HTMLElement).style.width = '';
     });
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
     await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', 'mobile');
     await expect
@@ -1999,7 +2000,7 @@ test.describe('Phase 4 grid smoke', () => {
       };
     });
 
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
@@ -2284,7 +2285,7 @@ test.describe('Landing first paint', () => {
    */
   test('@smoke mobile landing paints its grid once — no hydration re-plan shift', async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_IN');
-    await page.setViewportSize({width: 390, height: 812});
+    await setTouchViewport(page, {width: 390, height: 812});
     await page.addInitScript(() => {
       const probe: {shifts: number[]; paints: number; plans: string[]} = {shifts: [], paints: 0, plans: []};
       (window as unknown as {__firstPaintProbe: typeof probe}).__firstPaintProbe = probe;

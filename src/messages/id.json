@@ -13,7 +13,8 @@
     "close": "Tutup",
     "back": "Kembali",
     "backAria": "Kembali",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "Lompat ke konten utama"
   },
   "landing": {
     "heroTitle": "Temukan ritme kerja Anda dalam satu alur",

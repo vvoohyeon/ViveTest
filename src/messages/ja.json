@@ -13,7 +13,8 @@
     "close": "閉じる",
     "back": "戻る",
     "backAria": "戻る",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "メインコンテンツへスキップ"
   },
   "landing": {
     "heroTitle": "ひと続きの流れで、自分の作業リズムを見つける",

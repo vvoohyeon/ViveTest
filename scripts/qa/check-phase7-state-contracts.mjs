@@ -1,5 +1,5 @@
 import {createChecker, fileExists, read, readExisting} from './_utils.mjs';
-import {e2e, landing} from './_path-config.mjs';
+import {e2e, gnb, landing, landingShell} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
@@ -10,7 +10,6 @@ const requiredFiles = [
   landing.grid.desktopMotionController,
   landing.grid.keyboardHandoff,
   landing.grid.keyboardModeTracker,
-  landing.grid.landingKeyboardEntry,
   landing.grid.cardKeyboardHandler,
   landing.grid.interactionDom,
   landing.grid.catalogGrid,
@@ -61,8 +60,7 @@ if (fileExists(landing.grid.interactionController)) {
     landing.grid.desktopMotionController,
     landing.grid.keyboardHandoff,
     landing.grid.keyboardModeTracker,
-    landing.grid.landingKeyboardEntry,
-    landing.grid.cardKeyboardHandler,
+      landing.grid.cardKeyboardHandler,
     landing.grid.interactionDom
   ]);
 
@@ -74,8 +72,32 @@ if (fileExists(landing.grid.interactionController)) {
     fail('Interaction controller must enforce capability gate with width<768 => tap mode in Phase 7.');
   }
 
-  if (!/matchMedia\('\(hover: hover\) and \(pointer: fine\)'\)/u.test(controllerFile)) {
-    fail('Interaction controller must sync hover capability from media features.');
+  // 입력 축의 정의처가 `input-profile.ts` 한 곳으로 접혔다. 컨트롤러 본문에서 질의 문자열을
+  // 찾던 종전 검사는 정의가 옮겨간 순간 **거짓 붉음**이 되고, 파일을 이어 붙여 훑도록 고치면
+  // 그 다음에는 **거짓 초록**이 된다(L31) — 그래서 소유자 파일 하나를 직접 지목한다.
+  if (fileExists(landing.grid.inputProfile)) {
+    const inputProfileFile = read(landing.grid.inputProfile);
+
+    // 질의 문자열과 그 상수 이름이 **한 선언 안에** 있어야 한다. import 문에 이름만 남아도
+    // 통과하던 형태를 쓰지 않는다.
+    if (
+      !/INPUT_PROFILE_MEDIA_QUERY\s*=\s*'\(hover: hover\) and \(pointer: fine\)'/u.test(inputProfileFile)
+    ) {
+      fail('Input profile module must own the hover/pointer media query literal.');
+    }
+
+    if (!/matchMedia\(INPUT_PROFILE_MEDIA_QUERY\)/u.test(inputProfileFile)) {
+      fail('Input profile module must subscribe to the media query it declares.');
+    }
+
+    // 그리고 그 정의처가 **유일**해야 한다 — 소비자 쪽에 사본이 다시 생기면 붉어진다.
+    for (const consumer of [landing.grid.interactionController, gnb.capabilityHook]) {
+      if (fileExists(consumer) && /'\(hover: hover\) and \(pointer: fine\)'/u.test(read(consumer))) {
+        fail(`Input axis media query must live only in the input profile module, found a copy in ${consumer}.`);
+      }
+    }
+  } else {
+    fail('Input profile module must exist as the single JS owner of the input axis.');
   }
 
   if (!/MODE_SYNC/u.test(controllerFile) || !/PAGE_HIDDEN/u.test(controllerFile) || !/PAGE_VISIBLE/u.test(controllerFile)) {
@@ -85,8 +107,7 @@ if (fileExists(landing.grid.interactionController)) {
   const keyboardHandoffFile = readExisting([
     landing.grid.keyboardHandoff,
     landing.grid.keyboardModeTracker,
-    landing.grid.landingKeyboardEntry,
-    landing.grid.cardKeyboardHandler
+      landing.grid.cardKeyboardHandler
   ]);
   if (!/pointermove/u.test(controllerAndDomFiles) || !/mousedown/u.test(controllerAndDomFiles)) {
     fail('Interaction controller must track pointermove and exit keyboard mode on mousedown in Phase 7.');
@@ -162,6 +183,32 @@ if (fileExists(e2e.stateSmoke)) {
 
   if (!/assertion:B5-mobile-keyboard-handoff/u.test(e2eSpec)) {
     fail('Phase 7 state smoke must cover the mobile keyboard handoff regression path.');
+  }
+}
+
+// 랜딩 키보드 진입은 skip link 가 소유한다. 종전 계약(「첫 Tab 이 GNB 를 건너뛰고 첫 카드로
+// 간다」)은 탭 순서를 상태로 바꿔 예측 가능성을 해쳤고, 그 비용은 키보드 사용자에게만 부과됐다.
+if (fileExists(landingShell.skipToContentLink) && fileExists(landingShell.pageShell)) {
+  const skipLinkFile = read(landingShell.skipToContentLink);
+  const pageShellFile = read(landingShell.pageShell);
+
+  // 목적지 id 가 한 선언 안에서 링크와 `<main>` 을 잇는다 — import 문에 이름만 남아도
+  // 통과하던 형태를 쓰지 않는다(L31).
+  if (!/PAGE_SHELL_MAIN_ID\s*=\s*'[a-z-]+'/u.test(skipLinkFile)) {
+    fail('Skip link module must own the main-content anchor id.');
+  }
+
+  if (!/href=\{`#\$\{PAGE_SHELL_MAIN_ID\}`\}/u.test(skipLinkFile)) {
+    fail('Skip link must point at the main-content anchor it declares.');
+  }
+
+  if (!/id=\{PAGE_SHELL_MAIN_ID\}/u.test(pageShellFile) || !/tabIndex=\{-1\}/u.test(pageShellFile)) {
+    fail('Page shell main must carry the skip link anchor id and be focusable.');
+  }
+
+  // 그리고 탭 순서를 상태로 바꾸던 기구가 돌아오지 않아야 한다.
+  if (/tabIndex=\{(?:desktop|mobile)LandingTabIndex\}/u.test(read(gnb.siteGnb))) {
+    fail('GNB must not reintroduce state-dependent landing tab order — the skip link replaced it.');
   }
 }
 

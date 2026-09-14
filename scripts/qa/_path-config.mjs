@@ -13,11 +13,13 @@ export const landing = {
     gridCardCss: 'src/features/landing/grid/landing-grid-card.module.css',
     geometryController: 'src/features/landing/grid/use-grid-geometry-controller.ts',
     interactionController: 'src/features/landing/grid/use-landing-interaction-controller.ts',
+    // 입력 축(`InputProfile`)의 **유일한 JS 정의처**. 종전에는 이 판정이 컨트롤러와 GNB 훅
+    // 두 곳에 독립적으로 적혀 있었고, 폭 축과 한 덩어리로 읽혔다.
+    inputProfile: 'src/features/landing/grid/input-profile.ts',
     hoverIntentController: 'src/features/landing/grid/use-hover-intent-controller.ts',
     desktopMotionController: 'src/features/landing/grid/use-desktop-motion-controller.ts',
     keyboardHandoff: 'src/features/landing/grid/use-keyboard-handoff.ts',
     keyboardModeTracker: 'src/features/landing/grid/use-keyboard-mode-tracker.ts',
-    landingKeyboardEntry: 'src/features/landing/grid/use-landing-keyboard-entry.ts',
     cardKeyboardHandler: 'src/features/landing/grid/use-card-keyboard-handler.ts',
     interactionDom: 'src/features/landing/grid/interaction-dom.ts',
     mobileCardLifecycle: 'src/features/landing/grid/use-mobile-card-lifecycle.ts',
@@ -26,6 +28,13 @@ export const landing = {
   model: {
     interactionState: 'src/features/landing/model/interaction-state.ts'
   }
+};
+
+export const landingShell = {
+  // 랜딩 키보드 진입의 소유자. 종전에는 GNB 의 `tabIndex` 를 상태로 내리고 GNB DOM 을 CSS
+  // 선택자로 뒤지는 훅 둘이 그 일을 했고, 그 구현이 스스로 계층 위반임을 인정하고 있었다.
+  skipToContentLink: 'src/features/landing/shell/skip-to-content-link.tsx',
+  pageShell: 'src/features/landing/shell/page-shell.tsx'
 };
 
 export const gnb = {

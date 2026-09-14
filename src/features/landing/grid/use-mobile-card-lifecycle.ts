@@ -25,6 +25,8 @@ interface UseMobileCardLifecycleInput {
   isMobileViewport: boolean;
   shellRef: RefObject<HTMLElement | null>;
   clearHoverTimer: () => void;
+  /** 제자리 오버레이의 닫기. 입력 축이 backdrop 을 켤 때 「빈 곳 탭」이 이것을 부른다. */
+  collapseDesktopOverlay: () => void;
 }
 
 interface UseMobileCardLifecycleOutput {
@@ -46,7 +48,8 @@ export function useMobileCardLifecycle({
   dispatchMobileLifecycle,
   isMobileViewport,
   shellRef,
-  clearHoverTimer
+  clearHoverTimer,
+  collapseDesktopOverlay
 }: UseMobileCardLifecycleInput): UseMobileCardLifecycleOutput {
   const mobileOpenTimerRef = useRef<number | null>(null);
   const mobileCloseTimerRef = useRef<number | null>(null);
@@ -271,7 +274,11 @@ export function useMobileCardLifecycle({
     isMobileViewport,
     phase: mobileLifecycleState.phase,
     beginMobileClose,
-    dispatchMobileLifecycle
+    dispatchMobileLifecycle,
+    // 닫는 법만 입력이 정한다(명세 규칙 3) — 형태는 위의 `isMobileViewport` 가 그대로 갖는다.
+    usesTouchCloseAffordance: interactionMode !== 'hover',
+    desktopOverlayExpandedCardVariant: interactionState.expandedCardVariant,
+    collapseDesktopOverlay
   });
 
   return {

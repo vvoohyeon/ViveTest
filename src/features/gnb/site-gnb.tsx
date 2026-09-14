@@ -16,7 +16,6 @@ import {useGnbDesktopSettings} from '@/features/gnb/hooks/use-gnb-desktop-settin
 import {useGnbKeyboardTargets} from '@/features/gnb/hooks/use-gnb-keyboard-targets';
 import {useGnbTabRouting} from '@/features/gnb/hooks/use-gnb-tab-routing';
 import {useGnbMobileMenu} from '@/features/gnb/hooks/use-gnb-mobile-menu';
-import {useLandingGnbEntryMode} from '@/features/gnb/hooks/use-landing-gnb-entry-mode';
 import {getTransitionOrigin} from '@/features/gnb/hooks/theme-transition';
 import {useThemePreference} from '@/features/gnb/hooks/use-theme-preference';
 import type {GnbContext} from '@/features/gnb/types';
@@ -42,7 +41,11 @@ const gnbMobileInnerClassName = `${gnbInnerClassName} gnb-mobile flex h-14 md:hi
 const gnbLeadingColumnClassName = 'gnb-column gnb-column-leading flex min-w-0 flex-1 items-center justify-start';
 const gnbCenterColumnClassName = 'gnb-column gnb-column-center flex min-w-0 flex-1 items-center justify-center';
 const gnbTrailingColumnClassName = 'gnb-column gnb-column-trailing flex min-w-0 flex-1 items-center justify-end';
-const gnbBrandLinkClassName = 'gnb-ci-link text-base font-bold tracking-[0.02em]';
+// 보이는 껍데기(글자)는 그대로 두고 히트 영역만 `--tap-min` 까지 키운다 — 텍스트 높이만으로는
+// 24px 이라 WCAG 2.5.5/저장소 `--tap-min` 하한에 미달했다(`assertion:TT-01`). 선행 열은
+// `flex items-center` 라 상자만 커지고 글자 위치는 움직이지 않는다.
+const gnbBrandLinkClassName =
+  'gnb-ci-link inline-flex items-center min-h-[var(--tap-min)] text-base font-bold tracking-[0.02em]';
 const gnbDesktopLinksClassName = 'gnb-desktop-links flex items-center gap-4';
 // The rest colour is `--muted-aa`, not `--muted`: BQ-29 measured `--muted` at
 // 4.23:1 on white, and a nav link is normal-sized text however small it looks.
@@ -167,19 +170,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     router
   });
 
-  const {
-    landingKeyboardEntryMode,
-    shouldDeferLandingGnbEntry,
-    desktopLandingTabIndex,
-    mobileLandingTabIndex
-  } = useLandingGnbEntryMode({
-    isLandingContext,
-    gnbShellRef,
-    mobileMenuPanelId,
-    settingsOpen,
-    mobileMenuState
-  });
-
   const {getOrderedKeyboardTargets} = useGnbKeyboardTargets({
     settingsPanelId,
     mobileMenuPanelId,
@@ -193,8 +183,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const {handleGnbKeyDownCapture} = useGnbTabRouting({
     getOrderedKeyboardTargets,
     isLandingContext,
-    shouldDeferLandingGnbEntry,
-    landingKeyboardEntryMode,
     settingsOpen,
     closeSettingsImmediate,
     focusFirstLandingCardTrigger: boundFocusFirstLandingCard
@@ -261,7 +249,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         {t('back')}
       </button>
     ) : (
-      <Link href={{pathname: homeHref}} className={`${gnbBrandLinkClassName}`} scroll={false} tabIndex={desktopLandingTabIndex}>
+      <Link href={{pathname: homeHref}} className={`${gnbBrandLinkClassName}`} scroll={false}>
         ViveTest
       </Link>
     );
@@ -276,7 +264,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <Link
           className={gnbDesktopLinkClassName}
           href={{pathname: historyHref}}
-          tabIndex={desktopLandingTabIndex}
+         
           aria-current={isCurrentSection(currentRoute, 'history') ? 'page' : undefined}
         >
           {t('history')}
@@ -287,7 +275,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <Link
           className={gnbDesktopLinkClassName}
           href={{pathname: blogHref}}
-          tabIndex={desktopLandingTabIndex}
+         
           aria-current={isCurrentSection(currentRoute, 'blog') ? 'page' : undefined}
         >
           {t('blog')}
@@ -315,7 +303,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           aria-expanded={settingsOpen}
           aria-controls={settingsPanelId}
           data-current-theme={resolvedTheme}
-          tabIndex={desktopLandingTabIndex}
+         
           onFocus={() => {
             if (!hoverOpenEnabled) {
               openSettingsImmediate();
@@ -370,7 +358,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <div className={gnbMobileInnerClassName}>
           <div className={gnbLeadingColumnClassName}>
             {context === 'landing' ? (
-              <Link href={{pathname: homeHref}} className={gnbBrandLinkClassName} scroll={false} tabIndex={mobileLandingTabIndex}>
+              <Link href={{pathname: homeHref}} className={gnbBrandLinkClassName} scroll={false}>
                 ViveTest
               </Link>
             ) : (
@@ -395,7 +383,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                 aria-label={mobileMenuState === 'closed' ? t('menuAria') : t('closeMenuAria')}
                 aria-expanded={mobileMenuState !== 'closed'}
                 aria-controls={mobileMenuPanelId}
-                tabIndex={mobileLandingTabIndex}
+               
                 onClick={() => {
                   if (mobileMenuState === 'closed') {
                     setMobileMenuOpen();

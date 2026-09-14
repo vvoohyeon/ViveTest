@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import path from 'node:path';
 
 import {describe, expect, it} from 'vitest';
@@ -93,7 +93,15 @@ describe('Tailwind 후보 위생', () => {
     const offenders: string[] = [];
 
     for (const file of trackedFiles) {
-      const lines = readFileSync(path.join(repoRoot, file), 'utf8').split('\n');
+      // `git ls-files --cached` 는 **아직 스테이지되지 않은 삭제**도 목록에 남긴다. 그 파일을
+      // 읽으면 여기서 ENOENT 로 죽고, 붉음의 원인이 「자리표시자가 있다」로 잘못 읽힌다 —
+      // 파일을 지운 세션이 정확히 그 혼동을 겪는다. 사라진 파일에는 후보가 없으므로 건너뛴다.
+      const absolutePath = path.join(repoRoot, file);
+      if (!existsSync(absolutePath)) {
+        continue;
+      }
+
+      const lines = readFileSync(absolutePath, 'utf8').split('\n');
       lines.forEach((line, index) => {
         const matched = CANDIDATE_WITH_PLACEHOLDER.exec(line) ?? CANDIDATE_WITH_INVALID_VAR.exec(line);
         if (matched) {

@@ -13,7 +13,8 @@
     "close": "Close",
     "back": "Back",
     "backAria": "Go back",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "Skip to main content"
   },
   "landing": {
     "heroTitle": "Find your working rhythm in one pass",

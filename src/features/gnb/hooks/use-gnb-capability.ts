@@ -2,6 +2,8 @@
 
 import {useEffect, useLayoutEffect, useState} from 'react';
 
+import {subscribeToInputProfile} from '@/features/landing/grid/input-profile';
+
 interface GnbCapabilityState {
   viewportWidth: number;
   hoverCapable: boolean;
@@ -13,23 +15,21 @@ export function useGnbCapability(): GnbCapabilityState {
   const [hoverCapable, setHoverCapable] = useState(false);
   const [elevated, setElevated] = useState(false);
 
+  // 폭과 입력은 서로 다른 축이므로 구독도 따로 건다. 입력 축의 정의처는 `input-profile.ts`.
   useLayoutEffect(() => {
-    const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
-
-    const syncCapability = () => {
+    const syncViewportWidth = () => {
       setViewportWidth(window.innerWidth);
-      setHoverCapable(hoverQuery.matches);
     };
 
-    syncCapability();
-    window.addEventListener('resize', syncCapability, {passive: true});
-    hoverQuery.addEventListener('change', syncCapability);
+    syncViewportWidth();
+    window.addEventListener('resize', syncViewportWidth, {passive: true});
 
     return () => {
-      window.removeEventListener('resize', syncCapability);
-      hoverQuery.removeEventListener('change', syncCapability);
+      window.removeEventListener('resize', syncViewportWidth);
     };
   }, []);
+
+  useLayoutEffect(() => subscribeToInputProfile(setHoverCapable), []);
 
   useEffect(() => {
     const syncScroll = () => {

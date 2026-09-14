@@ -13,7 +13,8 @@
     "close": "Fechar",
     "back": "Voltar",
     "backAria": "Voltar",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "Ir para o conteúdo principal"
   },
   "landing": {
     "heroTitle": "Encontre seu ritmo de trabalho em um só fluxo",

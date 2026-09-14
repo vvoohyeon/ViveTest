@@ -44,7 +44,6 @@ interface UseCardKeyboardHandlerInput {
   mobileLifecycleState: LandingMobileLifecycleState;
   beginMobileOpen: (cardVariant: string, syncInteraction?: boolean) => void;
   beginMobileKeyboardHandoff: (sourceVariant: string, nextCardVariant: string | null, nowMs: number) => void;
-  queueLandingReverseGnbTargetFocus: () => void;
   onFocusTransitionIntent: (intent: TransitionIntent) => void;
 }
 
@@ -72,7 +71,6 @@ export function useCardKeyboardHandler({
   mobileLifecycleState,
   beginMobileOpen,
   beginMobileKeyboardHandoff,
-  queueLandingReverseGnbTargetFocus,
   onFocusTransitionIntent
 }: UseCardKeyboardHandlerInput): UseCardKeyboardHandlerOutput {
   const queueCardHandoff = useCallback(
@@ -222,14 +220,16 @@ export function useCardKeyboardHandler({
             if (event.shiftKey && target === event.currentTarget) {
               const previousCardVariant = resolveAdjacentEnterableCardVariant(cardVariants, card.variant, -1, isCardEnterableByVariant);
               if (isMobileViewport) {
-                event.preventDefault();
                 if (previousCardVariant) {
+                  event.preventDefault();
                   beginMobileKeyboardHandoff(card.variant, previousCardVariant, event.timeStamp);
                   return;
                 }
 
+                // 이전 카드가 없다 — 여기서 `preventDefault` 를 걸고 GNB DOM 을 직접 뒤지는
+                // 대신, 닫기만 하고 **브라우저가 문서 순서대로** 뒤로 보내게 둔다. skip link
+                // 도입으로 탭 순서가 언제나 문서 순서이므로 그 이동이 곧 GNB 다.
                 beginMobileKeyboardHandoff(card.variant, null, event.timeStamp);
-                queueLandingReverseGnbTargetFocus();
                 return;
               }
 
@@ -238,6 +238,7 @@ export function useCardKeyboardHandler({
                 return;
               }
 
+              // 닫기만 하고 포커스 이동은 브라우저에 맡긴다(위와 같은 이유).
               onFocusTransitionIntent('collapse');
               dispatch({
                 type: 'CARD_COLLAPSE',
@@ -245,8 +246,6 @@ export function useCardKeyboardHandler({
                 interactionMode,
                 cardVariant: card.variant
               });
-              queueLandingReverseGnbTargetFocus();
-              event.preventDefault();
             }
 
             return;
@@ -303,8 +302,7 @@ export function useCardKeyboardHandler({
       mobileLifecycleState.phase,
       onFocusTransitionIntent,
       queueCardHandoff,
-      queueLandingReverseGnbTargetFocus,
-      shellRef,
+          shellRef,
       state.expandedCardVariant
     ]
   );

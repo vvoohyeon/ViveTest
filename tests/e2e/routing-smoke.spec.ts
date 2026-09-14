@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {expect, test} from '@playwright/test';
 
-import {localeOptions, locales} from '../../src/config/site';
+import {localeOptions, locales, resolveHtmlLang} from '../../src/config/site';
 import {
   buildLocalizedBlogDetailRoute,
   buildLocalizedBlogIndexRoute,
@@ -147,12 +147,15 @@ test.describe('Phase 1 routing smoke', () => {
       expect(response.ok()).toBe(true);
 
       const html = await response.text();
-      expect(html).toMatch(new RegExp(`<html[^>]*lang="${locale}"`, 'u'));
+      // `lang` 은 제품 코드가 아니라 **표시용 BCP 47 태그**다(`kr`→`ko` · `zs`→`zh-Hans` ·
+      // `zt`→`zh-Hant`). URL 세그먼트의 정본은 여전히 제품 코드이며 위의 `pathname` 이 그것을
+      // 쓰고 있다 — 이 단언이 둘을 구분한다.
+      expect(html).toMatch(new RegExp(`<html[^>]*lang="${resolveHtmlLang(locale)}"`, 'u'));
     }
 
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.locator('html')).toHaveAttribute('lang', resolveHtmlLang('en'));
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
@@ -232,5 +235,63 @@ test.describe('Phase 1 routing smoke', () => {
     await page.goto(buildLocalizedBlogDetailRoute('en', NON_ENTERABLE_BLOG_VARIANT));
     await expect(page).toHaveURL(/\/en\/blog$/u);
     await expect(page.getByTestId('blog-selected-article')).toHaveCount(0);
+  });
+  test('@smoke assertion:MB-01 mobile head contract — theme-color follows the resolved theme, manifest and static OG exist, safe-area is opened', async ({
+    page,
+    request
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    // ⑴ `viewport-fit=cover` 가 없으면 `env(safe-area-inset-*)` 는 **항상 0** 이다. 저장소에
+    // 그 함수를 쓰는 자리가 둘 있는데 지금까지 한 번도 0 이 아닌 적이 없었다.
+    const viewportContent = await page.locator('meta[name="viewport"]').getAttribute('content');
+    expect(viewportContent ?? '').toContain('viewport-fit=cover');
+
+    // ⑵ description 이 자리표시자가 아니다.
+    const description = await page.locator('meta[name="description"]').getAttribute('content');
+    expect(description ?? '').not.toContain('placeholder');
+    expect((description ?? '').length).toBeGreaterThan(20);
+
+    // ⑶ 정적 OG — 결과 공유 링크의 미리보기가 비어 있지 않아야 한다.
+    for (const property of ['og:title', 'og:description', 'og:type', 'og:site_name']) {
+      await expect(page.locator(`meta[property="${property}"]`), property).toHaveCount(1);
+    }
+
+    // ⑷ manifest 가 실재하고 파싱된다.
+    const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href');
+    expect(manifestHref).toBeTruthy();
+    const manifestResponse = await request.get(manifestHref!);
+    expect(manifestResponse.ok()).toBe(true);
+    const manifestBody = (await manifestResponse.json()) as {name?: string; start_url?: string};
+    expect(manifestBody.name).toBeTruthy();
+    expect(manifestBody.start_url).toBeTruthy();
+
+    // ⑸ `theme-color` 는 **해석된 테마**를 따라간다 — OS 가 아니라.
+    //    이것이 이 케이스의 핵심이다: `media` 두 값만 두면 OS-다크에서 라이트를 고른 사용자의
+    //    크롬이 다크로 남아 페이지와 어긋난다.
+    const readThemeColor = () =>
+      page.evaluate(() => {
+        const meta = document.querySelector('meta[name="theme-color"]');
+        return {
+          content: meta?.getAttribute('content') ?? null,
+          media: meta?.getAttribute('media') ?? null,
+          theme: document.documentElement.dataset.theme ?? null
+        };
+      });
+
+    const applied = await readThemeColor();
+    expect(applied.media, 'media 가 남아 있으면 OS 를 따라가 해석된 테마와 어긋난다').toBeNull();
+    expect(applied.theme).toBe('light');
+    expect(applied.content).toBe('#fbfaf7');
+
+    // OS 는 다크인데 사용자가 라이트를 골랐던 상태 — 종전이라면 크롬만 다크로 남았다.
+    await page.emulateMedia({colorScheme: 'dark'});
+    await page.evaluate(() => window.localStorage.setItem('vivetest-theme', 'light'));
+    await page.reload();
+
+    const overridden = await readThemeColor();
+    expect(overridden.theme, 'OS 다크에서도 저장된 라이트 선택이 이긴다').toBe('light');
+    expect(overridden.content, 'OS 가 아니라 해석된 테마를 따라야 한다').toBe('#fbfaf7');
   });
 });

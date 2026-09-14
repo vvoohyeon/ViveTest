@@ -13,7 +13,8 @@
     "close": "닫기",
     "back": "뒤로",
     "backAria": "뒤로 가기",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "본문으로 건너뛰기"
   },
   "landing": {
     "heroTitle": "한 번의 흐름으로 내 작업 리듬 찾기",

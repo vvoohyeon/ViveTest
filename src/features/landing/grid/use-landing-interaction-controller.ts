@@ -2,7 +2,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   RefObject
 } from 'react';
-import {useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
 
 import {isEnterableCard, type LandingCard} from '@/features/variant-registry';
 import {
@@ -33,6 +33,7 @@ import {
 } from '@/features/landing/model/interaction-selectors';
 import {LANDING_TRANSITION_CLEANUP_EVENT} from '@/features/transition/store';
 import {useDesktopMotionController} from '@/features/landing/grid/use-desktop-motion-controller';
+import {subscribeToInputProfile} from '@/features/landing/grid/input-profile';
 import {useDesktopCardCloseController} from '@/features/landing/grid/use-desktop-card-close-controller';
 import {useHoverIntentController} from '@/features/landing/grid/use-hover-intent-controller';
 import {
@@ -123,10 +124,6 @@ export function useLandingInteractionController({
     () => new Map(cards.map((card) => [card.variant, card])),
     [cards]
   );
-  const firstEnterableCardVariant = useMemo(
-    () => cards.find((card) => isEnterableCard(card))?.variant ?? null,
-    [cards]
-  );
   const enterableCardVariantSet = useMemo(
     () => new Set(cards.filter((card) => isEnterableCard(card)).map((card) => card.variant)),
     [cards]
@@ -151,6 +148,11 @@ export function useLandingInteractionController({
   const isMobileViewport = viewportTier === 'mobile';
   const prefersReducedMotion = interactionState.pageState === 'REDUCED_MOTION';
 
+  const collapseDesktopOverlayRef = useRef<() => void>(() => {});
+  const collapseDesktopOverlayStable = useCallback(() => {
+    collapseDesktopOverlayRef.current();
+  }, []);
+
   const {
     desktopMotionState,
     desktopTransitionReasonRef,
@@ -169,7 +171,6 @@ export function useLandingInteractionController({
     state: interactionState,
     dispatch: dispatchInteraction,
     interactionMode,
-    isMobileViewport,
     shellRef,
     setDesktopTransitionReason
   });
@@ -190,27 +191,14 @@ export function useLandingInteractionController({
     dispatchMobileLifecycle,
     isMobileViewport,
     shellRef,
-    clearHoverTimer
+    clearHoverTimer,
+    // `collapseExpandedCard` 는 훅 사슬상 아래에 정의된다. 순서를 뒤집는 대신 ref 를 통해
+    // 안정 콜백으로 넘긴다 — 값은 매 렌더마다 갱신되고 신원은 바뀌지 않는다.
+    collapseDesktopOverlay: collapseDesktopOverlayStable
   });
 
-  useLayoutEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return;
-    }
-
-    const query = window.matchMedia('(hover: hover) and (pointer: fine)');
-
-    const syncHoverCapability = () => {
-      setHoverCapability(query.matches);
-    };
-
-    syncHoverCapability();
-    query.addEventListener('change', syncHoverCapability);
-
-    return () => {
-      query.removeEventListener('change', syncHoverCapability);
-    };
-  }, []);
+  // 입력 축의 정의처는 `input-profile.ts` 한 곳이다 — 질의 문자열을 여기 다시 적지 않는다.
+  useLayoutEffect(() => subscribeToInputProfile(setHoverCapability), []);
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -292,11 +280,18 @@ export function useLandingInteractionController({
     setDesktopTransitionReason
   ]);
 
+  // backdrop 의 「빈 곳 탭」이 부를 수 있도록 최신 구현을 ref 에 둔다(위의 안정 콜백이 읽는다).
+  // 렌더 중 ref 쓰기는 금지이므로 effect 로 미룬다 — 첫 페인트 전에 탭이 도달할 수는 없다.
+  useEffect(() => {
+    collapseDesktopOverlayRef.current = collapseExpandedCard;
+  }, [collapseExpandedCard]);
+
   const {focusCardFromKeyboard, handleCardKeyDown, handleCardBlur} =
     useDesktopCardCloseController({
       interactionMode,
       isMobileViewport,
       shellRef,
+      beginMobileClose,
       focusedCardVariant: interactionState.focusedCardVariant,
       expandedCardVariant: interactionState.expandedCardVariant,
       dispatchInteraction,
@@ -333,7 +328,6 @@ export function useLandingInteractionController({
     isMobileViewport,
     shellRef,
     cardVariants,
-    firstEnterableCardVariant,
     isCardEnterableByVariant,
     isCardExpandableByVariant,
     focusCardFromKeyboard,

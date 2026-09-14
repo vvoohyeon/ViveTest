@@ -13,7 +13,8 @@
     "close": "Закрыть",
     "back": "Назад",
     "backAria": "Вернуться назад",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "Перейти к основному содержанию"
   },
   "landing": {
     "heroTitle": "Найдите свой рабочий ритм за один подход",

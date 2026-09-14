@@ -21,7 +21,7 @@
     "desktop/test-click-expands": "08965b8b5edc22cb6949ddb1a97a63ee9df62ca0fcb593189bc44130d8de3cca",
     "mobile/tap-open-then-close-button": "eee4fb831694ffccb7f8384ba5522d0943d056315e06cfadd72aa31470a2c621",
     "mobile/tap-open-then-backdrop": "7aae103583e3e2a6b13b39b06aa2e858c251275e9eb8e5fb9cb052661e6c42b3",
-    "mobile/card-root-handlers-ignored": "2a112c46aae0df1c5f89f9df8a43332b73faef773e6f749c4519e07e2a7b76c4",
+    "mobile/card-root-escape-closes-blur-inert": "db6445849b372d776108bda4a72e92a42eb90f2d2532eb48b5c7d9bb884de3fc",
     "mobile/blog-tap-routes-without-lifecycle": "7b4c1b47d7f6b5f64e4c839f21ec1bda3f65c488ba5113b1c9fc1f8ebd2b9f7e",
     "mobile/second-card-tap-while-open": "59cbf8daa2b2bac69edb7440780694b4963d429272275cc0ccc96d696600a11b",
     "mobile/unavailable-tap": "afaa0aea678cf78a23498e771b418865b8f3ef372ef6a4ae7ab4524582d431d9",
@@ -30,7 +30,7 @@
     "scroll-hold/re-adjudicates-inside-moved-boundary": "c3eeb294420b76796dca44adaf5e09aced64b5c6703e300122e4ab6dc815f6ce",
     "scroll-hold/releases-on-viewport-exit": "3b508d2fd5d07b9016325ea1f7910adb930860358675a178483e14f9b5c444d3",
     "scroll-hold/handoff-drops-the-hold": "5c210dc571a6d8088912d272be750f8f454fbd9f2b1ea6f6b679b5c0bae0eead",
-    "tap-mode/no-scroll-hold-on-desktop-width": "2331398d69b88a4d2f08aaca2ec321833998dca4ad9301a41b58451fd8799c08"
+    "tap-mode/no-scroll-hold-on-desktop-width": "e51254dd0e4a022b0007936324dfe128bcd39d1a083b542114b56074866d07f2"
   },
-  "digest": "a4890660a7412e2493d9be49369a2fd2c74d46276be57408280348ea7da987f1"
+  "digest": "b18e7341073e109d06dfe03edd4684eca2f349cee59aa93c8c69a5e6b0267aca"
 }

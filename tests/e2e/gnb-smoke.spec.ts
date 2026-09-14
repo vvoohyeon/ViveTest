@@ -16,6 +16,7 @@ import {
   buildLocalizedPrimaryTestRoute,
   SECONDARY_BLOG_VARIANT
 } from './helpers/landing-fixture';
+import {setTouchViewport} from './helpers/touch-context';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const DESKTOP_SETTINGS_PANEL_EXTRA_TOP_PX = 12;
@@ -199,6 +200,25 @@ async function seedManualTheme(page: Page, theme: 'light' | 'dark') {
     },
     [THEME_STORAGE_KEY, theme] as const
   );
+}
+
+/**
+ * 대상이 포커스될 때까지 `Tab` 을 누른다.
+ *
+ * 종전에는 랜딩에서 첫 `Tab` 이 곧 첫 카드였으므로 케이스들이 그 한 번을 직접 적었다. skip
+ * link 도입으로 탭 순서가 문서 순서가 되면서 그 전제가 사라졌고, **그 전제에 기대던 단언과
+ * 그 케이스가 실제로 재려던 것을 가른다** — 아래 케이스들이 재는 것은 「닫힌 패널이 탭 순서에
+ * 들어오지 않는다」이지 「첫 Tab 이 어디로 가는가」가 아니다.
+ */
+async function tabUntilFocused(page: Page, target: Locator, budget = 40): Promise<void> {
+  for (let attempt = 0; attempt < budget; attempt += 1) {
+    await page.keyboard.press('Tab');
+    if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) {
+      return;
+    }
+  }
+
+  throw new Error('Tab budget exhausted before reaching the target');
 }
 
 test.describe('Phase 3 gnb shell smoke', () => {
@@ -615,7 +635,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   test('@smoke mobile theme switch keeps the menu open while applying the next theme', async ({page}) => {
     await installViewTransitionStub(page);
     await seedManualTheme(page, 'light');
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const trigger = page.getByTestId('gnb-mobile-menu-trigger');
@@ -638,12 +658,18 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(page.locator('#theme-switch-style')).toHaveCount(0, {timeout: 3000});
   });
 
-  test('@smoke assertion:B3-gnb-keyboard-matrix desktop landing enters cards first, reverse-enters GNB, and closes settings on focus-out', async ({
+  // 종전 제목은 「enters cards first, reverse-enters GNB」였고 탭 순서를 상태의 함수로
+  // 만드는 계약을 고정했다. skip link 로 교체되면서 랜딩도 문서 순서를 따른다 — 첫 탭 스톱은
+  // skip link 이고, 그 다음이 GNB 다.
+  test('@smoke assertion:B3-gnb-keyboard-matrix desktop landing follows document tab order from the skip link, and closes settings on focus-out', async ({
     page
   }) => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
-    await page.locator('body').click({position: {x: 1, y: 1}});
+    // **클릭하지 않는다.** 클릭은 브라우저의 sequential focus navigation starting point 를
+    // 그 좌표로 옮기므로 그 뒤의 `Tab` 은 문서 처음이 아니라 **클릭한 자리**에서 이어진다
+    // (실측: `(600,500)` 클릭 뒤 첫 `Tab` 은 그 부근 카드로 간다). 「첫 탭 스톱」을 재려면
+    // 시작점을 건드리지 않아야 한다.
 
     const home = page.locator('.gnb-desktop .gnb-ci-link');
     const history = page.locator('.gnb-desktop .gnb-desktop-links a').nth(0);
@@ -654,16 +680,11 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const {alternateButton, currentButton} = getThemeControls(page, 'desktop');
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
 
+    // 첫 탭 스톱은 skip link 다 — 문서 순서 그대로이고 랜딩이라고 달라지지 않는다.
     await page.keyboard.press('Tab');
-    await expect(firstCardTrigger).toBeFocused();
+    await expect(page.getByTestId('skip-to-content')).toBeFocused();
 
-    await page.keyboard.press('Shift+Tab');
-    await expect(settingsTrigger).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
-    await expect(blog).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
-    await expect(history).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
     await expect(home).toBeFocused();
 
     await page.keyboard.press('Tab');
@@ -694,16 +715,14 @@ test.describe('Phase 3 gnb shell smoke', () => {
   }) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
-    await page.locator('body').click({position: {x: 1, y: 1}});
 
     const settingsTrigger = page.getByTestId('gnb-settings-trigger');
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
     const panel = page.getByTestId('gnb-settings-panel');
 
-    await page.keyboard.press('Tab');
-    await expect(firstCardTrigger).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
-    await expect(settingsTrigger).toBeFocused();
+    // 이 케이스가 재는 것은 **닫힌 패널이 탭 순서에 없다**는 것이다 — 트리거에서 한 번 더
+    // `Tab` 하면 패널 내부가 아니라 첫 카드로 가야 한다.
+    await tabUntilFocused(page, settingsTrigger);
     await expect(panel).toBeHidden();
     await page.keyboard.press('Tab');
     await expect(firstCardTrigger).toBeFocused();
@@ -789,7 +808,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   });
 
   test('@smoke assertion:B7-mobile-overlay mobile overlay close-start and unlock timing', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const trigger = page.getByTestId('gnb-mobile-menu-trigger');
@@ -826,12 +845,14 @@ test.describe('Phase 3 gnb shell smoke', () => {
       .toBe('gnb-mobile-menu-trigger');
   });
 
-  test('@smoke assertion:B7-gnb-keyboard-matrix mobile landing enters cards first, reverse-enters menu, and restores focus on escape close', async ({
+  // 종전 제목은 「enters cards first, reverse-enters menu」였다. skip link 로 교체되면서 랜딩도
+  // 문서 순서를 따르므로 그 두 주장은 계약이 아니다 — 이 케이스가 계속 재는 것은 드로어가
+  // 열린 뒤의 순회와 Escape 닫기의 포커스 복원이다.
+  test('@smoke assertion:B7-gnb-keyboard-matrix mobile drawer traversal and escape-close focus restore', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
-    await page.locator('body').click({position: {x: 1, y: 1}});
 
     const home = page.locator('.gnb-mobile .gnb-ci-link');
     const trigger = page.getByTestId('gnb-mobile-menu-trigger');
@@ -842,11 +863,10 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const localeControls = page.getByTestId('mobile-gnb-locale-controls');
     const {alternateButton, currentButton} = getThemeControls(page, 'mobile');
 
+    // 문서 순서: skip link → 로고 → 메뉴 트리거.
     await page.keyboard.press('Tab');
-    await expect(page.getByTestId('landing-grid-card-trigger').first()).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
-    await expect(trigger).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByTestId('skip-to-content')).toBeFocused();
+    await page.keyboard.press('Tab');
     await expect(home).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(trigger).toBeFocused();
@@ -879,25 +899,22 @@ test.describe('Phase 3 gnb shell smoke', () => {
   test('@smoke assertion:B7-gnb-keyboard-matrix mobile closed menu panel stays out of the tab order', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
-    await page.locator('body').click({position: {x: 1, y: 1}});
 
     const trigger = page.getByTestId('gnb-mobile-menu-trigger');
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
     const panel = page.getByTestId('gnb-mobile-menu-panel');
 
-    await page.keyboard.press('Tab');
-    await expect(firstCardTrigger).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
-    await expect(trigger).toBeFocused();
+    // 위와 같다 — 재는 것은 닫힌 패널의 탭 순서 배제다.
+    await tabUntilFocused(page, trigger);
     await expect(panel).toBeHidden();
     await page.keyboard.press('Tab');
     await expect(firstCardTrigger).toBeFocused();
   });
 
   test('@smoke mobile outside-close cancels when gesture becomes scroll', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const trigger = page.getByTestId('gnb-mobile-menu-trigger');
@@ -930,7 +947,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   });
 
   test('@smoke mobile ignores extra close input while already closing', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const trigger = page.getByTestId('gnb-mobile-menu-trigger');
@@ -970,7 +987,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   test('@smoke assertion:B7-gnb-keyboard-matrix mobile blog/history contexts keep back then menu traversal and keyboard close restore', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
 
     for (const route of [
       buildLocalizedBlogIndexRoute('en'),
@@ -1002,7 +1019,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   });
 
   test('@smoke mobile test back uses history before fallback', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto(buildLocalizedBlogIndexRoute('en'));
     await page.goto(buildLocalizedPrimaryTestRoute('en'));
 
@@ -1011,7 +1028,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   });
 
   test('@smoke mobile test back falls back to localized landing', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto(buildLocalizedPrimaryTestRoute('en'));
 
     await page.getByTestId('gnb-mobile-test-back').click();
@@ -1021,7 +1038,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
   test('@smoke assertion:B7-gnb-keyboard-matrix mobile test context exposes only keyboard-activatable back control', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto(buildLocalizedBlogIndexRoute('en'));
     await page.goto(buildLocalizedPrimaryTestRoute('en'));
     await page.locator('body').click({position: {x: 1, y: 1}});

@@ -559,7 +559,11 @@ describe('landing interaction controller handlers', () => {
     expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
   });
 
-  it('ignores both card-root close handlers on Mobile', () => {
+  // 승격 전 이 케이스의 제목은 「ignores both card-root close handlers on Mobile」이었고
+  // Escape 와 blur 가 **둘 다** 아무 일도 하지 않는 것을 고정했다. 키보드 축이 전 표면 규칙이
+  // 되면서 그 계약이 갈라진다 — Escape 는 모바일 생명주기를 닫고, blur 는 여전히 아무 일도
+  // 하지 않는다(터치에서 포커스 이탈은 닫기 의도가 아니다). 제목을 새 계약에 맞게 바꾼다.
+  it('routes card-root Escape into the mobile lifecycle while blur stays inert on Mobile', () => {
     const {testCard} = selectFixtureCards();
     const shell = mountShell([testCard]);
     const {result} = renderController({
@@ -601,10 +605,21 @@ describe('landing interaction controller handlers', () => {
       } as unknown as ReactFocusEvent<HTMLElement>);
     });
 
-    expect(keyEvent.preventDefault).not.toHaveBeenCalled();
-    expect(keyEvent.stopPropagation).not.toHaveBeenCalled();
-    expect(result.current.interactionState).toEqual(beforeInteraction);
-    expect(result.current.mobileLifecycleState).toEqual(beforeLifecycle);
+    // Escape 는 이제 모바일에서도 소비된다 — WCAG 2.1.1/2.1.2.
+    expect(keyEvent.preventDefault).toHaveBeenCalled();
+    expect(keyEvent.stopPropagation).toHaveBeenCalled();
+
+    // 그리고 데스크톱 close 경로가 아니라 **모바일 생명주기**로 들어간다. 탭 직후라 카드는
+    // 아직 `OPENING` 이므로 §8.5 의 queue-close 규칙대로 닫기가 예약된다 — 즉시 접히는 것이
+    // 아니라 예약되는 것이 이 구간의 계약이다.
+    expect(beforeLifecycle.phase).toBe('OPENING');
+    expect(beforeLifecycle.queuedClose).toBe(false);
+    expect(result.current.mobileLifecycleState.queuedClose).toBe(true);
+
+    // blur 는 그대로 무위다 — 데스크톱 close 경로는 모바일에서 여전히 실행되지 않는다.
+    expect(result.current.interactionState.expandedCardVariant).toBe(
+      beforeInteraction.expandedCardVariant
+    );
   });
 
   it('keeps the selected Test target after the source blur fires following handoff', () => {

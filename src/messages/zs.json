@@ -13,7 +13,8 @@
     "close": "关闭",
     "back": "返回",
     "backAria": "返回上一页",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "跳转到主要内容"
   },
   "landing": {
     "heroTitle": "一气呵成，找到你的工作节奏",

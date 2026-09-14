@@ -40,6 +40,11 @@ const CONSENT_BANNER_OCCLUDED_CLASS = 'invisible opacity-0';
 // `.vt-banner` — floating 표면이되 scrim 은 없다. 배너는 페이지 **위에** 떠 있지만 아무것도
 // 막지 않으므로, 아닌 것(모달)처럼 읽혀서는 안 된다. 종전에는 94% 반투명 패널에
 // `--surface-divider` 를 두르고 18px 반경이었다.
+// 배너의 접힘 경계는 저장소의 유일한 모바일 경계(`MOBILE_MAX_VIEWPORT_WIDTH`, `layout-plan.ts`)를
+// 따른다. 종전 값 719 는 저장소·문서·테스트 어디에도 근거가 없는 고아 임계값이었고(전수 검색
+// 결과 이 파일 7 곳이 유일한 출현), 그 때문에 브라우저가 받는 폭 경계가 두 벌로 갈려 있었다.
+// 리터럴로 적을 수밖에 없는 것은 Tailwind 임의 variant 가 TS 상수를 읽지 못하기 때문이고,
+// 그 결합은 `tests/unit/consent-banner-breakpoint.test.ts` 가 고정한다.
 const CONSENT_BANNER_SURFACE_CLASS =
   'rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-raised)] shadow-[var(--shadow-lg)]';
 // 어휘는 `@/features/ui/button-class-names` 가 갖는다. 배너가 더하는 것은 표식 클래스뿐이고,
@@ -238,14 +243,14 @@ export function ConsentBanner({
         <section
           ref={bannerRef}
           data-occluding={isOccluding ? 'true' : 'false'}
-          className={`telemetry-consent-banner pointer-events-auto ${isOccluding ? CONSENT_BANNER_OCCLUDED_CLASS : ''} flex w-full max-w-[1280px] items-center justify-between gap-5 px-5 py-4 max-[719px]:flex-wrap max-[719px]:justify-start max-[719px]:gap-[14px] max-[719px]:p-[14px] ${CONSENT_BANNER_SURFACE_CLASS}`}
+          className={`telemetry-consent-banner pointer-events-auto ${isOccluding ? CONSENT_BANNER_OCCLUDED_CLASS : ''} flex w-full max-w-[1280px] items-center justify-between gap-5 px-5 py-4 max-[767px]:flex-wrap max-[767px]:justify-start max-[767px]:gap-[14px] max-[767px]:p-[14px] ${CONSENT_BANNER_SURFACE_CLASS}`}
           aria-label={regionLabel}
           data-testid={rootTestId}
         >
-          <p className="telemetry-consent-banner-message m-0 min-w-0 flex-1 basis-[520px] [font:var(--body-sm)] text-[var(--ink-body)] max-[719px]:basis-full">
+          <p className="telemetry-consent-banner-message m-0 min-w-0 flex-1 basis-[520px] [font:var(--body-sm)] text-[var(--ink-body)] max-[767px]:basis-full">
             {message}
           </p>
-          <div className="telemetry-consent-banner-actions flex shrink-0 flex-wrap items-center justify-end gap-2 max-[719px]:basis-full max-[719px]:justify-start">
+          <div className="telemetry-consent-banner-actions flex shrink-0 flex-wrap items-center justify-end gap-2 max-[767px]:basis-full max-[767px]:justify-start">
             <button
               type="button"
               className={CONSENT_PRIMARY_BUTTON_CLASS}

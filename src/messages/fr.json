@@ -13,7 +13,8 @@
     "close": "Fermer",
     "back": "Retour",
     "backAria": "Revenir en arrière",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "Aller au contenu principal"
   },
   "landing": {
     "heroTitle": "Trouvez votre rythme de travail d'un seul élan",

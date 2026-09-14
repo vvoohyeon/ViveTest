@@ -16,7 +16,6 @@ import type {LandingCardInteractionMode} from '@/features/landing/grid/landing-c
 export interface HoverScrollHoldInput {
   shellRef: RefObject<HTMLElement | null>;
   interactionMode: LandingCardInteractionMode;
-  isMobileViewport: boolean;
   expandedCardVariant: string | null;
   collapseCard: (cardVariant: string, nowMs: number) => void;
 }
@@ -31,7 +30,6 @@ export interface HoverScrollHold {
 export function useHoverScrollHold({
   shellRef,
   interactionMode,
-  isMobileViewport,
   expandedCardVariant,
   collapseCard
 }: HoverScrollHoldInput): HoverScrollHold {
@@ -104,14 +102,10 @@ export function useHoverScrollHold({
       return;
     }
 
-    if (
-      interactionMode !== 'hover' ||
-      isMobileViewport ||
-      expandedCardVariant !== scrollHeldCardVariant
-    ) {
+    if (interactionMode !== 'hover' || expandedCardVariant !== scrollHeldCardVariant) {
       releaseScrollHold();
     }
-  }, [interactionMode, isMobileViewport, releaseScrollHold, expandedCardVariant]);
+  }, [interactionMode, releaseScrollHold, expandedCardVariant]);
 
   useEffect(() => releaseScrollHold, [releaseScrollHold]);
 

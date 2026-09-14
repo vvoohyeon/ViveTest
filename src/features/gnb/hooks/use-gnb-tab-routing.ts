@@ -7,13 +7,10 @@ import {
   useRef
 } from 'react';
 
-import type {LandingKeyboardEntryMode} from '@/features/gnb/hooks/use-landing-gnb-entry-mode';
 
 interface UseGnbTabRoutingInput {
   getOrderedKeyboardTargets: () => HTMLElement[];
   isLandingContext: boolean;
-  shouldDeferLandingGnbEntry: boolean;
-  landingKeyboardEntryMode: LandingKeyboardEntryMode;
   settingsOpen: boolean;
   closeSettingsImmediate: () => void;
   focusFirstLandingCardTrigger: () => boolean;
@@ -70,46 +67,12 @@ export function useGnbTabRouting(input: UseGnbTabRoutingInput): UseGnbTabRouting
     inputRef.current = input;
   });
 
-  useEffect(() => {
-    const handleKeyboardTabRouting = (event: KeyboardEvent) => {
-      if (shouldIgnoreKeyboardEvent(event)) {
-        return;
-      }
+  // 문서 수준의 첫 `Tab` 가로채기는 **제거됐다.** 그 핸들러는 body 에서 `Tab` 이 눌리면
+  // `preventDefault` 하고 GNB 의 첫 대상으로 포커스를 밀어 넣었다 — 탭 순서를 코드가 소유하던
+  // 자리다. skip link 가 문서 순서상 첫 탭 스톱이 되면서 그 가로채기는 **틀린 동작**이 된다:
+  // 사용자가 기대하는 첫 탭 스톱(본문 건너뛰기)을 빼앗기 때문이다. 이제 첫 `Tab` 은 브라우저가
+  // 문서 순서대로 처리하고, GNB 내부 순회만 아래 capture 핸들러가 맡는다.
 
-      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const targets = inputRef.current.getOrderedKeyboardTargets();
-      if (targets.length === 0) {
-        return;
-      }
-
-      const isDocumentLevelTarget =
-        activeElement === document.body || activeElement === document.documentElement || activeElement === null;
-
-      if (!isDocumentLevelTarget) {
-        return;
-      }
-
-      if (event.shiftKey) {
-        return;
-      }
-
-      if (
-        inputRef.current.isLandingContext &&
-        inputRef.current.shouldDeferLandingGnbEntry &&
-        inputRef.current.landingKeyboardEntryMode === 'card-first'
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      targets[0]?.focus();
-    };
-
-    document.addEventListener('keydown', handleKeyboardTabRouting, true);
-    return () => {
-      document.removeEventListener('keydown', handleKeyboardTabRouting, true);
-    };
-  }, []);
 
   const handleGnbKeyDownCapture = useCallback((event: ReactKeyboardEvent<HTMLElement>) => {
     routeKeyboardWithinGnb(event, inputRef.current);

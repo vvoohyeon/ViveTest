@@ -18,7 +18,7 @@ ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·
 |:---|:---|
 | Routes | `/{locale}`, `/{locale}/blog`, `/{locale}/blog/{variant}`, `/{locale}/history`, `/{locale}/test/{variant}`, `/{locale}/test/error`, `/api/telemetry` |
 | 404 surface | `src/app/not-found.tsx`, `src/app/global-not-found.tsx` |
-| Locales | `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru` (정규화: `ko* → kr` · Simplified Chinese → `zs` · Traditional Chinese → `zt`) |
+| Locales | `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru` (정규화: `ko* → kr` · Simplified Chinese → `zs` · Traditional Chinese → `zt`). **URL·스토리지·telemetry 의 정본은 이 코드다.** 표시용 `<html lang>` 은 BCP 47 태그로 따로 갖고(`kr→ko` · `zs→zh-Hans` · `zt→zh-Hant`, 나머지 9 개는 코드 그대로), BCP 47 로 들어온 진입은 canonical 코드로 redirect 한다 — 둘 다 `src/config/site.ts` 가 소유한다 (BQ-40) |
 | Request entry | 단일 진입 `src/proxy.ts` (middleware 없음). `[locale]/layout.tsx`: `dynamicParams = false` |
 | `next.config.ts` flags | `typedRoutes`, `experimental.globalNotFound`, `outputFileTracingRoot = cwd`, `allowedDevOrigins = ['127.0.0.1']`, `turbopack.root = cwd` |
 | Tech stack | `next@16.2.4`, `react@19.2.4`, `react-dom@19.2.4`, `next-intl@4.9.1`, `motion@12.34.0`, `tailwindcss@4.1.0`, `typescript@5.9.3`; 테스트 `vitest`, `@playwright/test` |
@@ -33,8 +33,8 @@ ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·
 | Task Type | SSOT Contract | Project Rules | Verify |
 |:---|:---|:---|:---|
 | routing / locale / not-found | `docs/req-landing.md §5`, `docs/project-analysis.md §4` | `project-rules.md §Architecture` | `verification-commands.md §routing` |
-| landing grid / GNB / theme | `docs/req-landing.md §6–11` | `project-rules.md §Blog-Telemetry-Theme` | `verification-commands.md §landing` |
-| transition / telemetry / consent | `docs/req-landing.md §8, §12, §13` | `project-rules.md §Blog-Telemetry-Theme` | `verification-commands.md §telemetry` |
+| landing grid / GNB / theme | `docs/req-landing.md §6–11` · 모션·제스처는 `docs/req-landing-interaction.md` | `project-rules.md §Blog-Telemetry-Theme` | `verification-commands.md §landing` |
+| transition / telemetry / consent | `docs/req-landing-interaction.md §8` · `docs/req-landing.md §12, §13` | `project-rules.md §Blog-Telemetry-Theme` | `verification-commands.md §telemetry` |
 | test flow / domain | `docs/req-test.md`, `docs/req-test-plan.md` | `project-rules.md §TestFlow` | `verification-commands.md §test-flow` |
 | variant registry / fixture | `docs/req-landing.md §12`, `docs/req-test.md §2`, `docs/project-analysis.md §5.3` | `project-rules.md §VariantRegistry` | `verification-commands.md §variant-registry` |
 | visual skin / design tokens / card visual | `docs/design/design.md` (+ §7 application layer) · 토큰 **값**은 `docs/design/ds/colors_and_type.css` | `project-rules.md §Visual-Design` | `verification-commands.md §landing` |
@@ -123,7 +123,7 @@ rollback 앵커의 실체는 `origin`의 주석 태그이지 브랜치가 아니
 - `public/theme-bootstrap.js` · `src/features/telemetry/consent-source.ts` · `src/features/transition/`
 
 ### SSOT contracts
-동작·플로우·시각 계약 정본: `docs/req-landing.md`, `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), `docs/design/ds/colors_and_type.css`(토큰 실현값, BQ-38), 그리고 이 파일과 `docs/agent-guides/**`. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.
+동작·플로우·시각 계약 정본: `docs/req-landing.md`(동작), `docs/req-landing-interaction.md`(제스처·모션 — 동작 계약을 override 하지 않는다), `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), `docs/design/ds/colors_and_type.css`(토큰 실현값, BQ-38), 그리고 이 파일과 `docs/agent-guides/**`. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.
 
 ### Always — modify freely
 `src/features/**` · `src/i18n/**` · `src/lib/routes/**` · `src/messages/**` · `tests/**` · `docs/**` · `public/**`(bootstrap 계약 유지) · `.planning/**`(문서·세션 상태만, 실행 코드 없음).

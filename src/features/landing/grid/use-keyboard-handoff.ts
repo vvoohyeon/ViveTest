@@ -14,7 +14,6 @@ import type {
 } from '@/features/landing/model/interaction-state';
 import type {DesktopTransitionReason} from '@/features/landing/grid/use-desktop-motion-controller';
 import {useKeyboardModeTracker} from '@/features/landing/grid/use-keyboard-mode-tracker';
-import {useLandingKeyboardEntry} from '@/features/landing/grid/use-landing-keyboard-entry';
 import {useCardKeyboardHandler} from '@/features/landing/grid/use-card-keyboard-handler';
 import type {FocusCardFromKeyboardInput} from '@/features/landing/grid/use-card-keyboard-handler';
 
@@ -27,7 +26,6 @@ interface UseKeyboardHandoffInput {
   isMobileViewport: boolean;
   shellRef: RefObject<HTMLElement | null>;
   cardVariants: readonly string[];
-  firstEnterableCardVariant: string | null;
   isCardEnterableByVariant: (cardVariant: string) => boolean;
   isCardExpandableByVariant: (cardVariant: string) => boolean;
   focusCardFromKeyboard: (input: FocusCardFromKeyboardInput) => void;
@@ -55,7 +53,6 @@ export function useKeyboardHandoff({
   isMobileViewport,
   shellRef,
   cardVariants,
-  firstEnterableCardVariant,
   isCardEnterableByVariant,
   isCardExpandableByVariant,
   focusCardFromKeyboard,
@@ -64,15 +61,7 @@ export function useKeyboardHandoff({
   beginMobileKeyboardHandoff,
   setDesktopTransitionReason
 }: UseKeyboardHandoffInput): UseKeyboardHandoffOutput {
-  useKeyboardModeTracker({
-    dispatch,
-    shellRef,
-    firstEnterableCardVariant
-  });
-
-  const {queueLandingReverseGnbTargetFocus} = useLandingKeyboardEntry({
-    isMobileViewport
-  });
+  useKeyboardModeTracker({dispatch});
 
   const {resolveKeyboardHandlers} = useCardKeyboardHandler({
     state,
@@ -87,7 +76,6 @@ export function useKeyboardHandoff({
     mobileLifecycleState,
     beginMobileOpen,
     beginMobileKeyboardHandoff,
-    queueLandingReverseGnbTargetFocus,
     onFocusTransitionIntent: setDesktopTransitionReason
   });
 

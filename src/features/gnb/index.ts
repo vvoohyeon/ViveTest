@@ -5,8 +5,7 @@ export {useGnbKeyboardModeTracker} from '@/features/gnb/hooks/use-keyboard-mode-
 export {useGnbCapability, useThemePreference} from '@/features/gnb/hooks';
 export {
   DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS,
-  DESKTOP_SETTINGS_HOVER_MIN_WIDTH,
-  MOBILE_BREAKPOINT_MAX,
+  DESKTOP_SETTINGS_PILL_MIN_WIDTH,
   MOBILE_MENU_CLOSE_DURATION_MS,
   MOBILE_MENU_SCROLL_CANCEL_THRESHOLD_PX,
   MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS,

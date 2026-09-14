@@ -37,7 +37,11 @@ function BackdropGestureHarness({
     phase,
     beginMobileClose,
     dispatchMobileLifecycle
-  });
+  ,
+        usesTouchCloseAffordance: false,
+        desktopOverlayExpandedCardVariant: null,
+        collapseDesktopOverlay: () => {}
+      });
 
   useEffect(() => {
     bindings = nextBindings;

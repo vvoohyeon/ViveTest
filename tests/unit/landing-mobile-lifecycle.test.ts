@@ -271,7 +271,8 @@ describe('transient shell timer consolidation', () => {
       dispatchMobileLifecycle: vi.fn(),
       isMobileViewport: true,
       shellRef,
-      clearHoverTimer: vi.fn()
+      clearHoverTimer: vi.fn(),
+      collapseDesktopOverlay: vi.fn()
     };
   }
 

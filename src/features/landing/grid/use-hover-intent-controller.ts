@@ -37,7 +37,6 @@ interface UseHoverIntentControllerInput {
   state: LandingInteractionState;
   dispatch: LandingInteractionDispatch;
   interactionMode: LandingCardInteractionMode;
-  isMobileViewport: boolean;
   shellRef: RefObject<HTMLElement | null>;
   setDesktopTransitionReason: (reason: DesktopTransitionReason) => void;
 }
@@ -66,7 +65,6 @@ export function useHoverIntentController({
   state,
   dispatch,
   interactionMode,
-  isMobileViewport,
   shellRef,
   setDesktopTransitionReason
 }: UseHoverIntentControllerInput): UseHoverIntentControllerOutput {
@@ -101,7 +99,6 @@ export function useHoverIntentController({
   const {scrollHeldCardVariant, beginScrollHold, releaseScrollHold} = useHoverScrollHold({
     shellRef,
     interactionMode,
-    isMobileViewport,
     expandedCardVariant: state.expandedCardVariant,
     collapseCard
   });
@@ -265,7 +262,7 @@ export function useHoverIntentController({
       const nextCardVariant = target?.dataset.cardVariant ?? null;
       pointerWithinCardVariantRef.current = nextCardVariant;
 
-      if (interactionMode !== 'hover' || isMobileViewport) {
+      if (interactionMode !== 'hover') {
         return;
       }
 
@@ -301,7 +298,6 @@ export function useHoverIntentController({
     },
     [
       interactionMode,
-      isMobileViewport,
       isPointerInsideCardBoundary,
       releaseScrollHold,
       scheduleCollapseForCard,
@@ -317,7 +313,7 @@ export function useHoverIntentController({
 
       return {
         onMouseEnter: (event: ReactMouseEvent<HTMLElement>) => {
-          if (interactionMode !== 'hover' || isMobileViewport) {
+          if (interactionMode !== 'hover') {
             return;
           }
 
@@ -410,7 +406,7 @@ export function useHoverIntentController({
           });
         },
         onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => {
-          if (interactionMode !== 'hover' || isMobileViewport) {
+          if (interactionMode !== 'hover') {
             return;
           }
 
@@ -437,7 +433,6 @@ export function useHoverIntentController({
       clearHoverTimer,
       dispatch,
       interactionMode,
-      isMobileViewport,
       isPointerStationaryBoundaryEvent,
       releaseScrollHold,
       scheduleCollapseForCard,

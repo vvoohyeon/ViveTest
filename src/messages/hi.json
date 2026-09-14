@@ -13,7 +13,8 @@
     "close": "बंद करें",
     "back": "वापस",
     "backAria": "वापस जाएँ",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "मुख्य सामग्री पर जाएँ"
   },
   "landing": {
     "heroTitle": "एक ही प्रवाह में अपनी काम की लय खोजें",

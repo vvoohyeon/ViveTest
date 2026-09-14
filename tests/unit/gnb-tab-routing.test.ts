@@ -4,7 +4,6 @@ import {act, cleanup, renderHook} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
 import {useGnbTabRouting} from '../../src/features/gnb/hooks/use-gnb-tab-routing';
-import type {LandingKeyboardEntryMode} from '../../src/features/gnb/hooks/use-landing-gnb-entry-mode';
 
 function createButton(label: string) {
   const button = document.createElement('button');
@@ -40,16 +39,12 @@ function createEvent({
 function renderRouting({
   targets,
   isLandingContext = false,
-  shouldDeferLandingGnbEntry = false,
-  landingKeyboardEntryMode = 'gnb',
   settingsOpen = false,
   closeSettingsImmediate = vi.fn(),
   focusFirstLandingCardTrigger = vi.fn(() => false)
 }: {
   targets: HTMLElement[];
   isLandingContext?: boolean;
-  shouldDeferLandingGnbEntry?: boolean;
-  landingKeyboardEntryMode?: LandingKeyboardEntryMode;
   settingsOpen?: boolean;
   closeSettingsImmediate?: () => void;
   focusFirstLandingCardTrigger?: () => boolean;
@@ -59,8 +54,6 @@ function renderRouting({
     useGnbTabRouting({
       getOrderedKeyboardTargets,
       isLandingContext,
-      shouldDeferLandingGnbEntry,
-      landingKeyboardEntryMode,
       settingsOpen,
       closeSettingsImmediate,
       focusFirstLandingCardTrigger
@@ -235,7 +228,12 @@ describe('useGnbTabRouting', () => {
     expect(document.activeElement).toBe(second);
   });
 
-  it('document-level first Tab focuses first GNB target when not deferring', () => {
+
+  // 종전에는 이 자리에 두 케이스가 있었다 — 「첫 `Tab` 이 GNB 첫 대상으로 간다」와 「랜딩에서는
+  // 가지 않는다」. 둘 다 **탭 순서를 코드가 소유한다**는 같은 전제 위에 있었고, skip link 로
+  // 교체되면서 그 전제가 사라졌다. 이제 문서 수준 `Tab` 은 가로채지 않는다 — 브라우저가 문서
+  // 순서대로 처리하고, 첫 탭 스톱은 skip link 다.
+  it('does not intercept a document-level Tab — the browser owns document order', () => {
     const first = createButton('first');
     const second = createButton('second');
     renderRouting({targets: [first, second]});
@@ -245,18 +243,14 @@ describe('useGnbTabRouting', () => {
       document.dispatchEvent(event);
     });
 
-    expect(event.defaultPrevented).toBe(true);
-    expect(document.activeElement).toBe(first);
+    expect(event.defaultPrevented).toBe(false);
+    expect(document.activeElement).not.toBe(first);
   });
 
-  it('document-level first Tab does not steal focus during landing card-first deferral', () => {
+  it('does not intercept a document-level Tab on landing either', () => {
+    // 랜딩만 다르게 굴던 것이 종전 결함의 핵심이었다 — 같은 입력이 문맥에 따라 두 뜻이었다.
     const first = createButton('first');
-    renderRouting({
-      targets: [first],
-      isLandingContext: true,
-      shouldDeferLandingGnbEntry: true,
-      landingKeyboardEntryMode: 'card-first'
-    });
+    renderRouting({targets: [first], isLandingContext: true});
     const event = new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true});
 
     act(() => {
@@ -264,7 +258,7 @@ describe('useGnbTabRouting', () => {
     });
 
     expect(event.defaultPrevented).toBe(false);
-    expect(document.activeElement).toBe(document.body);
+    expect(document.activeElement).not.toBe(first);
   });
 
   it('document-level Shift+Tab from body is a no-op', () => {
@@ -285,35 +279,4 @@ describe('useGnbTabRouting', () => {
     expect(document.activeElement).toBe(document.body);
   });
 
-  it('document capture listener is registered once and removed on unmount', () => {
-    const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
-    const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
-    const first = createButton('first');
-    const second = createButton('second');
-    const {rerender, unmount} = renderHook(
-      ({targets}) =>
-        useGnbTabRouting({
-          getOrderedKeyboardTargets: () => targets,
-          isLandingContext: false,
-          shouldDeferLandingGnbEntry: false,
-          landingKeyboardEntryMode: 'gnb',
-          settingsOpen: false,
-          closeSettingsImmediate: vi.fn(),
-          focusFirstLandingCardTrigger: vi.fn(() => false)
-        }),
-      {initialProps: {targets: [first]}}
-    );
-
-    rerender({targets: [first, second]});
-    unmount();
-
-    const addCalls = addEventListenerSpy.mock.calls.filter(
-      ([eventName, , options]) => eventName === 'keydown' && options === true
-    );
-    const removeCalls = removeEventListenerSpy.mock.calls.filter(
-      ([eventName, , options]) => eventName === 'keydown' && options === true
-    );
-    expect(addCalls).toHaveLength(1);
-    expect(removeCalls).toHaveLength(1);
-  });
 });

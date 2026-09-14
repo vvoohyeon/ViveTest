@@ -11,6 +11,7 @@ import {
   buildLocalizedPrimaryOptOutTestRoute,
   buildLocalizedPrimaryTestRoute
 } from './helpers/landing-fixture';
+import {setTouchViewport} from './helpers/touch-context';
 
 const TELEMETRY_CONSENT_STORAGE_KEY = 'vivetest-telemetry-consent';
 const LANDING_TRANSITION_SIGNAL_EVENT = 'landing:transition-signal';
@@ -534,7 +535,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B14-mobile-baseline mobile expanded lifecycle keeps transition-window anchor, title baseline, unlock timing, and restore gating stable', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
     const shell = page.getByTestId('landing-grid-shell');
     await expect(shell).toHaveAttribute('data-grid-tier', 'mobile');
@@ -616,7 +617,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B14-mobile-open-continuity mobile open keeps the root footprint stable while the transient shell morphs into the expanded surface', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
@@ -664,7 +665,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B14-mobile-close-perception assertion:B14-mobile-close-choreography assertion:B14-mobile-title-continuity mobile close immediately restores the root footprint while keeping the active closing shell above the backdrop', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
@@ -773,7 +774,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     });
 
     await page.emulateMedia({reducedMotion: 'reduce'});
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
@@ -840,7 +841,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B14-mobile-queue-close mobile queue-close is processed once and closing ignores further open-close inputs', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
@@ -879,7 +880,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   });
 
   test('@smoke mobile expanded header remains sticky during internal scroll', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
@@ -901,7 +902,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke mobile blog tap navigates directly without entering the expanded lifecycle', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator('[data-card-variant="ops-handbook"]');
@@ -912,7 +913,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   });
 
   test('@smoke mobile scroll gesture starting on a blog card does not navigate', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator('[data-card-variant="ops-handbook"]');

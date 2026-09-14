@@ -25,12 +25,20 @@ import {
 // 닫힌 군집이기 때문이다: 셋 모두 `closeDesktopCard` 를 호출하고, 밖으로 나가는 간선은
 // `useKeyboardHandoff` 가 `focusCardFromKeyboard` 를 받는 것 하나뿐이다.
 //
-// 모바일에는 해당 경로가 없다 — 넷 모두 `isMobileViewport` 에서 즉시 돌아선다.
+// 모바일에는 명시적 닫기·blur 경로가 없다 — 셋은 `isMobileViewport` 에서 즉시 돌아선다.
+//
+// **Escape 는 예외이며 그것이 의도다.** 키보드는 폭에도 입력 방식에도 속하지 않는 셋째 축이다
+// — 외장 키보드를 붙인 터치 기기는 hover 가 없어도 키보드가 있고, 거기서 확장한 카드를 닫을
+// 길이 있어야 한다(WCAG 2.1.1 Keyboard · 2.1.2 No Keyboard Trap). 그래서 `handleCardKeyDown`
+// 만은 뷰포트로 돌아서지 않고 **생명주기로 갈라진다** — 모바일이면 `beginMobileClose`,
+// 아니면 `closeDesktopCard`.
 
 export interface DesktopCardCloseControllerInput {
   interactionMode: LandingCardInteractionMode;
   isMobileViewport: boolean;
   shellRef: RefObject<HTMLElement | null>;
+  /** 모바일 생명주기의 닫기. Escape 가 전 표면 규칙이 되면서 이 컨트롤러가 소비한다. */
+  beginMobileClose: () => void;
   focusedCardVariant: string | null;
   expandedCardVariant: string | null;
   dispatchInteraction: Dispatch<LandingInteractionEvent>;
@@ -60,6 +68,7 @@ export function useDesktopCardCloseController({
   interactionMode,
   isMobileViewport,
   shellRef,
+  beginMobileClose,
   focusedCardVariant,
   expandedCardVariant,
   dispatchInteraction,
@@ -200,7 +209,6 @@ export function useDesktopCardCloseController({
   const handleCardKeyDown = useCallback(
     (card: LandingCard, event: ReactKeyboardEvent<HTMLElement>) => {
       if (
-        isMobileViewport ||
         card.type !== 'test' ||
         !isEnterableCard(card) ||
         event.key !== 'Escape' ||
@@ -212,6 +220,13 @@ export function useDesktopCardCloseController({
 
       event.preventDefault();
       event.stopPropagation();
+
+      // 뷰포트가 아니라 **생명주기**로 가른다. 어느 쪽이든 Escape 는 닫는다.
+      if (isMobileViewport) {
+        beginMobileClose();
+        return;
+      }
+
       closeDesktopCard({
         sourceCardVariant: card.variant,
         reason: 'collapse',
@@ -219,7 +234,7 @@ export function useDesktopCardCloseController({
         nowMs: event.timeStamp
       });
     },
-    [closeDesktopCard, isMobileViewport]
+    [beginMobileClose, closeDesktopCard, isMobileViewport]
   );
 
   const handleCardBlur = useCallback(

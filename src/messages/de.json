@@ -13,7 +13,8 @@
     "close": "Schließen",
     "back": "Zurück",
     "backAria": "Zurückgehen",
-    "timerPlaceholder": "00:00"
+    "timerPlaceholder": "00:00",
+    "skipToContent": "Zum Hauptinhalt springen"
   },
   "landing": {
     "heroTitle": "Finde deinen Arbeitsrhythmus in einem Durchgang",

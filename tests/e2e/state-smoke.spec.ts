@@ -7,6 +7,7 @@ import {
   buildLocalizedPrimaryTestRoute
 } from './helpers/landing-fixture';
 import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
+import {setHoverCapableViewport, setTouchViewport} from './helpers/touch-context';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const AVAILABLE_TEST_CARD_SELECTOR =
@@ -375,11 +376,11 @@ test.describe('Phase 7 state + capability smoke', () => {
   });
 
   test('@smoke capability gate keeps tap on mobile and hover on desktop-capable environments', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
     await expect(page.getByTestId('landing-grid-card').first()).toHaveAttribute('data-interaction-mode', 'tap');
 
-    await page.setViewportSize({width: 1440, height: 980});
+    await setHoverCapableViewport(page, {width: 1440, height: 980});
     await page.goto('/en');
     await expect(page.getByTestId('landing-grid-card').first()).toHaveAttribute('data-interaction-mode', 'hover');
   });
@@ -857,15 +858,24 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    // req-landing §7.6: first forward Tab enters the FIRST enterable card (not the unavailable one),
-    // and Shift+Tab from that first card returns to the last GNB control. The unavailable-skip
-    // helper must not alter this GNB-return branch.
-    await page.locator('body').click({position: {x: 1, y: 1}});
-    await page.keyboard.press('Tab');
+    // req-landing §7.6 개정: 탭 순서는 문서 순서다. 종전 주석이 인용한 「첫 forward Tab 이 첫
+    // enterable 카드로 진입」·「그 카드에서 Shift+Tab 이 마지막 GNB control 로 복귀」는 skip
+    // link 로 교체되면서 계약이 아니게 됐다. **이 케이스가 재는 것은 그것이 아니라** unavailable
+    // 카드를 건너뛰는 것과, 도달한 카드가 dwell 없이 확장되는 것(§7.6-a)이다.
     const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
-    await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
+    const firstCardTrigger = firstCard.getByTestId('landing-grid-card-trigger');
+
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await page.keyboard.press('Tab');
+      if (await firstCardTrigger.evaluate((element) => element === document.activeElement).catch(() => false)) {
+        break;
+      }
+    }
+
+    await expect(firstCardTrigger).toBeFocused();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
 
+    // 역방향은 문서 순서 그대로 GNB 의 마지막 컨트롤로 돌아간다 — 특별 처리가 아니라 기본 동작이다.
     await page.keyboard.press('Shift+Tab');
     await expect(page.getByTestId('gnb-settings-trigger')).toBeFocused();
   });
@@ -1003,7 +1013,7 @@ test.describe('Phase 7 state + capability smoke', () => {
   test('@smoke assertion:B5-mobile-keyboard-handoff mobile keyboard CTA traversal collapses the previous expanded card before focusing the next trigger', async ({
     page
   }) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     await page.locator('body').click({position: {x: 1, y: 1}});
@@ -1048,7 +1058,7 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     for (const reducedMotion of [false, true]) {
       await page.emulateMedia({reducedMotion: reducedMotion ? 'reduce' : 'no-preference'});
-      await page.setViewportSize({width: 390, height: 844});
+      await setTouchViewport(page, {width: 390, height: 844});
       await page.goto('/en');
 
       const card = page.locator('[data-card-variant="rhythm-b"]');
@@ -1125,7 +1135,7 @@ test.describe('Phase 7 state + capability smoke', () => {
         .toBe(true);
     };
 
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const mobileCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
@@ -1145,7 +1155,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(mobileCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
     await expect(mobileCard).toHaveAttribute('data-natural-height', settledNaturalHeight ?? '');
 
-    await page.setViewportSize({width: 1440, height: 980});
+    await setHoverCapableViewport(page, {width: 1440, height: 980});
     await page.reload();
 
     const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
@@ -1527,5 +1537,47 @@ test.describe('Phase 7 state + capability smoke', () => {
     // 그래도 확장 카드는 열린 채다 — 포인터가 움직이지 않았기 때문이다.
     await expect(card).toHaveAttribute('data-card-state', 'expanded');
     await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+  });
+  test('@smoke assertion:TT-02 hover-less tablet keeps the in-place overlay but gains a backdrop and outside-tap close', async ({
+    page
+  }) => {
+    // 분석 §2-5 의 두 번째 행이 이 케이스다 — 900×1200 터치는 `tap` 모드로 정확히 판정되면서도
+    // 「닫기 어포던스가 하나도 없는 데스크톱 오버레이」를 받았다. 열리기는 하는데 닫을 수단이
+    // 없었다.
+    //
+    // **형태는 그대로 두는 것이 맞다**(명세 규칙 3 · §2-11) — 다 열 레이아웃의 확장은 제자리
+    // 오버레이이고 위치를 옮기지 않는다. 입력이 정하는 것은 **닫는 법** 하나다.
+    await setTouchViewport(page, {width: 900, height: 1200});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+
+    // ⑴ 형태는 제자리 오버레이 그대로다 — 시트로 바뀌지 않는다.
+    await expect(card).toHaveAttribute('data-expanded-layer', 'desktop-overlay');
+
+    // ⑵ hover 가 없으므로 dim backdrop 이 깔린다.
+    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
+    await expect(backdrop).toBeVisible();
+
+    // ⑶ 빈 곳 탭이 닫기다. 좌표는 GNB 아래로 잡는다 — GNB 는 backdrop 보다 위 층이라
+    // 최상단 띠에서는 backdrop 이 top element 가 아니다(명세 규칙 1 의 층 순서는 step 3 소관).
+    await backdrop.click({position: {x: 5, y: 300}});
+    await expect(card).not.toHaveAttribute('data-card-state', 'expanded');
+  });
+
+  test('@smoke assertion:TT-02 hover-capable desktop keeps pointer-leave close and gets no backdrop', async ({
+    page
+  }) => {
+    // 대조군 — 입력 축이 실제로 가르고 있는지 확인한다. 같은 폭대에서 hover 가 있으면
+    // backdrop 은 깔리지 않고 현행 포인터 이탈 닫기가 유지된다(명세 규칙 3).
+    await setHoverCapableViewport(page, {width: 1280, height: 900});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').hover();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(page.getByTestId('landing-grid-mobile-backdrop')).toHaveCount(0);
   });
 });

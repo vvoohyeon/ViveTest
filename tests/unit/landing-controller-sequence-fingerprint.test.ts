@@ -639,7 +639,7 @@ const SEQUENCES: SequenceDefinition[] = [
     }
   },
   {
-    name: 'mobile/card-root-handlers-ignored',
+    name: 'mobile/card-root-escape-closes-blur-inert',
     ...MOBILE,
     cards: ({testCard}) => [testCard],
     steps: ({bind, cards, trigger, root, advance, snap}) => {
@@ -652,7 +652,7 @@ const SEQUENCES: SequenceDefinition[] = [
         bindings.onCardKeyDown(createKeyboardEvent(root(card), 'Escape', trigger(card)));
         bindings.onCardBlur(createFocusEvent(root(card), {target: trigger(card), relatedTarget: document.body}));
       });
-      snap('root-handlers-ignored');
+      snap('escape-closes-blur-inert');
     }
   },
   {

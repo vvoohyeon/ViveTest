@@ -102,4 +102,51 @@ describe('proxy policy', () => {
       })
     ).toEqual({action: 'next', locale: 'ru'});
   });
+  /**
+   * 제품 locale 코드가 BCP 47 이 아니라서 두 결함이 **같은 원인으로** 났다 — `<html lang>` 이
+   * 유효하지 않고, 동시에 BCP 47 로 쓴 경로가 전부 404 였다. 실측(2026-09-11): `/ko`·`/zh`·
+   * `/zh-Hans`·`/en-US`·`/pt-BR`·`/KR`·`/jp` 전부 404, `/kr`·`/zs`·`/ja` 는 200.
+   *
+   * 정본은 그대로 둔다 — 별칭은 canonical 세그먼트로 **redirect** 될 뿐이고 URL·스토리지·
+   * telemetry 의 정본 코드는 바뀌지 않는다.
+   */
+  it('redirects BCP 47 and common locale aliases to the canonical product segment', () => {
+    const cases: ReadonlyArray<readonly [string, string]> = [
+      ['/ko', '/kr'],
+      ['/ko-KR', '/kr'],
+      ['/zh', '/zs'],
+      ['/zh-Hans', '/zs'],
+      ['/zh-Hant', '/zt'],
+      ['/jp', '/ja'],
+      ['/en-US', '/en'],
+      ['/pt-BR', '/pt'],
+      ['/KR', '/kr'],
+      ['/ko/blog', '/kr/blog'],
+      ['/zh-Hant/test/qmbti', '/zt/test/qmbti']
+    ];
+
+    for (const [from, to] of cases) {
+      expect(resolveProxyDecision({pathname: from}), from).toEqual({
+        action: 'redirect',
+        pathname: to
+      });
+    }
+  });
+
+  it('leaves canonical locale segments alone', () => {
+    // 전제: canonical 이 별칭 경로로 새면 무한 redirect 가 된다.
+    for (const canonical of ['/kr', '/zs', '/zt', '/ja', '/en']) {
+      expect(resolveProxyDecision({pathname: canonical}), canonical).toEqual({
+        action: 'next',
+        locale: canonical.slice(1)
+      });
+    }
+  });
+
+  it('still 404s a segment that is neither a locale nor an alias', () => {
+    expect(resolveProxyDecision({pathname: '/not-a-locale'})).toEqual({
+      action: 'rewrite',
+      pathname: '/_not-found'
+    });
+  });
 });

@@ -1,6 +1,6 @@
 # 모바일 전면 리팩터 — 저장소 분석
 
-**Task mode:** Analysis Only — 이 문서는 코드를 바꾸지 않는다. 구현은 `docs/done/2026-09-11-mobile-refactor-step1-seam.md` · `docs/plans/2026-09-11-mobile-refactor-step2-axis-and-contract.md` · `docs/plans/2026-09-11-mobile-refactor-step3-surfaces.md` 셋이 순서대로 갖는다.
+**Task mode:** Analysis Only — 이 문서는 코드를 바꾸지 않는다. 구현은 `docs/done/2026-09-11-mobile-refactor-step1-seam.md` · `docs/done/2026-09-11-mobile-refactor-step2-axis-and-contract.md` · `docs/plans/2026-09-11-mobile-refactor-step3-surfaces.md` 셋이 순서대로 갖는다.
 
 **이 문서가 답하는 질문:** 모바일을 전면으로 다시 만들려 할 때 ⑴ 무엇이 실제로 지금 일어나고 있는가 ⑵ 어떤 계약이 그것을 붙들고 있는가 ⑶ 그 계약을 고치면 어떤 검사가 붉어지는가 ⑷ 무엇이 표준 이하이며 그 판정의 근거는 무엇인가.
 

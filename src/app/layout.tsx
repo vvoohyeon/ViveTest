@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import {headers} from 'next/headers';
 import Script from 'next/script';
 import type {ReactNode} from 'react';
@@ -6,21 +6,59 @@ import type {ReactNode} from 'react';
 import {APP_BODY_CLASSNAME} from '@/app/app-body-class';
 import {VercelAnalyticsGate} from '@/app/vercel-analytics-gate';
 import {VercelSpeedInsightsGate} from '@/app/vercel-speed-insights-gate';
+import {THEME_GROUND_COLOR} from '@/app/theme-ground-color';
+import {resolveHtmlLang} from '@/config/site';
 import {resolveRequestLocaleFromHeaderBag} from '@/i18n/request-locale-header';
 
 import './globals.css';
 
+const SITE_NAME = 'ViveTest';
+const SITE_DESCRIPTION = 'Short personality and aptitude tests you can finish in a few minutes.';
+
 export const metadata: Metadata = {
-  title: 'ViveTest',
-  description: 'Reset baseline placeholder'
+  title: SITE_NAME,
+  // 종전 값은 `Reset baseline placeholder` 였고 그대로 프로덕션에 나갔다.
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  manifest: '/manifest.webmanifest',
+  // **정적 OG 까지만이다.** 결과별로 달라지는 동적 OG 카드는 결과 화면의 내용 스키마가 정해진
+  // 뒤에야 만들 수 있고 이번 범위 밖이다(분석 §15 결정 8).
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION
+  }
+  // `twitter:*` 는 두지 않는다. X 를 비롯한 소비자들이 `twitter:*` 가 없으면 OG 로 폴백하므로
+  // 얻는 것이 없는데, 카드 종류 이름이 `check-variant-registry-contracts` 가 금지하는 legacy
+  // 토큰과 글자가 겹친다. 가드에 예외를 파는 대신 계획서가 요구하지 않은 이 추가를 걷는다.
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // `env(safe-area-inset-*)` 는 이것이 없으면 **항상 0 이다.** 저장소에 그 함수를 쓰는 자리가
+  // 둘 있는데 지금까지 한 번도 0 이 아닌 적이 없었다. step 3 의 시트가 홈 인디케이터와 겹치는
+  // 첫 표면이라 여기서 먼저 연다.
+  viewportFit: 'cover',
+  // 두 값을 다 내되, **OS 가 아니라 해석된 테마**를 따라가는 것은 부트스트랩과 preference
+  // 변경 경로가 맡는다(`public/theme-bootstrap.js`). `media` 만으로 끝내면 OS-다크에서
+  // 라이트를 고른 사용자의 크롬이 다크로 남아 theme F5 와 같은 결함을 새로 만든다.
+  themeColor: [
+    {media: '(prefers-color-scheme: light)', color: THEME_GROUND_COLOR.light},
+    {media: '(prefers-color-scheme: dark)', color: THEME_GROUND_COLOR.dark}
+  ]
 };
 
 export default async function RootLayout({children}: {children: ReactNode}) {
   const requestHeaders = await headers();
   const locale = resolveRequestLocaleFromHeaderBag(requestHeaders);
 
+  // `lang` 은 **표시용 BCP 47 태그**다. 제품 locale 코드(`kr`·`zs`·`zt`)는 BCP 47 이 아니므로
+  // 그대로 내보내면 WCAG 3.1.1 을 어긴다 — URL·스토리지·telemetry 의 정본은 코드 그대로 두고
+  // 이 한 자리만 태그로 바꾼다.
   return (
-    <html data-theme="light" lang={locale} suppressHydrationWarning>
+    <html data-theme="light" lang={resolveHtmlLang(locale)} suppressHydrationWarning>
       <body className={APP_BODY_CLASSNAME}>
         <Script src="/theme-bootstrap.js" strategy="beforeInteractive" />
         {children}

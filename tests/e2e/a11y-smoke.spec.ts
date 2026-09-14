@@ -12,6 +12,8 @@ import {
   PRIMARY_BLOG_VARIANT,
   SECONDARY_BLOG_VARIANT
 } from './helpers/landing-fixture';
+import {setHoverCapableViewport, setTouchViewport} from './helpers/touch-context';
+import {expectSurfaceToMeetTouchTargetMinimum} from './helpers/touch-target';
 
 const TRANSITION_OVERLAY_READY_DELAY_MS = 900;
 const W12_MOBILE_VIEWPORTS = [360, 390, 767] as const;
@@ -47,12 +49,25 @@ async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   }, delayMs);
 }
 
+/**
+ * 설정 패널을 **키보드로** 연다.
+ *
+ * 종전에는 「첫 `Tab` → 첫 카드 → `Shift+Tab` → 설정 트리거」로 도달했다. 그 경로는 탭 순서를
+ * 상태로 바꾸던 계약에 기대고 있었고, skip link 로 교체되면서 성립하지 않는다. 도달 방법은
+ * 이 헬퍼의 관심사가 아니므로 **문서 순서대로 트리거까지 `Tab`** 한다 — 이 헬퍼를 쓰는
+ * 케이스들이 재는 것은 패널이 열린 뒤의 포커스 링과 axe 청결이다.
+ */
 async function focusDesktopSettingsByKeyboard(page: Page) {
-  await page.locator('body').click({position: {x: 1, y: 1}});
-  await page.keyboard.press('Tab');
-  await expect(page.getByTestId('landing-grid-card-trigger').first()).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  await expect(page.getByTestId('gnb-settings-trigger')).toBeFocused();
+  const settingsTrigger = page.getByTestId('gnb-settings-trigger');
+
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    await page.keyboard.press('Tab');
+    if (await settingsTrigger.evaluate((element) => element === document.activeElement).catch(() => false)) {
+      break;
+    }
+  }
+
+  await expect(settingsTrigger).toBeFocused();
   await page.keyboard.press('Space');
   await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
 }
@@ -160,12 +175,18 @@ async function focusDesktopDestinationSettingsByKeyboard(page: Page) {
   await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
 }
 
+/** 모바일 드로어를 **키보드로** 연다. 도달 경로는 관심사가 아니므로 문서 순서대로 `Tab` 한다. */
 async function focusMobileMenuByKeyboard(page: Page) {
-  await page.locator('body').click({position: {x: 1, y: 1}});
-  await page.keyboard.press('Tab');
-  await expect(page.getByTestId('landing-grid-card-trigger').first()).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  await expect(page.getByTestId('gnb-mobile-menu-trigger')).toBeFocused();
+  const menuTrigger = page.getByTestId('gnb-mobile-menu-trigger');
+
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    await page.keyboard.press('Tab');
+    if (await menuTrigger.evaluate((element) => element === document.activeElement).catch(() => false)) {
+      break;
+    }
+  }
+
+  await expect(menuTrigger).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('gnb-mobile-menu-panel')).toBeVisible();
 }
@@ -523,14 +544,14 @@ test.describe('Canonical accessibility smoke', () => {
       await expectPageToBeAxeClean(page);
     }
 
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
     await focusMobileMenuByKeyboard(page);
     await expectPageToBeAxeClean(page);
   });
 
   test('@smoke assertion:B5-axe-canonical mobile expanded and destination shells remain axe-clean', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
     await page.locator('body').click({position: {x: 1, y: 1}});
     await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
@@ -622,7 +643,7 @@ test.describe('Canonical accessibility smoke', () => {
     test.setTimeout(60_000);
 
     for (const viewportWidth of W12_MOBILE_VIEWPORTS) {
-      await page.setViewportSize({width: viewportWidth, height: 844});
+      await setTouchViewport(page, {width: viewportWidth, height: 844});
       await page.goto('/en');
 
       await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', 'mobile');
@@ -664,7 +685,7 @@ test.describe('Canonical accessibility smoke', () => {
     await page.goto('/kr');
     await expectPageToBeAxeClean(page);
 
-    await page.setViewportSize({width: 390, height: 844});
+    await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/kr');
     await page.locator('body').click({position: {x: 1, y: 1}});
     await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
@@ -776,5 +797,118 @@ test.describe('Canonical accessibility smoke', () => {
     }
     await expect(page.getByTestId('test-result-panel')).toBeVisible();
     await expectPageToBeAxeClean(page);
+  });
+  test('@smoke assertion:TT-01 every visible touch target meets --tap-min and WCAG 2.5.8 spacing', async ({
+    page
+  }) => {
+    test.setTimeout(90_000);
+
+    // `expectPageToBeAxeClean` 은 이 결함을 잡은 적이 없다 — axe 기본 규칙 집합에
+    // `target-size` 가 들어 있지 않기 때문이다. 그래서 이 케이스가 따로 있다.
+    const surfaces: ReadonlyArray<readonly [string, string]> = [
+      ['landing', '/en'],
+      ['blog index', buildLocalizedBlogIndexRoute('en')],
+      ['blog detail', buildLocalizedBlogDetailRoute('en', PRIMARY_BLOG_VARIANT)],
+      ['history', '/en/history'],
+      ['test entry', buildLocalizedPrimaryTestRoute('en')],
+      ['test error', '/en/test/error'],
+      ['segment 404', '/en/no-such-landing-route']
+    ];
+
+    await seedTelemetryConsent(page, 'OPTED_IN');
+
+    for (const [surfaceLabel, route] of surfaces) {
+      await setTouchViewport(page, {width: 390, height: 844});
+      await page.goto(route);
+      await expectSurfaceToMeetTouchTargetMinimum(page, surfaceLabel);
+    }
+
+    // GNB 드로어가 열린 상태는 타깃이 가장 많이 모이는 표면이라 따로 잰다.
+    await setTouchViewport(page, {width: 390, height: 844});
+    await page.goto('/en');
+    await page.getByTestId('gnb-mobile-menu-trigger').click();
+    await expect(page.getByTestId('gnb-mobile-menu-panel')).toBeVisible();
+    await expectSurfaceToMeetTouchTargetMinimum(page, 'landing + drawer open');
+
+    // 동의 배너는 `UNKNOWN` 에서만 뜨므로 마지막에 따로 세운다.
+    await clearTelemetryConsent(page);
+    await setTouchViewport(page, {width: 390, height: 844});
+    await page.goto('/en');
+    await expect(page.getByTestId('telemetry-consent-banner')).toBeVisible();
+    await expectSurfaceToMeetTouchTargetMinimum(page, 'landing + consent banner');
+  });
+  test('@smoke assertion:KB-01 keyboard reach and Escape close hold on every surface regardless of input', async ({
+    page
+  }) => {
+    test.setTimeout(90_000);
+
+    // §7.6-a 의 동작 부분은 폭에도 입력 방식에도 속하지 않는 **셋째 축**이다. 외장 키보드를
+    // 붙인 터치 기기는 hover 가 없어도 키보드가 있고, 거기서 확장한 카드를 Escape 로 닫을 수
+    // 있어야 한다(WCAG 2.1.1/2.1.2). 축을 옮기기 **전에** 이 규칙을 전 표면으로 승격시킨다 —
+    // 승격 없이 생명주기만 입력 축으로 옮기면 그 기기가 닫을 길을 잃는다.
+    const surfaces = [
+      {label: 'touch phone', size: {width: 390, height: 844}, touch: true},
+      {label: 'touch tablet', size: {width: 900, height: 1200}, touch: true},
+      {label: 'hover desktop', size: {width: 1440, height: 980}, touch: false}
+    ] as const;
+
+    for (const surface of surfaces) {
+      if (surface.touch) {
+        await setTouchViewport(page, surface.size);
+      } else {
+        await setHoverCapableViewport(page, surface.size);
+      }
+      await page.goto('/en');
+      await page.locator('body').click({position: {x: 1, y: 1}});
+
+      const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+
+      // ⑴ 키보드로 도달할 수 있다.
+      await tabUntilCardFocused(page, PRIMARY_AVAILABLE_TEST_VARIANT);
+
+      // ⑵ 키보드로 확장할 수 있다.
+      await page.keyboard.press('Space');
+      await expect(card, `${surface.label}: 키보드로 확장되지 않았다`).toHaveAttribute(
+        'data-card-state',
+        'expanded'
+      );
+
+      // ⑶ Escape 로 닫을 수 있다 — 이 줄이 승격의 핵심이다.
+      await page.keyboard.press('Escape');
+      await expect(card, `${surface.label}: Escape 로 닫히지 않았다`).not.toHaveAttribute(
+        'data-card-state',
+        'expanded'
+      );
+    }
+  });
+  test('@smoke assertion:SK-01 skip link is the first tab stop, moves focus to main, and leaves no layout', async ({
+    page
+  }) => {
+    for (const size of [
+      {width: 1280, height: 900},
+      {width: 390, height: 844}
+    ]) {
+      await setTouchViewport(page, size);
+      await page.goto('/en');
+
+      const skipLink = page.getByTestId('skip-to-content');
+
+      // ⑴ 포커스 전에는 레이아웃을 차지하지 않는다 — 1×1 sr-only 상자다.
+      const hiddenBox = await skipLink.boundingBox();
+      expect(hiddenBox?.width ?? 0, `${size.width}px: 숨은 상태에서 폭을 차지한다`).toBeLessThanOrEqual(1);
+
+      // ⑵ 문서 순서상 첫 탭 스톱이다. **클릭하지 않는다** — 클릭은 탭 시작점을 옮긴다.
+      await page.keyboard.press('Tab');
+      await expect(skipLink, `${size.width}px: 첫 탭 스톱이 아니다`).toBeFocused();
+
+      // ⑶ 포커스를 받으면 보인다.
+      await expect(skipLink).toBeVisible();
+      const shownBox = await skipLink.boundingBox();
+      expect(shownBox?.height ?? 0, `${size.width}px: 포커스 후에도 보이지 않는다`).toBeGreaterThan(20);
+
+      // ⑷ 목적지는 `<main>` 이고 도착하면 포커스가 거기 있다.
+      await page.keyboard.press('Enter');
+      await expect(page.locator('main')).toBeFocused();
+    }
   });
 });
