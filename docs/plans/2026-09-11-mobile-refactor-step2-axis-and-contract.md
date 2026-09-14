@@ -10,6 +10,8 @@ cd "$(git rev-parse --show-toplevel)" && ls docs/done/2026-09-11-mobile-refactor
 
 `docs/done/` 에 step 1 문서가 있어야 하고, `npm test` 가 초록이어야 하며, `src/features/landing/grid/` 에 `landing-card-contract.ts`·`interaction-selectors.ts`·`use-desktop-card-close-controller.ts`·`use-hover-scroll-hold.ts` 가 존재해야 한다. **하나라도 없으면 step 1 이 착지하지 않은 것이므로 여기서 멈춘다.**
 
+**시각·인터랙션의 정본은 명세다.** 이 단계가 계약 문장을 다시 쓸 때 그 문장이 서술할 대상은 `docs/plans/2026-09-14-mobile-refactor-design-spec.md` 가 정한 것이다 — 규칙 여덟과 표면별 확정 명세를 **착수 전에 읽는다**. 계약 문장과 명세가 어긋나면 명세가 이긴다.
+
 **이 단계가 끝나면:** 폭·입력·키보드 세 축이 코드와 문서 양쪽에서 갈라져 있고, hover 없는 기기는 폭과 무관하게 터치 생명주기를 쓰며, 요구사항 문서가 「동작 계약」과 「인터랙션 계약」 둘로 나뉘어 있다. **화면에 보이는 것은 터치 태블릿을 빼면 달라지지 않는다** — 시각 재설계는 step 3 이다.
 
 ---
@@ -177,7 +179,7 @@ cd "$(git rev-parse --show-toplevel)" && npm run lint && npm run typecheck && np
 
 축과 무관하고 위험이 0 이며 모바일 체감에 직결하는 넷을 이 단계에 붙인다. ⑴ `theme-color` meta 가 없어 모바일 브라우저 크롬이 테마를 따라가지 않는다 — 라이트/다크 두 값을 `media` 로 준다. ⑵ web app manifest 가 없다. ⑶ `description` 이 `Reset baseline placeholder` 인 채로 프로덕션에 나간다. ⑷ OG 태그가 0 이라 **결과 공유 링크의 미리보기가 비어 있다** — 이 제품의 핵심 행동이 공유다.
 
-**⑷ 는 step 3 의 결과 URL 설계와 맞물리므로 여기서는 정적 OG 만 넣고 동적 OG 는 step 3 으로 넘긴다.**
+**정적 OG 까지만 넣는다.** 결과별로 달라지는 **동적 OG 카드는 이번 리팩터 범위 밖**이다(분석 §15 결정 8) — 결과 화면의 내용 스키마가 정해진 뒤에야 만들 수 있고, 그것은 다음 phase 소유다.
 
 ---
 
