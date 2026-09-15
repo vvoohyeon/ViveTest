@@ -425,7 +425,6 @@ Accompanying visual resources (working-tree inventory; interpretation aids, not 
 - `Catalog` item in the mobile menu.
 - `layoutId` / `LayoutGroup` as a recommended motion approach.
 - `min-height: 100%` as the expanded-overlay height invariant.
-- Swipe-down close as authorized mobile expanded behavior.
 
 ---
 

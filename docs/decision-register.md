@@ -545,6 +545,14 @@ BQ-25 는 확장 choice 화살표(`→`)의 광학적 수직 쏠림 보정을 **
 - **Include in first implementation wave?** — Yes — 이 커밋이 실행 단위다. step 3 §1·§1-2 가 이 조항 위에서 구현한다
 - **Notes / caveats** — **표식의 시각 정의는 명세 §3-5 가 갖는다.** 마크 슬롯은 라벨 **뒤**의 14×14 고정 상자라 표식이 붙어도 라벨 시작 좌표가 움직이지 않는다 — 다만 흔들리는 축은 좌표가 아니라 **폭**이고, 고장 주입에서 좌표만 재던 단언이 통과했다(함정 원장 L36). 글리프 잉크는 `--muted-aa`, 실측 대비 light 5.08:1 · dark 7.81:1. **`docs/design/ds/catalog-components.css` 는 건드리지 않았다** — `.vt-choice--answer` 의 마크는 여전히 두 상태이고 제품은 셋이다. 그 디렉터리는 Ask-First 이며 편집이 Claude Design 으로 push 되므로 별도 승인 사항으로 남긴다(런타임 미소비 계층이라 제품 동작에는 영향 없음). §3.10 의 「단순 이동만으로는 eligibility 를 상실하지 않는다」는 이 개정으로 **처음 도달 가능해졌다** — 종전에는 후진 이동이 언제나 `all-required-answered` 를 거짓으로 만들어 그 문장이 실행되지 않았다
 
+## BQ-43
+
+- **Decision** — 2026-09-16 폰의 카드 확장과 instruction 을 **하나의 바텀시트 프리미티브** 위로 옮긴다(`src/features/ui/bottom-sheet.tsx`). 카드 시트와 instruction 시트가 같은 컴포넌트를 쓰고, 다른 것은 셋뿐이며 그 셋은 prop 이다 — grabber · 제스처 닫기(backdrop 탭 · 스와이프 다운) · history 항목. **(A)** `design.md` §10 Never Reintroduce 의 「Swipe-down close」를 내린다 — BQ-11 은 「미결정」이었지 영구 금지가 아니었고, 시트의 닫기 경로 다섯 중 하나로 재등재한다. **(B)** `req-landing-interaction.md` §8.5 를 전면 재작성한다: in-flow 확장에서만 성립하던 조항들(y-anchor drift 0 · OPENING queue-close · pre-open snapshot 높이 복귀 · `NORMAL` terminal 선행조건)을 폐지하고, 그것들이 지키던 **연속성**과 **복귀 정확성** 둘을 시트의 언어로 다시 쓴다. **(C)** 폰의 확장 중에는 배경이 **내내** 잠긴다 — 종전에는 정착 후 풀렸고, 그것은 확장이 흐름 안에 있어 페이지 스크롤이 곧 확장 읽기였기 때문이다. **(D)** 제자리 오버레이는 `calc(100dvh − 88px)` 높이 상한과 내부 스크롤을 갖고, **보이는 X 없이** 시각적으로 숨긴 닫기를 마지막 탭 스톱에 둔다
+- **Source / 근거** — 명세 `docs/plans/2026-09-14-mobile-refactor-design-spec.md` 규칙 3 · §2-3 · §2-11 · §3-4, step 3 계획서 §1 · §1-2 · §2. 복귀 정확성을 **절차가 아니라 구조가** 보장하게 된 것이 이 결정의 핵심이다 — 시트는 흐름 밖이라 형제를 밀지 않으므로 되돌릴 좌표가 애초에 없고, 스냅샷 채취 · 복귀 폴링 · transient 셸 둘 · 열림/닫힘 타이머가 함께 사라진다
+- **Implementation impact** — 신설: `bottom-sheet.tsx`/`.module.css` · `sheet-phase.ts` · `sheet-motion.ts` · `use-sheet-swipe.ts` · `use-overlay-history-entry.ts` · `use-inert-siblings.ts` · `visually-hidden.module.css` · `body-scroll-lock.ts`(참조 카운트 단일 모듈, blocker 해소) · `landing-card-sheet.tsx` · `use-mobile-viewport.ts`. 삭제: `use-mobile-restore-polling.ts` · `mobile-card-lifecycle-dom.ts` · `use-mobile-transient-shell.ts` · `landing-grid-card-mobile-surfaces.tsx`. 개명: `use-mobile-backdrop-gesture.ts` → `use-overlay-backdrop-gesture.ts`(폰 몫을 걷어내고 제자리 오버레이 전용으로). 계약 가드 셋(phase5 · phase9 · phase10)이 시트를 본다. 지문 F2·F3 갱신. `--ease-in` 을 런타임 미러에 베꼈다
+- **Include in first implementation wave?** — Yes — step 3 §1 · §1-2 · §2 가 이 결정의 실행 단위다
+- **Notes / caveats** — **키보드 계약 하나가 바뀐다**: 확장된 카드 안에서 Tab 이 다음 카드로 넘어가던 것이, 폰에서는 시트가 모달이라 시트 안에서 순환한다(닫으면 트리거로 돌아오고 거기서 Tab). 데스크톱 제자리 오버레이에서는 숨은 닫기가 마지막 탭 스톱이 되어 다음 카드까지 **한 걸음 늘었다**. **회전 보존(`assertion:TT-03`)은 미해결 충돌로 남는다** — 명세 §2-11 은 회전이 확장을 파괴하지 않아야 한다고 하나 `assertion:B4-width-change-force-close` 가 폭 변경 강제 닫기를 고정하고 있고, 회전은 폭 변경이다. 어느 쪽을 접을지는 사용자 결정이다. 시트의 260ms/220ms 는 `--dur-*` 토큰에 없는 값이라 `sheet-motion.ts` 한 곳이 갖는다(D — 파생값, realized 아님)
+
 ---
 
 ## 변경 이력
@@ -553,6 +561,8 @@ BQ-25 는 확장 choice 화살표(`→`)의 광학적 수직 쏠림 보정을 **
 
 | 날짜 | 항목 | 변경 | 근거 |
 |:---|:---|:---|:---|
+| 2026-09-16 | BQ-11 | 부분 대체 — 「Swipe-down close」가 Never Reintroduce 에서 내려와 시트의 닫기 경로 다섯 중 하나가 됐다. BQ-11 의 나머지(모바일 확장 형태 미결정)는 BQ-43 이 확정한다 | BQ-43 · 명세 규칙 3 |
+| 2026-09-16 | BQ-24 | 조정 — 제자리 오버레이의 height floor 가 뷰포트 상한(`calc(100dvh − 88px)`)으로 **잘린다**. CSS 에서 `min-height` 가 `max-height` 를 이기므로 자르지 않으면 짧은 뷰포트에서 상한이 무위가 된다 | BQ-43 (D) |
 | 2026-09-03 | BQ-13 | workspace 운영 절반 대체 — wave별 워크트리 폐지, 격리 작업공간은 clone. `main` 착지·checkpoint read-only라는 브랜치 결정은 유지 | `docs/DECISIONS.md` · `AGENTS.md §4` |
 | 2026-09-03 | BQ-14 | 문구 조정 — "legacy worktree 수정 금지" → `legacy/reference` **브랜치** 수정 금지. 브랜치·기준 commit 보존 | `docs/DECISIONS.md` |
 | 2026-09-03 | BQ-15 | 문구 조정 — range checkpoint는 브랜치로만 존속, 워크트리 체크아웃 철거 | `docs/DECISIONS.md` |
