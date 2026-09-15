@@ -82,8 +82,17 @@ export const testQuietButtonClassName = `${buttonFormBaseClassName} ${buttonQuie
 export const testAnswerChoiceClassName =
   `group/answer flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] px-3.5 py-3 text-left [transition-property:border-color,background-color] ${skinTransitionClassName} hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)] disabled:cursor-default ${focusRingClassName}`;
 
+/**
+ * 마크 슬롯. **항상 렌더되는 고정 크기 상자**이고 그것이 이 자리의 핵심이다 — 세 상태가
+ * 같은 14×14 를 쓰므로 표식이 붙고 빠져도 라벨이 한 픽셀도 움직이지 않는다. 표식을 옆에
+ * 새 원소로 붙이면 그 성질이 깨진다.
+ *
+ * 세 상태: 미응답(빈 링) · 선택됨(채운 accent) · **과거 응답(링 없이 조용한 체크)**.
+ * 과거 응답 표식은 선택이 아니므로 accent 를 쓰지 않는다. 잉크는 `--muted-aa` 다 —
+ * 보조 정보의 무게이면서 바탕 대비 AA 를 만족하는 값으로 이 저장소가 이미 갖고 있다.
+ */
 export const testAnswerChoiceMarkClassName =
-  `mt-1 h-3.5 w-3.5 flex-none rounded-full bg-transparent shadow-[inset_0_0_0_1px_var(--hairline-strong)] [transition-property:background-color,box-shadow] ${skinTransitionClassName} group-data-[selected=true]/answer:bg-[var(--accent)] group-data-[selected=true]/answer:shadow-[inset_0_0_0_1px_var(--accent)]`;
+  `mt-1 h-3.5 w-3.5 flex-none rounded-full bg-transparent shadow-[inset_0_0_0_1px_var(--hairline-strong)] [transition-property:background-color,box-shadow] ${skinTransitionClassName} group-data-[selected=true]/answer:bg-[var(--accent)] group-data-[selected=true]/answer:shadow-[inset_0_0_0_1px_var(--accent)] group-data-[previous-answer=true]/answer:shadow-none group-data-[previous-answer=true]/answer:text-[var(--muted-aa)]`;
 
 export const testAnswerChoiceTextClassName =
   'min-w-0 flex-1 [font:var(--t-choice)] text-[var(--ink-soft)] [word-break:keep-all] [overflow-wrap:anywhere]';

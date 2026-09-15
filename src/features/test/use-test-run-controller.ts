@@ -196,11 +196,9 @@ export function useTestRunController({
         return;
       }
 
-      const filteredAnswers = Object.fromEntries(
-        Object.entries(runState.answers).filter(([key]) => Number(key) < nextIndex)
-      ) as Record<string, string>;
+      // 이동은 응답 집합을 **읽지도 쓰지도 않는다**(`req-test.md` §3.9). durable 저장본도
+      // 그대로 둔다 — 바뀐 것이 없으므로 쓸 것이 없다.
       dispatchRunAction({type: 'NAVIGATE_PREVIOUS', nextQuestionIndex: nextIndex});
-      writeResponseSet(variant, filteredAnswers);
       return;
     }
 
@@ -220,9 +218,14 @@ export function useTestRunController({
         const answer = answersAfterAdvance[String(question.canonicalIndex)];
         return typeof answer !== 'string' || answer.length === 0;
       });
+    // 미응답이 하나도 없으면 목적지는 **마지막 scoring question** 이다(`req-test.md` §4.3).
+    // 응답이 보존되면서 이 상황이 흔해졌다 — 되돌아가 하나를 고친 사용자를 원래 있던 자리로
+    // 돌려보낸다. 종전의 `currentQuestionIndex + 1` 은 거기서부터 끝까지 한 문항씩 탭해
+    // 내려오게 만들었다.
+    const lastScoringQuestion = questions.filter((question) => !isProfileQuestion(question)).at(-1);
     const nextQuestionIndex = nextUnansweredQuestion
       ? skipForwardPastProfile(nextUnansweredQuestion.canonicalIndex, questions)
-      : skipForwardPastProfile(currentQuestionIndex + 1, questions);
+      : (lastScoringQuestion?.canonicalIndex ?? skipForwardPastProfile(currentQuestionIndex + 1, questions));
 
     dispatchRunAction({
       type: 'SELECT_ANSWER',

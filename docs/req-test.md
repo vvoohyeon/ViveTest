@@ -9,7 +9,7 @@
    - variant 판정 및 유효성 검증
    - instruction 진입 및 start 규칙 (진입 경로별 분기 포함)
    - progress 계산 및 completion gating
-   - answer revision 및 tail reset
+   - answer revision 및 응답 보존(이동·변경 어느 쪽도 다른 응답을 제거하지 않는다)
    - run/session lifecycle 정리 및 active run 복구
 
 2. **결과 도출과 결과 화면**
@@ -49,7 +49,7 @@
 |---|---|
 | 테스트 진입 경로 | Landing ingress + 직접 접근(딥링크/새로고침) 모두 지원 |
 | Scoring schema | schema-driven, axisCount ∈ {1, 2, 4} 가변. MBTI 4축 하드코딩 금지. 각 axis는 `scoringMode: 'binary_majority' \| 'scale'`을 선언한다. 현재 구현 대상은 `binary_majority`만이며 `scale`은 타입 예약 상태다. variant는 `qualifierFields`를 선언해 result URL `type` segment에 scoring 결과 외 보조 식별자를 추가할 수 있다 |
-| Answer revision | 이전 문항 재방문 및 답변 수정 허용. 이전 문항 수정 시 tail reset 적용 |
+| Answer revision | 이전 문항 재방문 및 답변 수정 허용. 이동·변경 어느 쪽도 다른 응답을 제거하지 않으며 derivation residue만 무효화한다 |
 | Staged entry expiry | 목표 계약: A/B 선택 시점으로부터 7분. 재진입/새로고침으로 연장되지 않는다. 현재 live runtime은 `createdAtMs`만 저장하며 7분 expiry enforcement는 아직 구현하지 않은 future/pending contract다 |
 | Result URL 구조 | `/result/{variant}/{type}?{base64Payload}` |
 | Result URL 인코딩 | `variant`은 path segment 1, `type`은 path segment 2. `type` segment 길이 = `axisCount + sum(qualifierFields[i].tokenLength)`. `qualifierFields`가 없거나 빈 배열이면 길이 = `axisCount`. `scoreStats`와 `shared`(boolean)는 JSON → URL-safe Base64 → 키 없는 query string. `scoringSchemaId`는 URL 어느 위치에도 포함하지 않는다. `variant`가 스키마의 유일한 식별자 |
@@ -66,7 +66,7 @@
 이 문서는 요구사항/UX/인터랙션 계약을 소유하되, 현재 live runtime과 아직 target contract에 머무는 범위를 명확히 구분한다.
 
 **현재 live runtime으로 확인된 범위**:
-- `/test/{variant}` route guard, instruction overlay, consent note/divider/CTA policy, qualifier overlay, qualifier re-entry, `instructionSeen` 생명주기, landing ingress/direct/resume bootstrap, scoring-only question panel, answer lock 기반 delayed auto-advance, previous navigation tail reset, active-run resume, `final_submit`/placeholder result panel, `attempt_start`·`question_answered`·`final_submit`·임시 `result_viewed` telemetry hook.
+- `/test/{variant}` route guard, instruction overlay, consent note/divider/CTA policy, qualifier overlay, qualifier re-entry, `instructionSeen` 생명주기, landing ingress/direct/resume bootstrap, scoring-only question panel, answer lock 기반 delayed auto-advance, previous navigation(응답 보존), active-run resume, `final_submit`/placeholder result panel, `attempt_start`·`question_answered`·`final_submit`·임시 `result_viewed` telemetry hook.
 
 **아직 target contract 또는 placeholder bridge인 범위**:
 - score derivation → result-entry loading → self-contained result URL → 실제 result page rendering pipeline은 live runtime에 연결되지 않았다.
@@ -507,29 +507,30 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 
 > **향후 확장**: 현재 scoring question model은 이진 pole 선택지(`poleA`/`poleB`)만 지원한다. 척도형(1~5점) 응답지 지원은 `AxisSpec.scoringMode: 'scale'` 구현 단계에서 별도 question model 확장이 필요하다. 이번 단계에서는 이진 모델만 구현 대상이다.
 
-### 3.9 Progress / Revision / Tail Reset Contract
+### 3.9 Progress / Revision / Answer Retention Contract
 
 - main progress는 **answered scoring count / total scoring count**를 기준으로 계산해야 한다.
 - Ingress flag 존재 시 landing에서 pre-answer된 `scoring1`의 canonical index는 answered scoring count에 포함한다.
 - 모든 required question이 응답되기 전에는 completion transition을 허용하면 안 된다.
 - 사용자는 진행 중 이전 응답을 수정할 수 있어야 한다.
-- 이미 답변된 문항을 재방문하면 기존 답변 상태가 선택된 상태로 표시되어야 한다.
+- 이미 답변된 문항을 재방문하면 사용자가 **과거에 무엇을 골랐는지 알 수 있어야 한다.** 표현 방식은 §4.3(마지막 문항은 §4.4)이 정한다.
 - 최종 계산과 결과 표시는 수정이 반영된 최종 응답 집합을 기준으로 해야 한다.
 - user-facing `Q1/Q2`는 scoring order label일 뿐 main progress나 canonical response key 결정에 사용할 수 없다. 단, 현재 `question_answered.question_index_1based`는 visible scoring-order ordinal을 사용하므로 표시되는 scoring 순번과 같은 숫자를 보낸다. profile 문항은 main progress 분모/분자 미포함(qualifier overlay에서 별도 local step 표기 가능).
 - qualifier 선택/수정 전후로 main progress는 변하지 않는다.
 
-**Tail Reset 계약**:
-- 마지막 문항이 아닌 이전 문항의 응답을 변경하면, **변경 확정 즉시** 그 이후 모든 응답을 리셋한다.
-- tail reset 즉시: `all-required-answered = false`.
-- tail reset 즉시: result-entry eligibility = false (저장형이면 즉시 false로 전환, 계산형이면 즉시 재평가 → false).
-- tail reset 즉시: 이전 derivation attempt residue 전체를 폐기한다 (§8.3 cleanup 참조).
-- **마지막 문항의 응답 변경은 tail reset을 발생시키지 않는다.** 이전 derivation residue만 무효화하며, 마지막 문항의 새 응답이 유효하면 result-entry eligibility는 유지된다 (§3.10 참조).
+**응답 보존 계약**:
+- **어떤 이동도 응답을 제거하지 않는다.** 이전 문항으로 이동하든 앞으로 진행하든, 이동 그 자체는 저장된 응답 집합을 바꾸지 않는다.
+- **응답 변경도 다른 응답을 제거하지 않는다.** 문항 `i`의 응답을 바꿔도 canonical index `> i`인 응답은 그대로 유지된다.
+- 근거는 도출 모델이다. `binary_majority`는 축별 **독립 집계**이며(§3.11), 각 scoring 문항은 자기 축의 pole 카운트에 `+1` 할 뿐 다른 문항의 의미를 바꾸지 않는다. `questions[]`는 variant마다 고정된 순서 배열이라(§3.8) 앞 응답이 뒤 문항 구성을 바꾸지도 않는다. 즉 앞 응답을 고쳐도 뒤 응답이 무의미해지는 경로가 **구조적으로 없다.**
+- **응답이 하나라도 바뀌면 이전 derivation attempt residue는 변경 확정 즉시 폐기한다** (§8.3 cleanup 참조). 마지막 문항인지 여부와 무관하게 같다. 폐기 대상은 **파생 결과이지 응답이 아니다.**
+- 같은 값 재선택은 변경이 아니다. residue를 무효화하지 않는다.
+- 응답 집합이 줄어드는 경로는 qualifier 재진입 reset 하나뿐이다(§3.6). 그 경우에만 `all-required-answered = false`가 될 수 있다.
 
-**구현 계약 (backward navigation)**:
-- 이전 문항으로 이동(`moveQuestion(-1)`)하면, 목적지 index로 전환하는 동시에 tail 응답을 원자적으로 제거한다.
-- 제거 predicate: `Number(key) < nextIndex` — canonical index가 목적지 index보다 **엄격히 작은** 응답만 보존한다. 목적지 문항(index == nextIndex)과 현재 문항(index > nextIndex)의 응답 모두 제거된다.
-- 예: Q3(answers `{'1':'A','2':'B','3':'A'}`)에서 이전 이동 시 `nextIndex=2`, 보존 조건 `Number(key) < 2` → 결과: `{'1':'A'}` (`'2'`, `'3'` 제거).
-- §6.1에 별도 navigation behavior 섹션이 없는 경우, 이 구현 계약이 backward navigation tail-reset의 SSOT다.
+**구현 계약 (navigation)**:
+- 이전 문항으로 이동(`moveQuestion(-1)`)하면 목적지 index로 전환할 뿐이며, 응답 집합과 그 durable 저장본을 **읽지도 쓰지도 않는다.**
+- 응답 확정 후 이동 목적지는 **첫 미응답 scoring question**이며, 미응답이 하나도 없으면 **마지막 scoring question**이다(§4.3). 이 규칙은 별도 상태를 요구하지 않고 「사용자가 원래 있던 자리」와 일치한다 — 응답이 보존되므로 미응답 경계가 곧 진행 최전선이기 때문이다.
+- 예: Q3까지 답한 상태(`{'1':'A','2':'B','3':'A'}`)에서 Q2로 이동해도 응답은 `{'1':'A','2':'B','3':'A'}` 그대로다. 거기서 `'A'`로 바꾸면 `{'1':'A','2':'A','3':'A'}`가 되고 Q3은 남는다.
+- §6.1에 별도 navigation behavior 섹션이 없는 경우, 이 구현 계약이 navigation과 응답 보존의 SSOT다.
 
 ### 3.10 Result-entry Eligibility Contract
 
@@ -543,10 +544,11 @@ result-entry eligible은 위치 기반이 아닌 자격 기반 상태다.
 **유지 규칙**:
 - 단순 문항 간 이동만으로는 eligibility를 상실하지 않는다.
 - 마지막 문항 응답 변경 후에도, 마지막 문항 응답이 유효하고 `all-required-answered = true`이면 eligibility는 유지된다.
+- **이전 문항 응답 변경으로도 eligibility를 상실하지 않는다.** 응답이 제거되지 않으므로(§3.9) `all-required-answered`가 참인 채로 남는다. 바뀌는 것은 derivation residue의 유효성뿐이며 그것은 eligibility가 아니다.
 
 **즉시 상실 규칙**:
-- 마지막 문항이 아닌 이전 문항 응답 변경으로 tail reset이 발생하면 `all-required-answered = false`가 되어 eligibility는 즉시 false다.
-- 이 변화는 변경 확정 즉시 반영되어야 한다.
+- eligibility를 잃는 경로는 **응답 집합이 실제로 줄어드는 경우** 하나뿐이다. 현재 그 경로는 qualifier 재진입 reset(§3.6)이며, 그때 `all-required-answered = false`가 되어 eligibility는 즉시 false다.
+- 이 변화는 확정 즉시 반영되어야 한다.
 
 **UI 반영 규칙**:
 - eligibility는 논리 조건에 의해 즉시 true/false가 결정된다.
@@ -678,10 +680,15 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 - question runtime panel은 variant의 ordered question set 중 scoring question만 표시한다. profile/qualifier question은 instruction overlay의 qualifier step에서 수집한다.
 - 사용자는 각 scoring runtime question에서 정확히 두 개의 answer option 중 하나를 선택해야 한다.
 - **scoring 응답 확정 직후 시스템은 즉시 다음 미응답 scoring question으로 이동한다.** 이 자동 이동 규칙은 정상 순차 진행, revision 후 진행, resume 후 진행 모두에 동일하게 적용되며 profile question은 runtime navigation에서 건너뛴다.
+- **미응답 scoring question이 하나도 없으면 목적지는 마지막 scoring question이다.** 응답이 보존되므로(§3.9) 이 상황은 흔하다 — 되돌아가 하나를 고친 사용자가 그 자리에서 다시 끝까지 탭해 내려올 필요 없이 원래 있던 자리로 돌아온다.
 - 자동 이동은 짧은 지연(현재 150ms) 동안 answer option을 잠그는 방식으로 처리한다. 이 지연 구간의 중복 클릭은 무시되어야 하며, Previous/문항 전환/unmount 시 예약된 자동 이동은 취소되어야 한다.
 - 사용자는 이전 문항으로 이동할 수 있다. 다음 문항 이동은 응답 확정 직후 자동 진행으로 처리한다.
-- 이전 문항으로 이동해 응답을 변경하면 tail reset이 발생한다 (§3.9 참조).
-- 마지막 문항의 응답을 변경하면 이전 derivation residue가 무효화된다. tail reset은 발생하지 않는다 (§3.9 참조).
+- 이전 문항으로 이동하거나 거기서 응답을 변경해도 **다른 응답은 제거되지 않는다.** 바뀌는 것은 derivation residue의 유효성뿐이다 (§3.9 참조).
+- **기존 응답이 있는 문항이 보일 때 두 선택지는 모두 unselected이고, 과거에 고른 쪽에만 「이전 응답」 표식이 붙는다.** 표식은 선택이 아니다 — 선택으로 읽히는 시각 무게를 갖지 않으며, 보조기술에는 선택 상태(`aria-checked`/`aria-pressed`)가 아니라 **텍스트 대안**으로 전달한다. 기존 응답이 없는 문항에는 표식이 없다.
+- 이 규칙이 필요한 이유는 이 플로우에 [다음] 버튼이 없기 때문이다. 선택은 곧 진행이라 **선택된 상태로 머무는 문항이 존재할 수 없고**, 그래서 「과거에 골랐다」는 정보는 선택 상태가 아닌 별도 표식이 져야 한다.
+- 예외는 마지막 문항이다 — 거기서는 자동 진행이 없어 선택 상태가 그대로 머무를 수 있다 (§4.4).
+- 표식이 붙은 선택지를 탭해도 동작은 같다 — 즉시 다음 목적지로 이동한다. 같은 쪽을 탭하면 변경이 아니고, 다른 쪽을 탭하면 변경이다. **두 경우의 이동 목적지는 같다.**
+- 응답 확정 직후의 잠금 구간(현재 150ms) 동안에는 방금 탭한 선택지가 **선택된 상태**로 보인다. 그 구간이 곧 탭 피드백이다.
 - main progress는 현재까지 유효하게 응답된 **scoring question 수 / total scoring count**를 기준으로 갱신되어야 한다.
 - 진행 상태는 프로그레스 바와 퍼센트(%)로 표시한다. 문항 번호 텍스트(예: `Question N of M`)는 표시하지 않는다.
 - user-facing `Q1/Q2/...`가 필요한 경우 이는 scoring order 기준으로만 해석하며, progress denominator나 canonical response key에 재사용하면 안 된다. 현재 `question_answered.question_index_1based`는 이 scoring-order ordinal과 같은 숫자를 사용한다.
@@ -711,11 +718,17 @@ Landing ingress에서 동일 variant를 다시 선택하는 행위는 항상 **r
 - 시스템은 마지막 문항에서 사용자가 선택한 최신 응답을 임의로 제거하거나 변경하면 안 된다.
 - back-from-loading, derivation-failure 복귀, 이전 문항 탐색 후 복귀 등 어느 경로에서도 마지막 문항의 최신 응답은 유지되어야 한다.
 
+**마지막 문항의 선택 표현 — §4.3 표식 규칙의 예외**:
+- **마지막 문항에 기존 응답이 있으면 그 선택지는 「이전 응답」 표식이 아니라 선택된 상태로 표시한다.**
+- 근거는 §4.3 이 표식 규칙을 필요로 한 이유가 여기서는 성립하지 않는다는 것이다. 마지막 문항에는 자동 진행이 없어 선택이 곧 진행이 아니며, 따라서 선택된 상태로 머무는 것이 가능하다.
+- 그리고 그 화면에서 선택 상태는 **"결과 보기" CTA가 활성인 이유**다. CTA는 켜져 있는데 어느 쪽도 선택돼 보이지 않는 화면을 만들지 않는다.
+
 **마지막 문항 응답 변경 시**:
 - 이전 derivation attempt residue는 변경 확정 즉시 무효화된다 (§8.3 derivation residue cleanup 범위).
 - 마지막 문항의 새 응답은 유지된다.
 - `all-required-answered = true`는 유지된다.
 - result-entry eligibility는 논리 조건에 따라 즉시 재평가하며, 조건이 충족되면 유지된다.
+- 이 네 줄은 §3.9 개정 이후 **마지막 문항의 특칙이 아니라 모든 문항에 같이 적용되는 규칙**이다. 여기 남겨 두는 것은 마지막 문항 화면의 계약을 한자리에서 읽히게 하기 위해서다.
 
 ### 4.5 Completion → Result-entry Eligibility
 
@@ -1107,8 +1120,7 @@ result derivation 전환 구간에서 아래 상태를 구분해서 관리해야
 | Result screen entry commit 완료 | result pipeline target contract: run continuation을 가능하게 하는 모든 진행 상태 (`instructionSeen` 포함 삭제). 현재 placeholder submit은 이 commit을 수행하지 않는다 |
 | Commit-failure 발생 | new staged entry + restart intent + pending new-run context 폐기. old active run 유지 |
 | Derivation-failure 발생 | §6.7 폐기 항목 목록 전체. 응답 집합 + eligibility 유지 |
-| 마지막 문항 응답 변경 | §6.7 폐기 항목 목록과 동일 범위의 derivation residue 무효화. 응답 집합 + eligibility 유지 가능 |
-| 이전 문항 응답 변경 (tail reset) | 변경 이후 응답 전체 + §6.7 폐기 항목 목록과 동일 범위의 derivation residue 전체 폐기 |
+| 문항 응답 변경 (마지막 문항 포함, 모든 문항 동일) | §6.7 폐기 항목 목록과 동일 범위의 derivation residue 무효화. **응답 집합은 보존한다** — 폐기 대상은 파생 결과이지 응답이 아니다(§3.9). eligibility 유지 가능 |
 | Back-from-loading | `derivation_in_progress` 임시 상태 + loading residue 정리. 응답 집합 유지 |
 | 전환 실패/취소 (랜딩→테스트) | validated landing-origin context 관련 상태 (`instructionSeen` 유지) |
 | variant switch / blocking data error | 해당 variant의 모든 실행 문맥 상태 (`instructionSeen` 유지) |
@@ -1241,7 +1253,7 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 | canonical index / scoring order / user-facing Q label 관계 변경 | 3.1, 3.3, 3.8, 3.9, 4.3, 9.1, 9.2, AR-007, 12.2 |
 | Staged entry expiry 변경 | 3.5, 1.3, 8.3, 12.2 |
 | Runtime entry commit 정책 변경 | 3.4, 3.5, 4.2, 6.6, 8.3, 12.2 |
-| Progress / revision / tail reset 정책 변경 | 3.9, 3.10, 4.3, 4.4, 8.3, 12.2 |
+| Progress / revision / 응답 보존 정책 변경 | 3.9, 3.10, 4.3, 4.4, 8.3, 12.2 |
 | Result-entry eligibility 정책 변경 | 3.10, 4.4, 4.5, 8.3, 12.2 |
 | Result derivation loading / 최소 시간 변경 | 1.3, 4.6, 8.2, 8.3, 6.8, 12.2 |
 | Back-from-loading 계약 변경 | 4.4, 4.7, 6.7, 8.2, 8.3, 12.2 |
@@ -1278,7 +1290,7 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 6. **응답 데이터 휘발**: timeout 후, 처음부터 다시 하기 commit success 후 — 잔류 데이터 `0건`. result screen entry commit 후 휘발은 result pipeline target check이며 현재 placeholder submit에서는 발생하지 않는다. derivation-failure 상태에서 응답 데이터 미삭제.
 7. **Question Model Integrity**: canonical 모든 question이 `questionType` 필드를 가진다. scoring question은 필수 `poleA`/`poleB` + bidirectional 기준 정확히 1개 scoring axis 매핑. profile question은 axis 귀속 없음이며 `poleA`/`poleB`는 optional로 허용한다. 전체 canonical question index 중복 없음.
 8. **Progress / Completion Gating**: main progress가 scoring answered/total 기준이며 profile 문항을 포함하지 않는다. qualifier overlay prerequisite 미완료 또는 미응답 canonical 문항 존재 시 completion 차단.
-9. **Answer Revision / Tail Reset**: 이전 문항 재방문 시 기존 답변 표시. 이전 문항(non-final) 응답 변경 즉시 tail reset + eligibility false. 마지막 문항 응답 변경 시 derivation residue 무효화만 발생, eligibility 조건 충족 시 유지.
+9. **Answer Revision / Answer Retention**: 이동도 변경도 다른 응답을 제거하지 않는다. 어느 문항의 응답을 바꾸든 derivation residue 무효화만 발생하고 응답 집합과 eligibility는 유지된다. 기존 응답이 있는 문항은 두 선택지 모두 unselected + 과거 응답 쪽 표식으로 표시하며(마지막 문항은 선택 상태 — §4.4 예외), 응답 확정 후 목적지는 첫 미응답 scoring question, 없으면 마지막 scoring question이다.
 10. **Session Lifecycle Determinism**: variant switch 시 prior context 정리. timeout 이후 stale context 미유지.
 11. **Derivation Correctness**: scoring 문항만 필터링해 `computeScoreStats` 수행. axisCount 1/2/4 각각 derivedType 토큰 길이 검증. schema 순서 준수. schema axis와 역방향인 scoring question도 같은 axis로 집계. qualifier 없는 variant(MBTI)에서 `type` segment = derivedType. qualifier 있는 variant(EGTT)에서 `type` segment = derivedType + qualifier 토큰 연결. completed run만 결과 생성.
 12. **Odd-count Validation**: `binary_majority` scoringMode scoring 문항에만 odd-count rule 적용. profile 문항은 적용 제외. 짝수 문항 수 scoring axis fixture에서 blocking error 발생. 역방향 question은 bidirectional 기준 같은 axis count에 포함. `scale` mode axis 선언 fixture에서 blocking error 발생.
@@ -1290,7 +1302,7 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 18. **Telemetry Contract**: §9.1에 명시된 이벤트 훅과 계약 누락 `0건`. `attempt_start.question_index_1based`는 첫 scoring runtime question의 canonical index이고, `question_answered.question_index_1based`는 visible scoring-order ordinal이며 canonical response key와 혼용되지 않음을 검증한다. `final_submit.final_responses`는 scoring canonical question index string key와 semantic `A`/`B` value만 포함하며 qualifier token은 제외한다.
 19. **Staged Entry**: 현재 live check는 staged entry가 `createdAtMs`를 저장하고 unconsumed landing ingress를 우선 적용하는지 검증한다. 7분 만료 enforcement, 만료 후 Direct Cold 처리, commit-failure 분기는 future/pending contract이며 해당 구현 단계에서 release-blocking check로 격상한다.
 <!-- assertion:B20-result-entry-eligibility -->
-20. **Result-entry Eligibility**: all-required-answered + 마지막 문항 유효 응답 조건 즉시 반영. tail reset 발생 즉시 false. 마지막 문항 변경 후 조건 충족 시 유지.
+20. **Result-entry Eligibility**: all-required-answered + 마지막 문항 유효 응답 조건 즉시 반영. 응답 집합이 실제로 줄어드는 경로(qualifier 재진입 reset)에서만 false. 이전 문항 변경·마지막 문항 변경 어느 쪽에서도 조건 충족 시 유지.
 <!-- assertion:B21-final-question-screen -->
 21. **Final Question Screen**: 현재 live runtime은 마지막 scoring question에서 locale `submit` CTA를 제공하고 placeholder result panel로 전환한다. "결과 보기" CTA, back-from-loading, derivation-failure 복귀 후 마지막 문항 응답 보존 및 "결과 보기" 재제공은 result pipeline target contract다.
 <!-- assertion:B22-result-derivation-loading -->

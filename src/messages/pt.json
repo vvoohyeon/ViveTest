@@ -33,6 +33,7 @@
     "progressLabel": "Progresso",
     "progressValue": "{percent}%",
     "prev": "Anterior",
+    "previouslySelected": "Sua escolha anterior",
     "next": "Próxima",
     "submit": "Enviar",
     "resultLabel": "Resultado final",

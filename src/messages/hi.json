@@ -33,6 +33,7 @@
     "progressLabel": "प्रगति",
     "progressValue": "{percent}%",
     "prev": "पिछला",
+    "previouslySelected": "आपका पिछला चयन",
     "next": "अगला",
     "submit": "सबमिट करें",
     "resultLabel": "अंतिम परिणाम",

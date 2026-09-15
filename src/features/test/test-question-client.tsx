@@ -13,6 +13,7 @@ import {QualifierChip} from '@/features/test/qualifier-chip';
 import {ResultConnector} from '@/features/test/result-connector';
 import {buildVariantQuestionBank} from '@/features/test/question-bank';
 import {isProfileQuestion} from '@/features/test/question-runtime-utils';
+import {resolveAnswerChoiceState} from '@/features/test/answer-choice-state';
 import {useAnswerHandler} from '@/features/test/use-answer-handler';
 import {useAnswerLock} from '@/features/test/use-answer-lock';
 import {useBeforeUnloadGuard} from '@/features/test/use-before-unload-guard';
@@ -89,6 +90,18 @@ function resolveInstructionVisible(input: InstructionVisibleInput): boolean {
     !input.instructionSeen ||
     !input.canAutoCommitAfterInstructionSeen ||
     input.hasQualifierItems
+  );
+}
+
+/**
+ * 「이전에 고른 쪽」 표식. **마크 슬롯 안에** 그린다 — 슬롯은 항상 렌더되는 14×14 고정 상자라
+ * 표식이 붙고 빠져도 라벨이 움직이지 않는다. 옆에 새 원소로 붙이면 그 성질이 깨진다.
+ */
+function PreviousAnswerGlyph() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-full w-full">
+      <path d="M2.5 7.5 L5.5 10.5 L11.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -357,32 +370,41 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               animate={{x: 0}}
               transition={prefersReducedMotion ? {duration: 0} : {duration: 0.18, ease: 'easeOut'}}
             >
-              <button
-                type="button"
-                className={testAnswerChoiceClassName}
-                data-selected={currentAnswer === 'A' ? 'true' : 'false'}
-                disabled={isAnswerLocked}
-                onClick={() => {
-                  handleAnswerChoice('A');
-                }}
-                data-testid="test-choice-a"
-              >
-                <span className={testAnswerChoiceTextClassName}>{currentQuestion?.answerA}</span>
-                <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className={testAnswerChoiceClassName}
-                data-selected={currentAnswer === 'B' ? 'true' : 'false'}
-                disabled={isAnswerLocked}
-                onClick={() => {
-                  handleAnswerChoice('B');
-                }}
-                data-testid="test-choice-b"
-              >
-                <span className={testAnswerChoiceTextClassName}>{currentQuestion?.answerB}</span>
-                <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
-              </button>
+              {(['A', 'B'] as const).map((choice) => {
+                const choiceState = resolveAnswerChoiceState({
+                  choice,
+                  storedAnswer: currentAnswer ?? null,
+                  justAnswered: isAnswerLocked,
+                  isLastQuestion
+                });
+
+                return (
+                  <button
+                    key={choice}
+                    type="button"
+                    className={testAnswerChoiceClassName}
+                    data-selected={choiceState === 'selected' ? 'true' : 'false'}
+                    data-previous-answer={choiceState === 'previous-answer' ? 'true' : 'false'}
+                    disabled={isAnswerLocked}
+                    onClick={() => {
+                      handleAnswerChoice(choice);
+                    }}
+                    data-testid={choice === 'A' ? 'test-choice-a' : 'test-choice-b'}
+                  >
+                    <span className={testAnswerChoiceTextClassName}>
+                      {choice === 'A' ? currentQuestion?.answerA : currentQuestion?.answerB}
+                    </span>
+                    {/* 표식은 선택이 아니므로 `aria-checked`·`aria-pressed` 를 쓰지 않는다. 보조기술에는
+                        버튼 이름 안의 텍스트 대안으로 간다(`req-test.md` §4.3). */}
+                    {choiceState === 'previous-answer' ? (
+                      <span className="sr-only">{t('previouslySelected')}</span>
+                    ) : null}
+                    <span className={testAnswerChoiceMarkClassName} aria-hidden="true">
+                      {choiceState === 'previous-answer' ? <PreviousAnswerGlyph /> : null}
+                    </span>
+                  </button>
+                );
+              })}
             </motion.div>
 
             <div className={testNavRowClassName}>

@@ -33,6 +33,7 @@
     "progressLabel": "진행률",
     "progressValue": "{percent}%",
     "prev": "이전",
+    "previouslySelected": "이전에 선택한 답변",
     "next": "다음",
     "submit": "제출",
     "resultLabel": "최종 결과",

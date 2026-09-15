@@ -33,6 +33,7 @@
     "progressLabel": "進行状況",
     "progressValue": "{percent}%",
     "prev": "前へ",
+    "previouslySelected": "前回選んだ回答",
     "next": "次へ",
     "submit": "送信",
     "resultLabel": "最終結果",

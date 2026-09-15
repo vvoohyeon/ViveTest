@@ -22,7 +22,7 @@ Phase 0 착수 이전에 요구되었던 랜딩 측 선행 구현은 완료되�
 | **3** | Storage · Session Lifecycle · Data Volatility | storage key API, active run timeout 판정, 5개 상태 플래그, 3가지 휘발 트리거 단위 구현 완료. live runtime active-run 생성/갱신과 resume read 경로도 Phase 5/6 사전 설계 결정으로 연결됨 | 1, 2 |
 | **4** | Entry Path · Staged Entry · Invalid Variant Recovery | test route entry guard, runtime-blocked redirect, lazy-validation redirect, stub error route는 구현됨. 7분 만료/완성형 recovery UX/공유 픽스처 확장은 남음 | 1, 2, 3 |
 | **5** | Instruction Gate · Runtime Entry Commit | instruction overlay와 `useTestEntryOrchestrator` 기반 commit/redirect/auto-commit 경로 구현. **Phase 5/6 사전 설계 결정 섹션 참조**: entry/runtime phase 상태는 `test-run-reducer.ts`로 통합되었고 orchestrator는 reducer-aware adapter로 유지됨 | 1, 2, 3, 4 |
-| **6** | Question Runtime Core | `useTestRunController` 기반 응답 루프, canonical-index keyed write/read, active-run resume, scoring progress, answer lock 기반 auto-advance, backward tail reset, qualifier re-entry reset, placeholder submit/result는 구현됨. result-entry eligibility 저장/derivation 연결은 남음 | 1, 2, 3, 4, 5 |
+| **6** | Question Runtime Core | `useTestRunController` 기반 응답 루프, canonical-index keyed write/read, active-run resume, scoring progress, answer lock 기반 auto-advance, 응답 보존형 backward navigation, qualifier re-entry reset, placeholder submit/result는 구현됨. result-entry eligibility 저장/derivation 연결은 남음 | 1, 2, 3, 4, 5 |
 | **7** | Derivation · Loading Screen | scoreStats/derivedType 계산, 5초 최소 로딩 AND 조건, back-from-loading | 1, 2, 3, 6 |
 | **8** | Result URL Payload · Validation | URL 구조, base64 인코딩, payload 검증 실패 경로 | 1 |
 | **9** | Result Page · Content Fallback | 케이스 매트릭스(1/2/4), mandatory/optional 섹션, content fallback | 7, 8 |
@@ -221,7 +221,7 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 
 ### Phase 5/6 사전 설계 결정 (현재 구조 개선 이후 확장)
 
-> **구현 상태**: SD-1 Phase 통합 reducer와 SD-2 Active-Run Resume 로드/저장 경로는 2026-05-14 구현 완료. 이 섹션은 test-flow 구조 개선(run controller 추출, entry orchestrator 분리, canonical index 전환, tail reset 확정) 이후 적용된 두 가지 설계 결정을 기록한다.
+> **구현 상태**: SD-1 Phase 통합 reducer와 SD-2 Active-Run Resume 로드/저장 경로는 2026-05-14 구현 완료. 이 섹션은 test-flow 구조 개선(run controller 추출, entry orchestrator 분리, canonical index 전환, 응답 보존 확정) 이후 적용된 두 가지 설계 결정을 기록한다.
 > 남은 Phase 7/10 확장(score derivation, result-entry cleanup, terminal cleanup state)은 이 reducer/resume 경계를 전제로 진행한다.
 
 #### SD-1. Phase 통합 Reducer (Phase 5 착수 시점 적용)
@@ -229,7 +229,7 @@ Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립�
 > **구현 완료**: Phase 통합 Reducer를 도입했고 기존 `entryCommitted`/`instructionSeen` 분산 phase authority를 제거했다. `useTestEntryOrchestrator`는 삭제하지 않고 reducer-aware adapter로 유지한다.
 
 **현재 구조 (SD-1 적용 후 상태):**
-- `src/features/test/test-run-reducer.ts`가 `booting | instruction | active | submitted | redirecting` phase, canonical answers, current index, entry sequence, new/resume entry mode, tail reset, submit guard를 소유한다.
+- `src/features/test/test-run-reducer.ts`가 `booting | instruction | active | submitted | redirecting` phase, canonical answers, current index, entry sequence, new/resume entry mode, submit guard를 소유한다.
 - `useTestRunBootstrap`이 pending transition, Landing Ingress, active-run/responseSet read, qualifier resume validation, `BOOTSTRAP_COMPLETE` dispatch를 소유한다.
 - `useTestRunController`가 reducer instance, progress, response persistence, active-run metadata write, dwell tracking(`useQuestionDwell`), `attempt_start`/`final_submit` hook을 소유한다.
 - `useTestEntryOrchestrator`가 CTA action 해석을 소유하고, qualifier wizard / inline entry side-effect calls / auto-commit hook을 조합한다. consent write, `markInstructionSeen`, redirect-home cleanup은 별도 `useEntrySideEffects` hook 없이 orchestrator 내부에서 `setTelemetryConsentState`, `markInstructionSeen`, `clearLandingIngress` 직접 호출로 실행한다.
@@ -265,7 +265,7 @@ interface TestRunState {
 | `COMMIT_ENTRY` | `instruction → active` | 기존 `executeInstructionAction` 결과를 단일 action으로 표현 |
 | `REDIRECT_HOME` | `instruction → redirecting` | deny_and_abandon / keep_current_preference 효과 |
 | `SELECT_ANSWER` | `active` (내부) | canonical index key에 'A'\|'B' 기록. 150ms 타이머는 client effect에서 처리 |
-| `NAVIGATE_PREVIOUS` | `active` (내부) | currentIndex - 1, answers를 index - 1 이하로 슬라이스 (tail reset) |
+| `NAVIGATE_PREVIOUS` | `active` (내부) | currentIndex - 1. **answers는 건드리지 않는다** — 이동은 응답을 제거하지 않는다(`req-test.md` §3.9) |
 | `SUBMIT` | `active → submitted` | `allAnswered` 전제 조건 검사는 reducer 내부에서 guard |
 | `RESET_SCORING_ANSWERS` | `active` (내부) | qualifier re-entry confirm 시 qualifier answers만 보존하고 첫 scoring question으로 복귀 |
 

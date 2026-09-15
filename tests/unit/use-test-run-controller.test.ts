@@ -357,7 +357,10 @@ describe('useTestRunController', () => {
     expect(result.current.answers).toEqual({'1': 'A'});
   });
 
-  it('tail-resets answers and persists the truncated response set on previous navigation', async () => {
+  // 종전 제목은 「tail-resets answers and persists the truncated response set」였다. 이동이
+  // 응답을 지우고 잘린 집합을 저장하는 것을 계약으로 고정했던 자리이며, `req-test.md` §3.9
+  // 개정으로 **이동은 응답 집합을 읽지도 쓰지도 않는다.**
+  it('preserves every answer on previous navigation and writes nothing', async () => {
     const {result} = renderHook(() => useTestRunController(makeInput()));
     await flushMicrotasks();
     await commitRuntimeEntry(result);
@@ -377,15 +380,60 @@ describe('useTestRunController', () => {
     expect(result.current.answers).toEqual({'1': 'A', '2': 'B', '3': 'A'});
 
     const refreshCountBeforePrevious = vi.mocked(writeLastAnsweredAt).mock.calls.length;
+    const responseWritesBeforePrevious = vi.mocked(writeResponseSet).mock.calls.length;
     act(() => {
       result.current.moveQuestion(-1);
     });
     await flushMicrotasks();
 
     expect(result.current.currentQuestionIndex).toBe(3);
-    expect(result.current.answers).toEqual({'1': 'A', '2': 'B'});
-    expect(vi.mocked(writeResponseSet)).toHaveBeenLastCalledWith('qmbti', {'1': 'A', '2': 'B'});
+    expect(result.current.answers).toEqual({'1': 'A', '2': 'B', '3': 'A'});
+    // 바뀐 것이 없으므로 durable 저장본에 쓸 것도 없다.
+    expect(vi.mocked(writeResponseSet).mock.calls.length).toBe(responseWritesBeforePrevious);
     expect(vi.mocked(writeLastAnsweredAt)).toHaveBeenCalledTimes(refreshCountBeforePrevious);
+  });
+
+  it('sends a changed earlier answer back to the last scoring question when nothing is unanswered', async () => {
+    // 응답이 보존되면서 「미응답이 하나도 없는」 상황이 흔해졌다. 종전 fallback 은
+    // `currentQuestionIndex + 1` 이라 되돌아가 하나를 고친 사용자가 끝까지 한 문항씩 탭해
+    // 내려와야 했다(`req-test.md` §4.3).
+    const {result} = renderHook(() => useTestRunController(makeInput()));
+    await flushMicrotasks();
+    await commitRuntimeEntry(result);
+
+    const totalQuestions = result.current.totalQuestions;
+    for (let index = 0; index < totalQuestions; index += 1) {
+      act(() => {
+        result.current.updateAnswer('A');
+      });
+      await flushMicrotasks();
+      act(() => {
+        result.current.moveQuestion(1);
+      });
+      await flushMicrotasks();
+    }
+
+    expect(result.current.allAnswered).toBe(true);
+
+    // 두 번 거슬러 올라가 거기서 답을 바꾼다.
+    act(() => {
+      result.current.moveQuestion(-1);
+    });
+    await flushMicrotasks();
+    act(() => {
+      result.current.moveQuestion(-1);
+    });
+    await flushMicrotasks();
+    const revisitedIndex = result.current.currentQuestionIndex;
+    expect(revisitedIndex).toBeLessThan(totalQuestions);
+
+    act(() => {
+      result.current.moveQuestion(1, 'B');
+    });
+    await flushMicrotasks();
+
+    expect(result.current.currentQuestionIndex).toBe(totalQuestions);
+    expect(result.current.allAnswered).toBe(true);
   });
 
   it('keeps submit blocked before active entry or before all answers exist', async () => {

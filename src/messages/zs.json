@@ -33,6 +33,7 @@
     "progressLabel": "进度",
     "progressValue": "{percent}%",
     "prev": "上一题",
+    "previouslySelected": "您之前的选择",
     "next": "下一题",
     "submit": "提交",
     "resultLabel": "最终结果",

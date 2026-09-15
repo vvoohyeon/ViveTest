@@ -91,15 +91,6 @@ function commitActiveEntry(
   };
 }
 
-function filterAnswersBeforeIndex(
-  answers: Record<string, StoredAnswer>,
-  nextIndex: number
-): Record<string, StoredAnswer> {
-  return Object.fromEntries(
-    Object.entries(answers).filter(([key]) => Number(key) < nextIndex)
-  ) as Record<string, StoredAnswer>;
-}
-
 export function testRunReducer(state: TestRunState, action: TestRunAction): TestRunState {
   switch (action.type) {
     case 'BOOTSTRAP_COMPLETE': {
@@ -174,11 +165,14 @@ export function testRunReducer(state: TestRunState, action: TestRunAction): Test
         return state;
       }
 
+      // **이동은 응답을 제거하지 않는다**(`req-test.md` §3.9). 종전에는 여기서 목적지
+      // index 이상의 응답을 잘라 냈고, 그래서 Q5 에서 Q2 를 확인하려고 「이전」을 한 번 누른
+      // 사용자가 네 개의 응답을 잃었다. 도출은 축별 독립 집계(§3.11)이고 문항 집합은
+      // 고정(§3.8)이라, 앞 응답을 고쳐도 뒤 응답이 무의미해지는 경로가 구조적으로 없다.
       const nextIndex = Math.max(1, action.nextQuestionIndex ?? state.currentQuestionIndex - 1);
       return {
         ...state,
-        currentQuestionIndex: nextIndex,
-        answers: filterAnswersBeforeIndex(state.answers, nextIndex)
+        currentQuestionIndex: nextIndex
       };
     }
 

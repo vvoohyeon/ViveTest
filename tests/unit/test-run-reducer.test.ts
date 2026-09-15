@@ -139,7 +139,11 @@ describe('testRunReducer', () => {
     expect(state.phase).toBe('submitted');
   });
 
-  it('keeps previous navigation at index 1 and clears all answers', () => {
+  // 종전 두 케이스의 제목은 「clears all answers」·「resets the tail」이었고 이동이 응답을
+  // 지우는 것을 계약으로 고정했다. `req-test.md` §3.9 개정으로 **이동은 응답을 제거하지
+  // 않는다** — 도출이 축별 독립 집계(§3.11)이고 문항 집합이 고정(§3.8)이라 앞 응답을 고쳐도
+  // 뒤 응답이 무의미해지는 경로가 없기 때문이다. 제목과 단언을 함께 바꾼다.
+  it('keeps previous navigation at index 1 and preserves the answer there', () => {
     const active = testRunReducer(buildInitialTestRunState(), {
       type: 'BOOTSTRAP_COMPLETE',
       instructionSeen: true,
@@ -152,10 +156,10 @@ describe('testRunReducer', () => {
     const state = testRunReducer(active, {type: 'NAVIGATE_PREVIOUS'});
 
     expect(state.currentQuestionIndex).toBe(1);
-    expect(state.answers).toEqual({});
+    expect(state.answers).toEqual({'1': 'A'});
   });
 
-  it('navigates back from index 3 to 2 and resets the tail', () => {
+  it('navigates back from index 3 to 2 without touching any answer', () => {
     const active = testRunReducer(buildInitialTestRunState(), {
       type: 'BOOTSTRAP_COMPLETE',
       instructionSeen: true,
@@ -168,7 +172,28 @@ describe('testRunReducer', () => {
     const state = testRunReducer(active, {type: 'NAVIGATE_PREVIOUS'});
 
     expect(state.currentQuestionIndex).toBe(2);
-    expect(state.answers).toEqual({'1': 'A'});
+    expect(state.answers).toEqual({'1': 'A', '2': 'B', '3': 'A'});
+  });
+
+  it('keeps the tail when an earlier answer is changed', () => {
+    // 이것이 종전 계약이 실제로 파괴하던 것이다 — Q2 를 고치면 Q3 이 사라졌다.
+    const active = testRunReducer(buildInitialTestRunState(), {
+      type: 'BOOTSTRAP_COMPLETE',
+      instructionSeen: true,
+      landingIngressFlag: false,
+      currentQuestionIndex: 2,
+      answers: {'1': 'A', '2': 'B', '3': 'A'},
+      autoCommitEntry: true
+    });
+
+    const state = testRunReducer(active, {
+      type: 'SELECT_ANSWER',
+      canonicalIndex: 2,
+      choice: 'A',
+      totalQuestions: 3
+    });
+
+    expect(state.answers).toEqual({'1': 'A', '2': 'A', '3': 'A'});
   });
 
   it('ignores runtime actions after submit', () => {
