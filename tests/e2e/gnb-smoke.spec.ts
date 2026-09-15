@@ -23,10 +23,10 @@ import {setTouchViewport} from './helpers/touch-context';
 // 수 있었다 — 그것이 blocker 였고 이 단계가 닫았다. 아래 검사들이 보는 것은 GNB 의 back 이므로,
 // 그 컨트롤에 닿으려면 먼저 관문을 통과해야 한다. 통과 자체는 다른 스펙이 본다.
 async function passInstructionGate(page: Page) {
+  // **`count()` 로 판정하지 않는다** — 렌더 전의 0 은 「관문이 없다」와 구별되지 않고, 그대로
+  // 지나가면 뒤의 클릭을 모달 스크림이 삼킨다. 알려진 동의 + 직접 진입은 반드시 관문을 거친다.
   const sheet = page.getByTestId('test-instruction-overlay');
-  if ((await sheet.count()) === 0) {
-    return;
-  }
+  await expect(sheet).toBeVisible();
   await page.getByTestId('test-start-button').click();
   await expect(sheet).toHaveCount(0);
 }

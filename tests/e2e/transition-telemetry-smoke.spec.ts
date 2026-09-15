@@ -586,6 +586,9 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.goto('/en');
 
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    // 제목을 **보이는 것을 확인한 뒤에** 읽는다. `innerText` 는 레이아웃에 기대므로 렌더 전에
+    // 부르면 빈 문자열이 오고, 그러면 이 검사는 「시트 제목이 빈 문자열과 같은가」를 묻게 된다.
+    await expect(card.locator('[data-slot="cardTitle"]')).toBeVisible();
     const cardTitle = await card.locator('[data-slot="cardTitle"]').innerText();
 
     await card.getByTestId('landing-grid-card-trigger').click();
@@ -780,6 +783,9 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     const card = page.locator('[data-card-variant="ops-handbook"]');
     const trigger = card.getByTestId('landing-grid-card-trigger');
+    // 기하를 렌더 전에 읽으면 `boundingBox()` 가 `null` 이고, 그 `null` 은 「카드가 없다」와
+    // 구별되지 않는다 — 피사체가 보이는 것을 먼저 확인한다.
+    await expect(trigger).toBeVisible();
     const box = await trigger.boundingBox();
     if (!box) {
       throw new Error('Expected blog card trigger to have a bounding box');

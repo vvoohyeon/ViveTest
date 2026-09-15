@@ -48,6 +48,11 @@ test.describe('Typography viewport axis', () => {
     const context = await browser.newContext({viewport: {width: 390, height: 844}});
     const page = await context.newPage();
     await page.goto('/en');
+    // **`document.fonts.ready` 는 렌더 장벽이 아니다.** 카탈로그는 하이드레이션 뒤에 그려지는데
+    // 폰트 약속은 그보다 먼저 풀리므로, 그것만 기다리면 census 가 GNB 몇 줄만 보고 끝난다
+    // (실측: 6 개 대 47 개). 종전에는 번들 도착이 우연히 빨라 통과하고 있었고, `motion` 제거로
+    // 그 우연이 사라지자 드러났다. 피사체가 실제로 그려진 것을 먼저 확인한다.
+    await expect(page.locator('[data-testid="landing-grid-card"]').first()).toBeVisible();
     await page.evaluate(async () => {
       await document.fonts.ready;
     });
