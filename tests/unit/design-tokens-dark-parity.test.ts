@@ -159,7 +159,15 @@ describe('runtime token layer mirrors the design definition', () => {
 
   const cases = [
     {name: 'light', runtimeBlock: () => sentinel(runtime, 'light'), designOpener: ':root {'},
-    {name: 'dark', runtimeBlock: () => sentinel(runtime, 'dark'), designOpener: "\n[data-theme='dark'] {"}
+    {name: 'dark', runtimeBlock: () => sentinel(runtime, 'dark'), designOpener: "\n[data-theme='dark'] {"},
+    // 세 번째 열. 타이포가 뷰포트 축을 가지면서 설계 정의에 모바일 블록이 생겼고, 그것도
+    // 사본이 둘이므로 같은 이유로 같은 대조가 필요하다 — 미러 쌍을 늘리지 않고 이 구간을
+    // 그냥 두면 모바일 값만 조용히 표류한다.
+    {
+      name: 'mobile-type',
+      runtimeBlock: () => sentinel(runtime, 'mobile-type'),
+      designOpener: '@media (max-width: 767px) {'
+    }
   ] as const;
 
   it.each(cases)('$name 미러가 설계 정의와 값까지 일치한다', ({runtimeBlock, designOpener}) => {

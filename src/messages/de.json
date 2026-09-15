@@ -74,7 +74,7 @@
   },
   "consent": {
     "regionLabel": "Analyse-Einwilligung",
-    "message": "Optionale Analysen zeigen, welche Tests beendet werden. Antworten werden nicht gesendet.",
+    "message": "Optionale Analysen zeigen, welche Tests enden. Antworten senden wir nicht.",
     "accept": "Zulassen",
     "deny": "Ablehnen",
     "recall": "Datenschutzeinstellungen",

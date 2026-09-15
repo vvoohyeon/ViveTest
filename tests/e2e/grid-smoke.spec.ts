@@ -1084,22 +1084,25 @@ test.describe('Phase 4 grid smoke', () => {
         };
       });
 
+      // 활자 넷은 **모바일 열**의 값이다(BQ-48) — 데스크톱은 20px/26px · 15px/21.75px 로 남고
+      // 폰에서만 `--t-card-title` 이 `--h4` 칸(18px/1.4), `--t-card-subtitle` 이 16px/1.5 를
+      // 쓴다. 같은 파일 위쪽 데스크톱 단언과 나란히 두면 축이 있다는 사실이 두 수로 보인다.
       expect(normalMetrics).toMatchObject({
         borderRadius: '16px',
         borderTopColor: 'rgb(230, 226, 216)',
         borderTopWidth: '1px',
         triggerPaddingTop: '16px',
         triggerPaddingRight: '16px',
-        titleFontSize: '20px',
+        titleFontSize: '18px',
         titleFontWeight: '600',
-        titleLineHeight: '26px',
+        titleLineHeight: '25.2px',
         titleOverflowWrap: 'anywhere',
         titleTextOverflow: 'clip',
         titleWebkitLineClamp: 'none',
         titleWordBreak: 'keep-all',
-        subtitleFontSize: '15px',
+        subtitleFontSize: '16px',
         subtitleFontWeight: '400',
-        subtitleLineHeight: '21.75px',
+        subtitleLineHeight: '24px',
         subtitleOverflow: 'visible',
         subtitleOverflowWrap: 'anywhere',
         subtitleTextOverflow: 'clip',

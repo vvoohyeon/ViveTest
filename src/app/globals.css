@@ -245,7 +245,7 @@
   --label:   500 14px/1.4  var(--font-sans);
   --caption: 400 13px/1.45 var(--font-sans);
   --overline:600 12px/1.4  var(--font-sans);
-  --button:  600 15px/1    var(--font-sans);
+  --button:  600 15px/1.2  var(--font-sans);
 
   /* type — tracking helpers */
   --track-tight:   -0.01em;
@@ -370,6 +370,28 @@
     --shell-gutter: 24px;
   }
 }
+
+/* @mirror-begin mobile-type */
+/* 타이포의 뷰포트 축. 설계 정의(`docs/design/ds/colors_and_type.css`)의 모바일 열을 그대로
+   베낀 것이며 값은 거기서 고친다 — `tests/unit/design-tokens-dark-parity.test.ts` 가 세 번째
+   미러 쌍으로 이 구간을 대조한다.
+
+   `--shell-gutter` 가 보여 준 모양 그대로다: 토큰 하나에 미디어 쿼리를 달고 소비처는 그대로
+   둔다. 제목이 내려가고 작은 본문이 올라가는 두 방향이 함께 들어 있으며, 13px 무리(캡션·
+   오버라인·라벨·태그)는 밀도와 함께 판정하므로 여기 없다. */
+@media (max-width: 767px) {
+  :root {
+    --h1: 700 24px/1.25 var(--font-sans);
+    --h3: 600 18px/1.4  var(--font-sans);
+    --body-sm: 400 15px/1.55 var(--font-sans);
+
+    --t-card-title:        600 18px/1.4  var(--font-sans);
+    --t-card-subtitle:     400 16px/1.5  var(--font-sans);
+    --t-expanded-question: 600 20px/1.35 var(--font-sans);
+    --t-choice:            400 16px/1.5  var(--font-sans);
+  }
+}
+/* @mirror-end mobile-type */
 
 /* ---------------------------------------------------------------------------
    DARK — mirrored from docs/design/ds/colors_and_type.css

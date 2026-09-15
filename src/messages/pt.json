@@ -74,7 +74,7 @@
   },
   "consent": {
     "regionLabel": "Consentimento de análises",
-    "message": "Usamos análises opcionais para saber quais testes são concluídos. Suas respostas não são enviadas.",
+    "message": "Análises opcionais mostram quais testes são concluídos. Suas respostas não são enviadas.",
     "accept": "Permitir",
     "deny": "Recusar",
     "recall": "Preferências de privacidade",

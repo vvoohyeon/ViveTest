@@ -257,7 +257,10 @@
   --label:   500 14px/1.4  var(--font-sans);
   --caption: 400 13px/1.45 var(--font-sans);
   --overline:600 12px/1.4  var(--font-sans);
-  --button:  600 15px/1    var(--font-sans);
+  /* 행간 `1` 은 이 폰트에서 라벨을 자른다. `head.unitsPerEm = 2048` 에 `hhea.ascender
+     1950` · `descender -494` 이고 `USE_TYPO_METRICS` 가 켜져 있어 글리프 content area 가
+     1.1934em 이다 — 15px 에서 2.90px 이 모자란다. 뷰포트와 무관한 결함이라 기준값을 고친다. */
+  --button:  600 15px/1.2  var(--font-sans);
   --code:    400 14px/1.55 var(--font-mono);
 
   /* Tracking helpers */
@@ -495,6 +498,44 @@
   --t-choice:            400 15px/1.45 var(--font-sans);
   --t-tag:               500 13px/1.35 var(--font-sans);
   --t-eyebrow:           400 14px/1.4  var(--font-sans);
+}
+
+/* ============================================================================
+   TYPE — mobile column
+
+   The ladder above is the desktop column and stays the canonical one. Until now
+   it was the *only* one: **no type token had a viewport axis**, so a scale built
+   for 1280px shipped unchanged to 390px. Measured on the product (2026-09-16,
+   390x844): of 47 visible text elements, **35 (74%) render below 16px**, and 23
+   of those are 13px.
+
+   Two things move, in opposite directions, and that is the point.
+
+   - **Headings come down.** 30px is a desktop headline; at 390px it eats the
+     first screen. `--h1` takes `--h2`'s step and `--h3` takes `--h4`'s — both
+     already on this ladder, so nothing new is invented.
+   - **Small body goes up.** `--body-sm`, `--t-choice` and `--t-card-subtitle`
+     carry most of the product's prose, and at 14-15px they are the reason for
+     the 74%.
+
+   **The 13px group is deliberately not here.** `--caption`, `--overline`,
+   `--label` and `--t-tag` are secondary information; raising them collides with
+   the density work, and their sizes are judged together with their contrast.
+
+   `--body` does not move: 16px at 390px measures 50 characters per line on the
+   358px main column, inside the 45-75 convention.
+   ============================================================================ */
+@media (max-width: 767px) {
+  :root {
+    --h1: 700 24px/1.25 var(--font-sans);
+    --h3: 600 18px/1.4  var(--font-sans);
+    --body-sm: 400 15px/1.55 var(--font-sans);
+
+    --t-card-title:        600 18px/1.4  var(--font-sans);
+    --t-card-subtitle:     400 16px/1.5  var(--font-sans);
+    --t-expanded-question: 600 20px/1.35 var(--font-sans);
+    --t-choice:            400 16px/1.5  var(--font-sans);
+  }
 }
 
 /* ============================================================================
