@@ -9,7 +9,9 @@ export const landing = {
     gridCardNormalFace: 'src/features/landing/grid/landing-grid-card-normal-face.tsx',
     gridCardExpandedBody: 'src/features/landing/grid/landing-grid-card-expanded-body.tsx',
     gridCardDesktopShell: 'src/features/landing/grid/landing-grid-card-desktop-shell.tsx',
-    gridCardMobileSurfaces: 'src/features/landing/grid/landing-grid-card-mobile-surfaces.tsx',
+    // 폰의 확장 표면. in-flow 였던 종전의 `landing-grid-card-mobile-surfaces.tsx` 가 아니라
+    // 시트 프리미티브 위에 선다(명세 규칙 3 · §3-4).
+    cardSheet: 'src/features/landing/grid/landing-card-sheet.tsx',
     gridCardCss: 'src/features/landing/grid/landing-grid-card.module.css',
     geometryController: 'src/features/landing/grid/use-grid-geometry-controller.ts',
     interactionController: 'src/features/landing/grid/use-landing-interaction-controller.ts',
@@ -28,6 +30,15 @@ export const landing = {
   model: {
     interactionState: 'src/features/landing/model/interaction-state.ts'
   }
+};
+
+// 시트 프리미티브 — 카드 시트와 instruction 시트가 **같은 것**을 쓴다. 두 시트가 CSS 를 따로
+// 갖게 되면 그 결정이 무너진 것이므로 계약 가드가 이 한 파일을 본다.
+export const ui = {
+  bottomSheet: 'src/features/ui/bottom-sheet.tsx',
+  bottomSheetCss: 'src/features/ui/bottom-sheet.module.css',
+  sheetMotion: 'src/features/ui/sheet-motion.ts',
+  bodyScrollLock: 'src/features/ui/body-scroll-lock.ts'
 };
 
 export const landingShell = {

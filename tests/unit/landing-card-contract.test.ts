@@ -13,7 +13,6 @@ import type {
 import type {
   LandingCardInteractionMode,
   LandingCardMobilePhase,
-  LandingCardMobileTransientMode,
   LandingCardViewportTier,
   LandingCardVisualState
 } from '../../src/features/landing/grid/landing-grid-card';
@@ -77,7 +76,6 @@ function renderCardDocument({
   desktopShellPhase = 'idle',
   viewportTier = 'desktop',
   mobilePhase = 'NORMAL',
-  mobileTransientMode = 'NONE',
   tabIndex,
   ariaDisabled
 }: {
@@ -90,7 +88,6 @@ function renderCardDocument({
   desktopShellPhase?: LandingCardDesktopShellPhase;
   viewportTier?: LandingCardViewportTier;
   mobilePhase?: LandingCardMobilePhase;
-  mobileTransientMode?: LandingCardMobileTransientMode;
   tabIndex?: number;
   ariaDisabled?: boolean;
 }): Document {
@@ -103,7 +100,6 @@ function renderCardDocument({
       interactionMode,
       viewportTier,
       mobilePhase,
-      mobileTransientMode,
       desktopMotionRole,
       desktopShellPhase,
       copy: getDefaultCardCopy(),
@@ -605,42 +601,9 @@ describe('landing card slot contract', () => {
     expect(doc.querySelector('[data-slot="cardTitle"]')?.textContent).toBe(card.title);
   });
 
-  it('uses the same full-text muted context typography for settled and transient mobile expanded titles', () => {
-    const catalog = resolveLandingCatalog('en');
-    const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
-
-    if (!card || card.type !== 'test') {
-      throw new Error('Expected rhythm-b as a test card fixture');
-    }
-
-    const settledDoc = renderCardDocument({
-      card,
-      state: 'expanded',
-      interactionMode: 'tap',
-      viewportTier: 'mobile',
-      mobilePhase: 'OPEN'
-    });
-    const transientDoc = renderCardDocument({
-      card,
-      state: 'expanded',
-      interactionMode: 'tap',
-      viewportTier: 'mobile',
-      mobilePhase: 'OPENING',
-      mobileTransientMode: 'OPENING'
-    });
-
-    for (const title of [
-      settledDoc.querySelector('[data-slot="cardTitle"]'),
-      transientDoc.querySelector('[data-slot="cardTitleTransient"]')
-    ]) {
-      const className = title?.getAttribute('class') ?? '';
-      expect(title?.textContent).toBe(card.title);
-      expect(className).toContain('[font:var(--label)]'); // = 500 14px/1.4, 미러가 값을 고정한다
-      expect(className).toContain('text-[var(--expanded-context-ink)]');
-      expect(className).not.toContain('line-clamp');
-      expect(className).not.toContain('truncate');
-    }
-  });
+  // 모바일 확장 제목의 타이포와 닫기 컨트롤의 44×44 는 **시트로 옮겨 갔다** — 카드는 폰에서
+  // 확장 표면을 그리지 않는다(명세 규칙 3). 두 계약은 `landing-card-sheet.test.ts` 가 같은
+  // 단언으로 이어받는다; 여기서 지우기만 하면 계약이 사라진다.
 
   it('applies the responsive title/subtitle clamp matrix and BQ-30 tag treatment', () => {
     const catalog = resolveLandingCatalog('en');
@@ -721,19 +684,10 @@ describe('landing card slot contract', () => {
       expect(triggerClassName).toContain('[padding:16px]');
     }
 
-    const mobileOpenDoc = renderCardDocument({
-      card: testCard,
-      state: 'expanded',
-      interactionMode: 'tap',
-      viewportTier: 'mobile',
-      mobilePhase: 'OPEN'
-    });
-    const closeClassName = mobileOpenDoc.querySelector('[data-slot="mobileClose"]')?.getAttribute('class') ?? '';
-    const choiceClassName = mobileOpenDoc.querySelector('[data-slot="answerChoiceA"]')?.getAttribute('class') ?? '';
+    const desktopExpandedDoc = renderDesktopExpandedCardDocument({card: testCard});
+    const choiceClassName =
+      desktopExpandedDoc.querySelector('[data-slot="answerChoiceA"]')?.getAttribute('class') ?? '';
 
-    // D-09: design.md 4.10 names the close button among the 44x44 targets.
-    expect(closeClassName).toContain('min-h-[var(--tap-min)]');
-    expect(closeClassName).toContain('min-w-[var(--tap-min)]');
     expect(choiceClassName).toContain('py-3');
   });
 });

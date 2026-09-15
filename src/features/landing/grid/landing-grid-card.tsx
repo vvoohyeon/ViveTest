@@ -19,16 +19,11 @@ import {
   resolveTransformOriginClassName,
   LANDING_GRID_CARD_CONTENT_CLASSNAME,
   LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME,
-  LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME,
   LANDING_GRID_CARD_ROOT_CLASSNAME,
   LANDING_GRID_CARD_SHELL_GHOST_CLASSNAME,
   LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME
 } from '@/features/landing/grid/landing-grid-card-classnames';
 import {DesktopExpandedShell} from '@/features/landing/grid/landing-grid-card-desktop-shell';
-import {
-  MobileExpandedSurface,
-  MobileTransientShell
-} from '@/features/landing/grid/landing-grid-card-mobile-surfaces';
 import {
   NormalCardFace,
   NormalCardGhostBody
@@ -47,8 +42,6 @@ export type {
   LandingCardInteractionMode,
   LandingCardViewportTier,
   LandingCardMobilePhase,
-  LandingCardMobileTransientMode,
-  LandingMobileSnapshotView,
   LandingCardSpacingContract,
   LandingCardCopy,
   LandingGridCardProps
@@ -106,12 +99,9 @@ export function LandingGridCard({
   interactionMode = 'tap',
   viewportTier = 'desktop',
   mobilePhase = 'NORMAL',
-  mobileTransientMode = 'NONE',
-  mobileRestoreReady = false,
   desktopMotionRole = 'idle',
   desktopShellPhase = 'idle',
   reducedMotion = false,
-  mobileSnapshot = null,
   desktopTransformOriginX = '50%',
   spacing,
   expandedRestingFloorPx,
@@ -131,8 +121,7 @@ export function LandingGridCard({
   onMouseEnter,
   onMouseLeave,
   onExpandedBodyKeyDown,
-  onAnswerChoiceSelect,
-  onMobileClose
+  onAnswerChoiceSelect
 }: LandingGridCardProps) {
   const cardA11yId = useId();
   const isUnavailable = isUnavailablePresentation(card);
@@ -140,16 +129,14 @@ export function LandingGridCard({
   const isTestCard = card.type === 'test';
   const resolvedState: LandingCardVisualState = (isUnavailable || isBlogCard) && state === 'expanded' ? 'normal' : state;
   const isMobileViewport = viewportTier === 'mobile';
-  const isMobileOpening = isMobileViewport && isTestCard && mobileTransientMode === 'OPENING' && !isUnavailable;
-  const isMobileClosing = isMobileViewport && isTestCard && mobileTransientMode === 'CLOSING' && !isUnavailable;
-  const isMobileExpanded = isMobileViewport && isTestCard && mobilePhase === 'OPEN' && !isUnavailable;
+  // 폰의 확장은 **카드 안에서 일어나지 않는다** — 바텀시트가 흐름 밖에서 연다(명세 규칙 3).
+  // 카드는 그 동안 평소 얼굴 그대로이고, 확장 여부는 `data-mobile-phase` 로만 말한다.
+  const isMobileSheetOpen = isMobileViewport && isTestCard && mobilePhase !== 'NORMAL' && !isUnavailable;
   const desktopStagePhase = !isMobileViewport && isTestCard && !isUnavailable ? desktopShellPhase : 'idle';
   const showDesktopExpandedShell =
     !isMobileViewport && isTestCard && !isUnavailable && shouldRenderDesktopStageShell(desktopStagePhase);
-  const isExpanded = showDesktopExpandedShell || isMobileExpanded;
+  const isExpanded = showDesktopExpandedShell || isMobileSheetOpen;
   const isDesktopExpanded = showDesktopExpandedShell;
-  const showMobileExpandedBody = isMobileExpanded;
-  const showMobileTransientShell = isMobileOpening || isMobileClosing;
   const resolvedSpacing = resolveSpacingContract(spacing);
   const cardRootRef = useRef<HTMLDivElement | null>(null);
   const normalTitleRef = useRef<HTMLHeadingElement | null>(null);
@@ -187,14 +174,9 @@ export function LandingGridCard({
   const isDesktopLogicallyExpanded = isDesktopShellLogicallyInteractive(desktopStagePhase);
   const titleId = `${cardA11yId}-title`;
   const statusId = `${cardA11yId}-status`;
-  const isMobileClosingPhase = isMobileViewport && mobilePhase === 'CLOSING';
   const resolvedRootVisualClassName = showDesktopExpandedShell
     ? '[background:transparent] [box-shadow:none]'
-    : isMobileExpanded
-      ? '[background:var(--expanded-card-surface)] [box-shadow:none]'
-      : isMobileOpening || isMobileClosing
-        ? '[background:color-mix(in_srgb,var(--canvas-elevated)_90%,transparent)] [box-shadow:none]'
-        : '[background:var(--normal-card-surface)] [box-shadow:var(--normal-card-shadow)] [border:1px_solid_var(--normal-card-border)]';
+    : '[background:var(--normal-card-surface)] [box-shadow:var(--normal-card-shadow)] [border:1px_solid_var(--normal-card-border)]';
   const resolvedRootClassName = joinClassNames(
     LANDING_GRID_CARD_ROOT_CLASSNAME,
     styles.root,
@@ -204,14 +186,10 @@ export function LandingGridCard({
     isDesktopMotionEnter && styles.desktopMotionEnter,
     isDesktopMotionExit && styles.desktopMotionExit,
     isDesktopMotionSteady && styles.desktopMotionSteady,
-    isMobileOpening && styles.mobileTransientOpening,
-    isMobileClosing && styles.mobileTransientClosing,
-    isMobileClosingPhase && styles.mobilePhaseClosing,
     transformOriginClassName,
     reducedMotion && styles.reducedMotion,
     resolvedRootVisualClassName,
-    (resolvedState === 'expanded' || isMobileOpening || isMobileClosing) && 'z-20',
-    isMobileExpanded && 'rounded-none w-screen min-h-0 mx-[calc(50%-50vw)]'
+    resolvedState === 'expanded' && 'z-20'
   );
   const resolvedDesktopStageClassName = joinClassNames(
     LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME,
@@ -219,25 +197,18 @@ export function LandingGridCard({
     hasDesktopStageGeometry && styles.desktopStageActive,
     isDesktopCleanupPending && styles.desktopStageCleanupPending
   );
-  const resolvedTransientShellClassName = joinClassNames(
-    LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME,
-    styles.transientShell,
-    isMobileOpening && styles.transientOpening,
-    isMobileClosing && styles.transientClosing
-  );
   const resolvedTriggerClassName = joinClassNames(
     LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME,
-    isMobileExpanded ? '[min-height:0] [padding:0]' : '[min-height:100%] [padding:16px]',
-    showDesktopExpandedShell && 'pointer-events-none',
-    isMobileExpanded && 'bg-transparent cursor-default'
+    '[min-height:100%] [padding:16px]',
+    showDesktopExpandedShell && 'pointer-events-none'
   );
   const resolvedContentClassName = joinClassNames(
     LANDING_GRID_CARD_CONTENT_CLASSNAME,
-    isMobileExpanded ? '[height:0] [min-height:0] overflow-hidden' : 'h-full min-h-full'
+    'h-full min-h-full'
   );
   const triggerContent = (
     <div className={resolvedContentClassName}>
-      {isMobileExpanded ? null : (
+      {(
         <NormalCardFace
           card={card}
           hasAssetMedia={hasAssetMedia}
@@ -293,27 +264,10 @@ export function LandingGridCard({
       data-expanded-resting-floor={expandedRestingFloorPx}
       data-card-viewport-tier={viewportTier}
       data-mobile-phase={isMobileViewport ? mobilePhase : undefined}
-      data-mobile-transient-mode={isMobileViewport ? mobileTransientMode : undefined}
       data-desktop-motion-role={!isMobileViewport ? desktopMotionRole : undefined}
       data-desktop-shell-phase={!isMobileViewport ? desktopStagePhase : undefined}
-      data-mobile-snapshot-height={mobileSnapshot ? mobileSnapshot.cardHeightPx : undefined}
-      data-mobile-snapshot-anchor-top={mobileSnapshot ? mobileSnapshot.anchorTopPx : undefined}
-      data-mobile-snapshot-left={mobileSnapshot ? mobileSnapshot.cardLeftPx : undefined}
-      data-mobile-snapshot-width={mobileSnapshot ? mobileSnapshot.cardWidthPx : undefined}
-      data-mobile-snapshot-title-top={mobileSnapshot ? mobileSnapshot.titleTopPx : undefined}
-      data-mobile-restore-ready={
-        isMobileViewport && mobilePhase !== 'NORMAL' ? (mobileRestoreReady ? 'true' : 'false') : undefined
-      }
       data-expanded-layer={
-        showDesktopExpandedShell
-          ? 'desktop-overlay'
-          : isMobileOpening
-            ? 'mobile-opening-shell'
-            : isMobileExpanded
-              ? 'mobile-in-flow'
-              : isMobileClosing
-                ? 'mobile-closing-shell'
-                : 'none'
+        showDesktopExpandedShell ? 'desktop-overlay' : isMobileSheetOpen ? 'mobile-sheet' : 'none'
       }
       inert={keyboardModeBlocked}
       onKeyDown={onCardKeyDown}
@@ -328,10 +282,6 @@ export function LandingGridCard({
           '--landing-card-shell-inline-scale': resolvedShellInlineScale,
           '--landing-card-motion-ms': `${resolvedMotionDurationMs}ms`,
           '--landing-card-origin-x': desktopTransformOriginX,
-          '--landing-mobile-anchor-top': mobileSnapshot ? `${mobileSnapshot.anchorTopPx}px` : undefined,
-          '--landing-mobile-card-left': mobileSnapshot ? `${mobileSnapshot.cardLeftPx}px` : undefined,
-          '--landing-mobile-card-width': mobileSnapshot ? `${mobileSnapshot.cardWidthPx}px` : undefined,
-          '--landing-mobile-card-height': mobileSnapshot ? `${mobileSnapshot.cardHeightPx}px` : undefined,
           pointerEvents: interactionBlocked ? 'none' : 'auto'
         } as CSSProperties
       }
@@ -391,28 +341,6 @@ export function LandingGridCard({
         />
       ) : null}
 
-      {showMobileExpandedBody && isTestCard ? (
-        <MobileExpandedSurface
-          card={card}
-          locale={locale}
-          copy={copy}
-          closeDisabled={mobileTransientMode === 'CLOSING'}
-          onClose={onMobileClose}
-          onExpandedBodyKeyDown={onExpandedBodyKeyDown}
-          onAnswerChoiceSelect={onAnswerChoiceSelect}
-        />
-      ) : null}
-
-      {showMobileTransientShell && isTestCard ? (
-        <MobileTransientShell
-          card={card}
-          locale={locale}
-          copy={copy}
-          shellClassName={resolvedTransientShellClassName}
-          transientMode={mobileTransientMode}
-          onAnswerChoiceSelect={onAnswerChoiceSelect}
-        />
-      ) : null}
     </div>
   );
 }

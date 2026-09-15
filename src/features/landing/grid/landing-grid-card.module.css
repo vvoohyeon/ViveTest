@@ -299,67 +299,6 @@
   animation-delay: 160ms;
 }
 
-.root.mobileTransientOpening .normalTitle,
-.root.mobileTransientClosing .normalTitle {
-  opacity: 0;
-}
-
-.root.mobileTransientOpening .normalThumbnail,
-.root.mobileTransientOpening .normalSubtitle,
-.root.mobileTransientOpening .normalTags,
-.root.mobileTransientOpening .normalTagsGap {
-  animation: landing-card-normal-slot-exit 120ms var(--landing-card-motion-ease) both;
-}
-
-.root.mobileTransientClosing .normalThumbnail {
-  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-  animation-delay: 20ms;
-}
-
-.root.mobileTransientClosing .normalSubtitle {
-  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-  animation-delay: 80ms;
-}
-
-.root.mobileTransientClosing .normalTagsGap,
-.root.mobileTransientClosing .normalTags {
-  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-  animation-delay: 140ms;
-}
-
-.transientShell.transientOpening {
-  animation: landing-card-mobile-open-shell var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-}
-
-.transientShell.transientClosing {
-  animation: landing-card-mobile-close-shell var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-}
-
-.transientShell.transientClosing .transientPanel {
-  animation: landing-card-mobile-close-surface var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-}
-
-.transientShell .motionStageEarly {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-  animation-delay: 40ms;
-}
-
-.transientShell .motionStageMiddle {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-  animation-delay: 100ms;
-}
-
-.transientShell .motionStageLate {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-  animation-delay: 160ms;
-}
-
-.transientShell.transientClosing .motionStageEarly,
-.transientShell.transientClosing .motionStageMiddle,
-.transientShell.transientClosing .motionStageLate {
-  animation: landing-card-detail-quiet-exit var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-}
-
 .root.reducedMotion.desktopMotionEnter .expandedBody {
   animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
   transform: none;
@@ -382,40 +321,6 @@
   animation: none;
   left: 0;
   width: 100%;
-}
-
-.root.reducedMotion.mobilePhaseClosing .mobileExpanded {
-  animation: none;
-}
-
-.root.reducedMotion .transientShell.transientOpening,
-.root.reducedMotion .transientShell.transientClosing {
-  left: 0;
-  width: 100vw;
-  border-radius: 0;
-  animation-duration: var(--landing-card-motion-ms);
-}
-
-.root.reducedMotion .transientShell.transientOpening {
-  animation-name: landing-card-shell-reduced-open;
-}
-
-.root.reducedMotion .transientShell.transientClosing {
-  animation-name: landing-card-shell-reduced-close;
-}
-
-.root.reducedMotion .transientShell.transientOpening .motionStageEarly,
-.root.reducedMotion .transientShell.transientOpening .motionStageMiddle,
-.root.reducedMotion .transientShell.transientOpening .motionStageLate,
-.root.reducedMotion .transientShell.transientClosing .motionStageEarly,
-.root.reducedMotion .transientShell.transientClosing .motionStageMiddle,
-.root.reducedMotion .transientShell.transientClosing .motionStageLate,
-.root.reducedMotion.mobileTransientClosing .normalThumbnail,
-.root.reducedMotion.mobileTransientClosing .normalSubtitle,
-.root.reducedMotion.mobileTransientClosing .normalTags,
-.root.reducedMotion.mobileTransientClosing .normalTagsGap {
-  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) var(--landing-card-motion-ease) both;
-  transform: none;
 }
 
 @keyframes landing-card-shell-expand {
@@ -492,26 +397,6 @@
   }
 }
 
-@keyframes landing-card-normal-slot-exit {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes landing-card-normal-slot-enter {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes landing-card-detail-quiet-exit {
   from {
     opacity: 1;
@@ -524,44 +409,6 @@
   }
 }
 
-@keyframes landing-card-mobile-open-shell {
-  from {
-    left: var(--landing-mobile-card-left, 0px);
-    width: var(--landing-mobile-card-width, 100vw);
-    border-radius: var(--landing-card-radius);
-  }
-
-  to {
-    left: 0;
-    width: 100vw;
-    border-radius: 0;
-  }
-}
-
-@keyframes landing-card-mobile-close-shell {
-  from {
-    left: 0;
-    width: 100vw;
-    border-radius: 0;
-  }
-
-  to {
-    left: var(--landing-mobile-card-left, 0px);
-    width: var(--landing-mobile-card-width, 100vw);
-    border-radius: var(--landing-card-radius);
-  }
-}
-
-@keyframes landing-card-mobile-close-surface {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
-}
-
 /* reduced-motion 의 **전부가 여기 있지 않다.** 이 블록은 토큰 셋만 줄이고, 「움직임을
    없앤다」는 실제 규율은 위쪽 `.root.reducedMotion …` 규칙들이 갖는다 — stagger 를 `0ms` 로
    되돌리고 `detail-rise` 의 `translateY(4px)` 를 지우는 것이 그쪽이다. 그 클래스는 JS 의
@@ -570,9 +417,9 @@
 
    이 블록만 읽고 「reduced-motion 이 모션을 줄이기만 하고 없애지 않는다」고 판단하면 틀린다.
    실측(2026-09-10, chromium): `prefers-reduced-motion: reduce` 에서 desktop `motionStage*` 는
-   `animation: none · delay 0s · transform: none`, mobile transient 는
-   `landing-card-shell-reduced-open · delay 0s · transform: none` 이다. `state-smoke` 의
-   reduced-motion 검사가 이 값을 붙들고 있다. */
+   `animation: none · delay 0s · transform: none` 이다. `state-smoke` 의 reduced-motion 검사가
+   이 값을 붙들고 있다. 폰의 확장은 시트로 옮겨 갔고 시트의 reduced-motion 처분은
+   `src/features/ui/bottom-sheet.module.css` 가 갖는다 — 이동을 버리고 페이드만 남긴다. */
 @media (prefers-reduced-motion: reduce) {
   .root {
     --landing-card-shell-scale: 1;

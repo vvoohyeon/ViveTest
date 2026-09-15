@@ -10,9 +10,7 @@ import type {
 } from '@/features/landing/grid/desktop-shell-phase';
 import type {
   LandingCardMobilePhase,
-  LandingCardMobileTransientMode,
   LandingCardVisualState,
-  LandingMobileSnapshotView
 } from '@/features/landing/grid/landing-grid-card';
 
 export interface LandingCardInteractionBindings {
@@ -26,9 +24,6 @@ export interface LandingCardInteractionBindings {
   hoverLockEnabled: boolean;
   keyboardMode: boolean;
   mobilePhase: LandingCardMobilePhase;
-  mobileTransientMode: LandingCardMobileTransientMode;
-  mobileRestoreReady: boolean;
-  mobileSnapshot: LandingMobileSnapshotView | null;
   onCardKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   onCardBlur: (event: ReactFocusEvent<HTMLElement>) => void;
   onFocus: (event: ReactFocusEvent<HTMLElement>) => void;
@@ -38,5 +33,4 @@ export interface LandingCardInteractionBindings {
   onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => void;
   onExpandedBodyKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   onAnswerChoiceSelect: (choice: 'A' | 'B', event: ReactMouseEvent<HTMLButtonElement>) => void;
-  onMobileClose: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }

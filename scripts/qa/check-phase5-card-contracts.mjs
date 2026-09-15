@@ -112,14 +112,12 @@ if (fileExists(landing.grid.gridCard)) {
   // 계약 문자열은 이름을 따라 옮겨 갔다 — 슬롯 이름은 그것을 그리는 파일에서 찾는다.
   const normalFaceFile = fileExists(landing.grid.gridCardNormalFace) ? read(landing.grid.gridCardNormalFace) : '';
   const expandedBodyFile = fileExists(landing.grid.gridCardExpandedBody) ? read(landing.grid.gridCardExpandedBody) : '';
-  const mobileSurfacesFile = fileExists(landing.grid.gridCardMobileSurfaces)
-    ? read(landing.grid.gridCardMobileSurfaces)
-    : '';
+  const cardSheetFile = fileExists(landing.grid.cardSheet) ? read(landing.grid.cardSheet) : '';
   const classnamesFile = fileExists(landing.grid.gridCardClassnames) ? read(landing.grid.gridCardClassnames) : '';
-  const cardFamily = [cardFile, normalFaceFile, expandedBodyFile, mobileSurfacesFile, classnamesFile].join('\n');
+  const cardFamily = [cardFile, normalFaceFile, expandedBodyFile, cardSheetFile, classnamesFile].join('\n');
 
   if (
-    !/data-slot=(["'])cardTitle\1/u.test(normalFaceFile + mobileSurfacesFile) ||
+    !/data-slot=(["'])cardTitle\1/u.test(normalFaceFile + cardSheetFile) ||
     !/cardThumbnail/u.test(normalFaceFile)
   ) {
     fail('LandingGridCard must define normal slot markers.');

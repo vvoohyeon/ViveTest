@@ -14,7 +14,6 @@ import type {
 import type {
   LandingCardInteractionMode,
   LandingCardMobilePhase,
-  LandingCardMobileTransientMode,
   LandingCardViewportTier,
   LandingCardVisualState
 } from '../../src/features/landing/grid/landing-grid-card';
@@ -58,20 +57,10 @@ const DESKTOP_SHELL_PHASES: readonly LandingCardDesktopShellPhase[] = [
   'handoff-source'
 ];
 const MOBILE_PHASES: readonly LandingCardMobilePhase[] = ['NORMAL', 'OPENING', 'OPEN', 'CLOSING'];
-const MOBILE_TRANSIENT_MODES: readonly LandingCardMobileTransientMode[] = ['NONE', 'OPENING', 'CLOSING'];
 
 // 카탈로그 10 장 중 렌더 분기를 대표하는 다섯 장: test available 둘, test unavailable 하나,
 // blog 하나, 그리고 자산 없는 debug 하나.
 const FIXTURE_VARIANTS = ['qmbti', 'rhythm-b', 'creativity-profile', 'ops-handbook', 'debug-sample'] as const;
-
-const MOBILE_SNAPSHOT = {
-  cardHeightPx: 286,
-  anchorTopPx: 315,
-  cardLeftPx: 0,
-  cardWidthPx: 390,
-  titleTopPx: 331,
-  restoreReady: true
-} as const;
 
 const SPACING_CONTRACT = {
   baseGapPx: 12,
@@ -173,25 +162,21 @@ function collectMobileGroup(render: RenderFn): string[] {
     for (const state of VISUAL_STATES) {
       for (const interactionMode of INTERACTION_MODES) {
         for (const mobilePhase of MOBILE_PHASES) {
-          for (const mobileTransientMode of MOBILE_TRANSIENT_MODES) {
-            const key = `${base.key}/mobile/${state}/${interactionMode}/${mobilePhase}/${mobileTransientMode}`;
-            lines.push(
-              `${key}\t${sha256(
-                render(key, {
-                  ...fixedProps(),
-                  card: base.card,
-                  hasAssetMedia: base.hasAssetMedia,
-                  reducedMotion: base.reducedMotion,
-                  viewportTier: 'mobile',
-                  state,
-                  interactionMode,
-                  mobilePhase,
-                  mobileTransientMode,
-                  mobileSnapshot: MOBILE_SNAPSHOT
-                })
-              )}`
-            );
-          }
+          const key = `${base.key}/mobile/${state}/${interactionMode}/${mobilePhase}`;
+          lines.push(
+            `${key}\t${sha256(
+              render(key, {
+                ...fixedProps(),
+                card: base.card,
+                hasAssetMedia: base.hasAssetMedia,
+                reducedMotion: base.reducedMotion,
+                viewportTier: 'mobile',
+                state,
+                interactionMode,
+                mobilePhase
+              })
+            )}`
+          );
         }
       }
     }
@@ -218,9 +203,7 @@ const UNIVARIATE_CONTEXTS: ReadonlyArray<{name: string; props: Partial<CardProps
       viewportTier: 'mobile',
       state: 'expanded',
       interactionMode: 'tap',
-      mobilePhase: 'OPEN',
-      mobileTransientMode: 'NONE',
-      mobileSnapshot: MOBILE_SNAPSHOT
+      mobilePhase: 'OPEN'
     }
   }
 ];
@@ -235,7 +218,6 @@ const UNIVARIATE_AXES: ReadonlyArray<{prop: string; values: ReadonlyArray<unknow
   {prop: 'hoverLockEnabled', values: [false, true]},
   {prop: 'keyboardMode', values: [false, true]},
   {prop: 'mobileRestoreReady', values: [false, true]},
-  {prop: 'mobileSnapshot', values: [null, MOBILE_SNAPSHOT]},
   {prop: 'desktopTransformOriginX', values: ['0%', '50%', '100%']},
   {prop: 'spacing', values: [undefined, SPACING_CONTRACT]},
   {prop: 'expandedRestingFloorPx', values: [undefined, 420]}
@@ -319,7 +301,10 @@ describe('landing card SSR markup fingerprint (F2)', () => {
 
   it('covers the declared combination space', () => {
     expect(report.groups['desktop-tablet'].renderCount).toBe(10_080);
-    expect(report.groups.mobile.renderCount).toBe(1_440);
+    // 1_440 → 480: transient 모드 축(NONE/OPENING/CLOSING)이 사라졌다. 폰의 확장이 시트로
+    // 옮겨 가면서 카드가 모션 전용 표면을 그리지 않으므로 그 축 자체가 없어진 것이지, 커버리지를
+    // 줄인 것이 아니다 — 남은 축(위상 넷)은 그대로다.
+    expect(report.groups.mobile.renderCount).toBe(480);
     expect(report.groups.univariate.renderCount).toBeGreaterThanOrEqual(30);
   });
 
@@ -362,13 +347,23 @@ describe('landing card SSR markup fingerprint (F2)', () => {
 
   // 고장 주입 — 마크업 한 장만 달라져도 그 그룹의 지문이 반드시 달라진다.
   it('changes when a single rendered markup is perturbed', () => {
-    const faultKey = 'qmbti/media=false/rm=false/mobile/expanded/tap/OPEN/NONE';
+    const faultKey = 'qmbti/media=false/rm=false/mobile/expanded/tap/OPEN';
+    let faultApplied = 0;
     const perturbed: RenderFn = (key, props) => {
       const html = renderCard(key, props);
-      return key === faultKey ? `${html}<!-- injected fault -->` : html;
+      if (key !== faultKey) {
+        return html;
+      }
+      faultApplied += 1;
+      return `${html}<!-- injected fault -->`;
     };
 
     const {report: faulty} = buildFingerprint(perturbed);
+
+    // **주입이 실제로 닿았는지 먼저 묻는다.** 키 형식이 바뀌면 주입은 조용히 무위가 되고,
+    // 그때 이 검사는 「지문이 바뀐다」가 아니라 아무것도 재지 않는다(L20). 2026-09-16 에
+    // transient 모드 축이 사라지며 실제로 그렇게 됐다.
+    expect(faultApplied, `주입 키 ${faultKey} 가 조합 공간에 없다 — 이 검사는 무위다`).toBe(1);
 
     expect(faulty.digest).not.toBe(report.digest);
     expect(faulty.groups.mobile.digest).not.toBe(report.groups.mobile.digest);

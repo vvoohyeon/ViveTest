@@ -1,0 +1,154 @@
+/* 시트 공통 규격 — 명세 §3-4. 카드 시트와 instruction 시트가 **같은 컴포넌트**를 쓰고,
+   다른 것은 셋(grabber 없음 · 제스처 닫기 없음 · history 항목 없음)뿐이며 그 셋은 prop 이다.
+   두 시트가 CSS 를 따로 갖게 되면 그 결정이 무너진 것이다. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-scrim);
+  opacity: 0;
+  transition: opacity var(--sheet-enter-ms) var(--ease-standard);
+}
+
+.scrim[data-state='entering'],
+.scrim[data-state='open'] {
+  opacity: 1;
+}
+
+.scrim[data-state='closing'] {
+  opacity: 0;
+  transition-duration: var(--sheet-exit-ms);
+  transition-timing-function: var(--ease-in);
+  /* 사라지는 스크림은 입력을 통과시킨다 — 그 아래를 이미 쓸 수 있어야 한다
+     (`req-landing-interaction.md` §8.5 Verification 4-a). */
+  pointer-events: none;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 56px);
+  background: var(--surface-raised);
+  border-top: 1px solid var(--border-strong);
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  box-shadow: var(--shadow-overlay);
+  transform: translateY(100%);
+  transition: transform var(--sheet-enter-ms) var(--ease-standard);
+  /* 끄는 동안에는 브라우저의 스크롤 제스처가 손가락을 가져가면 안 된다. */
+  touch-action: pan-y;
+}
+
+.sheet[data-state='entering'],
+.sheet[data-state='open'] {
+  transform: translateY(var(--sheet-drag-offset, 0px));
+}
+
+.sheet[data-state='closing'] {
+  transform: translateY(100%);
+  transition-duration: var(--sheet-exit-ms);
+  transition-timing-function: var(--ease-in);
+}
+
+/* 끄는 동안에는 전이를 끄고 손가락을 1:1 로 따라간다. */
+.sheet[data-dragging='true'] {
+  transition: none;
+}
+
+/* 단계 전환(instruction → qualifier)은 높이만 움직이고 내용은 페이드한다. */
+.sheet[data-resizes='true'] {
+  transition:
+    transform var(--sheet-enter-ms) var(--ease-standard),
+    height var(--sheet-resize-ms) var(--ease-standard);
+}
+
+.grabber {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.grabberBar {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--hairline-strong);
+}
+
+/* 헤더와 액션 행은 고정되고 본문만 스크롤한다. 320×568 과 텍스트 200% 확대에서 둘의 합이
+   뷰포트의 절반을 넘지 않아야 하므로 각각 높이 하나다. */
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px var(--shell-gutter) 8px;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--shell-gutter);
+}
+
+.actionRow {
+  flex: none;
+  padding: 12px var(--shell-gutter) max(24px, env(safe-area-inset-bottom));
+}
+
+/* 보조기술은 「빈 곳」을 탭할 수 없다. 보이지 않는 닫기 버튼을 마지막 탭 스톱으로 둔다 —
+   보이지 않으므로 시각 결정(제자리 오버레이에 보이는 X 를 두지 않는다)과 충돌하지 않는다. */
+.visuallyHiddenClose {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.visuallyHiddenClose:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 8px var(--shell-gutter);
+  clip-path: none;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 이동을 버리고 페이드만 남긴다(명세 §3-4). 시간까지 0 으로 만들지는 않는다 — 페이드가
+     남아야 층이 바뀐 것이 보인다. */
+  .sheet,
+  .sheet[data-state='closing'] {
+    transition-property: opacity;
+    transform: none;
+  }
+
+  .sheet {
+    opacity: 0;
+  }
+
+  .sheet[data-state='entering'],
+  .sheet[data-state='open'] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sheet[data-state='closing'] {
+    opacity: 0;
+  }
+}

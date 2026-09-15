@@ -70,7 +70,7 @@
 - `subtitle -> tags` 기본/보정 간격 정책 변경 시 Section 6.7, 14.2를 동기화한다.
 - underfilled 마지막 row 정렬/예외 정책 변경 시 Section 6.2, 14.2를 동기화한다.
 - Desktop hover-out collapse 경계/유예 정책 변경 시 Section 8.2, 14.2를 동기화한다.
-- Mobile Expanded 내부 title baseline 정책 변경 시 Section 8.5, 14.2를 동기화한다.
+- 폰 확장 시트의 제목·닫기 경로·복귀 정책 변경 시 Section 8.5, 14.2를 동기화한다.
 - 전환 종료 이벤트(`complete|fail|cancel`) 시점/상호배타/필수필드 변경 시 Section 8.6, 12.1, 12.2, 13.3, 13.6, 14.2를 동기화한다.
 - fail/cancel rollback cleanup set 변경 시 Section 13.3, 13.6, 14.2를 동기화한다.
 - missing-slot(tags empty) 정책 변경 시 Section 6.7, 13.1, 14.2를 동기화한다.
@@ -906,7 +906,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 11. Row 1/Row 2+ Consistency: `보정 필요` 판정이 row index와 무관하게 동일 규칙(해당 row의 Normal 자연 높이 비교 결과)으로 적용되고, row index 기반 우회 신호 사용 `0건` PASS (Section 6.7).
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 **포인터 이동으로** 비카드 영역을 벗어날 때 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 실행 시점의 최신 경계 판정, 포인터 이동 없이 스크롤만으로 생긴 경계 변화(이탈·진입 양쪽)에서는 Expanded 유지 후 다음 포인터 이동 재판정과 뷰포트 완전 이탈 해제, 폭 변경 강제 종료 불변, handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립하며 유지 규칙보다 우선, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
-14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
+14. Mobile Sheet Continuity and Restore: 폰 확장이 바텀시트이고 닫기 경로 다섯이 동작하며, 시트 제목이 카드 제목과 같고, 닫은 뒤 page scroll 위치와 카드 좌표가 진입 직전과 같고, 열린 동안 배경이 잠기고 그 아래 층이 `inert` 인 것 PASS (Section 8.5). 종전의 y-anchor drift · queue-close · snapshot 복귀 조항은 in-flow 확장의 것이었고 2026-09-16 에 폐지됐다.
 15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_variant`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `card_answered`가 landing phase의 `scoring1` 기록임을 유지하고, `attempt_start.question_index_1based`가 UI `Qn`이 아니라 first scoring runtime question의 canonical index로 정확히 발화하며, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
 16. Rollback Cleanup Closure: fail/cancel 케이스(사용자 취소, 목적지 타임아웃, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건`, duplicate-locale preflight no-op에서 pending/ingress/telemetry/internal signal `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
@@ -921,7 +921,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 26. **Transition Non-comp Stability**: Mobile `OPENING/OPEN/CLOSING/NORMAL` 및 Desktop opening/steady/handoff/closing/cleanup sampled frame에서 `needs_comp=false => comp_gap=0` PASS (§6.7).
 27. **BQ-32 Tag Fit**: 12 locale에서 56px tail ellipsis, short-tail full-or-hidden, suffix-only/right-first hide, resize widen reappearance, stable prefix identity, width transition당 visible-count 변경 `<=1` PASS (§6.6).
 28. **CTA / Status Priority**: Blog Desktop/Tablet rest→hover/focus와 Mobile always-visible CTA가 tag width보다 우선하고, unavailable `coming soon`은 첫 필수 prefix로 항상 DOM/AT 노출 PASS (§6.6, §9.3, §13.2).
-29. **Responsive Subtitle Matrix**: Desktop/Tablet Normal subtitle 2줄 ellipsis, Mobile full subtitle, 모든 12 locale tag-row geometry 및 Mobile lifecycle snapshot/restore PASS (§6.6, §8.5).
+29. **Responsive Subtitle Matrix**: Desktop/Tablet Normal subtitle 2줄 ellipsis, Mobile full subtitle, 모든 12 locale tag-row geometry PASS (§6.6). 종전에 이 항목이 함께 걸고 있던 Mobile lifecycle snapshot/restore 는 시트 전환으로 폐지됐다(§8.5).
 30. **BQ-30 Tag Visuals**: Test/Blog available `#ECE8DF`, unavailable status `#E6E2D8`, border `0px`, radius `5px`, inline padding `9px`, nowrap/no-dot/source casing PASS (§6.6, design.md §5.6/§6.3/§7.5).
 
 ### 14.3 Release Traceability Closure

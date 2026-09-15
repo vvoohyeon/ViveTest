@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "renderCount": 11637,
+  "renderCount": 10671,
   "groups": {
     "desktop-tablet": {
       "renderCount": 10080,
       "digest": "e877f307edb07ff93bade14e1b0884ea39c25957a279fe324fbdec702e899cbe"
     },
     "mobile": {
-      "renderCount": 1440,
-      "digest": "4fbdb8734b60b3fd7fda69baf035226e68c659605facd18e38c63e1ee6da4a1b"
+      "renderCount": 480,
+      "digest": "71970467fd97a0569e00ee5bd86d9e3427cc7c80424ae20dcc146b3d64704ba9"
     },
     "univariate": {
-      "renderCount": 117,
-      "digest": "62ac31914ed35d51afff9983f6317bc8a0690ddc0b293724acd87d93fe8035b9"
+      "renderCount": 111,
+      "digest": "ada141963f6e046a5e38b038947e84a16b14b976b97d9190da310bd69811045d"
     }
   },
-  "digest": "060176e8f2d6649f2e9bca0e8c4ce170cb7e4ae545c4e7b533ab958d2bed1717"
+  "digest": "0f387ec944ad7c3211ae42057c6ab88224169d5844fc8f8e02f74d09e25f0837"
 }

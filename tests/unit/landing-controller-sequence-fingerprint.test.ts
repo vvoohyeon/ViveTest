@@ -18,7 +18,7 @@ import {
   DESKTOP_EXPAND_DELAY_MS
 } from '../../src/features/landing/grid/hover-intent';
 import type {LandingCardViewportTier} from '../../src/features/landing/grid/landing-grid-card';
-import {MOBILE_EXPANDED_DURATION_MS} from '../../src/features/landing/grid/mobile-lifecycle';
+import type {LandingMobileExpandedPhase} from '../../src/features/landing/grid/mobile-lifecycle';
 import {useLandingInteractionController} from '../../src/features/landing/grid/use-landing-interaction-controller';
 import {resolveLandingCatalog, type LandingCard} from '../../src/features/variant-registry';
 
@@ -211,6 +211,12 @@ interface SequenceContext {
   pointerMove: (target: HTMLElement, position: {clientX: number; clientY: number}) => void;
   scroll: () => void;
   stubRect: (card: LandingCard, rect: StubRect) => void;
+  /**
+   * 시트가 자기 위상을 컨트롤러로 알리는 것을 흉내낸다. 폰의 확장이 바텀시트가 되면서 위상
+   * 전이는 **시트가 센다** — 컨트롤러 안에서 타이머가 도는 것이 아니므로, 시간을 흘려서는
+   * 위상이 바뀌지 않는다. 그 사실 자체가 이 단계의 구조 변경이고 지문이 그것을 기록한다.
+   */
+  sheetPhase: (phase: LandingMobileExpandedPhase, card: LandingCard | null) => void;
   snap: (name: string) => void;
 }
 
@@ -331,9 +337,8 @@ function runSequence(definition: SequenceDefinition): string[] {
       interactionState: controller.interactionState,
       prefersReducedMotion: controller.prefersReducedMotion,
       mobileLifecycleState: controller.mobileLifecycleState,
-      mobileBackdropBindings: controller.mobileBackdropBindings,
+      overlayBackdropBindings: controller.overlayBackdropBindings,
       activeVisualCardVariant: controller.activeVisualCardVariant,
-      mobileRestoreReadyVariant: controller.mobileRestoreReadyVariant,
       cards: cardRecords
     };
 
@@ -366,6 +371,11 @@ function runSequence(definition: SequenceDefinition): string[] {
       });
     },
     stubRect: (card, rect) => stubBoundaryRect(shell, card.variant, rect),
+    sheetPhase: (phase, card) => {
+      act(() => {
+        result.current.setMobileLifecycleState({phase, cardVariant: card?.variant ?? null});
+      });
+    },
     snap
   };
 
@@ -602,39 +612,43 @@ const SEQUENCES: SequenceDefinition[] = [
     }
   },
   {
-    name: 'mobile/tap-open-then-close-button',
+    name: 'mobile/tap-open-then-close-control',
     ...MOBILE,
     cards: ({testCard}) => [testCard],
-    steps: ({bind, cards, trigger, child, advance, snap}) => {
+    steps: ({bind, cards, trigger, result, sheetPhase, snap}) => {
       const [card] = cards;
       act(() => bind(card).onClick(createMouseEvent(trigger(card))));
+      sheetPhase('OPENING', card);
       snap('opening');
-      advance(MOBILE_EXPANDED_DURATION_MS);
+      sheetPhase('OPEN', card);
       snap('open');
-      act(() => bind(card).onMobileClose(createMouseEvent(child(card, '[data-slot="mobileClose"]')) as never));
+      // 시트의 닫기 컨트롤은 `onCloseRequest` 를 부르고, 그것이 곧 `collapseExpandedCard` 다.
+      act(() => result.current.collapseExpandedCard());
+      sheetPhase('CLOSING', card);
       snap('closing');
-      advance(MOBILE_EXPANDED_DURATION_MS * 2);
+      sheetPhase('NORMAL', null);
       snap('closed');
     }
   },
   {
-    name: 'mobile/tap-open-then-backdrop',
-    ...MOBILE,
+    // backdrop 은 **제자리 오버레이의 것이다.** 폰에서는 시트가 자기 스크림을 갖고, 이 경로가
+    // 남아 있는 곳은 hover 없는 태블릿·데스크톱 하나다(명세 §2-11).
+    name: 'touch-desktop/tap-open-then-backdrop',
+    ...DESKTOP_TAP,
     cards: ({testCard}) => [testCard],
     steps: ({bind, cards, trigger, advance, result, snap}) => {
       const [card] = cards;
       act(() => bind(card).onClick(createMouseEvent(trigger(card))));
-      advance(MOBILE_EXPANDED_DURATION_MS);
       snap('open');
       act(() => {
-        result.current.mobileBackdropBindings.onPointerDown({clientX: 20, clientY: 700} as never);
+        result.current.overlayBackdropBindings.onPointerDown({clientX: 20, clientY: 700} as never);
       });
       snap('backdrop-pointer-down');
       act(() => {
-        result.current.mobileBackdropBindings.onPointerUp();
+        result.current.overlayBackdropBindings.onPointerUp();
       });
       snap('backdrop-pointer-up');
-      advance(MOBILE_EXPANDED_DURATION_MS * 2);
+      advance(DESKTOP_COLLAPSE_DELAY_MS * 2);
       snap('settled');
     }
   },
@@ -642,10 +656,10 @@ const SEQUENCES: SequenceDefinition[] = [
     name: 'mobile/card-root-escape-closes-blur-inert',
     ...MOBILE,
     cards: ({testCard}) => [testCard],
-    steps: ({bind, cards, trigger, root, advance, snap}) => {
+    steps: ({bind, cards, trigger, root, sheetPhase, snap}) => {
       const [card] = cards;
       act(() => bind(card).onClick(createMouseEvent(trigger(card))));
-      advance(MOBILE_EXPANDED_DURATION_MS);
+      sheetPhase('OPEN', card);
       snap('open');
       act(() => {
         const bindings = bind(card);
@@ -670,14 +684,14 @@ const SEQUENCES: SequenceDefinition[] = [
     name: 'mobile/second-card-tap-while-open',
     ...MOBILE,
     cards: ({testCard, secondTestCard}) => [testCard, secondTestCard],
-    steps: ({bind, cards, trigger, advance, snap}) => {
+    steps: ({bind, cards, trigger, sheetPhase, snap}) => {
       const [first, second] = cards;
       act(() => bind(first).onClick(createMouseEvent(trigger(first))));
-      advance(MOBILE_EXPANDED_DURATION_MS);
+      sheetPhase('OPEN', first);
       snap('first-open');
       act(() => bind(second).onClick(createMouseEvent(trigger(second))));
       snap('second-tapped');
-      advance(MOBILE_EXPANDED_DURATION_MS * 2);
+      sheetPhase('OPEN', second);
       snap('settled');
     }
   },
@@ -689,7 +703,7 @@ const SEQUENCES: SequenceDefinition[] = [
       const [card] = cards;
       act(() => bind(card).onClick(createMouseEvent(trigger(card))));
       snap('tap');
-      advance(MOBILE_EXPANDED_DURATION_MS);
+      advance(DESKTOP_COLLAPSE_DELAY_MS);
       snap('settled');
     }
   },

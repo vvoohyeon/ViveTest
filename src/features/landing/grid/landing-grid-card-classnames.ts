@@ -91,20 +91,6 @@ export const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
   'landing-grid-card-mobile-close relative inline-flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--hairline-strong)] bg-[var(--surface-strong)] p-0 font-semibold [color:var(--ink)]';
 export const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
   `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} cursor-pointer disabled:cursor-default disabled:opacity-70`;
-export const LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME =
-  `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} landing-grid-card-mobile-close-ghost pointer-events-none`;
-export const LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME =
-  'landing-grid-card-mobile-expanded grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-auto overscroll-contain px-4 pb-4';
-export const LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME =
-  'landing-grid-card-mobile-header sticky top-0 z-[4] flex items-start justify-between gap-3 bg-[var(--expanded-card-surface)] pt-4 pb-[14px]';
 export const LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME =
   `${LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME} landing-grid-card-mobile-title min-w-0 flex-1`;
 export const LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME = 'landing-grid-card-mobile-body grid min-w-0 gap-[10px]';
-export const LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME =
-  'landing-grid-card-mobile-transient-shell fixed left-[var(--landing-mobile-card-left,0px)] top-[var(--landing-mobile-anchor-top,0px)] z-[21] max-h-[calc(100dvh-116px)] max-w-full w-[var(--landing-mobile-card-width,100vw)] overflow-hidden rounded-[var(--landing-card-radius)] [box-shadow:var(--expanded-card-shadow)] pointer-events-none isolate';
-export const LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME =
-  'landing-grid-card-mobile-transient-panel pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[var(--expanded-card-surface)]';
-export const LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME =
-  'landing-grid-card-mobile-transient-surface relative z-[1] grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-hidden px-4 pb-4';
-export const LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME =
-  `${LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} landing-grid-card-mobile-transient-header relative z-[1] bg-transparent`;
