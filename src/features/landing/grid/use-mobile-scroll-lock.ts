@@ -1,27 +1,12 @@
-import {useEffect} from 'react';
-
 import type {LandingCardMobilePhase} from '@/features/landing/grid/landing-grid-card';
+import {useBodyScrollLock} from '@/features/ui/body-scroll-lock';
+
+const BODY_SCROLL_LOCK_TOKEN = 'landing-mobile-card';
 
 export function shouldLockMobilePageScroll(phase: LandingCardMobilePhase): boolean {
   return phase === 'OPENING' || phase === 'CLOSING';
 }
 
 export function useMobileScrollLock(phase: LandingCardMobilePhase): void {
-  const shouldLock = shouldLockMobilePageScroll(phase);
-
-  useEffect(() => {
-    if (!shouldLock) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    const previousTouchAction = document.body.style.touchAction;
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.touchAction = previousTouchAction;
-    };
-  }, [shouldLock]);
+  useBodyScrollLock(BODY_SCROLL_LOCK_TOKEN, shouldLockMobilePageScroll(phase));
 }

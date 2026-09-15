@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type {PointerEvent as ReactPointerEvent} from 'react';
-import {act, renderHook} from '@testing-library/react';
+import {act, cleanup, renderHook} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {MOBILE_MENU_CLOSE_DURATION_MS} from '../../src/features/gnb/behavior';
@@ -18,6 +18,9 @@ describe('useGnbMobileMenu', () => {
   });
 
   afterEach(() => {
+    // 이 파일은 `globals` 를 켜지 않으므로 testing-library 의 자동 cleanup 이 등록되지 않는다 —
+    // 명시적으로 언마운트하지 않으면 앞선 테스트의 훅이 파일 내내 마운트된 채 남는다.
+    cleanup();
     vi.useRealTimers();
     document.body.style.overflow = '';
     document.body.style.touchAction = '';
