@@ -33,13 +33,15 @@
   <p class="lede"><b>Two weights, and the product had only one.</b> Answering a question happens once per question, a dozen times per run — it is a light, repeated action. Submitting happens once and commits the whole run. The shipped test flow gives both the same treatment, a filled chip at <span class="t-code">font-semibold</span>, separated only by fill strength, so every answer carries the weight of a decision.</p>
 
   <div class="row">
-    <span class="lab"><b>Answer button</b> — <span class="t-code">.vt-choice.vt-choice--answer</span> · rest, hover, selected</span>
+    <span class="lab"><b>Answer button</b> — <span class="t-code">.vt-choice.vt-choice--answer</span> · rest, hover, selected, previous answer</span>
     <div class="set">
       <button class="vt-choice vt-choice--answer" type="button"><span class="vt-choice__text">아침 일찍 블록</span><span class="vt-choice__mark"></span></button>
       <button class="vt-choice vt-choice--answer is-hover" type="button"><span class="vt-choice__text">밤샘 스프린트</span><span class="vt-choice__mark"></span></button>
       <button class="vt-choice vt-choice--answer is-selected" type="button"><span class="vt-choice__text">둘 다 비슷하다</span><span class="vt-choice__mark"></span></button>
+      <button class="vt-choice vt-choice--answer is-previous-answer" type="button"><span class="vt-choice__text">아침 일찍 블록</span><span class="vt-choice__mark"></span></button>
     </div>
     <span class="lab">White surface, hairline edge, 400 weight. Hover deepens the edge to sage over a sage-muted fill. The disc is what says <em>chosen</em> — and what stays once the pointer leaves.</span>
+    <span class="lab"><b>The fourth is not a selection.</b> The flow has no [Next] button, so choosing is what advances and a question cannot sit there showing a selection. Walk back to revisit one and both options are unselected; the earlier choice carries a muted check instead. Same 14×14 slot, so the row does not move — and the slot trails the label, which means a wrong box would shrink the label rather than shift it.</span>
   </div>
 
   <div class="row">

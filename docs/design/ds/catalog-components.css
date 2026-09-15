@@ -607,6 +607,54 @@
   box-shadow: inset 0 0 0 1px var(--sage);
 }
 
+/* ---- Previous answer — a third mark state, and not a selection --------------
+
+   The question flow has no [Next] button: choosing is what advances. So a
+   question cannot sit on screen with a selection showing, and "what I picked
+   last time" cannot be told as one. When the user walks back to revisit, both
+   options stay unselected and the earlier choice carries a mark of its own.
+
+   It is deliberately not the accent. `--sage` is the vocabulary of *chosen now*;
+   this is supporting information and takes `--muted-aa`, the AA-safe muted ink.
+   Measured in the product: 5.08:1 light, 7.81:1 dark, against the 3:1 a non-text
+   graphic needs.
+
+   The check is drawn inside the same 14×14 slot the other two states use, so
+   nothing in the row moves. Note which way it would move if the slot changed:
+   the slot sits **after** the label, so a wider slot does not shift the label's
+   start — it shrinks the label's width and changes where a long answer wraps.
+   That is the failure this fixed box prevents, and it is not the one a "does the
+   label start in the same place" check would catch.
+
+   The last question is exempt and keeps `.is-selected`. Nothing advances there,
+   so a selection can sit — and it is the reason the submit CTA is live.
+
+   **The stroke is 2px here and 1.8 in the product**, and that is a rendering
+   artifact rather than a decision. The product draws this check as an SVG stroke
+   (`test-question-client.tsx`), where 1.8 renders as 1.8; a specimen drawn with
+   a rotated border cannot hold it, because border widths round to whole device
+   pixels — 1.8px computed back as 1px and came out visibly thin. 2px is the
+   nearest width the technique can actually render. The specimen stays readable
+   CSS at the cost of that 0.2. */
+
+.vt-choice--answer.is-previous-answer .vt-choice__mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-aa);
+  box-shadow: none;
+}
+
+.vt-choice--answer.is-previous-answer .vt-choice__mark::after {
+  content: '';
+  width: 9px;
+  height: 4px;
+  margin-top: -3px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
 /* ---- Primary CTA ------------------------------------------------------------
 
    Retained from the current test flow, deliberately. Submit is taken once at the
