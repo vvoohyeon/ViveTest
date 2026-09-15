@@ -5,7 +5,7 @@ const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'src/app/layout.tsx',
-  'public/theme-bootstrap.js',
+  'src/features/gnb/theme-bootstrap-source.ts',
   landing.grid.catalogGridLoader,
   landing.grid.catalogGrid,
   landing.grid.gridCardCss,
@@ -123,13 +123,20 @@ if (fileExists(gnb.capabilityHook)) {
 if (fileExists('src/app/layout.tsx')) {
   const rootLayoutFile = read('src/app/layout.tsx');
 
-  if (!/data-theme="light"/u.test(rootLayoutFile) || !/theme-bootstrap\.js/u.test(rootLayoutFile)) {
+  if (!/data-theme="light"/u.test(rootLayoutFile) || !/THEME_BOOTSTRAP_SOURCE/u.test(rootLayoutFile)) {
     fail('Root layout must provide a deterministic theme bootstrap before hydration.');
+  }
+
+  // 부트스트랩이 **별도 요청**으로 돌아가면 첫 페인트를 막지 못한다 — 실측(2026-09-16):
+  // Fast 4G 1,343ms · Slow 4G 5,483ms 동안 다크 사용자가 라이트 화면을 봤다. 인라인으로
+  // 되돌아오지 못하게 그 경로를 여기서 막는다.
+  if (/from\s+['"]next\/script['"]/u.test(rootLayoutFile) || /src=["'][^"']*theme-bootstrap/u.test(rootLayoutFile)) {
+    fail('Theme bootstrap must be inlined in the document, not fetched as a separate script.');
   }
 }
 
-if (fileExists('public/theme-bootstrap.js')) {
-  const themeBootstrapFile = read('public/theme-bootstrap.js');
+if (fileExists('src/features/gnb/theme-bootstrap-source.ts')) {
+  const themeBootstrapFile = read('src/features/gnb/theme-bootstrap-source.ts');
 
   if (!/localStorage/u.test(themeBootstrapFile) || !/prefers-color-scheme/u.test(themeBootstrapFile)) {
     fail('Theme bootstrap must resolve stored and system theme before hydration.');

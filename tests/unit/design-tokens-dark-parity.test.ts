@@ -36,7 +36,7 @@ function runtimeSourceTexts(): string[] {
   };
 
   walk(path.join(REPO_ROOT, 'src'));
-  files.push(path.join(REPO_ROOT, 'public/theme-bootstrap.js'));
+  files.push(path.join(REPO_ROOT, 'src/features/gnb/theme-bootstrap-source.ts'));
   return files.map((absolute) => readFileSync(absolute, 'utf8'));
 }
 

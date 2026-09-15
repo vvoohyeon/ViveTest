@@ -60,6 +60,7 @@ export interface NormalCardFaceProps {
   interactionMode?: LandingCardInteractionMode;
   isMobileViewport: boolean;
   exposePublicSlots: boolean;
+  isLcpCandidate?: boolean;
   presentation: NormalCardFacePresentation;
   readMoreLabel?: string;
   comingSoonLabel?: string;
@@ -84,6 +85,8 @@ interface NormalCardThumbnailProps {
   card: LandingCard;
   hasAssetMedia: boolean;
   exposePublicSlot: boolean;
+  /** 첫 카드의 썸네일만 참이다 — 그것이 실측된 LCP 원소다. */
+  isLcpCandidate?: boolean;
 }
 
 interface NormalCardSubtitleProps {
@@ -165,7 +168,18 @@ function NormalCardTitle({
   );
 }
 
-function NormalCardThumbnail({card, hasAssetMedia, exposePublicSlot}: NormalCardThumbnailProps) {
+/**
+ * `priority` 는 첫 카드에만 붙는다.
+ *
+ * `next/image` 의 기본은 `loading="lazy"` 이고, **preload 스캐너는 lazy 이미지를 건너뛴다** —
+ * 그래서 SSR HTML 에 이미 들어 있는 `<img>` 인데도 요청이 CSS 보다 **815 ms** 늦게 나갔다
+ * (실측). 실측된 LCP 원소가 바로 이 썸네일이다(`/en` 은 qmbti · `/kr` 은 rhythm-b).
+ *
+ * 나머지는 `lazy` 로 둔다. 390px 1 열에서 첫 화면에 들어오는 썸네일은 **한 장뿐**이고
+ * (첫 카드 top 315px · 카드 높이 255px), 여덟 장을 전부 eager 로 만들면 preload 한 폰트와
+ * 회선을 다툰다.
+ */
+function NormalCardThumbnail({card, hasAssetMedia, exposePublicSlot, isLcpCandidate}: NormalCardThumbnailProps) {
   return (
     <div
       className={joinClassNames(LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME, styles.normalThumbnail)}
@@ -179,6 +193,7 @@ function NormalCardThumbnail({card, hasAssetMedia, exposePublicSlot}: NormalCard
         fill
         sizes="100vw"
         unoptimized
+        priority={isLcpCandidate}
       />
     </div>
   );
@@ -346,7 +361,8 @@ export function NormalCardFace({
   titleId,
   statusId,
   titleRef,
-  subtitleRef
+  subtitleRef,
+  isLcpCandidate
 }: NormalCardFaceProps) {
   const title = (
     <NormalCardTitle
@@ -365,7 +381,12 @@ export function NormalCardFace({
 
   return (
     <>
-      <NormalCardThumbnail card={card} hasAssetMedia={hasAssetMedia} exposePublicSlot={exposePublicSlots} />
+      <NormalCardThumbnail
+        card={card}
+        hasAssetMedia={hasAssetMedia}
+        exposePublicSlot={exposePublicSlots}
+        isLcpCandidate={isLcpCandidate}
+      />
       {title}
       <NormalCardSubtitle
         card={card}

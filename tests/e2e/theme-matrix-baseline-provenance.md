@@ -155,3 +155,20 @@ baseline 이 스스로를 재현하지 못하면 회귀를 판정할 수 없다.
 - 지운 파일: `tests/e2e/state-smoke.spec.ts-snapshots/expanded-focus-shell-chromium-darwin.png`
 - 남은 baseline: 169 장(theme-matrix 164 · webkit-ghosting 5)
 - 고장 주입: 링을 root 가 지게 하면 붉고, 링 색을 제품 밖 색으로 바꾸면 붉다 — 2026-09-16 확인
+
+## 폰트 포장이 바뀌면서 달라진 baseline — 2026-09-16 (재생성 없음 · 단위 11 대기)
+
+전체 face 한 장을 업스트림 dynamic subset 92 조각으로 바꾸면서(BQ-47) `safari-hover-ghosting` 의 **2 장**이 붉어졌다 — `steady-row1-short-expanded-content-fit` 과 `hover-out-row1-settled`. 나머지 3 장은 초록이다.
+
+**글리프는 같다 — 그것을 두 엔진에서 쟀다.** 저장소가 갖고 있던 전체 face 는 Pretendard **v1.3.9** 와 sha256 이 같고(`9599f12f…d900b4`), 조각은 같은 릴리스에서 생성된 것이다. 같은 기계·같은 브라우저에서 두 face 를 동시에 올려 글리프 advance 를 비교했다.
+
+| 엔진 | 표본 | 불일치 | 문장 전체 폭 |
+|:---|---:|---:|:---|
+| chromium | 117 자 | **0** | — |
+| webkit | 68 자 | **0** | 4061.816 대 4061.816 |
+
+**그래서 이 차이는 메트릭이 아니다.** 남는 설명은 래스터화다 — 한 줄의 글자가 조각 **여러 파일**에서 오면 엔진이 run 을 나눠 그리고, 그 경계에서 서브픽셀 위치가 달라진다. `maxDiffPixels: 20` 은 그 정도를 잡는다.
+
+**캡처 순서 결함도 하나 함께 고쳤다.** `document.fonts.ready` 는 `unicode-range` 분할에서 **일회성 장벽이 아니다** — 로드 직후에 기다려도, 카드를 펼쳐 새 글자가 나오면 그때 새 조각 요청이 시작된다. 그래서 barrier 를 캡처 **직전**으로 옮겼다(`helpers/local-snapshot.ts` 의 `waitForFontsSettled`). 이 수정만으로는 위 2 장이 초록이 되지 않았으므로 원인이 스왑 타이밍이 아니라는 것도 함께 확인된 셈이다.
+
+**재생성하지 않았다.** `--update` 는 사람 승인이 필요하고, 단위 11 이 그 승인 단계다. 이 2 장은 단위 3 이 남긴 176 장과 함께 그때 처리한다.

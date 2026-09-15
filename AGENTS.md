@@ -107,7 +107,7 @@ rollback 앵커의 실체는 `origin`의 주석 태그이지 브랜치가 아니
 관련 계약 문서·테스트 앵커를 확인한 뒤에만 손댄다.
 - `src/proxy.ts` · `src/app/layout.tsx` · `src/app/[locale]/layout.tsx`
 - `src/app/globals.css` (Tailwind v4 tokens/base SSOT — 분할 금지, in-place 정리만)
-- `public/theme-bootstrap.js`
+- `src/features/gnb/theme-bootstrap-source.ts`
 - `src/lib/routes/route-builder.ts` · `src/i18n/localized-path.ts`
 - `src/features/variant-registry/{source-fixture,builder,resolvers,types}.ts` 및 `variant-registry.generated.ts`(생성물 — source 먼저)
 - `scripts/qa/*.mjs` · `tests/e2e/theme-matrix-manifest.json` · `docs/blocker-traceability.json`
@@ -120,7 +120,7 @@ rollback 앵커의 실체는 `origin`의 주석 태그이지 브랜치가 아니
 계획에 위험 차원(usability / a11y / responsiveness / performance / design-system consistency)을 명시하고 Playwright E2E 회귀 커버리지(§5·§8)를 포함한다.
 - `src/features/landing/grid/{use-landing-interaction-controller,use-mobile-card-lifecycle,use-keyboard-handoff}.ts`
 - `src/features/gnb/site-gnb.tsx` · `src/features/landing/shell/page-shell.tsx`
-- `public/theme-bootstrap.js` · `src/features/telemetry/consent-source.ts` · `src/features/transition/`
+- `src/features/gnb/theme-bootstrap-source.ts` · `src/features/telemetry/consent-source.ts` · `src/features/transition/`
 
 ### SSOT contracts
 동작·플로우·시각 계약 정본: `docs/req-landing.md`(동작), `docs/req-landing-interaction.md`(제스처·모션 — 동작 계약을 override 하지 않는다), `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), `docs/design/ds/colors_and_type.css`(토큰 실현값, BQ-38), 그리고 이 파일과 `docs/agent-guides/**`. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.

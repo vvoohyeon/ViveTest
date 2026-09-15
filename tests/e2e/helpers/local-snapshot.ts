@@ -1,6 +1,6 @@
 import {existsSync} from 'node:fs';
 
-import {expect, type Locator, type TestInfo} from '@playwright/test';
+import {expect, type Locator, type Page, type TestInfo} from '@playwright/test';
 
 /**
  * 없는 baseline 은 **만들지 않고 실패한다.**
@@ -39,12 +39,31 @@ function assertBaselineExists(snapshotName: string, testInfo: TestInfo) {
   );
 }
 
+/**
+ * **`document.fonts.ready` 는 일회성 장벽이 아니다.**
+ *
+ * `unicode-range` 로 쪼갠 폰트에서는 브라우저가 화면에 실제로 나온 문자를 덮는 조각만 받는다.
+ * 그래서 로드 직후에 한 번 기다려도, 그 뒤에 카드를 펼치거나 시트를 열어 **새 글자가 나오면**
+ * 그때 새 조각 요청이 시작되고 `fonts.ready` 는 다시 pending 이 된다. 정착 뒤에 다시 기다리지
+ * 않으면 스냅샷이 스왑 중간을 찍는다 — 실측(2026-09-16, webkit): 전체 face 시절에 찍힌
+ * baseline 과 글자 가장자리가 달라 `steady-row1-short-expanded-content-fit` 이 붉었다.
+ *
+ * 그래서 barrier 를 **캡처 직전**에 둔다. 촬영 지점이 한 곳이 아니므로 호출부마다 적지 않고
+ * 여기서 한 번 건다.
+ */
+export async function waitForFontsSettled(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
 export async function expectLocatorToMatchLocalSnapshot(
   locator: Locator,
   snapshotName: string,
   testInfo: TestInfo
 ) {
   assertBaselineExists(snapshotName, testInfo);
+  await waitForFontsSettled(locator.page());
   await expect(locator).toHaveScreenshot(snapshotName);
 }
 

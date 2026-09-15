@@ -28,7 +28,7 @@
 | `src/lib/correlation-id.ts` | Browser-safe anonymous/correlation ID utilities |
 | `src/i18n/localized-path.ts` | Locale prefix application |
 | `src/messages/*.json` | Shared UI copy — namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent` |
-| `public/theme-bootstrap.js` | Pre-hydration theme bootstrap |
+| `src/features/gnb/theme-bootstrap-source.ts` | Pre-hydration theme bootstrap |
 | `scripts/qa/*.mjs` | Machine-enforced contract checks |
 | `docs/blocker-traceability.json` | Blocker evidence registry — 67 entries across blockers `1..30` (58 `automated_assertion`, 7 `manual_checkpoint`, 2 `scenario_test`; verified 2026-09-10) |
 | `tests/e2e/helpers/landing-fixture.ts` | Representative route anchor SSOT |
@@ -96,7 +96,7 @@ no runtime helper; it remains a reserved projection placeholder.
     - `writeLandingIngress` / `readLandingIngress` / `clearLandingIngress` → `src/features/transition/store.ts`
     - `preAnswerChoice → first scoring answer` bootstrap mapping → `src/features/test/bootstrap-state-resolver.ts`
     - Bootstrap state resolution (question index, resume path, ingress precedence) → `src/features/test/bootstrap-state-resolver.ts`
-  - Exception: `public/theme-bootstrap.js` retains `'vivetest-theme'` as string literal
+  - Exception: `src/features/gnb/theme-bootstrap-source.ts` retains `'vivetest-theme'` as string literal
     (TS import not possible at pre-hydration stage)
 - `instructionSeen` remains a variant-scoped `sessionStorage` key.
   Do not introduce unauthorized storage keys beyond the documented legacy exception above.
@@ -120,7 +120,7 @@ no runtime helper; it remains a reserved projection placeholder.
   Record the shared latest regeneration and gate verification result in
   `tests/e2e/theme-matrix-baseline-provenance.md` using `tests/e2e/README.md`.
 - Combined theme label format: `Language ⋅ Theme`.
-- `public/theme-bootstrap.js` reads `vivetest-theme` before hydration.
+- `src/features/gnb/theme-bootstrap-source.ts` reads `vivetest-theme` before hydration.
 - `motion` is currently imported in `src/features/test/test-question-client.tsx`
   for answer-grid transitions. Any broader adoption must align with
   `docs/req-landing-interaction.md §8.3 Core Motion Contract`.

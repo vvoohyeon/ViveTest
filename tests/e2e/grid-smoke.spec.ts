@@ -2285,7 +2285,9 @@ test.describe('Landing first paint', () => {
    * 전제를 함께 단언한다(L16). 관찰이 아무 엔트리도 못 받으면 CLS 합계는 0 이 되어 검사가
    * 조용히 초록이 되고, 재플랜이 일어나지 않았다면 결함이 날 기회 자체가 없었던 것이다.
    */
-  test('@smoke mobile landing paints its grid once — no hydration re-plan shift', async ({page}) => {
+  // 저장소에서 CLS 를 단언하는 유일한 자리다. `@gate` 가 없던 동안 이 검사는 릴리스 게이트
+  // (`--grep @gate`) 밖에 있었고, 그래서 유일한 성능 회귀망이 릴리스에서 돌지 않았다.
+  test('@gate @smoke mobile landing paints its grid once — no hydration re-plan shift', async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_IN');
     await setTouchViewport(page, {width: 390, height: 812});
     await page.addInitScript(() => {

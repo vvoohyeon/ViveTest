@@ -602,6 +602,24 @@
 
 모션의 값과 축약 규칙이 그 문서로 갔다. 성능 예산의 **결과** 기준(§11.1 SSR/Hydration Determinism)은 이 문서에 남는다.
 
+### 11.4 Transfer and Timing Budget
+
+**Rule**: 랜딩 첫 방문의 전송량과 시간에 **수치 예산**을 둔다. 종전에 이 절은 열세 조항이 전부 결정성·모션·reduced-motion 이었고 바이트·시간·LCP·CLS 목표가 한 줄도 없었다 — 즉 어떤 실측치도 위반할 수 있는 조항이 존재하지 않았다.
+
+- **폰트 전송**: 라틴 계열 locale 은 **200 KB**, 한국어·일본어·중국어 locale 은 **420 KB** 를 넘지 않는다. 이 예산은 subset 조각에만 걸며, 커버리지 backstop 으로 내려가는 전체 face 는 별도 항목으로 셈한다(BQ-47).
+- **이미지 발견**: 첫 화면의 LCP 후보 이미지는 `loading="lazy"` 로 두지 않는다. preload 스캐너가 건너뛰면 발견이 CSS 대비 **815 ms** 밀린다.
+- **테마 결정성**: 테마 부트스트랩은 프레임워크 런타임 없이도 해석돼야 한다. 별도 요청으로 실으면 첫 페인트를 막지 못한다.
+- **CLS**: 모바일 랜딩 `< 0.05`. 이 단언은 릴리스 게이트(`@gate`)에 포함한다.
+- 예산을 바꾸는 것은 실측을 동반한 결정이며, 실측 없이 상한만 올리는 변경을 금지한다.
+
+**Verification**:
+1. Automated: 12 locale × 390×844 에서 폰트 조각 전송량이 예산 안임을 검증한다(`assertion:FP-01`).
+2. Automated: preload 한 조각을 그 페이지가 실제로 쓰고, 12 locale 이 공통으로 쓰는 조각이 전부 preload 돼 있음을 검증한다(`assertion:FP-01`).
+3. Automated: 커버리지 backstop 이 지정된 locale 밖에서 당겨지지 않음을 검증한다(`assertion:FP-02`).
+4. Automated: 프레임워크 청크를 전부 차단한 상태에서 테마가 해석됨을 검증한다(`assertion:TB-01`).
+5. Automated: 첫 카드 썸네일만 eager + preload 이고 나머지는 lazy 임을 검증한다(`assertion:LCP-01`).
+6. Automated: 모바일 랜딩 CLS `< 0.05` 를 릴리스 게이트에서 검증한다.
+
 ## 12. Telemetry / Logging Contract
 
 ### 12.1 Logging Scope & V1 Event Set

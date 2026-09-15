@@ -215,6 +215,7 @@ export function LandingGridCard({
           hasAssetMedia={hasAssetMedia}
           interactionMode={interactionMode}
           isMobileViewport={isMobileViewport}
+          isLcpCandidate={sequence === 0}
           presentation={isDesktopExpanded ? 'expandedTitleOnly' : 'collapsed'}
           exposePublicSlots
           readMoreLabel={isBlogCard ? copy.readMore : undefined}

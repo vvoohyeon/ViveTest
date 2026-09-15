@@ -2,7 +2,7 @@ import {expect, test, type Locator, type Page, type TestInfo} from '@playwright/
 
 import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
-import {expectBufferToMatchLocalSnapshot} from './helpers/local-snapshot';
+import {expectBufferToMatchLocalSnapshot, waitForFontsSettled} from './helpers/local-snapshot';
 
 /**
  * lower-row 케이스의 피사체. **test 카드여야 한다.**
@@ -217,6 +217,7 @@ async function expectSteadyExpandedShadowSnapshot(input: {
   testInfo: TestInfo;
 }) {
   const settledBox = await settleDesktopExpandedCard(input.page, input.card);
+  await waitForFontsSettled(input.page);
   const screenshot = await input.page.screenshot({
     clip: buildStageClip(settledBox),
     ...FROZEN_CAPTURE
@@ -298,6 +299,7 @@ test.describe('Safari hover-out ghosting regression', () => {
       })
     });
 
+    await waitForFontsSettled(page);
     const screenshot = await page.screenshot({
       clip: buildStageClip(firstCardBox),
       ...FROZEN_CAPTURE
@@ -318,6 +320,7 @@ test.describe('Safari hover-out ghosting regression', () => {
       })
     });
 
+    await waitForFontsSettled(page);
     const screenshot = await page.screenshot({
       clip: buildStageClip(lowerRowCardBox),
       ...FROZEN_CAPTURE
@@ -405,6 +408,7 @@ test.describe('Safari hover-out ghosting regression', () => {
       )
     ).toBeLessThanOrEqual(SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX);
 
+    await waitForFontsSettled(page);
     const screenshot = await page.screenshot({
       clip: buildSettingsPanelClip(panelBox!),
       ...FROZEN_CAPTURE

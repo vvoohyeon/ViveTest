@@ -4,16 +4,16 @@
   "groups": {
     "desktop-tablet": {
       "renderCount": 10080,
-      "digest": "05d59084e1de8adc576ec764b5dab0b69820877da6f1ec7ae82f5d11d49c3ecc"
+      "digest": "bfdab72d63b0644254b87c5b50486ea105d7653bef63e40673b75490d5bbf5be"
     },
     "mobile": {
       "renderCount": 480,
-      "digest": "71970467fd97a0569e00ee5bd86d9e3427cc7c80424ae20dcc146b3d64704ba9"
+      "digest": "9cf0c2c872b430168d5856d3c7a56ddfe7669866ad29febdf015aaa9ebea0199"
     },
     "univariate": {
       "renderCount": 111,
-      "digest": "0d18ff56f9410fb335097602391ce35812d1e4fdce5129aa39ad69fcb319e8b1"
+      "digest": "7658040cf6f3f17d8d945ba2d57224675c17a137a13d675f19bf65f16a1b4a6b"
     }
   },
-  "digest": "ffbd9f1d4f39702dd00e0ea7ed72b61845de05e18834c3f565d95b6f93d2371a"
+  "digest": "cce35e17c2e2b3fd7bcad49520b294003ce12e5f7e3b58fc16828e0a6fae22e5"
 }

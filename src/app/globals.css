@@ -1,15 +1,12 @@
 @import "tailwindcss";
+@import "./fonts.generated.css";
 
 /* ============================================================================
    TYPEFACE
    ----------------------------------------------------------------------------
    The system has rested on Pretendard since the rebaseline — `--font-sans` names
    it, `design.md` §4.3 builds the bilingual claim on its matched Korean and Latin
-   metrics, and every measurement in `docs/design/ds/` was taken in it. The app
-   never loaded it. Until this commit every Korean character the product rendered
-   came from `Noto Sans KR` and every Latin one from Avenir Next, so the claim was
-   unrealized on every surface. `BQ-25` calls this "the wave-16 Pretendard switch"
-   and forbids the expanded-choice arrow's optical nudge until after it.
+   metrics, and every measurement in `docs/design/ds/` was taken in it.
 
    Declared here rather than through `next/font` on purpose. `next/font` generates
    a hashed family name, and `--font-sans` is a MIRRORED token — the design bundle
@@ -19,21 +16,57 @@
    sides. It sits outside the @mirror sentinels because it is a runtime concern:
    the bundle points at its own copy of the file at its own path.
 
-   `swap`, and deliberately NOT preloaded. The full variable face is 1.96 MB —
-   Korean coverage is not cheap — so text must never wait on it. Fallback renders
-   immediately, Pretendard swaps in when it arrives. Shipping the full face rather
-   than a subset is a choice this repository has already made once, for the design
-   bundle (`SYNC.md`): a subset needs a build step and becomes a way for the two
-   sides to diverge on which glyphs exist. The unresolved cost is the payload, and
-   the way to reduce it is the upstream dynamic subset (per-unicode-range files),
-   which needs assets this repository does not have.
+   **이 저장소는 이제 전체 face 를 내보내지 않는다.** 종전에는 2,057,688 B 짜리 한 파일을
+   12 locale 이 전부 받았고, 그것이 랜딩 첫 방문 전송량의 **89%**(2,058 / 2,314 KB)였다.
+   실측(2026-09-16, CDP 스로틀링 · 390×844 · 콜드 캐시): Slow 4G 에서 폰트 하나가
+   **11,699 ms**, Slow 3G 에서 **46,561 ms** 회선을 물었다.
+
+   그 자리를 업스트림 dynamic subset 92 조각이 대신한다(`fonts.generated.css`). 종전 주석이
+   이 해법을 적어 두고 "needs assets this repository does not have" 로 막아 두었는데, 그 자산은
+   같은 릴리스가 이미 배포하고 있었고 저장소의 파일과 **sha256 이 같았다** — 즉 빌드 단계도,
+   「어느 글리프가 있는지」로 두 쪽이 갈라질 여지도 없다(BQ-47).
+
+   **`font-display: swap` 과 「preload 하지 않는다」는 둘 다 유지한다.** 조각이 작아졌으니
+   preload 해도 되겠다고 보고 실제로 해 봤는데, 실측이 그것을 기각했다(2026-09-16, HTTP/2
+   프록시 · Slow 4G · 390×844 · 3 회):
+
+   | 구성 | 폰트 전송 | CSS 완료 | LCP |
+   |:---|---:|---:|---:|
+   | 전체 face · preload 없음 | 2,058 KB | 1,902 ms | 2,568 ms |
+   | 조각 · **preload 4** | 116 KB | 2,866 ms | 3,588 ms |
+   | 조각 · `fetchPriority=low` preload | 116 KB | 2,725 ms | 3,154 ms |
+   | **조각 · preload 없음** | **116 KB** | 2,212 ms | **2,622 ms** |
+
+   preload 한 116 KB 는 렌더를 막는 CSS 와 **같은 우선순위**로 회선을 나눠 쓴다. 그래서 CSS
+   완료가 650 ms 밀리고 LCP 가 그만큼 따라 밀린다 — `fetchPriority="low"` 로도 회복되지 않았다.
+   조각만 쓰고 preload 를 걷으면 LCP 는 전체 face 와 같아지면서 전송량만 6 배 줄어든다.
+   종전 주석이 적어 둔 근거("text must never wait on it")는 조각 뒤에도 그대로 참이다.
    ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   COVERAGE BACKSTOP — 업스트림 조각이 놓친 글리프
+
+   **업스트림 dynamic subset 은 전체 face 의 글리프를 다 갖고 있지 않다.** 같은 기계·같은
+   브라우저에서 두 face 를 나란히 띄워 글리프 advance 를 비교한 결과(2026-09-16, 117 자
+   표본), 조각 쪽이 14 자에서 fallback 으로 떨어졌다. 범위로 펴 보면 **651 개 코드포인트**다 —
+   Latin-1 Supplement 와 Latin Extended-A/B 의 139 개(`á í ó ú ä ö ã õ ñ å` 등), 그리고
+   **키릴 전체**(U+0400–U+04FF 커버 0 개).
+
+   그래서 `de`·`es`·`pt`·`ru` 네 locale 의 본문이 조각만으로는 한 단어 안에서 서체가 갈린다.
+   계획서가 조건으로 건 「커버리지를 잃지 않는다」를 그대로 지키기 위해, 그 651 개에 한해
+   전체 face 가 받친다. 범위는 조각들의 합집합의 **여집합**으로 기계적으로 계산했으므로
+   조각과 겹치지 않는다 — 겹치면 나중 선언이 이겨서 모두가 2 MB 를 받게 된다.
+
+   **이것은 임시 상태다.** 부족분만 담은 조각 하나(수십 KB)를 만들면 이 선언은 그 조각을
+   가리키게 되고 전체 face 는 저장소에서 빠진다. 그 생성은 별도 승인 사항이다(BQ-47).
+   ---------------------------------------------------------------------------- */
 @font-face {
   font-family: 'Pretendard Variable';
   font-weight: 45 920;
   font-style: normal;
   font-display: swap;
   src: url('/fonts/PretendardVariable.woff2') format('woff2-variations');
+  unicode-range: U+00a6, U+00af, U+00b5, U+00c1, U+00c3-00c5, U+00cc-00cd, U+00d1-00d3, U+00d5-00d6, U+00da, U+00dd, U+00e1, U+00e3-00e5, U+00ec-00ed, U+00f1-00f3, U+00f5-00f6, U+00fa, U+00fd, U+0100-0110, U+0112-0125, U+0128-0130, U+0134-0137, U+0139-013e, U+0143-0148, U+014c-0151, U+0154-0165, U+0168-024f, U+0400-052f;
 }
 
 /* ============================================================================
