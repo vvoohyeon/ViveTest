@@ -7,6 +7,7 @@ import {useCallback, useEffect, useId, useMemo, useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {SettingsControls} from '@/features/gnb/components/settings-controls';
+import {ConsentRecallLink} from '@/features/landing/shell/consent-recall-link';
 import {ThemeModeIcon} from '@/features/gnb/components/theme-mode-icon';
 import {shouldOpenDesktopSettingsByHover} from '@/features/gnb/behavior';
 import {focusFirstLandingCardTrigger} from '@/features/gnb/gnb-keyboard-dom';
@@ -463,6 +464,14 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                   applyTheme(theme, {sourceEl});
                 }}
               />
+              {/* 행을 차지하지 않는 우측 정렬 얇은 링크다(명세 규칙 7). 누르면 드로어를 먼저
+                  닫는다 — 드로어가 열린 채면 배너가 자기 스크림 뒤에 뜬다. */}
+              <div className="gnb-mobile-consent-recall flex justify-end">
+                <ConsentRecallLink
+                  testId="gnb-mobile-consent-recall"
+                  onActivate={closeMobileMenuImmediate}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -30,7 +30,9 @@
     "metaAttempts": "selesai",
     "metaReadTime": "menit baca",
     "metaViews": "dilihat",
-    "readMore": "Baca selengkapnya"
+    "readMore": "Baca selengkapnya",
+    "optedOutNotice": "{count, plural, other {# tes memerlukan persetujuan analitik.}}",
+    "optedOutNoticeAction": "Ubah persetujuan"
   },
   "test": {
     "progressLabel": "Progres",
@@ -71,11 +73,12 @@
     "delete": "Hapus"
   },
   "consent": {
-    "regionLabel": "Persetujuan cookie",
-    "message": "Kami menggunakan cookie dan teknologi serupa untuk membantu layanan berfungsi dengan baik dan untuk memahami bagaimana layanan digunakan. Anda dapat memilih apakah akan mengizinkan cookie opsional, dan Anda dapat mengubah pilihan kapan saja.",
-    "accept": "Terima semua",
+    "regionLabel": "Persetujuan analitik",
+    "message": "Analitik opsional menunjukkan tes mana yang diselesaikan. Jawaban Anda tidak dikirim.",
+    "accept": "Izinkan",
     "deny": "Tolak",
-    "preferences": "Preferensi",
-    "preferencesTitle": "Panel preferensi akan segera hadir"
+    "recall": "Preferensi privasi",
+    "close": "Tutup",
+    "previousChoice": "Pilihan Anda sebelumnya"
   }
 }

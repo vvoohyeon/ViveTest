@@ -30,7 +30,9 @@
     "metaAttempts": "完成",
     "metaReadTime": "分钟阅读",
     "metaViews": "浏览",
-    "readMore": "阅读更多"
+    "readMore": "阅读更多",
+    "optedOutNotice": "{count, plural, other {#项测试需要分析同意。}}",
+    "optedOutNoticeAction": "更改同意"
   },
   "test": {
     "progressLabel": "进度",
@@ -71,11 +73,12 @@
     "delete": "删除"
   },
   "consent": {
-    "regionLabel": "Cookie 同意",
-    "message": "我们使用 Cookie 及类似技术来帮助服务正常运行，并了解其使用情况。你可以选择是否允许可选 Cookie，并且可以随时更改你的选择。",
-    "accept": "全部接受",
+    "regionLabel": "分析同意",
+    "message": "我们使用可选分析来了解哪些测试被完成。您的答案不会被发送。",
+    "accept": "允许",
     "deny": "拒绝",
-    "preferences": "偏好设置",
-    "preferencesTitle": "偏好设置面板即将推出"
+    "recall": "隐私设置",
+    "close": "关闭",
+    "previousChoice": "上次的选择"
   }
 }

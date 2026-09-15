@@ -677,6 +677,25 @@
 
 **Verification**:
 1. Automated: payload schema/금지필드 검사 및 fixture 최소 개수/다양성/required 누락 금지 테스트를 수행한다.
+
+### 12.7 Consent UI Contract
+
+**Rule**: 동의 UI 는 하단 배너 **하나**이며 두 얼굴을 갖지 않는다.
+
+- 배너는 제목 줄 없이 **본문 한 단락 + 버튼 둘**이다. `Allow` 는 채운 CTA, `Deny` 는 평문 텍스트 버튼이며 두 버튼의 시각 무게를 같게 만들지 않는다. 세 번째 버튼(`Preferences` 계열)을 두지 않는다 (BQ-46).
+- 본문 줄 수는 **390px 2 줄 · 320px 3 줄**을 넘지 않는다. 12 locale 전부에 적용하며 액션 행은 어느 locale 에서도 접히지 않는다.
+- 배너는 스크림을 갖지 않고 뒤에서 카탈로그가 계속 스크롤된다. 문서 흐름에 예약하는 높이는 배너 높이와 하단 gap 의 실측을 따른다(§8.4, BQ-39).
+- **재호출 경로는 셋이다** — 모바일 드로어 설정 블록의 우측 정렬 얇은 링크, 데스크톱 페이지 최하단 중앙의 같은 링크, `OPTED_OUT` 고지 행(§13.9)의 해제 링크. 셋 다 **같은 배너**를 다시 띄우며 새 화면을 만들지 않는다. 테스트 진행 중 표면에는 진입점을 두지 않는다.
+- 재호출은 배너로 **포커스를 옮긴다.** 이미 떠 있는 배너에 대한 재호출도 포커스 이동은 수행한다 — 부른 UI 를 만나지 못하면 재호출이 아니다.
+- **재호출로 뜬 배너에만 닫기 컨트롤(44×44)이 있다.** 첫 방문 배너에는 두지 않는다: 거기서는 선택이 곧 닫기이고, 닫기가 있으면 「선택하지 않음」이라는 네 번째 답이 생긴다. 닫기는 저장된 선택을 바꾸지 않는다.
+- 재호출 배너는 **이전 선택을 표시한다.** 색만으로 표시하지 않으며(WCAG 1.4.1) 보조기술에는 버튼 이름 안의 텍스트 대안으로 간다. `Allow` 는 재호출에서도 CTA 형태를 잃지 않는다.
+- 배너에서 선택이 이루어지면 재호출 상태는 함께 해제된다.
+- 재호출 진입점은 **보이는 잉크가 얇고 히트 영역이 `--tap-min`** 이다. 시각 무게를 낮추는 것이 히트 영역을 줄이는 근거가 되지 않는다(§9 터치 타깃 하한).
+
+**Verification**:
+1. Automated: 12 locale × `390px`/`320px` 에서 본문 줄 수 예산, 액션 행 접힘 `0건`, 버튼 `2개`, 제목 줄 `0건`을 검증한다.
+2. Automated: 첫 방문 배너의 닫기 컨트롤 `0건`, 재호출 배너의 닫기 컨트롤 `1개`를 검증한다.
+3. Automated: 재호출 진입점에서 배너 재표시 · 배너로의 포커스 이동 · 이전 선택 표식을 검증하고, 닫기 이후 저장된 consent 가 불변임을 함께 검증한다.
 ---
 
 ## 13. Error / Empty / Not-Found Handling
@@ -873,6 +892,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
   - landing ingress + `OPTED_IN` + `opt_out`, landing ingress + `OPTED_OUT` + `opt_out`는 plain instruction + [Start]를 사용하며 landing ingress runtime start 규칙을 따른다.
   - 딥링크 유입 + `OPTED_IN` + `opt_out`, 딥링크 유입 + `OPTED_OUT` + `opt_out`는 plain instruction + [Start]를 사용하며 direct runtime start 규칙을 따른다.
 - `attribute` 5종 필터링은 landing-side resolver(`loadVariantRegistry()` / `resolveLandingCatalog()`)가 담당한다. Google Sheets registry 연동 이후에도 이 레이어 책임은 변경되지 않는다(ADR-F 확정, `docs/req-test-plan.md` Part 4 참조).
+- `OPTED_OUT` 카탈로그는 **숨겨진 항목 수와 해제 경로를 그리드 상단에 한 줄로 고지한다.** 숨은 개수는 상수가 아니라 실제 카탈로그 필터 결과의 차이며 12 locale 복수형을 따른다. 해제 링크는 §12.7 의 재호출 배너를 연다. 고지는 카드도 패널도 아닌 조용한 행이고 데스크톱·모바일이 같은 행을 쓴다. 이 고지 없이 카탈로그가 줄어드는 화면을 내보내지 않는다.
 
 **Verification**:
 1. Automated: Disagree All 상태에서 available 카드 `0건`, opt_out 카드 정상 노출을 검증한다.
@@ -880,6 +900,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 3. Automated: opt_out 카드 진입 경로가 §13.5 정책 매트릭스 계약을 따름을 검증한다. instruction 분기 상세 검증은 §13.5 Verification을 따른다.
 4. Automated: landing ingress + `OPTED_OUT` + `opt_out`에서 plain instruction + [Start] + landing ingress runtime start 규칙을 검증한다.
 5. Automated: 딥링크 유입 + `OPTED_OUT` + `opt_out`에서 plain instruction + [Start] + direct runtime start 규칙을 검증한다.
+6. Automated: `OPTED_OUT` 랜딩에서 고지 행이 그리드 상단에 서고, 표시된 숨은 개수가 `UNKNOWN` 카탈로그와 `OPTED_OUT` 카탈로그의 실제 카드 수 차와 같음을 검증한다. `OPTED_IN`·`UNKNOWN` 에서는 고지 행 `0건`을 함께 검증한다.
 
 ---
 

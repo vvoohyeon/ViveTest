@@ -225,6 +225,45 @@ async function expandCardAtDocumentBottom(page: Page, cardBottomViewportY: numbe
   return card;
 }
 
+const CONSENT_LOCALES = ['en', 'kr', 'ja', 'zs', 'zt', 'es', 'fr', 'pt', 'de', 'hi', 'id', 'ru'] as const;
+
+/**
+ * 배너 본문의 **줄 수**를 센다. 높이를 줄 높이로 나누지 않고 `Range.getClientRects()` 로 실제
+ * 줄 상자를 세는 이유는, 나눗셈이 폰트 폴백이나 줄 높이 변경을 조용히 흡수하기 때문이다.
+ *
+ * 액션 행의 접힘은 「버튼 둘이 세로로 겹치는가」로 본다. `top` 비교는 쓰지 않는다 — CTA 는
+ * 46px, 평문은 44px 이라 같은 줄에서도 `items-center` 때문에 `top` 이 1px 다르다.
+ */
+async function readConsentBannerBodyMetrics(page: Page) {
+  return page.evaluate(() => {
+    const banner = document.querySelector<HTMLElement>('[data-testid="telemetry-consent-banner"]');
+    const message = banner?.querySelector<HTMLElement>('.telemetry-consent-banner-message');
+    const actions = banner?.querySelector<HTMLElement>('.telemetry-consent-banner-actions');
+    if (!banner || !message || !actions) {
+      throw new Error('Expected telemetry consent banner landmarks to be present.');
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(message);
+    const rects = Array.from(actions.querySelectorAll('button')).map((button) =>
+      button.getBoundingClientRect()
+    );
+
+    return {
+      lines: range.getClientRects().length,
+      buttonCount: rects.length,
+      actionRowWraps:
+        rects.length >= 2 &&
+        !rects.every((rect) => rect.top < rects[0].bottom - 2 && rect.bottom > rects[0].top + 2),
+      headingCount: banner.querySelectorAll('h1, h2, h3, h4, h5, h6').length
+    };
+  });
+}
+
+async function readVisibleLandingCardCount(page: Page) {
+  return page.locator('[data-card-variant]').count();
+}
+
 test.describe('Instruction consent contract smoke', () => {
   test('@smoke landing unknown consent keeps the desktop consent banner flex and max-width contract', async ({page}) => {
     await clearTelemetryConsent(page);
@@ -303,6 +342,156 @@ test.describe('Instruction consent contract smoke', () => {
 
     expect(narrow.bannerHeight).toBeGreaterThan(desktop.bannerHeight);
     expect(narrow.overReservedPx).toBe(0);
+  });
+
+  test('@smoke consent banner keeps its line budget and two-button row across twelve locales', async ({page}) => {
+    // 명세 규칙 4 · §2-1 — 본문은 390px 에서 2 줄, 320px 에서 3 줄을 넘지 않는다. 종전 세 버튼
+    // 배너는 locale 에 따라 169~288px 였고 액션 행이 여섯 locale 에서 접혔다.
+    await clearTelemetryConsent(page);
+
+    for (const {width, lineBudget} of [
+      {width: 390, lineBudget: 2},
+      {width: 320, lineBudget: 3}
+    ]) {
+      await page.setViewportSize({width, height: 812});
+
+      for (const locale of CONSENT_LOCALES) {
+        await page.goto(`/${locale}`);
+        await expect(page.getByTestId('telemetry-consent-banner')).toBeVisible();
+
+        const metrics = await readConsentBannerBodyMetrics(page);
+        const label = `${locale}@${width}`;
+
+        expect(metrics.lines, `${label} 본문 줄 수`).toBeLessThanOrEqual(lineBudget);
+        expect(metrics.buttonCount, `${label} 버튼 개수`).toBe(2);
+        expect(metrics.actionRowWraps, `${label} 액션 행 접힘`).toBe(false);
+        // 규칙 4 — 제목 줄을 넣지 않는다.
+        expect(metrics.headingCount, `${label} 제목 줄`).toBe(0);
+        await expect(page.getByTestId('telemetry-consent-preferences')).toHaveCount(0);
+        // 첫 방문 배너에는 닫기가 없다 — 거기서는 선택이 곧 닫기다.
+        await expect(page.getByTestId('telemetry-consent-close')).toHaveCount(0);
+      }
+    }
+  });
+
+  test('@smoke the desktop footer link recalls the same banner with the previous choice and a close', async ({
+    page
+  }) => {
+    await seedTelemetryConsent(page, 'OPTED_OUT');
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+
+    await expect(page.getByTestId('telemetry-consent-banner')).toHaveCount(0);
+
+    const footerLink = page.getByTestId('page-footer-consent-recall');
+    await expect(footerLink).toBeVisible();
+    await footerLink.click();
+
+    const banner = page.getByTestId('telemetry-consent-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toHaveAttribute('data-mode', 'recall');
+    // 재호출 배너에만 닫기 X 가 있고, 그것이 「보기만 하고 닫을」 유일한 길이다(명세 §2-5).
+    await expect(page.getByTestId('telemetry-consent-close')).toBeVisible();
+    await expect(page.getByTestId('telemetry-consent-deny')).toContainText('Your previous choice');
+    // 포커스는 링크가 아니라 배너로 간다 — 부른 UI 를 만나지 못하면 재호출이 아니다.
+    await expect(banner).toBeFocused();
+    await expectPageToBeAxeClean(page);
+
+    await page.getByTestId('telemetry-consent-close').click();
+    await expect(banner).toHaveCount(0);
+    expect(await readConsent(page)).toBe('OPTED_OUT');
+  });
+
+  test('@smoke OPTED_OUT landing explains the shrunken catalog and links back in the same place', async ({page}) => {
+    await clearTelemetryConsent(page);
+    await page.setViewportSize({width: 390, height: 812});
+    await page.goto('/en');
+    const unknownCardCount = await readVisibleLandingCardCount(page);
+
+    await seedTelemetryConsent(page, 'OPTED_OUT');
+    await page.goto('/en');
+    const optedOutCardCount = await readVisibleLandingCardCount(page);
+    expect(optedOutCardCount).toBeLessThan(unknownCardCount);
+
+    const notice = page.getByTestId('landing-consent-notice');
+    await expect(notice).toBeVisible();
+    // 숨은 개수는 실제 필터 결과의 차다 — 상수가 아니다.
+    await expect(notice).toContainText(String(unknownCardCount - optedOutCardCount));
+
+    // 고지 행은 그리드 **위**에 있다. 숨긴 이유와 해제 경로가 같은 자리에 있어야 한다.
+    //
+    // `boundingBox()` 가 돌려주는 것은 `{x, y, width, height}` 뿐이라 `.bottom` 은 존재하지
+    // 않는다 — 처음 판본이 그것을 읽고 `?? 0` 으로 흘려서 「0 <= firstCardTop」이라는 항상
+    // 참인 문장이 됐고, 고지 행을 그리드 **뒤**로 옮기는 고장 주입을 그대로 통과했다(L16).
+    const noticeBox = await notice.boundingBox();
+    const firstCardBox = await page.locator('[data-card-variant]').first().boundingBox();
+    expect(noticeBox, '고지 행 상자').not.toBeNull();
+    expect(firstCardBox, '첫 카드 상자').not.toBeNull();
+    expect(noticeBox!.y + noticeBox!.height).toBeLessThanOrEqual(firstCardBox!.y);
+
+    await page.getByTestId('landing-consent-notice-action').click();
+    await expect(page.getByTestId('telemetry-consent-banner')).toHaveAttribute('data-mode', 'recall');
+  });
+
+  test('@smoke OPTED_IN landing carries no notice row', async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
+    await page.setViewportSize({width: 390, height: 812});
+    await page.goto('/en');
+
+    await expect(page.getByTestId('landing-consent-notice')).toHaveCount(0);
+  });
+
+  test('@smoke the qualifier sheet opens above the first-visit banner and the banner stays', async ({page}) => {
+    // 명세 §2-2 — 배너는 스크림 아래에 **그대로 남는다**. 사라졌다 돌아오지 않는다.
+    await clearTelemetryConsent(page);
+    await page.setViewportSize({width: 390, height: 812});
+    await page.goto('/en');
+
+    const banner = page.getByTestId('telemetry-consent-banner');
+    await expect(banner).toBeVisible();
+
+    await page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`).getByTestId('landing-grid-card-trigger').click();
+    await expect(page.getByTestId('landing-card-sheet')).toBeVisible();
+
+    const layering = await page.evaluate(() => {
+      const bannerElement = document.querySelector<HTMLElement>('[data-testid="telemetry-consent-banner"]');
+      const bannerLayer = document.querySelector<HTMLElement>('.telemetry-consent-banner-layer');
+      const sheetScrim = document.querySelector<HTMLElement>('[data-testid="landing-card-sheet-scrim"]');
+      if (!bannerElement || !bannerLayer || !sheetScrim) {
+        throw new Error('Expected the consent banner and the open sheet to share the document.');
+      }
+
+      const bannerStyle = getComputedStyle(bannerElement);
+      const readLayerZIndex = (element: HTMLElement) => {
+        for (let node: HTMLElement | null = element; node; node = node.parentElement) {
+          const zIndex = Number.parseInt(getComputedStyle(node).zIndex, 10);
+          if (Number.isFinite(zIndex)) {
+            return zIndex;
+          }
+        }
+
+        return 0;
+      };
+
+      return {
+        bannerVisibility: bannerStyle.visibility,
+        bannerOpacity: bannerStyle.opacity,
+        bannerOccluding: bannerElement.dataset.occluding,
+        // 스크림 아래 층은 `inert` 다(규칙 1) — 배너의 버튼은 이 동안 눌리지 않는다.
+        bannerInert: bannerElement.closest('[inert]') !== null,
+        bannerZIndex: readLayerZIndex(bannerLayer),
+        sheetZIndex: readLayerZIndex(sheetScrim)
+      };
+    });
+
+    // 회피 rAF 루프의 전제가 바뀌었다: 폰의 확장은 더 이상 흐름 안 상자가 아니라 배너 **위**
+    // 층의 시트이므로 「덮지 말라」 표식을 달지 않고, 배너는 비켜서지 않는다.
+    expect(layering.bannerVisibility).toBe('visible');
+    expect(layering.bannerOpacity).toBe('1');
+    expect(layering.bannerOccluding).toBe('false');
+    expect(layering.bannerInert).toBe(true);
+    // 시트는 배너 **위** 층이다 — 두 UI 는 컨테이너를 공유하지 않는다.
+    expect(layering.sheetZIndex).toBeGreaterThan(layering.bannerZIndex);
   });
 
   test('@smoke assertion:B20-instruction-contract-display landing UNKNOWN available shows variant instruction with divider/note and Deny and Abandon returns home without instructionSeen', async ({

@@ -30,7 +30,9 @@
     "metaAttempts": "完了",
     "metaReadTime": "分で読了",
     "metaViews": "閲覧",
-    "readMore": "続きを読む"
+    "readMore": "続きを読む",
+    "optedOutNotice": "{count, plural, other {#件のテストには分析の同意が必要です。}}",
+    "optedOutNoticeAction": "同意を変更"
   },
   "test": {
     "progressLabel": "進行状況",
@@ -71,11 +73,12 @@
     "delete": "削除"
   },
   "consent": {
-    "regionLabel": "Cookie 設定",
-    "message": "サービスを正しく動作させ、利用状況を把握するために、Cookie および類似技術を使用します。任意の Cookie を許可するかどうかはご自身で選択でき、その選択はいつでも変更できます。",
-    "accept": "すべて許可",
+    "regionLabel": "分析の同意",
+    "message": "どのテストが最後まで進むかを把握するため、任意の分析を使用します。回答内容は送信されません。",
+    "accept": "許可",
     "deny": "拒否",
-    "preferences": "設定",
-    "preferencesTitle": "設定パネルは近日公開予定です"
+    "recall": "プライバシー設定",
+    "close": "閉じる",
+    "previousChoice": "前回の選択"
   }
 }

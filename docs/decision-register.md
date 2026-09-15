@@ -569,6 +569,14 @@ BQ-25 는 확장 choice 화살표(`→`)의 광학적 수직 쏠림 보정을 **
 - **Include in first implementation wave?** — Yes — 이 커밋이 실행 단위다
 - **Notes / caveats** — `start_url` 이 루트 사본과 다른 것은 의도다. 루트가 `/` 인 이유는 쿠키·`Accept-Language` 해석을 앞지르지 않으려는 것인데, locale 사본은 **이미 그 해석이 끝난 페이지**에서 설치되므로 앞지를 것이 없다. 실측(2026-09-16): `/kr` 에서 `link[rel=manifest]` 가 `/kr/manifest.webmanifest` 를 가리키고 200 으로 한국어 설명과 `start_url: /kr` 을 낸다. 아이콘 목록은 루트 사본이 근거를 갖고 여기서는 같은 값을 쓴다 — 두 곳이 각자 고르면 갈라진다
 
+## BQ-46
+
+- **Decision** — 2026-09-16 **동의 배너는 버튼 둘이고 둘의 무게는 같지 않다.** `Allow` 는 채운 CTA, `Deny` 는 평문 텍스트 버튼이며 `Preferences` 는 없앤다(명세 규칙 4). **(A)** 이것은 2026-09-08 BQ-38 5b Part 2 가 여기 등재한 반대 결정을 **대체한다** — 그때는 「배너의 둘은 대칭인 동의 응답이라 한쪽을 텍스트로 낮추면 대칭이 깨진다」를 근거로 같은 무게를 유지했다. 비대칭이 목적이고, 이후 외부 리뷰의 「거부를 다시 올리라」는 권고는 기각됐다. **(B)** 본문에 **줄 수 예산**이 생긴다 — 390px 2 줄 · 320px 3 줄, 12 locale 전부. **(C)** `OPTED_OUT` 카탈로그 상단에 **고지 행** 한 줄을 둔다 — 숨은 개수와 해제 경로가 같은 자리에 있어야 한다. **(D)** **재호출 경로 셋**(드로어 설정 블록의 우측 정렬 얇은 링크 · 데스크톱 최하단 중앙 링크 · 고지 행의 `동의 변경`)을 만들고, **재호출로 뜬 배너에만** 닫기 X 와 지난 선택 표식을 둔다
+- **Source / 근거** — 명세 `docs/plans/2026-09-14-mobile-refactor-design-spec.md` 규칙 4 · §2-1 · §2-2 · §2-5 · §2-10 · 규칙 7, step 3 계획서 §3. 문구와 형태는 `docs/design/ds/` 가 이미 갖고 있었다 — `app-components.css` 의 `.vt-banner--consent`·`.vt-notice` 와 `preview/banner-consent.html`·`preview/comp-notice.html` 이 그것이고, `README.md` 의 **D-13 이 「제품이 따라올 때까지 Open」으로 이 행을 열어 두고 있었다.** 이 커밋이 그 행을 닫는다
+- **Implementation impact** — 신설: `consent-recall.ts`(모듈 store — 요청부 셋과 응답부 하나가 서버 컴포넌트 `PageShell` 아래 다른 가지에 있어 context 로 묶으면 그 가지가 통째로 클라이언트가 된다) · `consent-recall-link.tsx` · `page-footer.tsx`. 개정: `consent-banner.tsx`(세 번째 버튼 제거 · 닫기 X · 지난 선택 표식 · 포커스 이동) · `telemetry-consent-banner.tsx` · `page-shell.tsx` · `site-gnb.tsx` 드로어 · `landing-catalog-grid-loader.tsx` 고지 행. 메시지 12 locale — `consent.message`·`regionLabel`·`accept` 개정, `preferences`·`preferencesTitle` 제거, `recall`·`close`·`previousChoice`·`landing.optedOutNotice`(ICU 복수형)·`landing.optedOutNoticeAction` 신설. 새 회귀: `consent-recall.test.ts` · `landing-consent-notice.test.ts` · `message-key-parity.test.ts` · 배너 단위 검사 6 건 · consent smoke 5 건
+- **Include in first implementation wave?** — Yes — 이 커밋이 실행 단위다
+- **Notes / caveats** — **측정 셋이 이 결정의 형태를 바꿨다.** ⑴ **줄 수 예산은 처음 초안을 기각했다** — 12 locale × 두 폭 24 케이스 실측에서 `fr`·`de`·`id`·`ru` 가 390px 에서 3 줄, `de`·`ru` 가 320px 에서 4 줄이었다. 넷의 문구를 줄여 24/24 가 예산 안에 들어왔고(배너 높이 133~155px, 종전 169~288px), 액션 행 접힘은 24 케이스 모두 0 이다. ⑵ **명세 §2-10 의 「`--muted-aa` 보다 더 흐린 회색이되 4.5:1 이상」은 실현 불가다** — `--muted`(`#817a72`)가 canvas 위에서 **4.06:1** 로 이미 기준 미달이고 `--muted-aa`(`#756d66`)가 **4.86:1** 이라, 남는 구간이 4.5~4.86 뿐이고 그 안의 어떤 값도 `--muted-aa` 와 눈으로 구분되지 않는다. 최하단 링크는 `--muted-aa` 를 쓴다. ⑶ **공유 링크의 잉크가 지면을 따라가야 한다** — 같은 `--muted-aa` 가 고지 행의 `--surface-muted`(`#ece8df`) 위에서는 **4.15:1** 로 떨어져 axe 가 붉혔다. 톤을 지면의 이름으로 나눠(`quiet`/`onMuted`) 고지 행은 `--accent-fg`(light 5.8:1 · dark 7.22:1)를 쓴다. **회피 rAF 루프의 전제도 함께 바뀌었다**(`req-landing-interaction.md` §8.4) — 폰의 확장이 흐름 안 상자에서 배너 **위** 층의 시트가 되면서 「덮지 말라」 표식을 달지 않고, 배너는 스크림 아래에 `inert` 로 남는다. 표식은 이제 데스크톱 제자리 오버레이 하나뿐이고 루프도 그때만 돈다. ⑷ **얇은 링크에도 44px 히트 영역을 준다** — 첫 판본은 규칙 7 의 「행을 차지하지 않는다」를 근거로 26.84px 로 두었고 `assertion:TT-01` 이 붉혔다. 이 저장소의 하한은 WCAG 2.5.5(AAA)와 같은 44px 이며 규범이 문장 안 링크에 두는 inline 예외를 그 가드는 갖고 있지 않다. **가드를 느슨하게 만들지 않고 제품이 하한을 지킨다** — 보이는 잉크는 13px caption 그대로이고 히트 영역만 44px 이다(명세 §3-1 의 분리). 고지 행의 세로 여백을 12px 에서 4px 로 줄여 행 높이를 52px 로 맞췄다. **시각 baseline 영향**: 매트릭스가 `.page-shell` 을 통째로 찍으므로 최하단 링크 한 줄이 랜딩·블로그·히스토리 baseline 전부를 바꾼다(실측 140 장). 단위 11 의 승인된 재생성에서 함께 처리하며 이번 단위는 baseline 을 만들지 않는다
+
 ---
 
 ## 변경 이력
@@ -577,6 +585,7 @@ BQ-25 는 확장 choice 화살표(`→`)의 광학적 수직 쏠림 보정을 **
 
 | 날짜 | 항목 | 변경 | 근거 |
 |:---|:---|:---|:---|
+| 2026-09-16 | BQ-38 (5b Part 2) | **대체** — 「배너의 거부는 수락과 같은 버튼 무게를 유지한다」를 뒤집는다. `Allow` 는 채운 CTA, `Deny` 는 평문, `Preferences` 는 제거. 비대칭이 목적이며 거부를 다시 올리라는 외부 리뷰 권고는 기각됐다 | BQ-46 · 명세 규칙 4 |
 | 2026-09-16 | BQ-43 | 보완 — 「회전 보존은 미해결 충돌」이라 적었던 caveat 이 BQ-44 로 해소됐다. 충돌이 아니라 강제 종료 규칙이 자기 이유보다 넓게 적혀 있던 것이었다 | BQ-44 |
 | 2026-09-16 | BQ-11 | 부분 대체 — 「Swipe-down close」가 Never Reintroduce 에서 내려와 시트의 닫기 경로 다섯 중 하나가 됐다. BQ-11 의 나머지(모바일 확장 형태 미결정)는 BQ-43 이 확정한다 | BQ-43 · 명세 규칙 3 |
 | 2026-09-16 | BQ-24 | 조정 — 제자리 오버레이의 height floor 가 뷰포트 상한(`calc(100dvh − 88px)`)으로 **잘린다**. CSS 에서 `min-height` 가 `max-height` 를 이기므로 자르지 않으면 짧은 뷰포트에서 상한이 무위가 된다 | BQ-43 (D) |

@@ -30,7 +30,9 @@
     "metaAttempts": "completed",
     "metaReadTime": "min read",
     "metaViews": "views",
-    "readMore": "Read more"
+    "readMore": "Read more",
+    "optedOutNotice": "{count, plural, =1 {1 test needs analytics consent.} other {# tests need analytics consent.}}",
+    "optedOutNoticeAction": "Change consent"
   },
   "test": {
     "progressLabel": "Progress",
@@ -71,11 +73,12 @@
     "delete": "Delete"
   },
   "consent": {
-    "regionLabel": "Cookie consent",
-    "message": "We use cookies and similar technologies to help the service work properly and to understand how it is used. You can choose whether to allow optional cookies, and you can change your choice at any time.",
-    "accept": "Accept all",
+    "regionLabel": "Analytics consent",
+    "message": "We use optional analytics to see which tests people finish. Nothing you answer is sent.",
+    "accept": "Allow",
     "deny": "Deny",
-    "preferences": "Preferences",
-    "preferencesTitle": "Preferences panel coming soon"
+    "recall": "Privacy preferences",
+    "close": "Close",
+    "previousChoice": "Your previous choice"
   }
 }

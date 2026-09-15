@@ -30,7 +30,9 @@
     "metaAttempts": "完成",
     "metaReadTime": "分鐘閱讀",
     "metaViews": "瀏覽",
-    "readMore": "閱讀更多"
+    "readMore": "閱讀更多",
+    "optedOutNotice": "{count, plural, other {#項測驗需要分析同意。}}",
+    "optedOutNoticeAction": "變更同意"
   },
   "test": {
     "progressLabel": "進度",
@@ -71,11 +73,12 @@
     "delete": "刪除"
   },
   "consent": {
-    "regionLabel": "Cookie 同意",
-    "message": "我們使用 Cookie 與類似技術來協助服務正常運作，並了解其使用情況。你可以選擇是否允許選用 Cookie，且可隨時變更你的選擇。",
-    "accept": "全部接受",
+    "regionLabel": "分析同意",
+    "message": "我們使用選擇性分析來了解哪些測驗被完成。您的答案不會被傳送。",
+    "accept": "允許",
     "deny": "拒絕",
-    "preferences": "偏好設定",
-    "preferencesTitle": "偏好設定面板即將推出"
+    "recall": "隱私設定",
+    "close": "關閉",
+    "previousChoice": "上次的選擇"
   }
 }

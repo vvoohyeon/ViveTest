@@ -30,7 +30,9 @@
     "metaAttempts": "abgeschlossen",
     "metaReadTime": "Min. Lesezeit",
     "metaViews": "Aufrufe",
-    "readMore": "Mehr lesen"
+    "readMore": "Mehr lesen",
+    "optedOutNotice": "{count, plural, =1 {1 Test benötigt die Analyse-Einwilligung.} other {# Tests benötigen die Analyse-Einwilligung.}}",
+    "optedOutNoticeAction": "Einwilligung ändern"
   },
   "test": {
     "progressLabel": "Fortschritt",
@@ -71,11 +73,12 @@
     "delete": "Löschen"
   },
   "consent": {
-    "regionLabel": "Cookie-Einwilligung",
-    "message": "Wir verwenden Cookies und ähnliche Technologien, damit der Dienst ordnungsgemäß funktioniert und um zu verstehen, wie er genutzt wird. Du kannst wählen, ob optionale Cookies erlaubt werden, und diese Auswahl jederzeit ändern.",
-    "accept": "Alle akzeptieren",
+    "regionLabel": "Analyse-Einwilligung",
+    "message": "Optionale Analysen zeigen, welche Tests beendet werden. Antworten werden nicht gesendet.",
+    "accept": "Zulassen",
     "deny": "Ablehnen",
-    "preferences": "Präferenzen",
-    "preferencesTitle": "Der Präferenzen-Bereich kommt bald"
+    "recall": "Datenschutzeinstellungen",
+    "close": "Schließen",
+    "previousChoice": "Deine vorherige Auswahl"
   }
 }

@@ -139,11 +139,12 @@
 - Expanded 카드 opacity는 항상 `1.0`
 - Desktop/Tablet에서 Expanded 카드는 GNB와 Settings 레이어를 제외한 카드 레이어 중 최상위여야 하며, 인접 카드에 의해 가려지면 안 된다.
 - 카드 레이어 밖의 뷰포트 고정 표면(telemetry consent banner)도 Expanded 카드를 가리면 안 된다. 겹침은 스크롤 위치의 함수이므로 고정 기하 여유로 해소할 수 없고, **실제로 교차하는 동안에만** 그 표면이 비켜선다 — 교차하지 않는 동안 동의 UI 를 숨기는 구현을 금지한다. 비켜서는 방식은 문서 흐름의 예약 높이를 바꾸지 않아야 하며, 그 표면이 포커스를 품고 있으면 비켜서지 않는다(BQ-39).
+- **이 조항은 흐름 안에서 펼쳐지는 제자리 오버레이에만 적용된다.** 폰의 확장은 배너보다 **위** 층의 모달 바텀시트이므로 가림이 성립하지 않는다 — 시트가 열린 동안 배너는 스크림 아래에 `inert` 로 **그대로 남고**(§8.5 · 명세 §2-2), 「덮지 말라」 표식을 달지 않으며 비켜서지도 않는다. 시트가 열릴 때 동의 UI 가 사라졌다 돌아오는 구현을 금지한다 (BQ-46).
 - 다중 Expanded는 금지하며, 활성 Expanded 카드는 항상 1개여야 한다.
 
 **Verification**:
 1. Automated: 스크린샷 기반으로 shell 스케일 적용과 crop 0건을 검증한다.
-2. Automated: Desktop/Tablet에서 인접 카드 가림 현상 `0건`과 Expanded hit-target 우선순위를 검증한다. consent banner 가 교차하는 배치에서 가림 `0px`, 교차하지 않는 배치에서 banner 가시성 유지를 함께 검증한다.
+2. Automated: Desktop/Tablet에서 인접 카드 가림 현상 `0건`과 Expanded hit-target 우선순위를 검증한다. consent banner 가 교차하는 배치에서 가림 `0px`, 교차하지 않는 배치에서 banner 가시성 유지를 함께 검증한다. 폰에서는 시트가 열린 동안 배너가 마운트된 채 `visible` 이고 `inert` 이며 시트 층의 z-index 가 배너 층보다 높음을 검증한다.
 3. Automated: Desktop/Tablet의 Wide/Medium/Narrow 및 hero/main 연속 배치에서 row-edge transform-origin 판정 정확성을 검증한다.
 4. Automated: row 단일 카드 케이스에서 transform-origin `0% 0%` 적용을 검증한다.
 5. Automated: Desktop Wide/Medium/two-column 및 Tablet의 edge/center active state에서 resolved scale, stage containment, grid/container/document horizontal overflow `0px`를 검증한다.

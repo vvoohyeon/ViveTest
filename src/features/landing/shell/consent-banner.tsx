@@ -7,7 +7,7 @@ import {
   buttonPrimaryClassName,
   buttonPrimaryPressedClassName,
   buttonQuietClassName,
-  buttonSecondaryClassName
+  focusRingClassName
 } from '@/features/ui/button-class-names';
 
 /**
@@ -49,7 +49,7 @@ const CONSENT_BANNER_OCCLUDED_CLASS = 'invisible opacity-0';
 const CONSENT_BANNER_SURFACE_CLASS =
   'rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-raised)] shadow-[var(--shadow-lg)]';
 // 어휘는 `@/features/ui/button-class-names` 가 갖는다. 배너가 더하는 것은 표식 클래스뿐이고,
-// 조합은 셋 다 색만 전이하는 바탕이다 — 배너의 버튼은 이동하지 않으므로 lift 도 disabled 도 없다.
+// 조합은 색만 전이하는 바탕이다 — 배너의 버튼은 이동하지 않으므로 lift 도 disabled 도 없다.
 const CONSENT_BUTTON_BASE_CLASS = ['telemetry-consent-banner-button', buttonBaseClassName].join(' ');
 const CONSENT_PRIMARY_BUTTON_CLASS = [
   CONSENT_BUTTON_BASE_CLASS,
@@ -57,34 +57,99 @@ const CONSENT_PRIMARY_BUTTON_CLASS = [
   buttonPrimaryClassName,
   buttonPrimaryPressedClassName
 ].join(' ');
-// 거부는 수락과 **같은 버튼 무게**를 유지한다. 명세 표본은 이 자리에 quiet 를 두지만, 배너의
-// 두 선택지는 서로 대칭인 동의 응답이고 어느 한쪽을 텍스트로 낮추면 그 대칭이 깨진다. quiet 는
-// 셋째 행동(설정)이 가져간다. 지시 오버레이의 거부는 흐름을 빠져나가는 탈출구라 다르다.
+// **거부는 평문 텍스트 버튼이다.** 종전에는 여기가 수락과 같은 무게(secondary)였고 그 이유로
+// 「두 선택지는 대칭인 동의 응답이라 한쪽을 낮추면 대칭이 깨진다」를 적고 있었다. 2026-09-14
+// 시각·인터랙션 명세가 사용자 확인 하에 반대로 정했다(규칙 4) — 비대칭이 목적이고, 시각 무게가
+// 낮아야 누르기 꺼려진다. 이후 외부 리뷰의 「거부를 다시 올리라」는 권고는 기각됐다(BQ-46).
 const CONSENT_SECONDARY_BUTTON_CLASS = [
   CONSENT_BUTTON_BASE_CLASS,
-  'telemetry-consent-banner-button-neutral',
-  buttonSecondaryClassName
-].join(' ');
-const CONSENT_LINK_CLASS = [
-  CONSENT_BUTTON_BASE_CLASS,
-  'telemetry-consent-banner-link',
+  'telemetry-consent-banner-button-quiet',
   buttonQuietClassName
 ].join(' ');
+// 재호출에서 「지난번에 이것을 골랐다」를 입은 평문 버튼. `--sage-muted` + `--accent-fg` 는 이
+// 저장소가 선택됨을 말하는 방식 그대로다.
+//
+// `!` 가 붙는 이유는 `buttonQuietClassName` 이 같은 속성의 hover 변종을 이미 갖고 있어서다 —
+// 한 원소 위에서 같은 속성을 두 유틸리티가 정하면 명시도가 같아 Tailwind 의 emit 순서가 승자를
+// 정한다(L10). 문자열 순서로는 이길 수 없다.
+const CONSENT_PREVIOUS_CHOICE_CLASS =
+  'telemetry-consent-banner-previous-choice !bg-[var(--sage-muted)] !text-[var(--accent-fg)] hover:!bg-[var(--sage-muted)] hover:!text-[var(--accent-fg)]';
+// 닫기 X 는 재호출 배너에만 있다. 첫 방문 배너에 두면 「선택하지 않음」이라는 네 번째 답이
+// 생긴다 — 거기서는 선택이 곧 닫기다(명세 §2-5).
+//
+// 링의 offset 이 안쪽(-2px)인 것은 이 버튼이 배너의 우상단 모서리에 붙어 있어서다. 바깥으로
+// 그리면 링이 배너 경계 밖으로 나간다.
+const CONSENT_CLOSE_BUTTON_CLASS = [
+  'telemetry-consent-banner-close absolute right-2 top-2 grid h-[var(--tap-min)] w-[var(--tap-min)] cursor-pointer place-items-center rounded-full border-0 bg-transparent p-0 text-[var(--muted-aa)]',
+  'hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]',
+  '[transition-property:background-color,color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none',
+  'focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:-2px]'
+].join(' ');
+// 닫기가 있는 배너는 본문이 그 자리를 비워 준다. 절대 위치 형제가 침범한 영역 **안에서**
+// 텍스트를 흘리면 첫 줄의 마지막 낱말 위에 X 가 얹힌다(명세 §4 결함 1 과 같은 종류).
+const CONSENT_BODY_DISMISSIBLE_CLASS = 'pr-[calc(var(--tap-min)_+_8px)]';
+
+/** 지난 선택의 체크 글리프. 14×14 · stroke 2.25 — 명세가 답변 표식에 쓰는 것과 같은 규격이다. */
+function PreviousChoiceMark() {
+  return (
+    <svg
+      className="telemetry-consent-banner-mark h-[14px] w-[14px] flex-none"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 12.5l5.5 5.5L20 7" />
+    </svg>
+  );
+}
+
+function CloseGlyph() {
+  return (
+    <svg
+      className="h-[18px] w-[18px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
+export type ConsentPreviousChoice = 'accept' | 'deny' | null;
 
 interface ConsentBannerProps {
   regionLabel: string;
   message: string;
   primaryLabel: string;
   secondaryLabel: string;
-  preferencesLabel: string;
-  preferencesTitle: string;
   onPrimaryAction: () => void;
   onSecondaryAction: () => void;
-  onPreferencesAction?: () => void;
+  /** 재호출로 뜬 배너만 참이다 — 닫기 X 와 지난 선택 표식이 함께 온다. */
+  dismissible?: boolean;
+  closeLabel?: string;
+  onCloseRequest?: () => void;
+  previousChoice?: ConsentPreviousChoice;
+  previousChoiceLabel?: string;
+  /**
+   * 값이 바뀌면 배너가 자기 자신에게 포커스를 가져온다. 재호출 링크는 페이지 최하단이나
+   * 드로어에 있고 배너는 화면 하단에 뜨므로, 포커스를 옮기지 않으면 키보드·보조기술
+   * 사용자는 자기가 부른 UI 를 만나지 못한다. 첫 컨트롤이 아니라 배너 컨테이너로 가는 것은
+   * 시트와 같은 이유다 — Enter 한 번이 곧 동의가 되면 안 된다.
+   */
+  focusToken?: number;
   rootTestId?: string;
   primaryTestId?: string;
   secondaryTestId?: string;
-  preferencesTestId?: string;
+  closeTestId?: string;
 }
 
 export function ConsentBanner({
@@ -92,15 +157,18 @@ export function ConsentBanner({
   message,
   primaryLabel,
   secondaryLabel,
-  preferencesLabel,
-  preferencesTitle,
   onPrimaryAction,
   onSecondaryAction,
-  onPreferencesAction,
+  dismissible = false,
+  closeLabel,
+  onCloseRequest,
+  previousChoice = null,
+  previousChoiceLabel,
+  focusToken = 0,
   rootTestId = 'telemetry-consent-banner',
   primaryTestId = 'telemetry-consent-accept',
   secondaryTestId = 'telemetry-consent-deny',
-  preferencesTestId = 'telemetry-consent-preferences'
+  closeTestId = 'telemetry-consent-close'
 }: ConsentBannerProps) {
   const bannerRef = useRef<HTMLElement | null>(null);
   const layerRef = useRef<HTMLDivElement | null>(null);
@@ -237,18 +305,43 @@ export function ConsentBanner({
     };
   }, []);
 
+  useEffect(() => {
+    if (focusToken <= 0) {
+      return;
+    }
+
+    bannerRef.current?.focus();
+  }, [focusToken]);
+
   return (
     <>
       <div className={CONSENT_BANNER_SPACER_CLASS} aria-hidden="true" style={{height: `${spacerHeight}px`}} />
       <div ref={layerRef} className={CONSENT_BANNER_LAYER_CLASS}>
         <section
           ref={bannerRef}
+          tabIndex={-1}
           data-occluding={isOccluding ? 'true' : 'false'}
-          className={`telemetry-consent-banner pointer-events-auto ${isOccluding ? CONSENT_BANNER_OCCLUDED_CLASS : ''} flex w-full max-w-[1280px] items-center justify-between gap-5 px-5 py-4 max-[767px]:flex-wrap max-[767px]:justify-start max-[767px]:gap-[14px] max-[767px]:p-[14px] ${CONSENT_BANNER_SURFACE_CLASS}`}
+          data-mode={dismissible ? 'recall' : 'initial'}
+          className={`telemetry-consent-banner relative pointer-events-auto ${isOccluding ? CONSENT_BANNER_OCCLUDED_CLASS : ''} flex w-full max-w-[1280px] items-center justify-between gap-5 px-5 py-4 max-[767px]:flex-wrap max-[767px]:justify-start max-[767px]:gap-[14px] max-[767px]:p-[14px] ${CONSENT_BANNER_SURFACE_CLASS} ${focusRingClassName}`}
           aria-label={regionLabel}
           data-testid={rootTestId}
         >
-          <p className="telemetry-consent-banner-message m-0 min-w-0 flex-1 basis-[520px] [font:var(--body-sm)] text-[var(--ink-body)] max-[767px]:basis-full">
+          {dismissible && closeLabel ? (
+            <button
+              type="button"
+              className={CONSENT_CLOSE_BUTTON_CLASS}
+              aria-label={closeLabel}
+              data-testid={closeTestId}
+              onClick={onCloseRequest}
+            >
+              <CloseGlyph />
+            </button>
+          ) : null}
+          <p
+            className={`telemetry-consent-banner-message m-0 min-w-0 flex-1 basis-[520px] [font:var(--body-sm)] text-[var(--ink-body)] max-[767px]:basis-full ${
+              dismissible ? CONSENT_BODY_DISMISSIBLE_CLASS : ''
+            }`}
+          >
             {message}
           </p>
           <div className="telemetry-consent-banner-actions flex shrink-0 flex-wrap items-center justify-end gap-2 max-[767px]:basis-full max-[767px]:justify-start">
@@ -258,24 +351,25 @@ export function ConsentBanner({
               data-testid={primaryTestId}
               onClick={onPrimaryAction}
             >
+              {previousChoice === 'accept' ? <PreviousChoiceMark /> : null}
               {primaryLabel}
+              {previousChoice === 'accept' && previousChoiceLabel ? (
+                <span className="sr-only">{previousChoiceLabel}</span>
+              ) : null}
             </button>
             <button
               type="button"
-              className={CONSENT_SECONDARY_BUTTON_CLASS}
+              className={`${CONSENT_SECONDARY_BUTTON_CLASS} ${
+                previousChoice === 'deny' ? CONSENT_PREVIOUS_CHOICE_CLASS : ''
+              }`}
               data-testid={secondaryTestId}
               onClick={onSecondaryAction}
             >
+              {previousChoice === 'deny' ? <PreviousChoiceMark /> : null}
               {secondaryLabel}
-            </button>
-            <button
-              type="button"
-              className={CONSENT_LINK_CLASS}
-              data-testid={preferencesTestId}
-              title={preferencesTitle}
-              onClick={onPreferencesAction}
-            >
-              {preferencesLabel}
+              {previousChoice === 'deny' && previousChoiceLabel ? (
+                <span className="sr-only">{previousChoiceLabel}</span>
+              ) : null}
             </button>
           </div>
         </section>

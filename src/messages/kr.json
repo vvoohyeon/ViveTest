@@ -30,7 +30,9 @@
     "metaAttempts": "완료",
     "metaReadTime": "분 읽기",
     "metaViews": "조회",
-    "readMore": "더 읽기"
+    "readMore": "더 읽기",
+    "optedOutNotice": "{count, plural, other {#개 테스트는 분석 동의가 필요합니다.}}",
+    "optedOutNoticeAction": "동의 변경"
   },
   "test": {
     "progressLabel": "진행률",
@@ -71,11 +73,12 @@
     "delete": "삭제"
   },
   "consent": {
-    "regionLabel": "쿠키 설정",
-    "message": "서비스가 원활하게 작동하고 이용 현황을 이해하기 위해 쿠키 및 유사 기술을 사용합니다. 선택 항목은 직접 허용 여부를 정할 수 있으며, 이 설정은 언제든 변경할 수 있습니다.",
-    "accept": "모두 허용",
+    "regionLabel": "분석 동의",
+    "message": "어떤 테스트가 끝까지 진행되는지 보기 위해 선택적 분석을 사용합니다. 답변 내용은 전송되지 않습니다.",
+    "accept": "허용",
     "deny": "거부",
-    "preferences": "설정",
-    "preferencesTitle": "설정 패널은 곧 제공될 예정입니다"
+    "recall": "개인정보 설정",
+    "close": "닫기",
+    "previousChoice": "지난번 선택"
   }
 }
