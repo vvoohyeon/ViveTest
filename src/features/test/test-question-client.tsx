@@ -2,7 +2,6 @@
 
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {motion, useReducedMotion} from 'motion/react';
 import {useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
@@ -14,6 +13,7 @@ import {ResultConnector} from '@/features/test/result-connector';
 import {buildVariantQuestionBank} from '@/features/test/question-bank';
 import {isProfileQuestion} from '@/features/test/question-runtime-utils';
 import {resolveAnswerChoiceState} from '@/features/test/answer-choice-state';
+import questionStyles from '@/features/test/test-question.module.css';
 import {useAnswerHandler} from '@/features/test/use-answer-handler';
 import {useAnswerLock} from '@/features/test/use-answer-lock';
 import {useBeforeUnloadGuard} from '@/features/test/use-before-unload-guard';
@@ -122,7 +122,6 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   }, [variant, questions]);
   const slideDirectionRef = useRef<SlideDirection>('forward');
   const [slideDirection, setSlideDirection] = useState<SlideDirection>('forward');
-  const prefersReducedMotion = useReducedMotion();
 
   const {
     runtimeReady,
@@ -212,7 +211,6 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     currentQuestion?.questionType === 'scoring'
       ? questions.filter((question) => question.questionType === 'scoring' && question.canonicalIndex <= currentQuestion.canonicalIndex).length
       : null;
-  const answerGridInitialX = prefersReducedMotion ? 0 : slideDirection === 'forward' ? 18 : -18;
   const currentQualifierStepIndex = typeof overlayStep === 'number' ? overlayStep : null;
   const currentQualifierItem =
     currentQualifierStepIndex !== null ? qualifierItems[currentQualifierStepIndex] : undefined;
@@ -363,12 +361,12 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               </p>
             ) : null}
             <h2 className={testQuestionClassName}>{currentQuestion?.question}</h2>
-            <motion.div
+            {/* `key` 가 바뀌면 React 가 이 원소를 새로 마운트하고, 그 마운트가 CSS 진입
+                애니메이션을 처음부터 다시 건다 — 라이브러리가 하던 일과 같은 기전이다. */}
+            <div
               key={currentQuestionIndex}
-              className={testAnswerGridClassName}
-              initial={{x: answerGridInitialX}}
-              animate={{x: 0}}
-              transition={prefersReducedMotion ? {duration: 0} : {duration: 0.18, ease: 'easeOut'}}
+              className={`${testAnswerGridClassName} ${questionStyles.answerGrid}`}
+              data-slide={slideDirection}
             >
               {(['A', 'B'] as const).map((choice) => {
                 const choiceState = resolveAnswerChoiceState({
@@ -405,7 +403,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                   </button>
                 );
               })}
-            </motion.div>
+            </div>
 
             <div className={testNavRowClassName}>
               <button
