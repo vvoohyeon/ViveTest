@@ -206,14 +206,15 @@
 - Desktop/Tablet 마지막 row가 underfilled(카드 수가 목표 컬럼 수 미만)인 경우에도 row 컬럼 폭은 목표 컬럼 규칙을 유지해야 하며, 카드는 row 시작측 정렬을 유지해야 한다.
 - Desktop/Tablet underfilled 마지막 row의 잔여 영역은 위 빈 track/빈 카드 공간 금지 규칙의 허용 예외로 간주한다. 단, 잔여 영역을 해소하기 위한 카드 폭 확장(좌우 채움)은 금지한다.
 - Mobile: 1열, vertical gap `14~16px`
-- Expanded 활성 중 viewport/gridInlineSize 변경으로 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤 1회만 재계산한다.
+- Expanded 활성 중 viewport/gridInlineSize 변경으로 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤 1회만 재계산한다. **이 규칙은 얼어 있는 baseline 이 실제로 있는 전이에만 적용한다** — 즉 다 열 레이아웃(Desktop/Tablet)에서 다 열 레이아웃으로 넘어갈 때다. 폰의 확장은 흐름 밖의 시트라 row baseline 을 얼리지 않으므로, 폰이 한쪽에 있는 전이(회전)에서는 강제 종료하지 않고 확장을 유지한 채 형태만 바꾼다(BQ-44, §8.5).
 
 **Verification**:
 1. Manual: threshold 근처 폭에서 컬럼 전환을 확인한다.
 2. Automated: viewport parameterized E2E로 컬럼 수를 검증한다.
 3. Automated: Desktop Narrow/Medium/Wide에서 Row 1/Row 2+ 컬럼 규칙이 정확히 적용되는지 검증한다.
 4. Automated: hero/main 경계에서 강제 줄바꿈·빈 track·빈 카드 공간 `0건`을 검증한다.
-5. Automated: Expanded 활성 중 폭 변경 시 강제 종료→Normal settled→배치 재계산 순서가 보장되는지 검증한다.
+5. Automated: 다 열 레이아웃 사이의 폭 변경에서 Expanded 활성 시 강제 종료→Normal settled→배치 재계산 순서가 보장되는지 검증한다(`assertion:TT-06`).
+5-a. Automated: 폰 회전(세로↔가로) 양방향에서 확장이 유지되고 형태만 시트↔제자리 오버레이로 바뀌는지 검증한다(`assertion:TT-03`).
 6. Automated: Desktop/Tablet underfilled 마지막 row에서 카드 폭 확장(좌우 채움) `0건`과 시작측 정렬 유지 여부를 검증한다.
 
 ### 6.3 Hero & Visual Baseline
@@ -384,7 +385,7 @@
 8. Automated: Expanded/handoff 활성 중 same-row non-target row track size 변화 `0px` 및 top/bottom/outer height 오차 `0px`를 검증한다.
 9. Automated: Expanded 종료 직후 same-row non-target 카드 높이 잔류 변화 `0px`(row 1/row 2+)를 검증한다.
 10. Automated: baseline 상태 전이가 `BASELINE_READY -> BASELINE_FROZEN -> BASELINE_READY` 순서를 위반하지 않는지 검증한다.
-11. Automated: Expanded 활성 중 폭 변경 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다.
+11. Automated: 다 열 레이아웃 사이의 폭 변경에서 Expanded 활성 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다. 폰이 한쪽에 있는 전이는 얼린 baseline 이 없으므로 이 선행조건의 대상이 아니다(BQ-44).
 12. Automated: handoff(row A→B)에서 row A snapshot 해제가 row B settled 이후에만 발생하는지, Expanded 전환 중 dual-visibility `0건`을 검증한다.
 13. Automated: 반복 handoff/open-close(최소 100회) 후 same-row non-target 누적 높이 오차 `0px`를 검증한다.
 14. Automated: font-ready/후속 font completion과 resize down/up 이후 settled compensation이 재계산되고 equality guard가 반복 state churn을 방지하는지 검증한다.

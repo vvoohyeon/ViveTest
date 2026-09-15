@@ -1606,6 +1606,55 @@ test.describe('Phase 7 state + capability smoke', () => {
   // 세션이 임의로 정하지 않는다(`AGENTS.md` §10 「지침 충돌 시 자체 해소 금지」). 결정이 나면
   // 이 자리에 검사를 되살린다.
 
+  test('@smoke assertion:TT-03 rotating a phone both ways keeps the expanded card alive across the axis change', async ({
+    page
+  }) => {
+    // 폰을 눕히면 폭 844 라 **제자리 오버레이**로, 다시 세우면 **시트**로 형태가 바뀐다. 형태가
+    // 바뀌는 것은 규칙 3 대로이고, **확장 자체는 살아남아야 한다**(명세 §2-11).
+    //
+    // 두 방향의 원인이 서로 달랐다. 눕히기는 폭 변경 강제 닫기가 지웠고 — 그 규칙의 이유는
+    // 제자리 오버레이가 row 기하를 얼린다는 것인데 시트는 얼리지 않으므로 이유가 닿지 않는
+    // 자리였다(BQ-44). 세우기는 시트가 언마운트되며 부른 `history.back()` 의 `popstate` 가
+    // **비동기로 뒤늦게** 도착해, 그 사이 다시 마운트된 시트를 닫았다. 이 검사는 둘 다 잡는다.
+    await setTouchViewport(page, {width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
+
+    // 세로 → 가로: 형태가 제자리 오버레이로 바뀌되 확장은 살아남는다.
+    await page.setViewportSize({width: 844, height: 390});
+    await expect(card).toHaveAttribute('data-expanded-layer', 'desktop-overlay');
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+
+    // 가로 → 세로: 시트로 되돌아오고, 뒤늦게 도착하는 popstate 가 그것을 닫으면 안 된다.
+    await page.setViewportSize({width: 390, height: 844});
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await page.waitForTimeout(400);
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(page).toHaveURL(/\/en$/u);
+  });
+
+  test('@smoke assertion:TT-06 resizing a desktop window across a column change still force-closes the expanded card', async ({
+    page
+  }) => {
+    // 회전 보존이 강제 닫기를 **없앤 것이 아니다.** 얼어 있는 기하 위에서 재측정하지 않는다는
+    // 원래 이유는 그대로이고, 그 이유가 실제로 닿는 자리 — 다 열 레이아웃 → 다 열 레이아웃 —
+    // 에서는 여전히 닫는다(`req-landing.md` §6.2, BQ-44).
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').hover();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+
+    await page.setViewportSize({width: 900, height: 980});
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
+  });
+
   test('@smoke assertion:TT-04 landscape phone overlay stays inside the viewport and scrolls its own body', async ({
     page
   }) => {

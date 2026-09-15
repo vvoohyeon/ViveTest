@@ -10,6 +10,17 @@ import {useEffect, useRef} from 'react';
 
 const STATE_KEY = '__viveOverlayLayer';
 
+/**
+ * 우리가 스스로 부른 `history.back()` 이 만들어 낸 `popstate` 의 수.
+ *
+ * **이 카운터가 없으면 층이 사라지는 것만으로 다른 층이 닫힌다.** `history.back()` 은 비동기라
+ * 그 `popstate` 가 도착하기 전에 층이 다시 마운트될 수 있고(폰을 눕혔다 다시 세우면 시트가
+ * 언마운트됐다 다시 마운트된다), 그때 뒤늦게 도착한 이벤트를 새 인스턴스가 「사용자가 뒤로
+ * 갔다」로 읽어 방금 살아난 것을 닫는다. 모듈 전역인 것은 그 경주가 **인스턴스를 가로지르기**
+ * 때문이다 — 되돌린 쪽과 이벤트를 받는 쪽이 서로 다른 인스턴스다.
+ */
+let programmaticPopCount = 0;
+
 interface OverlayHistoryState {
   [STATE_KEY]?: string;
 }
@@ -20,6 +31,11 @@ function currentLayerId(): string | null {
   }
   const state = window.history.state as OverlayHistoryState | null;
   return state?.[STATE_KEY] ?? null;
+}
+
+/** 검사 전용 — 모듈 전역 카운터를 테스트 사이에 되돌린다. */
+export function resetOverlayHistoryEntryForTest(): void {
+  programmaticPopCount = 0;
 }
 
 export function useOverlayHistoryEntry({
@@ -51,6 +67,11 @@ export function useOverlayHistoryEntry({
     window.history.pushState({...previousState, [STATE_KEY]: layerId}, '');
 
     const handlePopState = () => {
+      if (programmaticPopCount > 0) {
+        // 우리가 되돌린 것이다 — 사용자의 뒤로가기가 아니므로 닫기로 읽지 않는다.
+        programmaticPopCount -= 1;
+        return;
+      }
       if (currentLayerId() === layerId) {
         return;
       }
@@ -67,6 +88,7 @@ export function useOverlayHistoryEntry({
         return;
       }
       if (currentLayerId() === layerId) {
+        programmaticPopCount += 1;
         window.history.back();
       }
     };

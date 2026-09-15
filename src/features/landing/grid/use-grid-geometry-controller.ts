@@ -165,6 +165,8 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
   const [baselineState, dispatchBaseline] = useReducer(baselineReducer, initialLandingBaselineState);
   const [restingFloorMap, setRestingFloorMap] = useState<RestingFloorMap>(emptyRestingFloorMap);
   const baselineReleaseTimerRef = useRef<number>(0);
+  // 직전 tier. 밖에서 받은 두 ref 와 달리 이 훅만 읽으므로 여기서 갖는다.
+  const previousTierRef = useRef<LandingGridPlan['tier'] | null>(null);
 
   useLayoutEffect(() => {
     const measurementSuspended =
@@ -412,7 +414,21 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
       previousPlanKeyRef.current !== nextPlanKey &&
       typeof window !== 'undefined'
     ) {
-      if (plan.tier !== 'mobile' && activeVisualCardVariant) {
+      // **강제 닫기는 자기 이유가 있는 곳에만 선다**(BQ-44).
+      //
+      // 이 규칙의 이유는 제자리 오버레이가 **row baseline 을 얼린다**는 것이다 — 얼린 채 폭이
+      // 바뀌면 재측정이 낡은 기준 위에서 일어나므로, 닫아서 Normal settled 로 돌린 뒤 한 번만
+      // 재계산한다(`req-landing.md` §6.2). 폰의 시트는 흐름 밖이라 **아무것도 얼리지 않는다.**
+      //
+      // 그래서 닫기는 **다 열 레이아웃 → 다 열 레이아웃**에서만 필요하다. 회전은 그 경계를
+      // 넘지 않으므로(한쪽이 언제나 폰이다) 확장이 살아남고, 데스크톱 창 크기 조절은 그대로
+      // 닫힌다. 종전 조건(`plan.tier !== 'mobile'`)은 **도착지만** 봐서, 얼린 적 없는 시트에서
+      // 올라온 회전까지 닫고 있었다.
+      const previousTier = previousTierRef.current;
+      const crossesFrozenGeometry =
+        previousTier !== null && previousTier !== 'mobile' && plan.tier !== 'mobile';
+
+      if (crossesFrozenGeometry && activeVisualCardVariant) {
         collapseExpandedCard();
       }
 
@@ -430,6 +446,7 @@ export function useGridGeometryController(input: UseGridGeometryControllerInput)
 
     previousPlanKeyRef.current = nextPlanKey;
     previousColumnModeRef.current = plan.columnMode;
+    previousTierRef.current = plan.tier;
   }, [
     activeVisualCardVariant,
     collapseExpandedCard,

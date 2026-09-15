@@ -551,7 +551,15 @@ BQ-25 는 확장 choice 화살표(`→`)의 광학적 수직 쏠림 보정을 **
 - **Source / 근거** — 명세 `docs/plans/2026-09-14-mobile-refactor-design-spec.md` 규칙 3 · §2-3 · §2-11 · §3-4, step 3 계획서 §1 · §1-2 · §2. 복귀 정확성을 **절차가 아니라 구조가** 보장하게 된 것이 이 결정의 핵심이다 — 시트는 흐름 밖이라 형제를 밀지 않으므로 되돌릴 좌표가 애초에 없고, 스냅샷 채취 · 복귀 폴링 · transient 셸 둘 · 열림/닫힘 타이머가 함께 사라진다
 - **Implementation impact** — 신설: `bottom-sheet.tsx`/`.module.css` · `sheet-phase.ts` · `sheet-motion.ts` · `use-sheet-swipe.ts` · `use-overlay-history-entry.ts` · `use-inert-siblings.ts` · `visually-hidden.module.css` · `body-scroll-lock.ts`(참조 카운트 단일 모듈, blocker 해소) · `landing-card-sheet.tsx` · `use-mobile-viewport.ts`. 삭제: `use-mobile-restore-polling.ts` · `mobile-card-lifecycle-dom.ts` · `use-mobile-transient-shell.ts` · `landing-grid-card-mobile-surfaces.tsx`. 개명: `use-mobile-backdrop-gesture.ts` → `use-overlay-backdrop-gesture.ts`(폰 몫을 걷어내고 제자리 오버레이 전용으로). 계약 가드 셋(phase5 · phase9 · phase10)이 시트를 본다. 지문 F2·F3 갱신. `--ease-in` 을 런타임 미러에 베꼈다
 - **Include in first implementation wave?** — Yes — step 3 §1 · §1-2 · §2 가 이 결정의 실행 단위다
-- **Notes / caveats** — **키보드 계약 하나가 바뀐다**: 확장된 카드 안에서 Tab 이 다음 카드로 넘어가던 것이, 폰에서는 시트가 모달이라 시트 안에서 순환한다(닫으면 트리거로 돌아오고 거기서 Tab). 데스크톱 제자리 오버레이에서는 숨은 닫기가 마지막 탭 스톱이 되어 다음 카드까지 **한 걸음 늘었다**. **회전 보존(`assertion:TT-03`)은 미해결 충돌로 남는다** — 명세 §2-11 은 회전이 확장을 파괴하지 않아야 한다고 하나 `assertion:B4-width-change-force-close` 가 폭 변경 강제 닫기를 고정하고 있고, 회전은 폭 변경이다. 어느 쪽을 접을지는 사용자 결정이다. 시트의 260ms/220ms 는 `--dur-*` 토큰에 없는 값이라 `sheet-motion.ts` 한 곳이 갖는다(D — 파생값, realized 아님)
+- **Notes / caveats** — **키보드 계약 하나가 바뀐다**: 확장된 카드 안에서 Tab 이 다음 카드로 넘어가던 것이, 폰에서는 시트가 모달이라 시트 안에서 순환한다(닫으면 트리거로 돌아오고 거기서 Tab). 데스크톱 제자리 오버레이에서는 숨은 닫기가 마지막 탭 스톱이 되어 다음 카드까지 **한 걸음 늘었다**. **회전 보존은 BQ-44 가 해소했다** — 충돌이 아니라 강제 종료 규칙이 자기 이유(얼어 있는 row baseline)보다 넓게 적혀 있던 것이었다. 시트의 260ms/220ms 는 `--dur-*` 토큰에 없는 값이라 `sheet-motion.ts` 한 곳이 갖는다(D — 파생값, realized 아님)
+
+## BQ-44
+
+- **Decision** — 2026-09-16 **회전은 확장을 닫지 않는다.** 폰을 눕히면 제자리 오버레이로, 다시 세우면 시트로 **형태만** 바뀌고 확장 자체는 양방향으로 유지된다(명세 §2-11). 이를 위해 폭 변경 강제 종료(`req-landing.md` §6.2)를 **그 규칙의 이유가 실제로 닿는 자리로 좁힌다**: 얼어 있는 row baseline 이 있는 전이, 즉 **다 열 레이아웃 → 다 열 레이아웃**에서만 닫는다. 데스크톱 창 크기 조절은 종전 그대로 닫힌다
+- **Source / 근거** — 명세 §2-11 과 step 3 계획서 완료 조건, 그리고 사용자 결정(2026-09-16). **점수표의 `rotation-discards-expanded-card` 가 적은 원인은 틀렸다** — 「가로에서 폰이 폭 844 라 tier=tablet 이 되는 것」이라 입력 축 이동으로 해소된다고 했으나, 실제로 지우는 것은 축이 아니라 강제 종료였다. 추적으로 두 방향의 원인이 **서로 다름**을 확인했다: 눕히기는 강제 종료가, 세우기는 시트가 언마운트되며 부른 `history.back()` 의 `popstate` 가 **비동기로 뒤늦게 도착해** 그 사이 다시 마운트된 시트를 닫았다
+- **Implementation impact** — `use-grid-geometry-controller.ts` 가 직전 tier 를 들고 `crossesFrozenGeometry` 로 가른다. `use-overlay-history-entry.ts` 에 모듈 전역 `programmaticPopCount` 를 두어 **스스로 부른 되돌리기가 만든 `popstate`** 를 사용자의 뒤로가기와 구분한다 — 그 경주는 인스턴스를 가로지르므로(되돌린 쪽과 받는 쪽이 다른 인스턴스다) 지역 상태로는 풀 수 없다. 회귀는 `assertion:TT-03`(양방향 보존)과 `assertion:TT-06`(다 열 사이에서는 여전히 닫는다)이 갖는다
+- **Include in first implementation wave?** — Yes — 이 커밋이 실행 단위다
+- **Notes / caveats** — 고장 주입 셋으로 판별력을 확인했다: 경주 가드를 빼면 세우기가, 강제 종료를 도착지만 보게 되돌리면 눕히기가, 강제 종료를 통째로 없애면 `TT-06` 이 각각 붉는다. **첫 판본의 검사는 판별력이 없었다** — 강제 종료가 살아 있는 동안에는 시트가 열린 채 언마운트되는 일이 없어 경주 자체가 도달 불가였고, 그때 쓴 검사는 주입을 통과했다(L20). 보존을 켠 뒤에야 그 경주가 도달 가능해지고 검사가 의미를 갖는다
 
 ---
 
@@ -561,6 +569,7 @@ BQ-25 는 확장 choice 화살표(`→`)의 광학적 수직 쏠림 보정을 **
 
 | 날짜 | 항목 | 변경 | 근거 |
 |:---|:---|:---|:---|
+| 2026-09-16 | BQ-43 | 보완 — 「회전 보존은 미해결 충돌」이라 적었던 caveat 이 BQ-44 로 해소됐다. 충돌이 아니라 강제 종료 규칙이 자기 이유보다 넓게 적혀 있던 것이었다 | BQ-44 |
 | 2026-09-16 | BQ-11 | 부분 대체 — 「Swipe-down close」가 Never Reintroduce 에서 내려와 시트의 닫기 경로 다섯 중 하나가 됐다. BQ-11 의 나머지(모바일 확장 형태 미결정)는 BQ-43 이 확정한다 | BQ-43 · 명세 규칙 3 |
 | 2026-09-16 | BQ-24 | 조정 — 제자리 오버레이의 height floor 가 뷰포트 상한(`calc(100dvh − 88px)`)으로 **잘린다**. CSS 에서 `min-height` 가 `max-height` 를 이기므로 자르지 않으면 짧은 뷰포트에서 상한이 무위가 된다 | BQ-43 (D) |
 | 2026-09-03 | BQ-13 | workspace 운영 절반 대체 — wave별 워크트리 폐지, 격리 작업공간은 clone. `main` 착지·checkpoint read-only라는 브랜치 결정은 유지 | `docs/DECISIONS.md` · `AGENTS.md §4` |
