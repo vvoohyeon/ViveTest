@@ -42,7 +42,13 @@ export function SkipToContentLink() {
         'sr-only pointer-events-none',
         'focus:pointer-events-auto',
         // 포커스를 받으면 GNB 좌측 상단에 뜬다. `fixed` 라 문서 흐름을 밀지 않는다.
-        'focus:not-sr-only focus:fixed focus:left-[var(--shell-gutter)] focus:top-2.5 focus:z-[1200]',
+        //
+        // 세로 위치는 **GNB 띠의 중앙**이다 — 이 링크는 그 띠 안의 컨트롤로 읽혀야 하고,
+        // 명세 §3-1 이 GNB 컨트롤의 보이는 껍데기를 36px 로 정한다. 띠 높이가 모바일 56px
+        // (`h-14`) · 데스크톱 64px(`h-16`)이므로 여백은 각각 `(56-36)/2 = 10px` 와
+        // `(64-36)/2 = 14px` 다. 종전에는 10px 한 값을 두 폭에 썼고, 데스크톱에서 링크가
+        // 로고보다 4px 위로 떠 있었다(실측: 링크 중심 28 대 띠 중심 32).
+        'focus:not-sr-only focus:fixed focus:left-[var(--shell-gutter)] focus:top-2.5 md:focus:top-3.5 focus:z-[1200]',
         'focus:inline-flex focus:h-9 focus:items-center focus:rounded-[var(--radius-md)]',
         'focus:bg-[var(--accent)] focus:px-4 focus:text-[var(--accent-fg)]',
         'focus:[font:var(--button)]',

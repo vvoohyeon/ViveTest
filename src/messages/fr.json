@@ -1,4 +1,7 @@
 {
+  "meta": {
+    "description": "Des tests de personnalité et d'aptitude courts, à terminer en quelques minutes."
+  },
   "gnb": {
     "home": "Accueil",
     "history": "Historique",

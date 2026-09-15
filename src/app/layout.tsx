@@ -7,7 +7,7 @@ import {APP_BODY_CLASSNAME} from '@/app/app-body-class';
 import {VercelAnalyticsGate} from '@/app/vercel-analytics-gate';
 import {VercelSpeedInsightsGate} from '@/app/vercel-speed-insights-gate';
 import {THEME_GROUND_COLOR} from '@/app/theme-ground-color';
-import {resolveHtmlLang} from '@/config/site';
+import {resolveHtmlLang, resolveSiteOrigin} from '@/config/site';
 import {resolveRequestLocaleFromHeaderBag} from '@/i18n/request-locale-header';
 
 import './globals.css';
@@ -16,13 +16,17 @@ const SITE_NAME = 'ViveTest';
 const SITE_DESCRIPTION = 'Short personality and aptitude tests you can finish in a few minutes.';
 
 export const metadata: Metadata = {
+  // 절대 URL 의 기준. OG 이미지와 canonical 은 상대 경로로 성립하지 않는다 — 크롤러에게는
+  // 그것을 해석할 문서 문맥이 없다. origin 의 출처는 `resolveSiteOrigin` 이 적는다.
+  metadataBase: new URL(resolveSiteOrigin()),
   title: SITE_NAME,
   // 종전 값은 `Reset baseline placeholder` 였고 그대로 프로덕션에 나갔다.
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   manifest: '/manifest.webmanifest',
   // **정적 OG 까지만이다.** 결과별로 달라지는 동적 OG 카드는 결과 화면의 내용 스키마가 정해진
-  // 뒤에야 만들 수 있고 이번 범위 밖이다(분석 §15 결정 8).
+  // 뒤에야 만들 수 있고 이번 범위 밖이다(분석 §15 결정 8). 그림은 `opengraph-image.tsx` 가
+  // 파일 규약으로 붙이고, locale 별 문장은 `[locale]/layout.tsx` 가 덮어쓴다.
   openGraph: {
     type: 'website',
     siteName: SITE_NAME,

@@ -174,6 +174,8 @@
 - 다른 카드 상호작용을 비활성화한다. unavailable 카드는 Expanded 진입/닫기 토글 대상이 아니다.
 - OPENING 중 유효 닫기 입력(X/outside)은 OPEN settled 직후 1회 queue-close로 처리한다. CLOSING 중 추가 open/close 입력은 무시한다.
 - 레이어 순서는 `GNB > Expanded 카드 > backdrop > 기타 카드`로 고정한다.
+- **backdrop 의 등장과 소멸은 카드 전이와 같은 시간에 시작하고 끝난다.** 마운트 즉시 불투명해지거나 카드보다 먼저 사라지면 스크림과 카드가 한 전이의 두 면으로 읽히지 않는다. 지속의 정본은 카드 모션과 같은 상수이며 CSS 와 타이머가 그 하나를 함께 읽는다.
+- **사라지는 중인 backdrop 은 입력을 삼키지 않는다.** 모바일 `CLOSING` 은 위 조항대로 입력을 무시하지만, 그것은 생명주기가 아직 돌고 있기 때문이다. 제자리 오버레이가 닫힌 뒤 남는 스크림은 장식이므로 통과시킨다 — 닫은 직후 화면이 굳어 있으면 안 된다.
 - backdrop은 Expanded 카드를 덮으면 안 된다.
 - dim 처리는 Expanded 외부 영역에만 적용한다.
 - X 버튼은 backdrop보다 상위 레이어에 위치하고 항상 클릭 가능해야 한다.
@@ -188,6 +190,7 @@
 2. Automated: content-fit 높이 전이 overshoot `0건`을 검증한다.
 3. Automated: 내부 스크롤 영역이 body로 제한되는지 검증한다.
 4. Automated: z-index/포인터 타깃 검증으로 모바일 레이어 순서를 확인한다.
+4-a. Automated: backdrop 의 등장이 옅은 데서 올라오고 소멸이 옅어지는 방향으로만 움직이며, 사라지는 동안 입력을 통과시키는지 검증한다(`assertion:BD-01`).
 5. Automated: Mobile Expanded settled 상태에서 활성 카드 본체 dim/tint `0%`를 검증한다.
 6. Automated: 모바일 CTA 우선순위(`CTA > X > outside`) 및 내부 non-CTA no-op를 검증한다.
 7. Automated: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`를 검증한다.

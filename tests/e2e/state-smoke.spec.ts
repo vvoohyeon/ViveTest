@@ -1567,6 +1567,86 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(card).not.toHaveAttribute('data-card-state', 'expanded');
   });
 
+  test('@smoke assertion:BD-01 backdrop fades in and out with the card, and stops capturing input while it leaves', async ({
+    page
+  }) => {
+    // 스크림과 카드는 한 전이의 두 면이다. 종전에는 등장이 마운트 즉시 불투명(0ms)이었고,
+    // 제자리 오버레이에서는 소멸조차 없어 **어둠만 먼저 사라졌다** — 카드가 아직 280ms 를
+    // 접는 동안이다(실측 2026-09-16). 어느 게이트도 이것을 보지 않았다: baseline 은 정지
+    // 화면이고 다른 단언은 전부 최종 상태만 본다.
+    await setTouchViewport(page, {width: 900, height: 1200});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
+
+    // 표본은 **페이지 안에서** rAF 로 모은다. 왕복으로 재면 부하가 높을 때 표본이 성기고,
+    // 성긴 표본은 「전이가 없다」와 구별되지 않는다.
+    const installSampler = () =>
+      page.evaluate(() => {
+        const samples: Array<{opacity: number; state: string; pointerEvents: string}> = [];
+        (window as unknown as {__backdropSamples: typeof samples}).__backdropSamples = samples;
+        let frames = 0;
+        const tick = () => {
+          const element = document.querySelector('[data-testid="landing-grid-mobile-backdrop"]');
+          if (element instanceof HTMLElement) {
+            const style = window.getComputedStyle(element);
+            samples.push({
+              opacity: Number(style.opacity),
+              state: element.dataset.state ?? '',
+              pointerEvents: style.pointerEvents
+            });
+          }
+          frames += 1;
+          if (frames < 40) {
+            window.requestAnimationFrame(tick);
+          }
+        };
+        window.requestAnimationFrame(tick);
+      });
+
+    const readSamples = () =>
+      page.evaluate(() => (window as unknown as {__backdropSamples: Array<{opacity: number; state: string; pointerEvents: string}>}).__backdropSamples);
+
+    // ⑴ 등장 — 마운트 즉시 불투명이 아니라 옅은 데서 올라온다.
+    await installSampler();
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await page.waitForTimeout(700);
+
+    const enterSamples = await readSamples();
+    expect(enterSamples.length, '등장 표본이 비었다 — 프로브가 backdrop 을 잡지 못했다').toBeGreaterThan(4);
+    expect(enterSamples[0].opacity, '마운트 즉시 불투명하면 등장이 0ms 라는 뜻이다').toBeLessThan(0.5);
+    expect(enterSamples[enterSamples.length - 1].opacity, '등장이 끝나면 완전히 어두워야 한다').toBeGreaterThan(0.95);
+
+    // ⑵ 소멸 — 어둠이 카드보다 먼저 사라지지 않고, **옅어지는 방향**으로 움직인다.
+    await installSampler();
+    await backdrop.click({position: {x: 5, y: 300}});
+    await page.waitForTimeout(700);
+
+    const exitSamples = await readSamples();
+    expect(exitSamples.length, '소멸 표본이 비었다 — backdrop 이 즉시 언마운트됐다는 뜻이다').toBeGreaterThan(4);
+    expect(exitSamples[0].opacity, '소멸은 완전히 어두운 데서 시작해야 한다').toBeGreaterThan(0.9);
+    expect(exitSamples[exitSamples.length - 1].opacity, '소멸이 끝나면 투명해야 한다').toBeLessThan(0.1);
+
+    // 방향이 이 단언의 요점이다. 상태를 effect 에서 바꾸면 한 커밋 동안 언마운트됐다가 다시
+    // 마운트되고, 그 재마운트가 등장 애니메이션을 다시 걸어 **불투명도가 오히려 올라간다**.
+    // 처음 구현이 정확히 그랬고 최종 상태만 보는 단언으로는 잡히지 않았다.
+    const rising = exitSamples.filter((sample, index) => index > 0 && sample.opacity > exitSamples[index - 1].opacity + 0.02);
+    expect(rising, `소멸 중 불투명도가 올라간 구간: ${JSON.stringify(rising)}`).toEqual([]);
+
+    // ⑶ 사라지는 동안 입력을 삼키지 않는다 — 닫은 직후 화면이 굳어 있으면 안 된다.
+    const exitingSamples = exitSamples.filter((sample) => sample.state === 'EXITING');
+    expect(exitingSamples.length, '소멸 상태가 한 표본도 없다').toBeGreaterThan(0);
+    expect(
+      exitingSamples.every((sample) => sample.pointerEvents === 'none'),
+      '사라지는 backdrop 이 입력을 삼킨다'
+    ).toBe(true);
+
+    await expect(backdrop).toHaveCount(0);
+    await expect(card).not.toHaveAttribute('data-card-state', 'expanded');
+  });
+
   test('@smoke assertion:TT-02 hover-capable desktop keeps pointer-leave close and gets no backdrop', async ({
     page
   }) => {

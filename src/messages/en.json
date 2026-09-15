@@ -1,4 +1,7 @@
 {
+  "meta": {
+    "description": "Short personality and aptitude tests you can finish in a few minutes."
+  },
   "gnb": {
     "home": "Home",
     "history": "History",

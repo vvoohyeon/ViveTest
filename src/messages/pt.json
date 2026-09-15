@@ -1,4 +1,7 @@
 {
+  "meta": {
+    "description": "Testes curtos de personalidade e aptidão que você conclui em poucos minutos."
+  },
   "gnb": {
     "home": "Início",
     "history": "Histórico",

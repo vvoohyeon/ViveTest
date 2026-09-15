@@ -20,6 +20,7 @@ import {
   type LandingGridColumnMode
 } from '@/features/landing/grid/layout-plan';
 import {resolveDesktopTransformOriginX} from '@/features/landing/grid/hover-intent';
+import {BACKDROP_MOTION_DURATION_MS} from '@/features/landing/grid/use-mobile-backdrop-gesture';
 import {useLandingInteractionController} from '@/features/landing/grid/use-landing-interaction-controller';
 import {useGridGeometryController} from '@/features/landing/grid/use-grid-geometry-controller';
 import {useLandingTransition} from '@/features/transition/use-landing-transition';
@@ -27,8 +28,11 @@ import gridStyles from '@/features/landing/grid/landing-catalog-grid.module.css'
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
 const INITIAL_GRID_INLINE_SIZE = CONTAINER_MAX_WIDTH - TABLET_DESKTOP_SIDE_PADDING * 2;
+// 모션은 `landing-catalog-grid.module.css` 의 `.backdrop` 이 갖는다 — 등장·소멸이 대칭이어야
+// 하고, 그 대칭은 상태 셋(`OPENING`/`CLOSING`/`EXITING`)에 걸쳐 있어 유틸리티 한 줄로 적히지
+// 않는다.
 const LANDING_GRID_MOBILE_BACKDROP_CLASSNAME =
-  'landing-grid-mobile-backdrop fixed inset-0 z-10 bg-[var(--overlay-scrim-medium)] touch-pan-y [transition:opacity_180ms_ease] data-[state=CLOSING]:opacity-0';
+  'landing-grid-mobile-backdrop fixed inset-0 z-10 bg-[var(--overlay-scrim-medium)] touch-pan-y';
 
 export {LANDING_GRID_PLAN_CHANGED_EVENT} from '@/features/landing/grid/use-grid-geometry-controller';
 
@@ -197,9 +201,10 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
     >
       {mobileBackdropBindings.active ? (
         <div
-          className={LANDING_GRID_MOBILE_BACKDROP_CLASSNAME}
+          className={`${LANDING_GRID_MOBILE_BACKDROP_CLASSNAME} ${gridStyles.backdrop}`}
           data-testid="landing-grid-mobile-backdrop"
           data-state={mobileBackdropBindings.state}
+          style={{'--landing-backdrop-motion-ms': `${BACKDROP_MOTION_DURATION_MS}ms`} as CSSProperties}
           onPointerDown={mobileBackdropBindings.onPointerDown}
           onPointerMove={mobileBackdropBindings.onPointerMove}
           onPointerUp={mobileBackdropBindings.onPointerUp}

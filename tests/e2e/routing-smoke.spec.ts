@@ -4,7 +4,7 @@ import path from 'node:path';
 import {expect, test} from '@playwright/test';
 
 import {THEME_GROUND_COLOR} from '../../src/app/theme-ground-color';
-import {localeOptions, locales, resolveHtmlLang} from '../../src/config/site';
+import {localeOptions, locales, resolveHtmlLang, type AppLocale} from '../../src/config/site';
 import {
   buildLocalizedBlogDetailRoute,
   buildLocalizedBlogIndexRoute,
@@ -266,14 +266,44 @@ test.describe('Phase 1 routing smoke', () => {
       await expect(page.locator(`meta[property="${property}"]`), property).toHaveCount(1);
     }
 
-    // ⑷ manifest 가 실재하고 파싱된다.
+    // ⑶-a **그림이 실제로 받아진다.** 태그만 보는 단언은 URL 이 404 여도 초록이다 — 그리고
+    //     그것이 실제로 일어났다: 생성된 이미지 라우트는 점이 없어 `src/proxy.ts` 의 matcher 에
+    //     걸렸고, `/apple-icon` 이 `/_not-found` 로 rewrite 돼 홈 화면 아이콘이 사라졌다
+    //     (실측 2026-09-16). 미리보기와 아이콘은 제품 화면 밖에 있어 어느 baseline 도 보지 않는다.
+    const ogImage = await page.locator('meta[property="og:image"]').getAttribute('content');
+    expect(ogImage, 'og:image 가 없으면 공유 미리보기가 빈 채로 나간다').toBeTruthy();
+    expect(ogImage ?? '', 'og:image 는 절대 URL 이어야 한다 — 크롤러에는 문서 문맥이 없다').toMatch(/^https?:\/\//u);
+    const ogImageResponse = await request.get(ogImage!);
+    expect(ogImageResponse.ok(), `og:image 가 ${ogImageResponse.status()} 로 응답한다`).toBe(true);
+    expect(ogImageResponse.headers()['content-type']).toContain('image/');
+
+    const appleIconHref = await page.locator('link[rel="apple-touch-icon"]').getAttribute('href');
+    expect(appleIconHref, 'apple-touch-icon 이 없으면 iOS 홈 화면이 스크린샷을 쓴다').toBeTruthy();
+    const appleIconResponse = await request.get(appleIconHref!);
+    expect(appleIconResponse.ok(), `apple-touch-icon 이 ${appleIconResponse.status()} 로 응답한다`).toBe(true);
+
+    // ⑷ manifest 가 실재하고 파싱되며, 그 안의 아이콘이 받아진다.
     const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href');
     expect(manifestHref).toBeTruthy();
     const manifestResponse = await request.get(manifestHref!);
     expect(manifestResponse.ok()).toBe(true);
-    const manifestBody = (await manifestResponse.json()) as {name?: string; start_url?: string};
+    const manifestBody = (await manifestResponse.json()) as {
+      name?: string;
+      start_url?: string;
+      icons?: Array<{src: string; purpose?: string}>;
+    };
     expect(manifestBody.name).toBeTruthy();
     expect(manifestBody.start_url).toBeTruthy();
+    expect(manifestBody.icons?.length ?? 0, 'icons 가 없으면 「홈 화면에 추가」가 글자 아이콘이 된다').toBeGreaterThan(0);
+    // Android 적응형 아이콘은 `maskable` 을 따로 고른다 — 없으면 흰 바탕에 축소된 아이콘이 박힌다.
+    expect(
+      (manifestBody.icons ?? []).some((icon) => (icon.purpose ?? '').includes('maskable')),
+      'maskable 용도의 아이콘이 없다'
+    ).toBe(true);
+    for (const icon of manifestBody.icons ?? []) {
+      const iconResponse = await request.get(icon.src);
+      expect(iconResponse.ok(), `manifest 아이콘 ${icon.src} 이 ${iconResponse.status()} 로 응답한다`).toBe(true);
+    }
 
     // ⑸ `theme-color` 는 **해석된 테마**를 따라간다 — OS 가 아니라.
     //    이것이 이 케이스의 핵심이다: `media` 두 값만 두면 OS-다크에서 라이트를 고른 사용자의
@@ -326,5 +356,44 @@ test.describe('Phase 1 routing smoke', () => {
     expect(darkApplied.theme, 'OS 라이트에서도 저장된 다크 선택이 이긴다').toBe('dark');
     expect(darkApplied.media, 'media 를 걷어내지 않으면 다크에서도 OS 를 따른다').toBeNull();
     expect(darkApplied.content, '다크 지면 색도 해석된 테마를 따라야 한다').toBe(THEME_GROUND_COLOR.dark);
+  });
+
+  test('@smoke assertion:SH-01 every locale ships its own description and the full hreflang set', async ({page}) => {
+    test.setTimeout(90_000);
+
+    // 화면의 모든 문구는 12 locale 로 번역돼 있었는데 **문서 바깥으로 나가는 문장만** 영어
+    // 한 벌이었다 — 한국어 페이지를 공유하면 미리보기 문장이 영어였고 검색 발췌도 그랬다.
+    // 그림은 locale 을 갖지 않는다(`[locale]/opengraph-image.tsx` 가 이유를 적는다). 사람이
+    // 미리보기에서 읽는 것은 문장이므로 그 문장이 locale 을 갖는 것이 요점이다.
+    const seen = new Map<AppLocale, string>();
+
+    for (const locale of locales) {
+      await page.goto(`/${locale}`);
+
+      const description = await page.locator('meta[name="description"]').getAttribute('content');
+      const ogDescription = await page.locator('meta[property="og:description"]').getAttribute('content');
+
+      expect(description, `${locale}: description 이 없다`).toBeTruthy();
+      expect(description, `${locale}: description 이 자리표시자다`).not.toContain('placeholder');
+      expect(ogDescription, `${locale}: og:description 이 description 과 다르다`).toBe(description);
+
+      seen.set(locale, description!);
+
+      // `og:locale` 은 표시용 태그를 따른다 — `<html lang>` 과 같은 사실의 다른 표면이다.
+      await expect(page.locator('meta[property="og:locale"]'), `${locale}: og:locale`).toHaveAttribute(
+        'content',
+        resolveHtmlLang(locale)
+      );
+
+      // hreflang 은 12 개가 모두 있어야 한다. 하나라도 빠지면 그 언어판은 다른 언어판의
+      // 중복으로 읽힌다.
+      const alternates = await page.locator('link[rel="alternate"][hreflang]').evaluateAll((links) =>
+        links.map((link) => link.getAttribute('hreflang'))
+      );
+      expect(new Set(alternates).size, `${locale}: hreflang 개수`).toBe(locales.length);
+    }
+
+    // 12 개가 서로 다른 문장이어야 한다 — 하나라도 같으면 그 locale 은 번역되지 않은 것이다.
+    expect(new Set(seen.values()).size, `locale 별 문장이 겹친다: ${JSON.stringify([...seen])}`).toBe(locales.length);
   });
 });

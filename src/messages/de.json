@@ -1,4 +1,7 @@
 {
+  "meta": {
+    "description": "Kurze Persönlichkeits- und Eignungstests, die du in wenigen Minuten abschließt."
+  },
   "gnb": {
     "home": "Startseite",
     "history": "Verlauf",

@@ -1,4 +1,7 @@
 {
+  "meta": {
+    "description": "Tests breves de personalidad y aptitudes que puedes completar en unos minutos."
+  },
   "gnb": {
     "home": "Inicio",
     "history": "Historial",

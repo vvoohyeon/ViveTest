@@ -173,3 +173,27 @@ export function resolveLocaleAlias(segment: string): AppLocale | null {
 
   return null;
 }
+
+/**
+ * 절대 URL 의 기준 origin. OG 이미지와 canonical 은 상대 경로로는 성립하지 않는다 —
+ * 크롤러가 그것을 해석할 문서 문맥을 갖지 않기 때문이다.
+ *
+ * **도메인을 여기 적지 않는다.** 저장소에 배포 도메인의 근거가 없다(전수 검색: `vercel.json`
+ * 없음 · 하드코딩된 origin 0 건). 그래서 호스트가 스스로 알려 주는 값만 읽는다 —
+ * `NEXT_PUBLIC_SITE_URL`(명시 지정) → `VERCEL_PROJECT_PRODUCTION_URL`(Vercel 이 빌드에 주는
+ * 프로덕션 도메인) → 로컬 폴백. 셋 다 없으면 로컬 값이 나가고, 그때 공유 미리보기는 종전과
+ * 같은 상태로 남는다 — 없는 도메인을 지어내는 것보다 낫다.
+ */
+export function resolveSiteOrigin(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/u, '');
+  }
+
+  const vercelProductionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercelProductionHost) {
+    return `https://${vercelProductionHost.replace(/^https?:\/\//u, '').replace(/\/$/u, '')}`;
+  }
+
+  return `http://localhost:${process.env.PORT?.trim() || '3000'}`;
+}
