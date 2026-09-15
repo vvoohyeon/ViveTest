@@ -8,6 +8,10 @@ import {THEME_GROUND_COLOR} from '@/app/theme-ground-color';
  *
  * `start_url` 은 locale 을 붙이지 않는다 — `src/proxy.ts` 가 쿠키·`Accept-Language` 로 풀어
  * canonical 경로로 redirect 하므로, 여기서 한 locale 을 고정하면 그 해석을 앞질러 버린다.
+ *
+ * **이 사본은 locale 을 모르는 진입점의 것이다.** locale 페이지는 각자
+ * `src/app/[locale]/manifest.webmanifest` 를 가리키고 그쪽은 번역된 설명과 `/{locale}`
+ * `start_url` 을 갖는다(BQ-45) — 이미 해석이 끝난 자리라 앞지를 것이 없기 때문이다.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {

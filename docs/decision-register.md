@@ -561,6 +561,14 @@ BQ-25 는 확장 choice 화살표(`→`)의 광학적 수직 쏠림 보정을 **
 - **Include in first implementation wave?** — Yes — 이 커밋이 실행 단위다
 - **Notes / caveats** — 고장 주입 셋으로 판별력을 확인했다: 경주 가드를 빼면 세우기가, 강제 종료를 도착지만 보게 되돌리면 눕히기가, 강제 종료를 통째로 없애면 `TT-06` 이 각각 붉는다. **첫 판본의 검사는 판별력이 없었다** — 강제 종료가 살아 있는 동안에는 시트가 열린 채 언마운트되는 일이 없어 경주 자체가 도달 불가였고, 그때 쓴 검사는 주입을 통과했다(L20). 보존을 켠 뒤에야 그 경주가 도달 가능해지고 검사가 의미를 갖는다
 
+## BQ-45
+
+- **Decision** — 2026-09-16 **manifest 를 locale 별로 낸다.** `src/app/[locale]/manifest.webmanifest` 라우트가 번역된 `description` 과 `start_url: /{locale}` 을 내고, `[locale]/layout.tsx` 의 `generateMetadata` 가 그것을 가리킨다. 루트 `src/app/manifest.ts` 는 locale 을 모르는 진입점의 사본으로 남는다. `name`·`short_name` 은 번역하지 않는다 — 브랜드명이다
+- **Source / 근거** — step 3 계획서 §7 이 열어 둔 결정. 조사 중 전제가 하나 바뀌었다: **번역이 이미 12 locale 에 다 있었다.** `meta.description` 이 `<meta name="description">` 과 OG 를 그리는 데 쓰이고 있었고 manifest 만 그것을 읽지 않은 채 영어 상수를 들고 있었다. 그래서 새로 만든 문자열이 **0 개**이고 비용은 배선뿐이다
+- **Implementation impact** — 라우트 하나 신설(12 locale 정적 프리렌더 확인) + `generateMetadata` 한 줄. 회귀는 `tests/unit/locale-manifest.test.ts` 가 넷으로 갖는다 — 라우트가 메시지에서 설명을 가져오는가 · 레이아웃이 사본을 가리키는가 · 12 locale 에 메시지가 있는가 · **영어 아닌 locale 의 설명이 영어와 다른가**(키만 있고 번역이 안 된 상태를 잡는다)
+- **Include in first implementation wave?** — Yes — 이 커밋이 실행 단위다
+- **Notes / caveats** — `start_url` 이 루트 사본과 다른 것은 의도다. 루트가 `/` 인 이유는 쿠키·`Accept-Language` 해석을 앞지르지 않으려는 것인데, locale 사본은 **이미 그 해석이 끝난 페이지**에서 설치되므로 앞지를 것이 없다. 실측(2026-09-16): `/kr` 에서 `link[rel=manifest]` 가 `/kr/manifest.webmanifest` 를 가리키고 200 으로 한국어 설명과 `start_url: /kr` 을 낸다. 아이콘 목록은 루트 사본이 근거를 갖고 여기서는 같은 값을 쓴다 — 두 곳이 각자 고르면 갈라진다
+
 ---
 
 ## 변경 이력
