@@ -18,6 +18,20 @@ import {
 } from './helpers/landing-fixture';
 import {setTouchViewport} from './helpers/touch-context';
 
+// instruction 은 이제 폰에서 **모달 바텀시트**이고 그 아래 층은 GNB 까지 `inert` 다(명세 규칙 1).
+// 종전에는 `z-[1050]` 이라 GNB 가 모달 **위**에 있었고, 그래서 모달이 열린 채 GNB 로 회차를 버릴
+// 수 있었다 — 그것이 blocker 였고 이 단계가 닫았다. 아래 검사들이 보는 것은 GNB 의 back 이므로,
+// 그 컨트롤에 닿으려면 먼저 관문을 통과해야 한다. 통과 자체는 다른 스펙이 본다.
+async function passInstructionGate(page: Page) {
+  const sheet = page.getByTestId('test-instruction-overlay');
+  if ((await sheet.count()) === 0) {
+    return;
+  }
+  await page.getByTestId('test-start-button').click();
+  await expect(sheet).toHaveCount(0);
+}
+
+
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const DESKTOP_SETTINGS_PANEL_EXTRA_TOP_PX = 12;
 const DESKTOP_SETTINGS_PANEL_EXTRA_RIGHT_PX = 15;
@@ -1019,17 +1033,21 @@ test.describe('Phase 3 gnb shell smoke', () => {
   });
 
   test('@smoke mobile test back uses history before fallback', async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
     await setTouchViewport(page, {width: 390, height: 844});
     await page.goto(buildLocalizedBlogIndexRoute('en'));
     await page.goto(buildLocalizedPrimaryTestRoute('en'));
+    await passInstructionGate(page);
 
     await page.getByTestId('gnb-mobile-test-back').click();
     await expect(page).toHaveURL(/\/en\/blog$/u);
   });
 
   test('@smoke mobile test back falls back to localized landing', async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
     await setTouchViewport(page, {width: 390, height: 844});
     await page.goto(buildLocalizedPrimaryTestRoute('en'));
+    await passInstructionGate(page);
 
     await page.getByTestId('gnb-mobile-test-back').click();
     await expect(page).toHaveURL(/\/en$/u);
@@ -1038,9 +1056,11 @@ test.describe('Phase 3 gnb shell smoke', () => {
   test('@smoke assertion:B7-gnb-keyboard-matrix mobile test context exposes only keyboard-activatable back control', async ({
     page
   }) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
     await setTouchViewport(page, {width: 390, height: 844});
     await page.goto(buildLocalizedBlogIndexRoute('en'));
     await page.goto(buildLocalizedPrimaryTestRoute('en'));
+    await passInstructionGate(page);
     await page.locator('body').click({position: {x: 1, y: 1}});
 
     await expect(page.getByTestId('gnb-mobile-menu-trigger')).toHaveCount(0);
