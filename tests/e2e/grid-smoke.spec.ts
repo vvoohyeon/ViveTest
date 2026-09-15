@@ -846,7 +846,9 @@ test.describe('Phase 4 grid smoke', () => {
     await card.getByTestId('landing-grid-card-trigger').click();
     await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
 
-    const expandedTitle = card.locator('[data-slot="cardTitle"]');
+    // 확장 제목은 카드 안이 아니라 **시트 안**이다(§8.5 재작성). 같은 선택자를 카드에 걸면
+    // 평소 얼굴의 제목을 집어 이 검사가 엉뚱한 것을 재게 된다.
+    const expandedTitle = page.getByTestId('landing-card-sheet').locator('[data-slot="cardTitle"]');
     await expect(expandedTitle).toHaveText(fullText);
     const expandedStyle = await expandedTitle.evaluate((element) => {
       const style = getComputedStyle(element);

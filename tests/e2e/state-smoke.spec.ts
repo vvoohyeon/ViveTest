@@ -1050,9 +1050,10 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     await page.keyboard.press('Escape');
     await expect(sheet).toHaveCount(0);
-    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
     await expect(firstCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
+    // 닫히면 포커스가 트리거로 돌아오므로 카드는 `normal` 이 아니라 `focused` 다(명세 §3-4).
     await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'focused');
 
     await page.keyboard.press('Tab');
     await expect(secondTrigger).toBeFocused();

@@ -251,6 +251,20 @@ export function useLandingInteractionController({
     };
   }, [clearDesktopMotionRuntime, clearHoverTimer]);
 
+  /**
+   * 폰에서 시트가 열려 있는 동안 카드의 활성화는 막힌다.
+   *
+   * **판정의 근거는 시트가 보고한 위상이 아니라 `expandedCardVariant` 다.** 위상 보고는 시트가
+   * 포탈을 마운트한 뒤 effect 로 오므로 여는 커밋보다 한 박자 늦다. 그 틈으로 입력이 하나
+   * 빠져나간다 — `Space` 는 keydown 으로 시트를 열고 **keyup 에서 `click` 을 한 번 더 쏘는데**,
+   * 그 클릭이 잠금을 통과하면 방금 연 시트를 곧바로 닫는다. 확장 상태는 여는 그 커밋에 이미
+   * 참이므로 그것으로 가르면 틈이 없다.
+   */
+  const mobileExpansionLocked =
+    isMobileViewport &&
+    (interactionState.expandedCardVariant !== null || mobileLifecycleState.phase !== 'NORMAL');
+
+
   const collapseExpandedCard = useCallback(() => {
     clearHoverTimer();
     setDesktopTransitionReason('collapse');
@@ -348,11 +362,7 @@ export function useLandingInteractionController({
 
       const cardEnterable = isEnterableCard(card);
       const isTransitioning = interactionState.pageState === 'TRANSITIONING';
-      const mobileInteractionLocked =
-        isMobileViewport &&
-        mobileLifecycleState.phase !== 'NORMAL' &&
-        (mobileLifecycleState.cardVariant !== card.variant || mobileLifecycleState.phase !== 'OPEN');
-      const activationBlocked = isTransitioning || !cardEnterable || mobileInteractionLocked;
+      const activationBlocked = isTransitioning || !cardEnterable || mobileExpansionLocked;
 
       if (activationBlocked) {
         event.preventDefault();
@@ -374,9 +384,7 @@ export function useLandingInteractionController({
       }
 
       if (isMobileViewport) {
-        if (mobileLifecycleState.phase === 'NORMAL' && mobileLifecycleState.cardVariant !== card.variant) {
-          beginMobileOpen(card.variant);
-        }
+        beginMobileOpen(card.variant);
         return;
       }
 
@@ -398,8 +406,7 @@ export function useLandingInteractionController({
       interactionMode,
       interactionState.pageState,
       isMobileViewport,
-      mobileLifecycleState.cardVariant,
-      mobileLifecycleState.phase,
+      mobileExpansionLocked,
       onPrimaryCtaSelect
     ]
   );
@@ -450,10 +457,7 @@ export function useLandingInteractionController({
       visuallyExpanded: transitionExpanded || (cardState === 'EXPANDED' && cardEnterable),
       cleanupPending: desktopCleanupPending
     });
-    const mobileInteractionLocked =
-      isMobileViewport &&
-      mobileLifecycleState.phase !== 'NORMAL' &&
-      (mobileLifecycleState.cardVariant !== card.variant || mobileLifecycleState.phase !== 'OPEN');
+    const mobileInteractionLocked = mobileExpansionLocked;
     const visualState = resolveVisualState({
       cardEnterable,
       cardState,

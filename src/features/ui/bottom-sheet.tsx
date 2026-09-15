@@ -191,10 +191,17 @@ export function BottomSheet({
     }, [requestClose])
   });
 
-  // 열릴 때 그 전에 포커스가 있던 곳을 적고, 닫힐 때 거기로 돌려보낸다(명세 §3-4). 카드 시트는
-  // 카드로, instruction 재진입은 칩으로 간다.
+  // 열릴 때 그 전에 포커스가 있던 곳을 적고, 닫힌 **뒤에** 거기로 돌려보낸다(명세 §3-4).
+  // 카드 시트는 카드로, instruction 재진입은 칩으로 간다.
+  //
+  // 기준이 `open` 이 아니라 **시트가 트리에 있는가**인 것은 형식이 아니다. `open` 이 거짓이 되는
+  // 커밋에서 시트는 아직 이탈 중이고 그 아래 층은 여전히 `inert` 다 — `inert` 안의 원소에 건
+  // `focus()` 는 아무 일도 하지 않으므로, 그 시점에 돌려보내면 포커스가 `body` 에 남는다.
+  // 이 훅은 `useInertSiblings` 보다 **뒤에** 선언돼 있어 cleanup 도 뒤에 돈다: 그때는 이미
+  // `inert` 가 걷혀 있다.
+  const sheetMounted = isSheetMounted(phase);
   useEffect(() => {
-    if (!open) {
+    if (!sheetMounted) {
       return;
     }
 
@@ -208,7 +215,7 @@ export function BottomSheet({
         target.focus({preventScroll: true});
       }
     };
-  }, [open]);
+  }, [sheetMounted]);
 
   // 포커스는 **시트 컨테이너**로 들어온다 — 첫 컨트롤이 아니다. Enter 한 번이 곧 답이 되면 안 된다.
   // `mounted` 를 의존성에 넣는 것은 형식이 아니다: 첫 렌더는 포탈 전이라 `null` 을 돌려주므로

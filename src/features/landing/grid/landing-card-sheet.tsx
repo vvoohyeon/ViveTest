@@ -15,6 +15,7 @@ import {BottomSheet} from '@/features/ui/bottom-sheet';
 import type {SheetCloseReason} from '@/features/ui/sheet-motion';
 import type {SheetPhase} from '@/features/ui/sheet-phase';
 import type {LandingCard} from '@/features/variant-registry';
+import cardStyles from '@/features/landing/grid/landing-grid-card.module.css';
 
 // 폰의 카드 확장 — **바텀시트**(명세 규칙 3 · §3-4). 시트 프리미티브 위에 카드 본문을 얹는
 // 것이 이 파일의 전부이고, 층·포커스·잠금·제스처·모션·history 항목은 프리미티브가 갖는다.
@@ -63,14 +64,16 @@ export function LandingCardSheet({
   }
 
   const renderedCard = card ?? retainedCard;
-  if (!renderedCard) {
-    return null;
-  }
 
   const handleClose: MouseEventHandler<HTMLButtonElement> = () => {
     onCloseRequest('control');
   };
 
+  // **프리미티브는 항상 마운트한다.** 카드가 없을 때 이 컴포넌트가 `null` 을 돌려주면 시트가
+  // 언마운트되고, 여는 순간 다시 마운트된다. 그 재마운트는 등장 모션을 두 번 걸 뿐 아니라
+  // 시트가 건 history 항목을 cleanup 이 곧바로 거둬들여(`history.back()`) 진짜 popstate 를
+  // 만들고, 그 popstate 가 새로 마운트된 시트를 즉시 닫는다 — 열자마자 닫히는 것이 그 결과였다.
+  // 시트는 `phase === 'closed'` 에서 스스로 아무것도 그리지 않으므로 계속 마운트해 두어도 된다.
   return (
     <BottomSheet
       open={open}
@@ -78,18 +81,20 @@ export function LandingCardSheet({
       titleId={titleId}
       testId="landing-card-sheet"
       closeLabel={copy.closeExpandedAria}
+      // 확장 스킨은 카드가 소유하되 정의는 하나다 — 시트는 카드 밖이라 그 변수를 직접 받는다.
+      className={cardStyles.expandedSkin}
       reducedMotion={reducedMotion}
       onCloseRequest={onCloseRequest}
       onPhaseChange={(phase: SheetPhase) => {
         onStateChange({
           phase: mobilePhaseFromSheetPhase(phase),
-          cardVariant: phase === 'closed' ? null : renderedCard.variant
+          cardVariant: phase === 'closed' ? null : renderedCard?.variant ?? null
         });
       }}
       header={
         <>
           <h2 className={LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME} id={titleId} data-slot="cardTitle">
-            {renderedCard.title}
+            {renderedCard?.title ?? ''}
           </h2>
           {/* 폰 시트는 **보이는** 닫기 컨트롤을 갖는다(규칙 3). 제자리 오버레이에 X 를 두지
               않는 결정은 그쪽의 「카드 밖이 곧 닫기 영역」이라는 사정에서 나온 것이고, 시트에는
@@ -107,13 +112,15 @@ export function LandingCardSheet({
       }
     >
       <div data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
-        <ExpandedCardBody
-          card={renderedCard}
-          locale={locale}
-          copy={copy}
-          interactive
-          onAnswerChoiceSelect={onAnswerChoiceSelect}
-        />
+        {renderedCard ? (
+          <ExpandedCardBody
+            card={renderedCard}
+            locale={locale}
+            copy={copy}
+            interactive
+            onAnswerChoiceSelect={onAnswerChoiceSelect}
+          />
+        ) : null}
       </div>
     </BottomSheet>
   );

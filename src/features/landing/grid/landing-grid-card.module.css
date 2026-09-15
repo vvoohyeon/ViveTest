@@ -61,6 +61,13 @@
      `--muted-aa`, the system's own correction — and that value was itself re-solved
      in step 3, because `#757580` had been derived against white alone and missed AA
      on the canvas (4.36) and on the sunken surface (4.04). */
+}
+
+/* 확장 스킨 — **두 표면이 쓴다.** 제자리 오버레이는 카드 안에 있어 `.root` 로 닿지만, 폰의
+   시트는 `document.body` 로 포탈되므로 카드 스코프 변수가 닿지 않는다. 변수를 시트에서 다시
+   적으면 두 사본이 표류하므로 선택자를 둘로 늘린다 — 정의는 하나다. */
+.root,
+.expandedSkin {
   --expanded-question-ink: var(--ink);
   --expanded-choice-surface: var(--canvas-elevated);
   --expanded-choice-border: var(--hairline-strong);
