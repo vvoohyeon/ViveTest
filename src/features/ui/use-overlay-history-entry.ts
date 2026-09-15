@@ -33,6 +33,37 @@ function currentLayerId(): string | null {
   return state?.[STATE_KEY] ?? null;
 }
 
+/**
+ * 우리가 넣은 history 항목 하나를 거두고, 그 사실을 **그 `popstate` 를 듣는 모든 리스너가**
+ * 볼 수 있게 표시한다.
+ *
+ * 감소를 두 가지 방식으로 하면 안 된다는 것을 이 세션이 둘 다 밟았다.
+ *
+ * **층의 핸들러가 줄이면 샌다** — cleanup 은 자기 리스너를 떼고 나서 `back()` 을 부르므로 그
+ * 이벤트를 받을 층이 하나도 없을 수 있고, 그러면 카운터가 0 으로 돌아오지 못해 **다음 진짜
+ * 뒤로가기를 삼킨다.**
+ *
+ * **이 자리에서 즉시 줄여도 틀린다** — 층이 `back()` **뒤에** 다시 마운트되면 그 층의 핸들러가
+ * 이 리스너보다 나중에 등록되고, 그때는 카운터가 이미 0 이라 사용자의 뒤로가기로 읽힌다.
+ * 그래서 감소를 **다음 매크로태스크로 미룬다**: 등록 순서와 무관해진다.
+ */
+function popOwnHistoryEntry(): void {
+  programmaticPopCount += 1;
+
+  window.addEventListener(
+    'popstate',
+    () => {
+      window.setTimeout(() => {
+        programmaticPopCount = Math.max(0, programmaticPopCount - 1);
+      }, 0);
+    },
+    {once: true}
+  );
+
+  // 부르기 직전에 우리 항목이 맨 위임을 확인했으므로 `popstate` 는 반드시 온다.
+  window.history.back();
+}
+
 /** 검사 전용 — 모듈 전역 카운터를 테스트 사이에 되돌린다. */
 export function resetOverlayHistoryEntryForTest(): void {
   programmaticPopCount = 0;
@@ -69,7 +100,7 @@ export function useOverlayHistoryEntry({
     const handlePopState = () => {
       if (programmaticPopCount > 0) {
         // 우리가 되돌린 것이다 — 사용자의 뒤로가기가 아니므로 닫기로 읽지 않는다.
-        programmaticPopCount -= 1;
+        // 카운터를 줄이는 것은 `popOwnHistoryEntry` 이지 여기가 아니다.
         return;
       }
       if (currentLayerId() === layerId) {
@@ -88,8 +119,7 @@ export function useOverlayHistoryEntry({
         return;
       }
       if (currentLayerId() === layerId) {
-        programmaticPopCount += 1;
-        window.history.back();
+        popOwnHistoryEntry();
       }
     };
   }, [enabled, layerId, open]);
