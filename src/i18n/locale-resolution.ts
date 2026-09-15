@@ -53,7 +53,12 @@ function normalizeZhLocale(lowered: string): AppLocale | null {
   return null;
 }
 
-function normalizeLocaleToken(token: string): AppLocale | null {
+/**
+ * BCP 47 토큰 하나를 제품 locale 코드로 푼다. `Accept-Language`·쿠키가 쓰는 정규화이며,
+ * 경로 진입 별칭(`config/site.ts` 의 `resolveLocaleAlias`)이 같은 판정을 내려야 한다 —
+ * 그 일치를 `tests/unit/locale-alias-parity.test.ts` 가 고정하므로 export 한다.
+ */
+export function normalizeLocaleToken(token: string): AppLocale | null {
   const lowered = token.toLowerCase();
 
   if (isLocale(lowered)) {

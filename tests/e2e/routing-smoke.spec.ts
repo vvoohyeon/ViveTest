@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import {expect, test} from '@playwright/test';
 
+import {THEME_GROUND_COLOR} from '../../src/app/theme-ground-color';
 import {localeOptions, locales, resolveHtmlLang} from '../../src/config/site';
 import {
   buildLocalizedBlogDetailRoute,
@@ -154,8 +155,15 @@ test.describe('Phase 1 routing smoke', () => {
     }
 
     await page.setViewportSize({width: 1280, height: 900});
+
+    // 서버가 낸 태그가 **하이드레이션 뒤에도** 남아야 한다. `en` 하나만 보면 이 단언은
+    // 공허하다 — 코드와 태그가 갈리는 셋(`kr`·`zs`·`zt`)에서만 되돌아감이 드러난다.
+    for (const locale of ['kr', 'zs', 'zt', 'en'] as const) {
+      await page.goto(`/${locale}`);
+      await expect(page.locator('html'), locale).toHaveAttribute('lang', resolveHtmlLang(locale));
+    }
+
     await page.goto('/en');
-    await expect(page.locator('html')).toHaveAttribute('lang', resolveHtmlLang('en'));
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
@@ -283,7 +291,7 @@ test.describe('Phase 1 routing smoke', () => {
     const applied = await readThemeColor();
     expect(applied.media, 'media 가 남아 있으면 OS 를 따라가 해석된 테마와 어긋난다').toBeNull();
     expect(applied.theme).toBe('light');
-    expect(applied.content).toBe('#fbfaf7');
+    expect(applied.content).toBe(THEME_GROUND_COLOR.light);
 
     // OS 는 다크인데 사용자가 라이트를 골랐던 상태 — 종전이라면 크롬만 다크로 남았다.
     await page.emulateMedia({colorScheme: 'dark'});
@@ -292,6 +300,24 @@ test.describe('Phase 1 routing smoke', () => {
 
     const overridden = await readThemeColor();
     expect(overridden.theme, 'OS 다크에서도 저장된 라이트 선택이 이긴다').toBe('light');
-    expect(overridden.content, 'OS 가 아니라 해석된 테마를 따라야 한다').toBe('#fbfaf7');
+    expect(overridden.content, 'OS 가 아니라 해석된 테마를 따라야 한다').toBe(THEME_GROUND_COLOR.light);
+
+    // 그리고 반대 방향 — 저장된 다크. 종전에는 두 테마 중 **light 값 하나만** 단언했다.
+    //
+    // **이 단언이 보는 것의 경계를 적어 둔다.** 이것은 해석된 다크가 런타임 경로를 거쳐
+    // `content` 에 도달하는 것을 본다. **첫 페인트는 보지 못한다** — 부트스트랩의 dark
+    // 리터럴을 `#000000` 으로 바꿔도 이 케이스는 초록이다(실측 2026-09-15). 하이드레이션
+    // 뒤에 `use-theme-preference` 가 같은 meta 를 다시 써서 가리기 때문이고, 그래서 두 경로
+    // 중 하나만 깨면 이 케이스가 침묵한다. 부트스트랩 사본의 값은 정의 대조가 갖는다
+    // (`tests/unit/theme-color-parity.test.ts`). 첫 페인트 자체를 증인으로 세우는 것은
+    // 별도 항목이다.
+    await page.emulateMedia({colorScheme: 'light'});
+    await page.evaluate(() => window.localStorage.setItem('vivetest-theme', 'dark'));
+    await page.reload();
+
+    const darkApplied = await readThemeColor();
+    expect(darkApplied.theme, 'OS 라이트에서도 저장된 다크 선택이 이긴다').toBe('dark');
+    expect(darkApplied.media, 'media 를 걷어내지 않으면 다크에서도 OS 를 따른다').toBeNull();
+    expect(darkApplied.content, '다크 지면 색도 해석된 테마를 따라야 한다').toBe(THEME_GROUND_COLOR.dark);
   });
 });

@@ -122,7 +122,17 @@ describe('proxy policy', () => {
       ['/pt-BR', '/pt'],
       ['/KR', '/kr'],
       ['/ko/blog', '/kr/blog'],
-      ['/zh-Hant/test/qmbti', '/zt/test/qmbti']
+      ['/zh-Hant/test/qmbti', '/zt/test/qmbti'],
+      // 지역 변형은 열거표에 없었고 그래서 전부 404 였다(실측 2026-09-15). 같은 토큰을
+      // `Accept-Language` 로 보내면 해석되던 것이 결함의 모양이다.
+      ['/es-MX', '/es'],
+      ['/fr-CA', '/fr'],
+      ['/pt-PT', '/pt'],
+      ['/en-AU', '/en'],
+      // 지역이 script 를 이긴다 — 이 셋이 간체로 새면 번체 사용자가 잘못된 화면을 받는다.
+      ['/zh-MO', '/zt'],
+      ['/zh-Hant-TW', '/zt'],
+      ['/zh-Hans-CN', '/zs']
     ];
 
     for (const [from, to] of cases) {
@@ -148,5 +158,16 @@ describe('proxy policy', () => {
       action: 'rewrite',
       pathname: '/_not-found'
     });
+  });
+
+  it('keeps locale-shaped-looking ordinary paths on the 404 surface', () => {
+    // 지역 subtag 를 떼는 규칙이 script 자리를 임의의 4 자로 열면 `card` 가 정확히 그 모양이라
+    // `/id-card` 가 인도네시아어 홈으로 조용히 redirect 된다 — 404 보다 나쁘다.
+    for (const pathname of ['/id-card', '/en-route', '/de-luxe/blog', '/va-123/view']) {
+      expect(resolveProxyDecision({pathname}), pathname).toEqual({
+        action: 'rewrite',
+        pathname: '/_not-found'
+      });
+    }
   });
 });
