@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<!-- @dsCard group="App" name="Consent banner — two buttons, and a recall" subtitle="Allow as CTA, Deny as plain text; the recall carries a close and the previous choice" viewport="1260x760" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../app-components.css">
+<style>
+  body { margin: 0; background: #57534c; padding: 20px; display: grid; grid-template-columns: repeat(3, 390px); gap: 20px; align-items: start; justify-content: center; }
+  .col { width: 390px; }
+  .lab { font: var(--overline); letter-spacing: .08em; text-transform: uppercase; color: #f2efe9; display: block; margin: 0 0 6px 4px; }
+  .phone { width: 390px; height: 560px; position: relative; overflow: hidden; border-radius: var(--radius-xl); background: var(--canvas); }
+  .page { padding: 16px; display: grid; gap: 12px; }
+  .ghost { height: 120px; border-radius: var(--radius-lg); background: var(--canvas-elevated); border: 1px solid var(--hairline); }
+  .dock { position: absolute; left: 12px; right: 12px; bottom: 12px; }
+  .note { font: var(--caption); color: #f2efe9; max-width: 390px; margin: 10px 4px 0; }
+  .note b { color: #fff; font-weight: 600; }
+  svg.g { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  svg.tick { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  /* 배너는 세로로 쌓인다 — 390px 에서 본문과 버튼 둘이 한 줄에 들어가지 않는다.
+     제품의 `max-[767px]:flex-wrap` 과 같은 자리이고, 여기서는 폭이 고정이라 직접 쓴다. */
+  .vt-banner { flex-wrap: wrap; }
+  .vt-banner__body { flex: 1 1 100%; }
+  .vt-banner__actions { flex: 1 1 100%; justify-content: flex-start; }
+</style></head>
+<body>
+
+<div class="col">
+  <span class="lab">First visit — two buttons</span>
+  <div class="phone vive">
+    <div class="page"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+    <div class="dock">
+      <section class="vt-banner vt-banner--consent" aria-label="Analytics consent">
+        <p class="vt-banner__body">We use optional analytics to see which tests people finish. Nothing you answer is sent.</p>
+        <div class="vt-banner__actions">
+          <button class="vt-btn vt-btn--primary">Allow</button>
+          <button class="vt-btn vt-btn--quiet">Deny</button>
+        </div>
+      </section>
+    </div>
+  </div>
+  <p class="note">제목 줄이 없다 — 본문 한 단락과 버튼 둘이다. <b>무게가 같지 않은 것이 의도다</b>: <span class="t-code">Allow</span> 는 채운 CTA, <span class="t-code">Deny</span> 는 평문이라 누르기 꺼려진다(규칙 4). 세 번째 버튼 <span class="t-code">Preferences</span> 는 없앴다 — 제품에서 그것은 44px 짜리 no-op 이었다.</p>
+</div>
+
+<div class="col">
+  <span class="lab">Recall — Allow was the last answer</span>
+  <div class="phone vive">
+    <div class="page"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+    <div class="dock">
+      <section class="vt-banner vt-banner--consent vt-banner--dismissible" aria-label="Analytics consent">
+        <button class="vt-banner__close" aria-label="Close">
+          <svg class="g" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <p class="vt-banner__body">We use optional analytics to see which tests people finish. Nothing you answer is sent.</p>
+        <div class="vt-banner__actions">
+          <button class="vt-btn vt-btn--primary">
+            <svg class="tick vt-banner__mark" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg>Allow
+          </button>
+          <button class="vt-btn vt-btn--quiet">Deny</button>
+        </div>
+      </section>
+    </div>
+  </div>
+  <p class="note">재호출에만 <b>닫기 X</b> 가 있다(44×44, 우상단) — 선택을 바꾸지 않고 「보기만 하고 닫을」 길이 있어야 한다. 첫 방문에는 없다: 거기서는 선택이 곧 닫기이고, X 가 있으면 네 번째 답이 생긴다(§2-5).</p>
+</div>
+
+<div class="col">
+  <span class="lab">Recall — Deny was the last answer</span>
+  <div class="phone vive" data-theme="dark">
+    <div class="page"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+    <div class="dock">
+      <section class="vt-banner vt-banner--consent vt-banner--dismissible" aria-label="분석 동의">
+        <button class="vt-banner__close" aria-label="닫기">
+          <svg class="g" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <p class="vt-banner__body">어떤 테스트가 끝까지 진행되는지 보기 위해 선택적 분석을 사용합니다. 답변 내용은 전송되지 않습니다.</p>
+        <div class="vt-banner__actions">
+          <button class="vt-btn vt-btn--primary">허용</button>
+          <button class="vt-btn vt-btn--quiet is-previous-choice">
+            <svg class="tick vt-banner__mark" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg>거부
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+  <p class="note">거부를 골랐던 경우 평문 버튼이 <b>선택됨 칩</b>을 입는다(<span class="t-code">--sage-muted</span> + <span class="t-code">--accent-fg</span> + 체크) — 이 시스템이 선택됨을 말하는 방식 그대로다. 그래도 <b>허용은 CTA 형태를 잃지 않는다</b>: 재호출에서도 제품은 동의 쪽을 권한다.</p>
+</div>
+
+</body></html>

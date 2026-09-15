@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!-- @dsCard group="App" name="Notice row — why the catalog shrank" subtitle="The OPTED_OUT line that puts the reason and the way back in the same place" viewport="1260x620" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../app-components.css">
+<style>
+  body { margin: 0; background: #57534c; padding: 20px; display: grid; grid-template-columns: 390px 390px 390px; gap: 20px; align-items: start; justify-content: center; }
+  .col { width: 390px; }
+  .lab { font: var(--overline); letter-spacing: .08em; text-transform: uppercase; color: #f2efe9; display: block; margin: 0 0 6px 4px; }
+  .phone { width: 390px; height: 420px; position: relative; overflow: hidden; border-radius: var(--radius-xl); background: var(--canvas); }
+  .page { padding: 16px; display: grid; gap: 12px; }
+  .ghost { height: 108px; border-radius: var(--radius-lg); background: var(--canvas-elevated); border: 1px solid var(--hairline); }
+  .note { font: var(--caption); color: #f2efe9; max-width: 390px; margin: 10px 4px 0; }
+  .note b { color: #fff; font-weight: 600; }
+</style></head>
+<body>
+
+<div class="col">
+  <span class="lab">Without the row — the defect</span>
+  <div class="phone vive">
+    <div class="page">
+      <div class="ghost"></div>
+      <div class="ghost"></div>
+    </div>
+  </div>
+  <p class="note">거부한 사용자의 카탈로그는 <b>8 장에서 2 장으로</b> 줄어드는데 화면에 설명이 0 줄이다. 카드가 왜 사라졌는지도, 되돌릴 방법도 화면에 없다 — 되돌릴 컨트롤 자체가 제품에 없었다.</p>
+</div>
+
+<div class="col">
+  <span class="lab">With the row — light</span>
+  <div class="phone vive">
+    <div class="page">
+      <p class="vt-notice">6 tests need analytics consent. <button class="vt-notice__action">Change consent</button></p>
+      <div class="ghost"></div>
+      <div class="ghost"></div>
+    </div>
+  </div>
+  <p class="note">그리드 <b>상단</b>의 한 줄이다. 숨긴 이유와 해제 경로가 <b>같은 자리</b>에 있어야 한다 — 드로어 어딘가에 두면 사라진 것과 되돌리는 것이 서로 다른 화면의 일이 된다. 카드도 패널도 아닌 <span class="t-code">--surface-muted</span> 바탕의 조용한 행이다: 이것은 콘텐츠가 아니라 콘텐츠에 대한 말이다(§2-1).</p>
+</div>
+
+<div class="col">
+  <span class="lab">With the row — dark, Korean</span>
+  <div class="phone vive" data-theme="dark">
+    <div class="page">
+      <p class="vt-notice">6개 테스트는 분석 동의가 필요합니다. <button class="vt-notice__action">동의 변경</button></p>
+      <div class="ghost"></div>
+      <div class="ghost"></div>
+    </div>
+  </div>
+  <p class="note">숨은 개수는 실제 필터 결과에서 세고 12 locale 의 복수형을 따른다 — 이 그림의 <b>6</b> 은 픽스처 기준(8 장 중 2 장이 남는다)이다. 데스크톱도 같은 행을 쓴다. 해제 경로는 버튼도 칩도 아닌 <b>얇은 링크</b>다(규칙 7).</p>
+</div>
+
+</body></html>

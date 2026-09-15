@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<!-- @dsCard group="App" name="Sheet — one primitive, two sheets" subtitle="Card sheet and instruction sheet; grabber, fixed header + action row, scrolling body, safe-area" viewport="1260x900" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../app-components.css">
+<link rel="stylesheet" href="../catalog-components.css">
+<style>
+  body { margin: 0; background: #57534c; padding: 20px; display: grid; grid-template-columns: repeat(3, 390px); gap: 20px; align-items: start; justify-content: center; }
+  .col { width: 390px; }
+  .lab { font: var(--overline); letter-spacing: .08em; text-transform: uppercase; color: #f2efe9; display: block; margin: 0 0 6px 4px; }
+  .phone { width: 390px; height: 700px; position: relative; overflow: hidden; border-radius: var(--radius-xl); background: var(--canvas); }
+  .page { padding: 16px; display: grid; gap: 12px; }
+  .ghost { height: 120px; border-radius: var(--radius-lg); background: var(--canvas-elevated); border: 1px solid var(--hairline); }
+  .note { font: var(--caption); color: #f2efe9; max-width: 390px; margin: 10px 4px 0; }
+  .note b { color: #fff; font-weight: 600; }
+  svg.g { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  /* specimen 전용: 실제 시트는 `position: fixed` 이고 여기서는 전화기 상자 안에 갇혀야
+     하므로 레이어만 absolute 로 바꾼다. 시트 자신의 규칙은 건드리지 않는다. */
+  .vt-sheet-layer { position: absolute; }
+  .rule { border: 0; border-top: 1px solid var(--hairline); margin: 14px 0; }
+  /* `.t-caption` 은 **font 만** 정하고 색은 `--muted`(4.23:1)를 물고 온다. 시스템의
+     컴포넌트는 전부 `--muted-aa` 로 덮어쓰지만(`.vt-datarow__key` · `.vt-settings__label`)
+     손으로 쓴 마크업은 그것을 잊는다 — 이 specimen 이 그랬고 대비 전수 검사가 잡았다. */
+  .vt-sheet__body .t-caption { color: var(--muted-aa); }
+</style></head>
+<body>
+
+<div class="col">
+  <span class="lab">Card sheet — light</span>
+  <div class="phone vive">
+    <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <div class="vt-gnb__col vt-gnb__col--end"><button class="vt-pill vt-pill--gnb">Menu</button></div>
+    </div></header>
+    <div class="page"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+    <div class="vt-sheet-layer">
+      <div class="vt-scrim"></div>
+      <section class="vt-sheet" role="dialog" aria-modal="true" aria-labelledby="s1">
+        <div class="vt-sheet__grabber"></div>
+        <div class="vt-sheet__head">
+          <h2 class="vt-sheet__title" id="s1">Find your working rhythm</h2>
+          <button class="vt-pill vt-pill--square" aria-label="Close">
+            <svg class="g" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div class="vt-sheet__body">
+          <p class="vt-question">When does your best thinking actually happen?</p>
+          <div class="vt-choices">
+            <button class="vt-choice vt-choice--answer"><span class="vt-choice__text">Early morning blocks</span><span class="vt-choice__mark"></span></button>
+            <button class="vt-choice vt-choice--answer"><span class="vt-choice__text">Late-night sprints</span><span class="vt-choice__mark"></span></button>
+          </div>
+          <p class="vt-meta"><span class="vt-meta__lead">3 min</span> · 15,236 completed <span class="vt-meta__shares">2,184 shared</span></p>
+        </div>
+      </section>
+    </div>
+  </div>
+  <p class="note">카드 시트에는 <b>액션 행이 없다</b> — A/B 탭이 곧 진입이고 별도 「다음」 CTA 를 두지 않는다(명세 §2-2). 메타 행은 왼쪽 <b>소요 · 완료</b>, 오른쪽 정렬 <b>공유</b>(§3-3). 스크림이 <b>GNB 까지 덮는다</b> — 오버레이는 GNB 위 층이다(규칙 1). 제품은 아직 반대이고(스크림 10 대 GNB 1100) 그것이 blocker 다.</p>
+</div>
+
+<div class="col">
+  <span class="lab">Instruction sheet — modal, light</span>
+  <div class="phone vive">
+    <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
+      <div class="vt-gnb__col"><button class="vt-pill vt-pill--gnb">Back</button></div>
+      <div class="vt-gnb__col vt-gnb__col--center"><span class="t-label">Quick MBTI</span></div>
+      <div class="vt-gnb__col vt-gnb__col--end"></div>
+    </div></header>
+    <div class="page"><div class="ghost"></div><div class="ghost"></div></div>
+    <div class="vt-sheet-layer">
+      <div class="vt-scrim"></div>
+      <section class="vt-sheet vt-sheet--modal" role="dialog" aria-modal="true" aria-labelledby="s2">
+        <div class="vt-sheet__grabber"></div>
+        <div class="vt-sheet__head">
+          <h2 class="vt-sheet__title" id="s2">Before you start</h2>
+        </div>
+        <div class="vt-sheet__body">
+          <p class="t-body-sm">Answer as you actually work, not as you would like to. There are no right answers and you can go back at any point.</p>
+          <hr class="rule">
+          <p class="t-caption">Optional analytics help us see which tests people finish. You can change this later.</p>
+        </div>
+        <div class="vt-sheet__actions">
+          <button class="vt-btn vt-btn--quiet">Start without analytics</button>
+          <button class="vt-btn vt-btn--primary">Accept and start</button>
+        </div>
+      </section>
+    </div>
+  </div>
+  <p class="note">모달이라 <b>grabber 가 없다</b> — 그것은 끌어 내릴 수 있다는 약속이기 때문이다. 액션 행은 세로 스택 · 전체 폭이고 <b>primary 가 맨 아래</b>(엄지). 12 locale 중 8 개에서 가로 배열이 접혔다(§2-3).</p>
+</div>
+
+<div class="col">
+  <span class="lab">Card sheet — dark</span>
+  <div class="phone vive" data-theme="dark">
+    <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <div class="vt-gnb__col vt-gnb__col--end"><button class="vt-pill vt-pill--gnb">Menu</button></div>
+    </div></header>
+    <div class="page"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+    <div class="vt-sheet-layer">
+      <div class="vt-scrim"></div>
+      <section class="vt-sheet" role="dialog" aria-modal="true" aria-labelledby="s3">
+        <div class="vt-sheet__grabber"></div>
+        <div class="vt-sheet__head">
+          <h2 class="vt-sheet__title" id="s3">읽고 나서 정리하는 습관</h2>
+          <button class="vt-pill vt-pill--square" aria-label="닫기">
+            <svg class="g" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div class="vt-sheet__body">
+          <p class="vt-question">가장 좋은 판단이 나오는 시간대는 언제인가요?</p>
+          <div class="vt-choices">
+            <button class="vt-choice vt-choice--answer"><span class="vt-choice__text">이른 아침의 긴 블록</span><span class="vt-choice__mark"></span></button>
+            <button class="vt-choice vt-choice--answer"><span class="vt-choice__text">늦은 밤의 짧은 스프린트</span><span class="vt-choice__mark"></span></button>
+          </div>
+          <p class="vt-meta"><span class="vt-meta__lead">3분</span> · 15,236명 완료 <span class="vt-meta__shares">2,184회 공유</span></p>
+        </div>
+      </section>
+    </div>
+  </div>
+  <p class="note">다크에서 스크림은 바닥을 <b>1.04:1</b> 밖에 못 어둡게 한다 — 그래서 시트의 경계는 스크림이 아니라 상단 <b>1px <span class="t-code">--border-strong</span></b> 이 진다. <span class="t-code">.vt-floating</span> 과 같은 이유이고 같은 토큰이다.</p>
+</div>
+
+</body></html>

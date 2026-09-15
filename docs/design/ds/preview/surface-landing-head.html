@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<!-- @dsCard group="App" name="Landing head — a page title is not a hero" subtitle="One title line, one subtitle line, no band; plus the skip link that owns keyboard entry" viewport="1300x700" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../app-components.css">
+<style>
+  body { margin: 0; background: #57534c; padding: 20px; display: grid; grid-template-columns: 390px 390px 420px; gap: 20px; align-items: start; justify-content: center; }
+  .col { width: 390px; }
+  .col--wide { width: 420px; }
+  .lab { font: var(--overline); letter-spacing: .08em; text-transform: uppercase; color: #f2efe9; display: block; margin: 0 0 6px 4px; }
+  .phone { width: 390px; height: 470px; position: relative; overflow: hidden; border-radius: var(--radius-xl); background: var(--canvas); }
+  .page { padding: 0 16px 16px; display: grid; gap: 12px; }
+  .ghost { height: 108px; border-radius: var(--radius-lg); background: var(--canvas-elevated); border: 1px solid var(--hairline); }
+  .hero-old { padding: 18px 0 20px; display: grid; gap: 8px; }
+  .hero-old h1 { margin: 0; font: 600 34px/1.2 var(--font-sans); color: var(--ink); }
+  .hero-old p { margin: 0; font: var(--body-sm); color: var(--muted-aa); }
+  .note { font: var(--caption); color: #f2efe9; margin: 10px 4px 0; }
+  .note b { color: #fff; font-weight: 600; }
+  .skipbox { position: relative; height: 96px; border-radius: var(--radius-lg); background: var(--canvas); overflow: hidden; }
+</style></head>
+<body>
+
+<div class="col">
+  <span class="lab">Before — the hero band</span>
+  <div class="phone vive">
+    <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <div class="vt-gnb__col vt-gnb__col--end"><button class="vt-pill vt-pill--gnb">Menu</button></div>
+    </div></header>
+    <div class="page">
+      <div class="hero-old">
+        <h1>Find your working rhythm in one pass</h1>
+        <p>Short tests you can finish in a few minutes. No sign-up, no score to chase, just a reading you can act on today.</p>
+      </div>
+      <div class="ghost"></div>
+    </div>
+  </div>
+  <p class="note"><span class="t-code">design.md</span> §7.1 은 <b>No hero</b> 인데 랜딩은 <span class="t-code">aria-label="Landing Hero"</span> 를 단 <span class="t-code">h1</span> 과 두 문장 단락을 렌더한다. 큰 헤드라인이 첫 카드를 화면 밖으로 밀어낸다.</p>
+</div>
+
+<div class="col">
+  <span class="lab">After — title line, subtitle line</span>
+  <div class="phone vive">
+    <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <div class="vt-gnb__col vt-gnb__col--end"><button class="vt-pill vt-pill--gnb">Menu</button></div>
+    </div></header>
+    <div class="page">
+      <div class="vt-pagehead">
+        <h1 class="vt-pagehead__title">Find your working rhythm</h1>
+        <p class="vt-pagehead__sub">Short tests you can finish in a few minutes.</p>
+      </div>
+      <div class="ghost"></div>
+      <div class="ghost"></div>
+    </div>
+  </div>
+  <p class="note">밴드도 배경도 일러스트도 없다 — 그래서 이 블록에는 <span class="t-code">background</span> 가 없고, 그것이 「히어로가 아니다」의 실제 내용이다. 제목을 <b>남기는</b> 쪽을 고른 이유는 모바일 GNB 에 화면 이름 슬롯이 없어 본문 최상단 <span class="t-code">h1</span> 이 현재 위치를 말하는 유일한 것이기 때문이다(§2-12). 부제는 <b>한 줄로 자른다</b>.</p>
+</div>
+
+<div class="col col--wide">
+  <span class="lab">Skip link — revealed on focus</span>
+  <div class="skipbox vive">
+    <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <div class="vt-gnb__col vt-gnb__col--end"><button class="vt-pill vt-pill--gnb">Menu</button></div>
+    </div></header>
+    <a class="vt-skip" href="#main">Skip to main content</a>
+    <!-- 숨은 상태. 1x1 이라 그림에서는 거의 보이지 않는 것이 맞다 — 레이아웃을
+         차지하지 않는다는 것이 이 상태의 전부다. -->
+    <a class="vt-skip vt-skip--hidden" href="#main">Skip to main content (hidden state)</a>
+  </div>
+  <div class="skipbox vive" data-theme="dark" style="margin-top: 14px">
+    <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
+      <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
+      <div class="vt-gnb__col vt-gnb__col--end"><button class="vt-pill vt-pill--gnb">Menu</button></div>
+    </div></header>
+    <a class="vt-skip" href="#main">본문으로 건너뛰기</a>
+  </div>
+  <p class="note">문서 순서상 <b>첫 탭 스톱</b>이고 포커스를 받을 때만 보인다. 드러나는 조건은 <span class="t-code">:focus</span> 이지 <span class="t-code">:focus-visible</span> 이 아니다 — 후자는 브라우저 휴리스틱이 키보드라고 판정했을 때만 참이라, 보조기술이 옮긴 포커스에서는 링크가 <b>1px 에 머물렀다</b>(실측). 종전에는 랜딩에서 GNB 의 <span class="t-code">tabIndex</span> 를 상태에 따라 내렸고, 그 예측 불가능성은 키보드 사용자에게만 부과됐다.</p>
+</div>
+
+</body></html>

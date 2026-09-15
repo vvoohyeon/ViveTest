@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!-- @dsCard group="App" name="Drawer — what the thumb reaches" subtitle="Settings at the top, navigation at the bottom, consent as a quiet right-aligned link" viewport="860x800" -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../app-components.css">
+<style>
+  body { margin: 0; background: #57534c; padding: 20px; display: grid; grid-template-columns: 390px 390px; gap: 20px; align-items: start; justify-content: center; }
+  .col { width: 390px; }
+  .lab { font: var(--overline); letter-spacing: .08em; text-transform: uppercase; color: #f2efe9; display: block; margin: 0 0 6px 4px; }
+  .phone { width: 390px; height: 620px; position: relative; overflow: hidden; border-radius: var(--radius-xl); background: var(--canvas); }
+  .page { padding: 16px; display: grid; gap: 12px; }
+  .ghost { height: 110px; border-radius: var(--radius-lg); background: var(--canvas-elevated); border: 1px solid var(--hairline); }
+  .note { font: var(--caption); color: #f2efe9; max-width: 390px; margin: 10px 4px 0; }
+  .note b { color: #fff; font-weight: 600; }
+  /* 주석은 드로어 **위**에 올린다 — 층 1200 아래에 두면 불투명한 패널이 덮어 그림에서
+     사라진다. 렌더해 보고 알았다. */
+  .thumb { position: absolute; left: 0; right: 0; bottom: 0; height: 190px; z-index: 1300; background: linear-gradient(to top, rgba(92,142,120,.28), transparent); pointer-events: none; }
+  .thumb span { position: absolute; left: 12px; bottom: 8px; padding: 2px 6px; border-radius: var(--radius-sm); background: var(--surface-raised); font: var(--overline); letter-spacing: .08em; text-transform: uppercase; color: var(--accent-fg); }
+  svg.g { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+</style></head>
+<body>
+
+<div class="col">
+  <span class="lab">Before — navigation on top, settings at the bottom</span>
+  <div class="phone vive">
+    <div class="page"><div class="ghost"></div><div class="ghost"></div></div>
+    <div style="position:absolute;inset:0;z-index:1200">
+      <div class="vt-scrim"></div>
+      <aside class="vt-drawer" role="dialog" aria-modal="true" aria-label="Menu">
+        <div class="vt-drawer__head">
+          <span class="vt-settings__label">Menu</span>
+          <button class="vt-pill vt-pill--square vt-pill--gnb" aria-label="Close">
+            <svg class="g" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <nav class="vt-drawer__nav">
+          <a class="vt-drawer__link" href="#" aria-current="page">Home</a>
+          <a class="vt-drawer__link" href="#">History</a>
+          <a class="vt-drawer__link" href="#">Blog</a>
+        </nav>
+        <div class="vt-drawer__foot">
+          <span class="vt-settings__label">Language · Theme</span>
+          <div class="vt-chip-row">
+            <button class="vt-chip vt-chip--swatch vt-chip--swatch-dark" aria-label="Dark"></button>
+            <button class="vt-chip vt-chip--swatch vt-chip--swatch-light is-active" aria-label="Light"></button>
+          </div>
+          <div class="vt-chip-row">
+            <button class="vt-chip is-active">English</button><button class="vt-chip">한국어</button><button class="vt-chip">日本語</button>
+            <button class="vt-chip">简体中文</button><button class="vt-chip">繁體中文</button><button class="vt-chip">Español</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div class="thumb"><span>thumb</span></div>
+  </div>
+  <p class="note">엄지가 닿는 자리를 <b>설정</b>이 갖고 있다 — 자주 바꾸지 않는 것이 가장 쉬운 자리에 있고, 자주 쓰는 <b>이동</b>은 손이 가장 멀리 가야 하는 위에 있다. 라벨 <span class="t-code">LANGUAGE · THEME</span> 는 좁은 폭에서 두 줄로 접힌다.</p>
+</div>
+
+<div class="col">
+  <span class="lab">After — settings on top, navigation at the bottom</span>
+  <div class="phone vive">
+    <div class="page"><div class="ghost"></div><div class="ghost"></div></div>
+    <div style="position:absolute;inset:0;z-index:1200">
+      <div class="vt-scrim"></div>
+      <aside class="vt-drawer" role="dialog" aria-modal="true" aria-label="Menu">
+        <div class="vt-drawer__head">
+          <span class="vt-settings__label">Menu</span>
+          <button class="vt-pill vt-pill--square vt-pill--gnb" aria-label="Close">
+            <svg class="g" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div class="vt-drawer__settings">
+          <span class="vt-settings__label">Settings</span>
+          <div class="vt-chip-row">
+            <button class="vt-chip">System</button>
+            <button class="vt-chip vt-chip--swatch vt-chip--swatch-dark" aria-label="Dark"></button>
+            <button class="vt-chip vt-chip--swatch vt-chip--swatch-light is-active" aria-label="Light"></button>
+          </div>
+          <div class="vt-chip-row">
+            <button class="vt-chip is-active">English</button><button class="vt-chip">한국어</button><button class="vt-chip">日本語</button>
+            <button class="vt-chip">简体中文</button><button class="vt-chip">繁體中文</button><button class="vt-chip">Español</button>
+          </div>
+          <button class="vt-drawer__quiet-link">Privacy preferences</button>
+        </div>
+        <nav class="vt-drawer__nav vt-drawer__nav--bottom">
+          <a class="vt-drawer__link" href="#" aria-current="page">Home</a>
+          <a class="vt-drawer__link" href="#">History</a>
+          <a class="vt-drawer__link" href="#">Blog</a>
+        </nav>
+      </aside>
+    </div>
+    <div class="thumb"><span>thumb</span></div>
+  </div>
+  <p class="note">이동이 최하단이다 — <b>엄지가 닿는 자리를 자주 쓰는 것이 갖는다</b>(규칙 7 · §2-4). 동의 수정은 행을 차지하지 않는 <b>우측 정렬 얇은 링크</b>다: 자주 쓰지 않는 것은 조용하다. 라벨은 <span class="t-code">Settings</span> 한 단어라 접히지 않는다(§3-2). 언어 칩 12 개는 <b>접거나 줄이지 않는다</b> — 가운데 여백은 이번에 채우지 않는다.</p>
+</div>
+
+</body></html>

@@ -230,11 +230,83 @@
   outline-offset: 2px;
 }
 
+/* [intent — step 3 §10 / 명세 §3-1 이 구현한다. 제품은 껍데기도 44 다.]
+
+   보이는 것과 만지는 것을 가른다. 56px 바 안에서 44px 짜리 껍데기는 위아래 6px 만
+   남기고 바를 가득 채워 컨트롤이 바보다 커 보인다. 껍데기를 36px 로 내리면 여백이
+   10px 이 되고, 히트 영역은 투명한 의사요소가 44px 로 되돌린다.
+
+   D-09 는 이 클래스에 `--tap-min` 을 요구했고 **그 요구는 유지된다** — 그 항목이 재던
+   것은 터치 타깃이지 칠해진 상자가 아니다. 아래 `::after` 가 그 타깃이고, `a11y-smoke`
+   의 `assertion:TT-01` 이 재는 것도 `getBoundingClientRect` 이므로 이 의사요소가 아니라
+   원소 자신의 상자다 — 그래서 제품이 이 규칙을 가져갈 때 히트 영역을 **원소의**
+   패딩으로 만들지 의사요소로 만들지가 함께 정해져야 한다. 이 시스템은 그림을 그리고,
+   그 판정은 step 3 의 것이다. */
+.vt-pill--gnb {
+  position: relative;
+  min-height: 36px;
+  padding-block: 0;
+}
+
+.vt-pill--gnb::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc((var(--tap-min) - 36px) / -2);
+  bottom: calc((var(--tap-min) - 36px) / -2);
+}
+
+.vt-pill--gnb.vt-pill--square {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+}
+
+.vt-pill--gnb.vt-pill--square::after {
+  left: calc((var(--tap-min) - 36px) / -2);
+  right: calc((var(--tap-min) - 36px) / -2);
+}
+
 .vt-pill--square {
   width: var(--tap-min);
   height: var(--tap-min);
   min-height: var(--tap-min);
   padding: 0;
+}
+
+/* [intent — step 3 §10 / 명세 §2-9 · 규칙 7 이 구현한다]
+
+   THE QUIET TRIGGER. The desktop settings trigger is not a button among buttons:
+   §2-9 asks for no border, no background, the default weight and the full
+   language name, so it stands at the same weight as the `History` and `Blog`
+   text links beside it. The base pill above cannot express that — it carries a
+   border and `font-weight: 600` — and a system that cannot say "quiet" will be
+   read as requiring "loud", which is how an implementer ends up drawing a border
+   the specification forbids.
+
+   A modifier rather than a change to the base: the base pill is still correct for
+   `Menu`, `Back` and the drawer's close, which are controls on their own and
+   need an edge. Only the settings trigger is quiet. */
+.vt-pill--quiet {
+  border-color: transparent;
+  background: transparent;
+  font-weight: 400;
+  color: var(--ink-body);
+}
+
+.vt-pill--quiet:hover,
+.vt-pill--quiet.is-hover {
+  background: var(--surface-muted);
+  border-color: transparent;
+}
+
+/* Open is a state of the layer, not of the trigger — and the layer covers the
+   trigger (see the settings section), so a pressed fill here would paint under
+   something and never be seen. */
+.vt-pill--quiet[aria-expanded='true'] {
+  background: transparent;
+  border-color: transparent;
 }
 
 .vt-pill[aria-expanded='true'] {
@@ -355,9 +427,33 @@
   display: inline-flex;
 }
 
+/* [intent — step 3 §10 / 명세 규칙 8 이 구현한다. 아래의 실측과 다르다.]
+
+   규칙 8: the panel's top-right corner COINCIDES with the trigger's top-right
+   corner, and the layer opens downward and leftward **over** the trigger.
+
+   Three values, and they are all different — which is why this block says so
+   instead of quietly picking one.
+
+   | | top | right edge |
+   |:---|:---|:---|
+   | 종전 이 규칙 | `100%` — 트리거 **아래**, 겹치지 않음 | 트리거와 일치 |
+   | 제품 (실측) | 트리거 위 **12px** | 트리거보다 **15px** 바깥 |
+   | 명세 규칙 8 (이 규칙) | 트리거와 **일치** | 트리거와 **일치** |
+
+   실측 2026-09-16, `6e783a6`, 1280x900: trigger `x=1212 y=10 44x44`, panel
+   `x=932 y=-2 339x195`. 패널은 트리거를 덮되 모서리가 맞지 않는다 —
+   `site-gnb.tsx` 가 `--gnb-settings-panel-extra-top`(12) 과 `--extra-right`(15) 을
+   음수 오프셋으로 준다.
+
+   종전 주석은 "anchored to the trigger's own box and overlaps it" 이라고 적고
+   있었으나 `top: 100%` 는 겹치지 않는다. 그 문장이 가리키던 계약은
+   `req-landing.md` §6.4 의 hover gap `0px` 이고, 겹침은 그보다 강한 조건이므로
+   그것도 함께 만족한다. 같은 컨트롤을 두 번 열면 같은 자리여야 한다는 규칙 8 의
+   나머지 절반은 트리거 상자에 앵커하는 것으로 저절로 따라온다. */
 .vt-settings__panel {
   position: absolute;
-  top: 100%;
+  top: 0;
   right: 0;
   margin-top: 0;
   width: 324px;
@@ -458,15 +554,51 @@
 .vt-chip--swatch-light { background: #ffffff; border-color: #d6d1c4; color: #1e1a16; }
 .vt-chip--swatch-dark  { background: #1e1a16; border-color: #504a43; color: #fbfaf7; }
 
+/* [intent — step 3 §10 / 명세 규칙 5 가 구현한다. 제품은 아직 이중 링이다.]
+
+   ONE RING, NOT TWO. 명세 규칙 5: "링을 이중(2px 흰 간격 + 2px sage)으로 그리지
+   않는다 — 과하다." 종전 규칙이 정확히 그 쌍을 그렸고, 그것은 제품을 정직하게
+   비춘 것이었다 — 실측 2026-09-16: `rgb(255,255,255) 0 0 0 2px, rgb(92,142,120)
+   0 0 0 4px`. 즉 이 줄의 변경은 거울을 고치는 것이 아니라 **목표를 적는 것**이고,
+   step 3 이 제품을 여기로 옮긴 뒤에 실측으로 다시 재어 realized 로 승격한다.
+
+   단일 sage 링은 스와치가 쓰이는 모든 크기에서 선택됨으로 읽히고, `box-shadow` 는
+   상자를 갖지 않으므로 마크가 레이아웃을 건드리지 않는다(규칙 6). */
 .vt-chip--swatch[aria-pressed='true'],
 .vt-chip--swatch.is-active,
 .vt-chip--swatch[aria-pressed='true']:hover,
 .vt-chip--swatch.is-active:hover {
   background: inherit;
-  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 .vt-chip--swatch-light[aria-pressed='true'], .vt-chip--swatch-light.is-active { background: #ffffff; border-color: #d6d1c4; }
 .vt-chip--swatch-dark[aria-pressed='true'],  .vt-chip--swatch-dark.is-active  { background: #1e1a16; border-color: #504a43; }
+
+/* [intent — step 3 §10 / 명세 규칙 5 가 구현한다. 제품에 아직 없다.]
+
+   TWO CLAIMS, TWO MARKS. "내가 고른 것"(preference)과 "지금 적용 중인 것"(effective)은
+   서로 다른 주장이다. 한 마크가 둘을 겸직하면 `System` 을 표현할 자리가 없어진다 —
+   시스템을 고른 사용자에게는 고른 것이 `System` 이고 적용 중인 것은 light 나 dark 다.
+
+   그래서 링은 선택을, 점은 적용을 말한다. 점은 덜 강조되지만 읽히고 **누를 수 있다** —
+   그것이 `disabled` 로 만들지 않는 이유다. 반대편 스와치는 마크가 없어 selectable 로
+   읽힌다.
+
+   점은 `position: absolute` 다 — 마크는 레이아웃을 건드리지 않는다(규칙 6). 2px 외곽은
+   점과 스와치 사이의 간격이고, 그래서 어두운 스와치 위에서도 점의 경계가 산다. */
+.vt-chip--swatch { position: relative; }
+
+.vt-chip--swatch.is-effective::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface-raised);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .vt-chip { transition: none; }
@@ -546,6 +678,42 @@
 }
 
 .vt-drawer__foot { margin-top: auto; display: grid; gap: var(--space-4); }
+
+/* [intent — step 3 §10 / 명세 §2-4 · 규칙 7 이 구현한다. 제품은 순서가 반대다.]
+
+   손이 닿는 곳에 자주 쓰는 것을 둔다. 드로어에서 자주 쓰는 것은 **이동**이고, 자주
+   바꾸지 않는 것은 **설정**이다. 그래서 위에서 아래로 헤더 → 설정 블록 → 여백 →
+   이동 블록이고, 엄지가 닿는 최하단을 이동이 갖는다.
+
+   `.vt-drawer__foot` 의 `margin-top: auto` 가 이미 "마지막 블록을 바닥으로" 를 하고
+   있었다 — 바뀌는 것은 **어느 블록이 거기 가느냐**뿐이다. 그래서 이 둘은 새 기구가
+   아니라 같은 기구의 두 이름이고, 그것이 이 변경이 작은 이유다.
+
+   가운데 여백은 이번에 채우지 않는다(명세 §2-4). 진행 중인 회차·최근 결과는 모바일
+   최적화가 끝난 뒤에 정한다. */
+.vt-drawer__settings { display: grid; gap: var(--space-4); }
+
+.vt-drawer__nav--bottom { margin-top: auto; }
+
+/* 동의 수정은 행을 차지하지 않는 우측 정렬 얇은 링크다 — 버튼도 칩도 아니다(규칙 7). */
+.vt-drawer__quiet-link {
+  justify-self: end;
+  font: var(--caption);
+  color: var(--muted-aa);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: 0;
+  padding: var(--space-1) 0;
+  cursor: pointer;
+}
+
+.vt-drawer__quiet-link:hover { color: var(--ink-body); }
+
+.vt-drawer__quiet-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .vt-drawer { transition: opacity var(--dur-base) var(--ease-standard); }
@@ -627,7 +795,381 @@
 }
 
 .vt-banner__body { font: var(--body-sm); color: var(--ink-body); margin: 0; }
-.vt-banner__actions { display: flex; gap: var(--space-2); flex: none; }
+.vt-banner__actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+
+/* [intent — step 3 §3 / 명세 규칙 4 · §2-1 · §2-5 가 구현한다]
+
+   TWO BUTTONS, AND THEY DO NOT WEIGH THE SAME.
+
+   This supersedes a decision registered here on 2026-09-08. That record chose to
+   keep the refusal at the acceptance's weight, reasoning that the two are
+   symmetric consent answers and lowering one breaks the symmetry. The visual and
+   interaction specification of 2026-09-14 decided the other way and the user
+   confirmed it: `Allow` is the filled CTA, `Deny` is a plain text button, and the
+   third button (`Preferences`) is removed. The asymmetry is the point — 규칙 4
+   states it as "시각 무게가 낮아야 누르기 꺼려지고 그것이 의도다" — and the later
+   external review's recommendation to raise `Deny` back up was rejected, so plain
+   text is final. The system does not get to re-argue it; it has to say it.
+
+   No title line, one paragraph of body, then the two. 규칙 4 forbids the
+   `Allow optional cookies?` heading and forbids neutral wording like `Not now`.
+
+   The line budget (390px 2 lines, 320px 3) is a property of the copy in twelve
+   locales, not of this stylesheet — it is measured at render, not declared. */
+.vt-banner--consent { position: relative; }
+
+/* 재호출에만 닫기가 붙는다. 첫 방문 배너에서는 선택이 곧 닫기이므로 X 가 없다 —
+   그것이 있으면 "선택하지 않음"이라는 네 번째 답이 생긴다(명세 §2-5). */
+.vt-banner__close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: var(--tap-min);
+  height: var(--tap-min);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted-aa);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard);
+}
+
+.vt-banner__close:hover { background: var(--surface-muted); color: var(--ink); }
+
+.vt-banner__close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* 닫기가 있는 배너는 본문이 그 자리를 비워 준다. 명세 §4 의 결함 1 과 같은 종류다 —
+   절대 위치 형제가 침범한 영역 **안에서** 텍스트를 흘리면 겹친다. 렌더해 보고 알았다:
+   본문 첫 줄의 마지막 낱말 위에 X 가 얹혔다. 겹치는 컨트롤은 절대 위치로 얹되, 흐름
+   쪽이 그만큼 물러선다. */
+.vt-banner--dismissible .vt-banner__body {
+  padding-right: calc(var(--tap-min) + var(--space-2));
+}
+
+/* 재호출 배너는 이전 선택을 보여 준다. 두 마크는 서로 다른 것을 말하지 않는다 —
+   둘 다 "지난번에 이것을 골랐다"이고, 다른 것은 그 버튼이 무엇이냐뿐이다. CTA 는
+   형태를 잃지 않는다: 재호출에서도 제품은 동의 쪽을 권한다. */
+.vt-banner__mark { width: 14px; height: 14px; flex: none; }
+
+.vt-btn--primary .vt-banner__mark { color: var(--accent-fg); }
+
+/* 평문 Deny 가 지난 선택이었던 경우에만 칩을 입는다. `--sage-muted` + `--accent-fg`
+   는 이 시스템이 선택됨을 말하는 방식이고(`.vt-chip[aria-pressed]`), 그 어휘를 여기서
+   새로 만들지 않는다. */
+.vt-btn--quiet.is-previous-choice {
+  background: var(--sage-muted);
+  color: var(--accent-fg);
+}
+
+/* ---- Sheet -----------------------------------------------------------------
+
+   [intent — step 3 §1 · §1-2 / 명세 §3-4 가 구현한다. 제품에 아직 없다.]
+
+   ONE PRIMITIVE, TWO SHEETS. 명세 §3-4: the card sheet and the instruction sheet
+   are the same component, and the only differences are three props — grabber,
+   gesture close, history entry. If the two ever grow separate stylesheets, the
+   unit that built them finished wrong.
+
+   Nothing in this block exists in the product today: `grabber`, `dvh`,
+   `safe-area-inset` and `overscroll-behavior` appear **zero times** across the
+   whole bundle and across `src/**` (검색 2026-09-16, `6e783a6`). The phone's
+   expanded card is still the full-bleed in-flow model that
+   `catalog-components.css` describes, and step 3 §1 replaces it with this.
+
+   WHY A SHEET AND NOT A TALLER CARD. 규칙 3: 형태는 공간이 정한다 — one column
+   gets a sheet, many columns keep the in-place overlay. The sheet is what makes
+   "닫는 법" plural on a phone: a control, the backdrop, a swipe, `Escape`, and the
+   system back gesture all reach it, and an in-flow expansion reaches none of
+   them.
+
+   HEIGHT IS NOT `100dvh`. `max-height: calc(100dvh - 56px)` leaves the GNB band
+   visible so the sheet never reads as a page. `dvh` is used **only** on the sheet
+   itself, which is `position: fixed` — putting `dvh` on an in-flow element's
+   `max-height` reflows the document every time the address bar moves, and the
+   scorecard has that exact defect listed. */
+
+/* 층은 넷이고 순서는 고정이다 — 콘텐츠 → GNB → 배너 → 오버레이(규칙 1). 오버레이는
+   GNB **위**이고, 그래서 스크림이 GNB 를 함께 덮는다. `.vt-gnb` 가 1100 을 선언하므로
+   그 위 한 칸이 이 값이다.
+
+   제품은 아직 반대다: 모바일 확장의 스크림은 `z-index: 10`, 시트는 20, GNB 는 1100 —
+   `preview/card-mobile-expanded.html` 이 그 실측을 적고 있다. 그래서 모달이 열린 채
+   GNB 로 회차를 버릴 수 있고, 그것이 blocker `GNB 가 모달 다이얼로그 위 층에 있다`
+   이다. 이 한 줄이 그 순서를 뒤집는다.
+
+   렌더해 보고 알았다: z 를 적지 않았더니 스크림이 카드만 덮고 GNB 는 밝은 채로
+   남았다 — 규칙 1 이 거짓인 그림이 나왔다. */
+.vt-sheet-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.vt-sheet {
+  position: relative;
+  width: 100%;
+  max-height: calc(100dvh - 56px);
+  display: flex;
+  flex-direction: column;
+  /* 액션 행은 이 폭을 보고 배열을 정한다 — 뷰포트가 아니다. 시트는 폰에서 전체 폭이고
+     태블릿 다이얼로그에서는 그렇지 않은데, 그 차이를 뷰포트로 물으면 둘이 갈리지
+     않는다. 렌더해 보고 알았다: 1260px 짜리 페이지 안의 390px 시트에서 액션 행이
+     가로로 누웠다. */
+  container-type: inline-size;
+  container-name: sheet;
+  /* 바닥은 **시트**가 갖는다. 액션 행에만 두면 액션 행이 없는 시트 — 카드 시트가
+     정확히 그것이다(A/B 탭이 곧 진입이라 CTA 가 없다) — 의 마지막 줄이 홈 인디케이터에
+     닿는다. 렌더해 보고 알았다: 메타 행이 시트 하단 모서리에 붙었다. */
+  padding-bottom: max(var(--space-6), env(safe-area-inset-bottom));
+  /* 상단만 둥글다 — 아래 두 모서리는 화면 밖이다. */
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--surface-raised);
+  /* 다크에서 스크림은 바닥을 1.04:1 밖에 못 어둡게 하므로 경계는 이 선이 진다 —
+     `.vt-floating` 의 주석과 같은 이유이고 같은 토큰이다. */
+  border-top: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-overlay);
+  transform: translateY(0);
+  /* [intent — step 3 §1 이 결정한다 · 사다리에 없는 값 · 등재됨: README findings D-18]
+
+     명세 §3-4 는 진입 260ms · 이탈 220ms 를 요구하는데 이 시스템의 duration 사다리는
+     120 / 140 / 180 / 280 이고 그 둘이 없다. 그리고 그 부재는 우연이 아니다 —
+     `colors_and_type.css` 의 MOTION 주석이 "pre-rebaseline design tokens (which
+     claimed 220ms / 260ms and were never implemented)" 라고 적으며 정확히 이 두
+     값을 내렸다. 명세가 그 둘을 되살린 셈이다.
+
+     그래서 여기서 토큰을 새로 만들지 않는다. 사다리를 늘릴지(`--dur-sheet-*` 신설)
+     명세를 사다리에 맞출지(280 / 180)는 등재되어야 하는 결정이고, 그때까지 이 두
+     리터럴이 **명세의 값**임을 밝혀 둔다. 리터럴인 채로 남는 것이 조용히 다른 값을
+     쓰는 것보다 낫다. */
+  transition: transform 260ms var(--ease-standard);
+}
+
+/* 시트의 닫기 컨트롤은 **44×44 가 보이는 크기**다(명세 규칙 3 · §3-4). §3-1 의
+   36/44 분리는 GNB 의 컨트롤에만 적용된다 — 바 안에서 44 짜리 껍데기가 바를 가득
+   채우는 것이 그 규칙의 이유이고, 시트 헤더에는 그 사정이 없다. 그래서 여기서는
+   `.vt-pill--square` 를 그대로 쓰고 `--gnb` 를 붙이지 않는다. */
+
+/* grabber 는 약속이다 — "이것은 끌어 내릴 수 있다". 그래서 모달 시트에는 두지
+   않는다(명세 §2-3). 폭 36 · 높이 4 는 손가락이 아니라 눈을 위한 크기이고, 실제
+   제스처 영역은 헤더 전체다. */
+.vt-sheet__grabber {
+  width: 36px;
+  height: 4px;
+  flex: none;
+  margin: var(--space-2) auto 0;
+  border-radius: var(--radius-pill);
+  background: var(--hairline-strong);
+}
+
+/* 헤더와 액션 행은 고정, 본문만 스크롤한다. 320x568 과 텍스트 200% 에서 이 둘의
+   합이 뷰포트의 절반을 넘지 않아야 하므로 각각 한 줄이다(명세 §3-4). */
+.vt-sheet__head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-3);
+}
+
+.vt-sheet__title { font: var(--h3); color: var(--ink); margin: 0; }
+
+.vt-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* 시트 안에서 끝까지 스크롤해도 그 관성이 뒤 페이지로 새지 않는다. 뒤가 잠겨
+     있어도 iOS 는 체이닝으로 스크림을 끌어당긴다. */
+  overscroll-behavior: contain;
+  padding: 0 var(--space-5) var(--space-4);
+}
+
+.vt-sheet__actions {
+  flex: none;
+  display: grid;
+  gap: var(--space-2);
+  /* 바닥은 시트가 갖는다(위). 홈 인디케이터와 정확히 겹치는 첫 표면이고,
+     `viewport-fit=cover` 가 없으면 `env()` 는 항상 0 이다 — step 2 단위 4 가 그것을
+     열었다(`layout.tsx`). */
+  padding: var(--space-4) var(--space-5) 0;
+}
+
+/* 모바일은 세로 스택 · 전체 폭이고 primary 가 **맨 아래**다 — 엄지가 닿는 자리를
+   주 행동이 갖는다. 12 locale 중 8 개에서 가로 배열이 접혔고 `justify-end` 가 부차
+   행동을 주 행동 위로 올렸다(명세 §2-3). */
+.vt-sheet__actions > .vt-btn { width: 100%; }
+
+/* 데스크톱·태블릿의 중앙 다이얼로그는 같은 규칙을 쓰되 한 줄에 들어가면 우측
+   정렬 한 줄이다. 들어가지 않으면 접지 않고 스택한다(명세 §4 결함 3). */
+@container sheet (min-width: 768px) {
+  .vt-sheet__actions {
+    grid-auto-flow: column;
+    justify-content: flex-end;
+  }
+  .vt-sheet__actions > .vt-btn { width: auto; }
+}
+
+/* 모달 — instruction 시트. 다른 것은 셋뿐이고 전부 여기에 있다: grabber 없음,
+   제스처 닫기 없음, history 항목 없음(뒤 둘은 스타일이 아니라 동작이라 이 파일이
+   말할 수 있는 것은 grabber 하나다). */
+.vt-sheet--modal .vt-sheet__grabber { display: none; }
+
+.vt-sheet[data-state='closing'] {
+  transform: translateY(100%);
+  /* 이탈이 진입보다 짧다 — 나가는 것은 기다리게 하지 않는다. 값의 출처는 위와 같다. */
+  transition: transform 220ms var(--ease-in);
+}
+
+/* 이동을 버리고 페이드만 남긴다. 시트가 아래에서 올라오는 것은 방향의 정보를
+   담지만, 그 정보보다 전정기관이 먼저다. */
+@media (prefers-reduced-motion: reduce) {
+  .vt-sheet,
+  .vt-sheet[data-state='closing'] {
+    transform: none;
+    transition: opacity var(--dur-base) var(--ease-standard);
+  }
+}
+
+/* ---- Notice row ------------------------------------------------------------
+
+   [intent — step 3 §3 / 명세 §2-1 이 구현한다. 제품에 아직 없다.]
+
+   `OPTED_OUT` 에서 카탈로그가 8 장에서 2 장으로 줄어드는데 화면에 설명이 0 줄이다.
+   숨긴 이유와 해제 경로가 **같은 자리**에 있어야 한다 — 그래서 그리드 상단의 한
+   줄이고, 카드도 패널도 아니다. 조용한 행이어야 하는 이유는 이것이 콘텐츠가 아니라
+   콘텐츠에 대한 말이기 때문이다. */
+
+.vt-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  font: var(--body-sm);
+  color: var(--ink-body);
+}
+
+/* 해제 경로는 버튼도 칩도 아니다 — 자주 쓰지 않는 것은 조용하다(규칙 7). */
+.vt-notice__action {
+  color: var(--accent-fg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vt-notice__action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Skip link -------------------------------------------------------------
+
+   [realized 2026-09-16 — 제품이 `skip-to-content-link.tsx` 로 이미 이 모양을 그린다]
+
+   포커스를 받을 때만 보인다. 드러나는 조건은 `:focus` 이지 `:focus-visible` 이
+   아니다 — 후자는 브라우저 휴리스틱이 키보드라고 판정했을 때만 참이고, 스크립트나
+   보조기술이 옮긴 포커스에서는 링크가 1px 에 머문다(실측 2026-09-15, 그래서 제품이
+   `:focus` 로 옮겼다). 링만은 `:focus-visible` 로 남는다: 드러나는 것과 링이
+   그려지는 것은 다른 질문이다.
+
+   높이 36px 은 §3-1 의 보이는 껍데기와 같다. 이것은 히트 영역을 넓히지 않는다 —
+   보이지 않는 동안 `pointer-events: none` 이라 애초에 탭의 대상이 아니다. */
+
+.vt-skip {
+  position: absolute;
+  /* 제품은 여기서 `--shell-gutter` 를 읽는다(모바일 16px · 768 이상 20px · 900 이상
+     24px). 그 토큰은 `globals.css` 의 것이고 이 시스템에는 없다 — 여기서 같은 이름을
+     만들면 두 정의처가 생기므로, 모바일 값과 같은 `--space-4` 를 쓰고 그 사실을
+     적는다. */
+  left: var(--space-4);
+  top: 10px;
+  /* GNB **위**여야 한다. `.vt-gnb` 는 1100 이고 `backdrop-filter: blur(12px)` 를 갖는데,
+     그 아래에 두면 링크가 사라지는 것이 아니라 **흐린 얼룩**으로 남는다 — 렌더해 보고
+     알았다(z 1 로 두었더니 바 뒤에서 번진 자국만 보였다). 제품도 같은 값을 쓴다
+     (`skip-to-content-link.tsx` 의 `focus:z-[1200]`). */
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  /* [수정 — 명세 §2-13 의 토큰 쌍은 읽히지 않는다. 등재: README findings D-19]
+
+     명세는 「`--accent` 바탕 + `--accent-fg` 잉크」라고 적고 제품이 그대로 구현했다
+     (`skip-to-content-link.tsx`: `focus:bg-[var(--accent)] focus:text-[var(--accent-fg)]`).
+     그 쌍의 실측 대비는 **라이트 1.89:1 · 다크 1.40:1** 이다(2026-09-16, 이 specimen 을
+     렌더해 계산). AA 가 요구하는 4.5 는커녕 비텍스트 3 도 넘지 못한다 — `--accent-fg`
+     (`#396050`)는 **밝은 sage 위에 얹는 어두운 잉크**이고(`.vt-chip[aria-pressed]` 가
+     그 용도다) 채운 accent 위의 잉크가 아니기 때문이다.
+
+     이 시스템은 이미 답을 갖고 있다. 스무 줄 위 `.vt-btn--primary` 의 주석: "a fill
+     sitting under its own label needs 4.5:1 against that label and `--accent` gives
+     3.75 (D-12)". 그래서 같은 쌍을 쓴다. 건너뛰기 링크가 접근성 장치라는 점에서
+     이것은 특히 나쁜 자리였다 — 읽을 수 없는 접근성 컨트롤. */
+  background: var(--accent-solid);
+  color: var(--fg-on-accent);
+  font: var(--button);
+  text-decoration: none;
+}
+
+/* specimen 은 드러난 상태를 그린다. 숨은 상태는 제품에서 `sr-only` 가 만들고,
+   그것은 유틸리티지 이 시스템의 컴포넌트가 아니다. */
+.vt-skip--hidden {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+
+/* ---- Page head -------------------------------------------------------------
+
+   [intent — step 3 §7 / 명세 §2-12 가 구현한다. 제품은 아직 히어로 밴드다.]
+
+   `design.md` §7.1 은 "No hero" 인데 랜딩은 `aria-label="Landing Hero"` 를 단
+   `h1` 과 두 문장 단락을 렌더한다. 둘 중 하나를 골라야 했고 **페이지 제목을 남기는
+   쪽**으로 정해졌다 — 모바일 GNB 에 화면 이름 슬롯이 없어 본문 최상단의 `h1` 이
+   현재 위치를 말하는 유일한 것이기 때문이다.
+
+   남는 것은 제목 한 줄 + 부제 한 줄이다. 밴드도 배경도 일러스트도 없고, 위아래
+   여백은 카드 간격과 같다 — 그래서 이 블록에는 `background` 가 없다. 그것이
+   "히어로가 아니다"의 실제 내용이다. */
+
+.vt-pagehead {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) 0 var(--space-4);
+}
+
+/* 모바일에서 제목 역할(22~24px)을 쓰고 큰 헤드라인 clamp 를 버린다. `--h3` 가 그
+   역할이며 여기서 새 크기를 만들지 않는다. */
+.vt-pagehead__title { font: var(--h3); color: var(--ink); margin: 0; }
+
+/* 부제는 한 줄로 자른다 — 12 locale 에서 두 줄이 되면 밀도 목표가 흔들린다. */
+.vt-pagehead__sub {
+  font: var(--body-sm);
+  color: var(--muted-aa);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ---- Empty / error ---------------------------------------------------------
 
