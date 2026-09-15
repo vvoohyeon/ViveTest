@@ -924,6 +924,39 @@ test.describe('Canonical accessibility smoke', () => {
       // ⑷ 목적지는 `<main>` 이고 도착하면 포커스가 거기 있다.
       await page.keyboard.press('Enter');
       await expect(page.locator('main')).toBeFocused();
+
+      // ⑸ 도착이 **제품 링**으로 보인다. 종전에는 브라우저 기본값(`auto 1px rgb(0, 95, 204)`)이
+      // 그려졌고, 그 파란색은 두 테마 어디에도 없다. 링이 그려지는 경로는 이것 하나뿐이므로
+      // — 마우스 클릭은 `main` 에 포커스를 주지 않는다(실측 2026-09-16) — 여기가 유일한 증인이다.
+      //
+      // 색은 리터럴로 적지 않고 `--focus-ring` 을 **해석해서** 대조한다. 토큰은 테마마다 값이
+      // 다르고(`getPropertyValue` 는 `var(--sage-500)` 같은 미해석 값을 돌려준다), 리터럴을
+      // 적으면 테마 컷이 토큰을 옮길 때 이 단언만 뒤처진다.
+      const ring = await page.evaluate(() => {
+        const probe = document.createElement('span');
+        probe.style.color = 'var(--focus-ring)';
+        document.body.append(probe);
+        const resolvedToken = getComputedStyle(probe).color;
+        probe.remove();
+
+        const main = document.querySelector('main')!;
+        const mainStyle = getComputedStyle(main);
+        return {
+          resolvedToken,
+          outlineColor: mainStyle.outlineColor,
+          outlineStyle: mainStyle.outlineStyle,
+          outlineWidth: mainStyle.outlineWidth,
+          documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+      });
+
+      expect(ring.outlineStyle, `${size.width}px: 목적지 링이 제품 링이 아니다`).toBe('solid');
+      expect(ring.outlineWidth, `${size.width}px: 링 두께가 제품 값이 아니다`).toBe('2px');
+      expect(ring.outlineColor, `${size.width}px: 링 색이 --focus-ring 이 아니다`).toBe(ring.resolvedToken);
+      // outline 은 레이아웃을 밀지 않지만 offset 이 양수면 그릴 영역이 넓어진다. 1280 에서
+      // `main` 이 뷰포트 폭과 같으므로(실측 x=0 w=1280) 여기서 가로 스크롤이 생기지 않는 것을
+      // 함께 고정한다.
+      expect(ring.documentOverflow, `${size.width}px: 목적지 링이 가로 오버플로를 만든다`).toBe(0);
     }
   });
 });

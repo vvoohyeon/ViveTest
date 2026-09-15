@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {SiteGnb, type GnbContext} from '@/features/gnb';
+import {focusRingClassName} from '@/features/ui/button-class-names';
 import {PAGE_SHELL_MAIN_ID, SkipToContentLink} from '@/features/landing/shell/skip-to-content-link';
 import {TelemetryConsentBanner} from '@/features/landing/shell/telemetry-consent-banner';
 import {TransitionGnbOverlay} from '@/features/transition/transition-gnb-overlay';
@@ -22,7 +23,11 @@ export function PageShell({locale, context, currentRoute, showDefaultConsentBann
       <SkipToContentLink />
       <TransitionGnbOverlay locale={locale} context={context} currentRoute={currentRoute} />
       <SiteGnb locale={locale} context={context} currentRoute={currentRoute} />
-      <main id={PAGE_SHELL_MAIN_ID} tabIndex={-1} className="page-shell-main mx-auto max-w-[1280px] px-[var(--shell-gutter)] pt-20 pb-6 md:pt-[88px] md:pb-8">
+      <main
+        id={PAGE_SHELL_MAIN_ID}
+        tabIndex={-1}
+        className={`page-shell-main mx-auto max-w-[1280px] px-[var(--shell-gutter)] pt-20 pb-6 md:pt-[88px] md:pb-8 ${focusRingClassName}`}
+      >
         {children}
       </main>
       {showDefaultConsentBanner ? <TelemetryConsentBanner /> : null}

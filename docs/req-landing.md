@@ -260,7 +260,7 @@
 3. Automated: Mobile Test Back의 history fallback 동작을 검증한다.
 4. Automated: Desktop 설정 트리거↔레이어 경계 이동에서 hover gap crossing으로 닫힘이 발생하지 않음을 검증한다.
 5. Automated: Desktop focus out 닫힘 지연이 `<=1 frame`이며 hover 유예가 적용되지 않음을 검증한다.
-6. Automated: Landing-only GNB↔card keyboard focus transfer와 Blog/History/Test native GNB focus order를 각각 검증한다.
+6. Automated: 모든 컨텍스트에서 탭 순서가 문서 순서를 따르는지(skip link가 첫 tab stop이고 `<main>`으로 도달한다)와 Blog/History/Test native GNB focus order를 각각 검증한다.
 
 ### 6.5 Card Slot Order Contract
 **Rule**: 슬롯 순서와 존재 규칙은 고정한다.
@@ -553,7 +553,6 @@
 - unavailable의 `aria-disabled`/name/status/tabIndex ownership은 button 하나에만 두며 card root에 disabled state를 중복하지 않는다.
 - `aria-disabled="true"` 대상은 click/keydown(`Enter/Space`)에서 기본 동작을 차단해야 한다.
 - HOVER_LOCK 키보드 모드 비대상 카드는 `aria-disabled`가 아니라 `inert`로 포커스/접근성 트리/활성화를 차단한다.
-- GNB-to-landing keyboard focus transfer must skip card triggers with `aria-disabled="true"` and any card triggers whose ancestor card root carries the `inert` attribute.
 - `role="button"` 대체 구현은 금지하며, 불가피한 경우 Section 15 Exception Registry 등록 후에만 허용한다.
 
 ### 9.3 Coming-soon Indicator Readability
@@ -898,7 +897,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 2. Routing/i18n: single locale prefix, duplicate prefix `0건`, `proxy.ts` 단일 책임, locale-less allowlist/404 분기 PASS (Section 5, 13).
 3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, trigger-layer gap `0px`, focus out close `<=1 frame`, hover 유예 hover-only, Mobile overlay/backdrop/scroll lock, Desktop/Mobile Test의 Back+Timer-only control set, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
 4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Expanded/handoff 활성 중 grid plan freeze, 폭 변경 시 강제 종료 후 재계산, same-row 비대상 카드 top/bottom/outer height 오차 `0px`, Desktop Normal same-row bottom edge `0px`, 텍스트 overflow(특히 subtitle long-token)로 인한 카드/row inline-size 확장 `0건`, 텍스트 overflow로 인한 형제 슬롯(썸네일/태그) inline-size 변형 `0건`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, handoff는 enterable 카드(available 또는 opt_out) 기준으로만 성립, shell scale/crop PASS (Section 6, 7, 8, 9).
-5. Keyboard/A11y: Desktop/Tablet Test focus 즉시 확장과 pending pointer-intent 취소, Blog non-expansion, unavailable skip, Landing-only GNB↔card focus transfer, 카드 내부 순회/no-trap, Test trigger `Enter/Space` idempotence와 A/B-only entry, higher-priority dialog 우선 `Escape`, trigger/choice `Escape` 단일 close + trigger 복귀, true focus-out destination 보존과 pure window blur 상태 보존, closing/cleanup/handoff-source 비상호작용, 12-locale Test name cycle 안정성, logical `aria-expanded`/stage `aria-hidden`, unavailable button-only name/status/disabled ownership, unnamed native tags list, expanded Test axe-clean, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 8, 9).
+5. Keyboard/A11y: Desktop/Tablet Test focus 즉시 확장과 pending pointer-intent 취소, Blog non-expansion, unavailable skip, 문서 순서 탭 이동과 skip link 목적지 도달, 카드 내부 순회/no-trap, Test trigger `Enter/Space` idempotence와 A/B-only entry, higher-priority dialog 우선 `Escape`, trigger/choice `Escape` 단일 close + trigger 복귀, true focus-out destination 보존과 pure window blur 상태 보존, closing/cleanup/handoff-source 비상호작용, 12-locale Test name cycle 안정성, logical `aria-expanded`/stage `aria-hidden`, unavailable button-only name/status/disabled ownership, unnamed native tags list, expanded Test axe-clean, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 8, 9).
 6. Transition/Test Handshake: ingress flag 기록, landing `scoring1` pre-answer 유지, landing/direct runtime start 규칙 적용, runtime entry commit 이후 ingress consume, rollback 3케이스, canonical/runtime order와 user-facing scoring label 역전 `0건`, Blog article 식별자 전달, Blog transition의 landing ingress/card_answered `0건`, `start=1 -> terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, Mobile lifecycle atomicity(`OPENING -> OPEN -> CLOSING -> NORMAL`), single sequence 상태 전이 1회, OPENING close queue 처리, CLOSING 인터럽트 무시, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op, return scroll 복원 1회+즉시 consume PASS (Section 8, 12, 13).
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
 8. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).
