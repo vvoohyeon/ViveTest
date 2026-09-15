@@ -404,6 +404,55 @@ test.describe('Instruction consent contract smoke', () => {
     await expect(page.getByTestId('test-progress')).toHaveText('0%');
   });
 
+  test('@smoke assertion:ESC-01 Escape writes nothing on the instruction step in every consent shape', async ({
+    page
+  }) => {
+    // 종전 계약은 `Esc` 를 그 단계 secondary CTA 의 별칭으로 정의했고, 그래서 취소 키가
+    // consent 를 영구 저장하는 유일한 경로였다(`UNKNOWN + available` 은 `deny_and_abandon`,
+    // `UNKNOWN + opt_out` 은 `deny_and_start`). 개정 후 instruction step 의 `Esc` 는
+    // no-op 이다(`req-test.md` §3.6). **이 동작을 보는 E2E 가 0 건이었다.**
+    const surfaces = [
+      {
+        label: 'UNKNOWN + available (종전 deny_and_abandon)',
+        route: buildLocalizedPrimaryTestRoute('en'),
+        variant: PRIMARY_AVAILABLE_TEST_VARIANT
+      },
+      {
+        label: 'UNKNOWN + opt_out (종전 deny_and_start)',
+        route: buildLocalizedPrimaryOptOutTestRoute('en'),
+        variant: PRIMARY_OPT_OUT_TEST_VARIANT
+      }
+    ] as const;
+
+    await page.setViewportSize({width: 1280, height: 900});
+
+    for (const surface of surfaces) {
+      await clearTelemetryConsent(page);
+      await page.goto(surface.route);
+      await expect(page.getByTestId('test-instruction-overlay'), surface.label).toBeVisible();
+
+      await page.keyboard.press('Escape');
+      // 다음 단언 앞에 상태가 자리잡을 틈을 준다 — 종전 동작은 저장과 이동이 즉시였다.
+      await page.waitForTimeout(300);
+
+      // ⑴ consent 를 쓰지 않는다. ⑵ `instructionSeen` 을 기록하지 않는다.
+      // ⑶ commit 하지 않는다(창이 그대로 열려 있다). ⑷ redirect 하지 않는다.
+      expect(await readConsent(page), `${surface.label}: Esc 가 consent 를 썼다`).toBeNull();
+      expect(
+        await readInstructionSeen(page, surface.variant),
+        `${surface.label}: Esc 가 instructionSeen 을 기록했다`
+      ).toBeNull();
+      await expect(page.getByTestId('test-instruction-overlay'), surface.label).toBeVisible();
+      await expect(page, surface.label).toHaveURL(new RegExp(`${surface.variant}$`, 'u'));
+    }
+
+    // 금지는 `Esc` 에만 걸린다 — 같은 화면의 버튼은 그대로 효력을 갖는다. 이 대조군이 없으면
+    // 위 단언은 「secondary CTA 가 죽었다」와 구별되지 않는다.
+    await page.getByTestId('test-deny-and-start-button').click();
+    await expect.poll(() => readConsent(page)).toBe('OPTED_OUT');
+    await expect.poll(() => readInstructionSeen(page, PRIMARY_OPT_OUT_TEST_VARIANT)).toBe('true');
+  });
+
   test('@smoke assertion:B23-opted-out-available-warning-contract direct available OPTED_OUT replaces the old redirect contract with warning copy and Keep Current Preference', async ({
     page
   }) => {

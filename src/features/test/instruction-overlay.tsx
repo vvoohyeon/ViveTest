@@ -73,11 +73,22 @@ export function InstructionOverlay({
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const descriptionId = useId();
-  // 어느 단계든 왼쪽(dismiss) 행동이 Esc 의 행동이다: 지시 단계는 secondary CTA(「동의하지
-  // 않고 시작」이면 그대로 시작, 「동의하지 않고 나가기」면 랜딩으로), qualifier 단계는
-  // Back / Cancel. secondary 가 없는 창(「시작」 하나뿐)에서는 Esc 가 아무것도 하지 않는다 —
-  // 동의를 묻는 문을 Esc 로 열어 주는 것은 닫는 것이 아니다.
-  const dismissAction = qualifierStep ? qualifierStep.onBack : onSecondaryAction;
+  // **Esc 는 취소이고, 취소는 아무것도 쓰지 않는다**(`req-test.md` §3.6).
+  //
+  // 종전에는 Esc 가 그 단계의 dismiss action, 즉 secondary CTA 의 별칭이었다. 그래서 취소
+  // 키가 `ACTION_EFFECTS` 를 그대로 실행했다 — `UNKNOWN + available` 에서 Esc 한 번이
+  // `deny_and_abandon` 이 되어 `OPTED_OUT` 을 영구 저장하고 랜딩으로 나갔고,
+  // `UNKNOWN + opt_out` 에서는 `deny_and_start` 가 되어 저장 + `instructionSeen` 기록 +
+  // qualifier 진행까지 갔다. 사용자가 「취소」로 읽는 키가 개인정보 설정을 바꾸는 유일한
+  // 경로였다.
+  //
+  // instruction step 의 Esc 는 **no-op** 이다. 동의를 묻는 문은 Esc 로 통과시키지 않고, 앞으로
+  // 나가는 길은 CTA 가 소유한다. 키보드 덫이 아니다 — primary CTA 가 항상 존재하고 Tab 으로
+  // 도달하며, 나가는 secondary CTA 도 버튼으로 남아 있다.
+  //
+  // qualifier step 의 Esc 는 Back / Cancel 그대로다. 그 둘은 `use-qualifier-overlay-wizard` 의
+  // draft 상태만 되돌리고 durable 상태를 쓰지 않으므로 위 금지를 이미 만족한다.
+  const dismissAction = qualifierStep ? qualifierStep.onBack : undefined;
   const stepKey = qualifierStep ? qualifierStep.item.canonicalIndex : 'instruction';
 
   // 열릴 때 그 전에 포커스가 있던 곳을 적어 두고, 닫힐 때 거기로 돌려보낸다. 재진입(칩 → 창 →

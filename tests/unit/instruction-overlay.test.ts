@@ -248,7 +248,11 @@ describe('InstructionOverlay — modal dialog contract', () => {
     expect(document.activeElement).toBe(dialog);
   });
 
-  it('M-2 Escape performs the secondary (dismiss) action on the instruction step', () => {
+  // 종전 제목은 「Escape performs the secondary (dismiss) action」이었고, 그 계약이 취소 키를
+  // `ACTION_EFFECTS` 의 별칭으로 만들었다 — `deny_and_start` 면 `OPTED_OUT` 저장 +
+  // `instructionSeen` 기록 + 진행, `deny_and_abandon` 이면 저장 + 랜딩 복귀. 개정으로
+  // instruction step 의 `Esc` 는 no-op 이다(`req-test.md` §3.6).
+  it('M-2 Escape is inert on the instruction step even when a secondary CTA exists', () => {
     const onPrimaryAction = vi.fn();
     const onSecondaryAction = vi.fn();
     const view = renderOverlay({
@@ -263,9 +267,32 @@ describe('InstructionOverlay — modal dialog contract', () => {
 
     const event = pressKey(view.querySelector('[role="dialog"]'), 'Escape');
 
-    expect(onSecondaryAction).toHaveBeenCalledTimes(1);
+    // 부수효과를 실어 나르던 두 경로 어느 쪽도 실행되지 않는다.
+    expect(onSecondaryAction).not.toHaveBeenCalled();
     expect(onPrimaryAction).not.toHaveBeenCalled();
-    expect(event.defaultPrevented).toBe(true);
+    // `preventDefault` 도 하지 않는다 — 삼키지 않고 그대로 흘려보낸다.
+    expect(event.defaultPrevented).toBe(false);
+    // 그리고 창은 열린 채다. 동의를 묻는 문이 `Esc` 로 열리지 않는다는 것이 이 계약이다.
+    expect(view.querySelector('[data-testid="test-instruction-overlay"]')).not.toBeNull();
+  });
+
+  it('M-2b the secondary CTA still carries its effect when pressed', () => {
+    // 금지는 `Esc` 에만 걸린다 — 버튼을 눌렀을 때의 action identity 는 consent matrix 그대로다.
+    // 이 단언이 없으면 위 개정이 secondary CTA 자체를 죽였는지 알 수 없다.
+    const onSecondaryAction = vi.fn();
+    const view = renderOverlay({
+      title: 'Instruction title',
+      instructionText: 'Read this carefully.',
+      showDivider: true,
+      primaryLabel: 'Accept all and start',
+      secondaryLabel: 'Deny and start',
+      onPrimaryAction: vi.fn(),
+      onSecondaryAction
+    });
+
+    view.querySelector<HTMLButtonElement>('[data-testid="test-secondary-instruction-button"]')?.click();
+
+    expect(onSecondaryAction).toHaveBeenCalledTimes(1);
   });
 
   it('M-3 Escape does nothing when the only way forward is the primary action', () => {

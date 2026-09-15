@@ -697,7 +697,11 @@ test.describe('Canonical accessibility smoke', () => {
     await expectPageToBeAxeClean(page);
   });
 
-  test('@smoke instruction overlay is a modal dialog — labelled, focus-trapped, Esc is the dismiss action', async ({
+  // 종전 제목은 「… Esc is the dismiss action」이었고 말미에서 `Esc` 가 랜딩으로 나가며
+  // `OPTED_OUT` 을 저장하는 것을 계약으로 고정했다. BQ-41 이 그 계약을 뒤집었다 — `Esc` 는
+  // 취소이고 취소는 아무것도 쓰지 않는다(`req-test.md` §3.6). 이 케이스가 계속 재는 것은
+  // **모달 의미론과 포커스 트랩**이고, `Esc` 부분만 새 계약으로 바뀐다.
+  test('@smoke instruction overlay is a modal dialog — labelled, focus-trapped, and Esc writes nothing', async ({
     page
   }) => {
     // The describe seeds OPTED_IN; this case needs consent UNKNOWN + available variant so the
@@ -725,7 +729,18 @@ test.describe('Canonical accessibility smoke', () => {
     await page.keyboard.press('Shift+Tab');
     await expect(page.getByTestId('test-accept-all-and-start-button')).toBeFocused();
 
+    // `Esc` 는 이 문을 열지 않는다 — 다이얼로그는 그대로 열려 있고, 주소도 consent 도
+    // 움직이지 않는다. 종전에는 이 한 번이 `deny_and_abandon` 이었다.
     await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_VARIANT}$`, 'u'));
+    await expect
+      .poll(() => page.evaluate(() => window.localStorage.getItem('vivetest-telemetry-consent')))
+      .toBeNull();
+
+    // 그리고 나가는 길은 버튼이 그대로 갖고 있다 — `Esc` 만 무력해진 것이지 경로가 사라진
+    // 것이 아니다.
+    await page.getByTestId('test-deny-and-abandon-button').click();
     await expect(page).toHaveURL(/\/en$/u);
     await expect
       .poll(() => page.evaluate(() => window.localStorage.getItem('vivetest-telemetry-consent')))

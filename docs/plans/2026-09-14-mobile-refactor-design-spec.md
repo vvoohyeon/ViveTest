@@ -109,7 +109,7 @@
 
 **액션 행은 시트 하단에 고정**되고 본문만 스크롤한다. 모바일에서는 **세로 스택 · 전체 폭**이다 — primary 가 **맨 아래**(엄지), secondary(quiet) 가 그 위. 두 버튼을 가로로 나열하지 않는다: 12 locale 중 8 개에서 접혔고 `justify-end` 가 부차 행동을 주 행동 **위**로 올렸다. 데스크톱·태블릿의 중앙 다이얼로그는 유지하되 같은 규칙을 쓴다 — 한 줄에 들어가면 우측 정렬 한 줄, 들어가지 않으면 **접지 않고 스택**한다(§4 결함 3).
 
-**바뀌지 않는 것 — 하나라도 바뀌면 회귀다.** 액션의 정체(`start` · `accept_all_and_start` · `deny_and_start` · `deny_and_abandon` · `keep_current_preference`)와 그 효과 표(`entry-policy.ts`) · `instructionSeen` 생명주기 · qualifier 단계 진행과 재진입 모드(칩으로 다시 열기 · Cancel 은 상태를 쓰지 않음) · auto-commit 경로(시트를 그리지 않고 지나간다) · 열릴 때 포커스가 첫 컨트롤이 아니라 **컨테이너**로 들어오는 것 · `Esc` 의 의미(step 2 가 개정하는 대로 — consent 저장·`instructionSeen` 기록·commit 을 실행하지 않는다) · 랜딩에서 미리 답한 `scoring1` 이 보존돼 시작 후 **Q2 부터** 보이는 것 · qualifier 가 있는 variant 가 첫 scoring 문항부터 시작하는 것.
+**바뀌지 않는 것 — 하나라도 바뀌면 회귀다.** 액션의 정체(`start` · `accept_all_and_start` · `deny_and_start` · `deny_and_abandon` · `keep_current_preference`)와 그 효과 표(`entry-policy.ts`) · `instructionSeen` 생명주기 · qualifier 단계 진행과 재진입 모드(칩으로 다시 열기 · Cancel 은 상태를 쓰지 않음) · auto-commit 경로(시트를 그리지 않고 지나간다) · 열릴 때 포커스가 첫 컨트롤이 아니라 **컨테이너**로 들어오는 것 · `Esc` 의 의미(BQ-41 이 개정한 대로 — consent 저장·`instructionSeen` 기록·commit·redirect 를 실행하지 않고 instruction step 에서는 no-op 이다) · 랜딩에서 미리 답한 `scoring1` 이 보존돼 시작 후 **Q2 부터** 보이는 것 · qualifier 가 있는 variant 가 첫 scoring 문항부터 시작하는 것.
 
 **닫히는 연출.** commit 은 탭 즉시이고 시트는 그 뒤 내려간다 — 내려가는 동안 그 **아래에 이미 다음 문항**(랜딩 진입이면 Q2)이 그려져 있어야 한다. 시트가 사라진 뒤 포커스는 문항 제목으로 간다(`<body>` 로 떨어뜨리지 않는다 — 지금은 매 문항 전진마다 그렇게 된다). 랜딩에서 들어온 경우 시트는 **첫 페인트에 이미 열려 있다**(진입 모션 없음 — 랜딩 → 테스트 전환 자체가 모션이다). 직접 진입에서는 페이지가 그려진 뒤 §3-4 의 진입 모션으로 올라온다.
 
