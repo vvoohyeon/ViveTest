@@ -6,7 +6,6 @@ import {
   PRIMARY_BLOG_VARIANT,
   buildLocalizedPrimaryTestRoute
 } from './helpers/landing-fixture';
-import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
 import {setHoverCapableViewport, setTouchViewport} from './helpers/touch-context';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
@@ -1007,7 +1006,17 @@ test.describe('Phase 7 state + capability smoke', () => {
     });
   });
 
-  test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}, testInfo) => {
+  test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}) => {
+    // **이 검사는 기하로 잰다 — 픽셀이 아니라.**
+    //
+    // 종전에는 카드 상자를 그대로 스크린샷으로 비교했다. 그 상자는 **내용이 크기를 정하므로**
+    // 폰트 메트릭이 조금 다른 기계에서 398×293 대 395×292 로 갈렸고, 그래서 두 기계 중 한쪽은
+    // 언제나 붉었다(나머지 169 장은 뷰포트라는 고정 크기 영역을 찍어 기계와 무관하다). 상시
+    // 붉음은 진짜 회귀를 가린다.
+    //
+    // 이 검사가 실제로 주장하는 것은 **포커스 경계가 접힌 카드가 아니라 보이는 오버레이 셸을
+    // 따른다**는 것이고, 그것은 두 사각형의 좌표로 정확히 잴 수 있다. 픽셀은 그 주장보다 넓은
+    // 것을 재고 있었고, 그 초과분이 기계 종속의 원인이었다.
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -1018,7 +1027,59 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
     await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
-    await expectLocatorToMatchLocalSnapshot(firstCard, 'expanded-focus-shell.png', testInfo);
+
+    const focus = await firstCard.evaluate((root) => {
+      const surface = root.querySelector('[data-slot="expandedSurface"]');
+      if (!(surface instanceof HTMLElement)) {
+        return null;
+      }
+
+      const readOutline = (element: HTMLElement) => {
+        const style = window.getComputedStyle(element);
+        return {
+          style: style.outlineStyle,
+          width: style.outlineWidth,
+          color: style.outlineColor
+        };
+      };
+
+      const rootRect = root.getBoundingClientRect();
+      const surfaceRect = surface.getBoundingClientRect();
+      const focusRingToken = window
+        .getComputedStyle(root)
+        .getPropertyValue('--normal-focus-ring')
+        .trim();
+      const probe = document.createElement('span');
+      probe.style.color = focusRingToken;
+      document.body.appendChild(probe);
+      const resolvedFocusRing = window.getComputedStyle(probe).color;
+      probe.remove();
+
+      return {
+        surfaceOutline: readOutline(surface),
+        rootOutline: readOutline(root as HTMLElement),
+        resolvedFocusRing,
+        rootWidth: Math.round(rootRect.width),
+        surfaceWidth: Math.round(surfaceRect.width),
+        // 확장 셸은 접힌 카드보다 **가로로** 넓다(실측 434 대 395 — `--landing-card-shell-inline-scale`).
+        // 높이는 같으므로 세로로 재면 두 상자를 구분하지 못한다.
+        surfaceIsWiderThanRoot: surfaceRect.width > rootRect.width + 1
+      };
+    });
+
+    expect(focus, '확장 오버레이 셸을 찾지 못하면 아래 단언이 공허해진다').not.toBeNull();
+
+    // ⑴ 포커스 링은 **오버레이 셸**이 진다.
+    expect(focus?.surfaceOutline.style).toBe('solid');
+    expect(focus?.surfaceOutline.width).toBe('2px');
+    expect(focus?.surfaceOutline.color).toBe(focus?.resolvedFocusRing);
+
+    // ⑵ 접힌 카드의 root 는 링을 지지 않는다 — 두 링이 동시에 그려지면 경계가 둘이 된다.
+    expect(focus?.rootOutline.style).toBe('none');
+
+    // ⑶ 그 경계는 접힌 상자가 아니라 **보이는 오버레이**의 것이다. 확장 셸은 접힌 카드보다
+    //    가로로 넓으므로, 둘이 같다면 링이 엉뚱한 상자를 따르고 있다는 뜻이다.
+    expect(focus?.surfaceIsWiderThanRoot).toBe(true);
   });
 
   test('@smoke assertion:B5-mobile-keyboard-handoff mobile keyboard CTA traversal collapses the previous expanded card before focusing the next trigger', async ({
