@@ -215,6 +215,19 @@
 ### 11.3 Reduced Motion / Low-spec
 **Rule**: `prefers-reduced-motion`에서 대형 이동을 금지하고 `150~220ms` 단순 전환으로 축소한다. 저사양 fallback은 시각 효과보다 상태 일관성 우선.
 
+**감소 모드에서 남는 것 — 「전부 0」이 아니다(2026-09-16 census).** `prefers-reduced-motion` 은 *움직임*에 대한 선호이지 색과 불투명도에 대한 선호가 아니다. 랜딩에서 카드를 펼친 상태로 전수 census 한 결과 전이를 가진 원소가 **31 → 18** 로 줄었고, 남은 18 은 **하나도 움직이지 않는다**(강제 `transform` 0 건).
+
+| 남은 원소 | 수 | 무엇이 전이하는가 | 처분 |
+|:---|---:|:---|:---|
+| GNB pill·칩(설정 트리거 · 테마 스와치 둘 · 언어 칩 12 · 메뉴 트리거) | 16 | `border-color` · `background-color` · `box-shadow`, 140ms | **남긴다** — 위치도 크기도 움직이지 않는다 |
+| 시트 · 스크림 | 2 | `opacity`, 140ms | **남긴다** — §8.5 가 「이동을 버리고 페이드만 남긴다」고 정한 그 페이드다 |
+
+그래서 이 절의 회귀는 **개수가 아니라 성질**로 고정한다(`assertion:MO-01`): 감소 모드에서 `transform`·위치·크기를 전이하는 원소가 0 이고, 평소 모드에서는 0 이 아니다. 개수로 재면 「몇 개면 충분한가」라는 답할 수 없는 질문이 남고, 개체수가 바뀔 때마다 숫자를 내리는 것으로 끝난다.
+
+**터치 기본값 둘**(`assertion:MO-02`): 문서 루트가 `overscroll-behavior-y: none` 으로 당겨-새로고침과 스크롤 체이닝을 끊고, 모든 컨트롤이 `touch-action: manipulation` 으로 더블탭 대기를 버린다. 본문 텍스트에는 걸지 않는다 — 더블탭 단어 선택이 함께 사라진다. 핀치 확대는 그대로 남으므로 WCAG 1.4.4 와 충돌하지 않는다.
+
+**누름 피드백**(`assertion:PF-01`): hover 로 스킨(면·선·글자색·그림자)을 바꾸는 자리는 누름으로도 바꾼다. Tailwind v4 는 `hover:` 유틸리티를 `@media (hover:hover)` 로 감싸므로 터치 기기에서 그 스킨은 **아예 적용되지 않고**, preflight 가 `-webkit-tap-highlight-color` 까지 끄므로 `active:` 가 없으면 손가락이 닿은 순간부터 목적지가 그려질 때까지 화면이 아무 말도 하지 않는다. CSS 파일의 hover 스킨은 `@media (hover: hover)` 안에 두어 스스로 hover 전용임을 선언한다.
+
 **Rule**:
 - 커스텀 커서 금지
 - available 카드/CTA에만 pointer

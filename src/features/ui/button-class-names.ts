@@ -75,18 +75,18 @@ export const buttonFormBaseClassName =
   `${buttonShapeClassName} text-center no-underline ${liftTransitionPropertyClassName} ${skinTransitionClassName} ${buttonDisabledClassName} ${focusRingClassName}`;
 
 /**
- * 채워진 accent 의 쉼과 hover. **`--accent` 가 아니라 `--accent-solid` 를 읽는다**(D-12):
+ * 채워진 accent 의 쉼·hover·**눌림**. 종전에는 눌림이 별도 상수였는데 소비자 셋이 예외 없이
+ * 함께 조립하고 있었다 — 늘 붙어 다니는 조각을 둘로 두면 「한쪽만 빠뜨릴 수 있다」는 가능성만
+ * 남는다. lift 는 그대로 분리돼 있다: 그쪽은 실제로 쓰는 표면과 쓰지 않는 표면이 갈린다.
+ *
+ * **`--accent` 가 아니라 `--accent-solid` 를 읽는다**(D-12):
  * accent 는 선이나 링일 때 3:1 이면 되고 3.75 로 넘지만, 제 라벨 아래 깔린 **면**일 때는 그
  * 라벨에 대해 4.5:1 이 필요하고 흰 라벨이 3.75 다. 라벨을 어둡게 뒤집어도 해결되지 않는다 —
  * 쉴 때 4.61 에서 눌릴수록 3.39 · 2.44 로 *내려간다*. 면을 한 단 깊게 하면 흰 라벨을 유지한
  * 채 5.09 → 7.09 → 9.76 으로 올라간다.
  */
 export const buttonPrimaryClassName =
-  'border-[var(--accent-solid)] bg-[var(--accent-solid)] text-[var(--fg-on-accent)] hover:border-[var(--accent-solid-hover)] hover:bg-[var(--accent-solid-hover)]';
-
-/** 눌림. 이동하지 않는 표면(동의 배너)은 이것만 얹는다. */
-export const buttonPrimaryPressedClassName =
-  'active:border-[var(--accent-solid-pressed)] active:bg-[var(--accent-solid-pressed)]';
+  'border-[var(--accent-solid)] bg-[var(--accent-solid)] text-[var(--fg-on-accent)] hover:border-[var(--accent-solid-hover)] hover:bg-[var(--accent-solid-hover)] active:border-[var(--accent-solid-pressed)] active:bg-[var(--accent-solid-pressed)]';
 
 /**
  * 1px lift. `design.md` §4.8 은 bounce 와 overshoot 를 금지하고, 140ms ease 아래의 1px 이동이
@@ -106,13 +106,15 @@ export const buttonSecondaryClassName =
  * 44px 로 계산된다(실측).
  */
 export const buttonQuietClassName =
-  'min-h-[var(--tap-min)] border-[transparent] bg-transparent px-3 py-[10px] text-[var(--muted-aa)] hover:bg-[var(--surface-sunken)] hover:text-[var(--ink-body)]';
+  'min-h-[var(--tap-min)] border-[transparent] bg-transparent px-3 py-[10px] text-[var(--muted-aa)] hover:bg-[var(--surface-sunken)] hover:text-[var(--ink-body)] active:bg-[var(--surface-strong)] active:text-[var(--ink-body)]';
 
 /**
  * 빈 상태의 단일 행동을 링크로 낸 완성형. 404 두 장이 함께 쓴다.
  *
- * 눌림도 lift 도 갖지 않는다 — 이동만 하는 링크에 눌린 면은 의미가 없고, 그 라우트에는 모션
- * 이야기가 없다. 그래서 전이 대상도 색 둘뿐이다.
+ * lift 는 갖지 않는다 — 그 라우트에는 모션 이야기가 없다. **눌림은 갖는다**: 종전 주석은
+ * 「이동만 하는 링크에 눌린 면은 의미가 없다」고 적었는데 그것은 hover 가 있는 기기의
+ * 이야기였다. 터치에는 hover 가 없으므로 `:active` 가 탭이 닿았다는 **유일한** 신호이고,
+ * 그것이 없으면 누른 순간 화면이 아무 말도 하지 않는다. 전이 대상 색 둘이 그대로 쓰인다.
  */
 export const linkButtonPrimaryClassName =
   `${buttonShapeClassName} no-underline ${colorTransitionPropertyClassName} ${skinTransitionClassName} ${focusRingClassName} ${buttonPrimaryClassName}`;

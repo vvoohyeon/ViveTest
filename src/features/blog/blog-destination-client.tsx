@@ -40,7 +40,7 @@ const blogArticleListClassName = 'blog-article-list grid gap-3';
 const blogArticleItemsClassName = 'm-0 grid list-none gap-2 p-0';
 // 목록 행은 카탈로그의 선택 행과 같은 처리를 받는다 — 어딘가로 데려가는 행이라는 점이 같다.
 const blogArticleListItemClassName =
-  'blog-article-list-item rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] [transition-property:border-color,background-color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)]';
+  'blog-article-list-item rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] [transition-property:border-color,background-color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] active:border-[var(--accent)] active:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)]';
 const blogArticleLinkClassName =
   'blog-article-link grid gap-1 px-3.5 py-3 [color:inherit] no-underline hover:no-underline focus-visible:no-underline focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:2px]';
 const blogArticleLinkTitleClassName =

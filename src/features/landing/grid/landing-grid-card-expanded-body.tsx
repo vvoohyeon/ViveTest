@@ -105,7 +105,10 @@ interface ExpandedMetaEntry {
 function ExpandedMetaRow({entries, interactive}: {entries: [ExpandedMetaEntry, ...ExpandedMetaEntry[]]; interactive: boolean}) {
   return (
     <p
-      className={joinClassNames(LANDING_GRID_CARD_META_ROW_CLASSNAME, styles.motionStageMiddle)}
+      // 3 단 stagger 의 셋째 칸이다(`design.md:374`). CSS 는 40/100/160ms 를 정의하는데 meta 가
+      // Middle 로 배정돼 **Late 가 소비자 0 인 채로 남아** 있었다 — 죽은 코드가 아니라 배정
+      // 누락이다. 순서는 질문(Early) → 선택지(Middle) → 메타(Late).
+      className={joinClassNames(LANDING_GRID_CARD_META_ROW_CLASSNAME, styles.motionStageLate)}
       data-slot={interactive ? 'meta' : undefined}
       data-motion-slot="meta"
     >

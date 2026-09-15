@@ -39,9 +39,9 @@ const CONSENT_RECALL_LINK_CLASS = [
  */
 const CONSENT_RECALL_TONE_CLASS = {
   /** canvas 지면 — 드로어 설정 블록과 페이지 최하단. */
-  quiet: 'text-[var(--muted-aa)] hover:text-[var(--ink-body)]',
+  quiet: 'text-[var(--muted-aa)] hover:text-[var(--ink-body)] active:text-[var(--ink-body)]',
   /** `--surface-muted` 지면 — `OPTED_OUT` 고지 행. 실측 대비 light 5.8:1 · dark 7.22:1. */
-  onMuted: 'text-[var(--accent-fg)] hover:text-[var(--accent-solid-hover)]'
+  onMuted: 'text-[var(--accent-fg)] hover:text-[var(--accent-solid-hover)] active:text-[var(--accent-solid-hover)]'
 } as const;
 
 export type ConsentRecallTone = keyof typeof CONSENT_RECALL_TONE_CLASS;

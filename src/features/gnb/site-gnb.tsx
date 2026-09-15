@@ -51,7 +51,7 @@ const gnbDesktopLinksClassName = 'gnb-desktop-links flex items-center gap-4';
 // The rest colour is `--muted-aa`, not `--muted`: BQ-29 measured `--muted` at
 // 4.23:1 on white, and a nav link is normal-sized text however small it looks.
 const gnbDesktopLinkClassName =
-  'gnb-desktop-link relative py-2 text-[0.96rem] text-[color:var(--muted-aa)] [transition-duration:140ms] [transition-property:color] [transition-timing-function:ease] motion-reduce:transition-none hover:text-[color:var(--ink)] aria-[current=page]:text-[color:var(--ink)]';
+  'gnb-desktop-link relative py-2 text-[0.96rem] text-[color:var(--muted-aa)] [transition-duration:140ms] [transition-property:color] [transition-timing-function:ease] motion-reduce:transition-none hover:text-[color:var(--ink)] active:text-[color:var(--ink)] aria-[current=page]:text-[color:var(--ink)]';
 // design.md 7.6 asks the menu to mark its current item with a dot. Same signal on
 // the desktop row and in the drawer rather than inventing a second one.
 const gnbDesktopLinkCurrentMarkerClassName =
@@ -102,7 +102,7 @@ const gnbMobileHeadLabelClassName =
   'gnb-mobile-head-label text-[0.78rem] font-bold uppercase leading-none tracking-[0.03em] text-[color:var(--muted-aa)]';
 const gnbMobileLinksClassName = 'gnb-mobile-links grid gap-1';
 const gnbMobileLinkClassName =
-  'gnb-mobile-link -mx-3 flex min-h-[var(--tap-min)] items-center gap-2 rounded-[8px] px-3 text-base font-semibold [transition:background-color_140ms_ease] motion-reduce:transition-none hover:bg-[var(--surface-sunken)]';
+  'gnb-mobile-link -mx-3 flex min-h-[var(--tap-min)] items-center gap-2 rounded-[8px] px-3 text-base font-semibold [transition:background-color_140ms_ease] motion-reduce:transition-none hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-strong)]';
 const gnbMobileLinkCurrentMarkerClassName =
   'gnb-mobile-link-marker pointer-events-none h-[5px] w-[5px] flex-none rounded-full bg-[var(--accent)]';
 const gnbMobileSettingsClassName = 'gnb-mobile-settings mt-auto grid gap-3';

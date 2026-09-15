@@ -5,7 +5,6 @@ import {useEffect, useRef, useState} from 'react';
 import {
   buttonBaseClassName,
   buttonPrimaryClassName,
-  buttonPrimaryPressedClassName,
   buttonQuietClassName,
   focusRingClassName
 } from '@/features/ui/button-class-names';
@@ -54,8 +53,7 @@ const CONSENT_BUTTON_BASE_CLASS = ['telemetry-consent-banner-button', buttonBase
 const CONSENT_PRIMARY_BUTTON_CLASS = [
   CONSENT_BUTTON_BASE_CLASS,
   'telemetry-consent-banner-button-accent',
-  buttonPrimaryClassName,
-  buttonPrimaryPressedClassName
+  buttonPrimaryClassName
 ].join(' ');
 // **거부는 평문 텍스트 버튼이다.** 종전에는 여기가 수락과 같은 무게(secondary)였고 그 이유로
 // 「두 선택지는 대칭인 동의 응답이라 한쪽을 낮추면 대칭이 깨진다」를 적고 있었다. 2026-09-14
@@ -81,7 +79,7 @@ const CONSENT_PREVIOUS_CHOICE_CLASS =
 // 그리면 링이 배너 경계 밖으로 나간다.
 const CONSENT_CLOSE_BUTTON_CLASS = [
   'telemetry-consent-banner-close absolute right-2 top-2 grid h-[var(--tap-min)] w-[var(--tap-min)] cursor-pointer place-items-center rounded-full border-0 bg-transparent p-0 text-[var(--muted-aa)]',
-  'hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]',
+  'hover:bg-[var(--surface-muted)] hover:text-[var(--ink)] active:bg-[var(--surface-strong)] active:text-[var(--ink)]',
   '[transition-property:background-color,color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none',
   'focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:-2px]'
 ].join(' ');

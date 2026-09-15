@@ -46,7 +46,7 @@ const chipSelectedStateClassName =
 const chipSwatchSelectedStateClassName =
   'border-[var(--gnb-chip-border)] [box-shadow:0_0_0_2px_var(--surface-raised),0_0_0_4px_var(--accent)]';
 const chipUnselectedStateClassName =
-  'hover:border-[var(--gnb-chip-hover-border)] hover:bg-[var(--gnb-chip-hover-bg)] hover:shadow-[var(--gnb-chip-hover-shadow)]';
+  'hover:border-[var(--gnb-chip-hover-border)] hover:bg-[var(--gnb-chip-hover-bg)] hover:shadow-[var(--gnb-chip-hover-shadow)] active:border-[var(--gnb-chip-hover-border)] active:bg-[var(--gnb-chip-hover-bg)]';
 const chipThemePreviewLightClassName =
   '[--gnb-chip-bg:var(--theme-preview-light-bg)] [--gnb-chip-border:var(--theme-preview-light-border)] [--gnb-chip-ink:var(--theme-preview-light-ink)] [--gnb-chip-hover-bg:var(--theme-preview-light-hover-bg)] [--gnb-chip-hover-border:var(--theme-preview-light-hover-border)] [--gnb-chip-hover-shadow:var(--theme-preview-light-hover-shadow)]';
 const chipThemePreviewDarkClassName =

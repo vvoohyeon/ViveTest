@@ -4,7 +4,7 @@
   "groups": {
     "desktop-tablet": {
       "renderCount": 10080,
-      "digest": "bfdab72d63b0644254b87c5b50486ea105d7653bef63e40673b75490d5bbf5be"
+      "digest": "2b99059b201c7b31861d680f38beebd35c908a0aea435a5c942c8757d708d88e"
     },
     "mobile": {
       "renderCount": 480,
@@ -12,8 +12,8 @@
     },
     "univariate": {
       "renderCount": 111,
-      "digest": "7658040cf6f3f17d8d945ba2d57224675c17a137a13d675f19bf65f16a1b4a6b"
+      "digest": "5ea3aea766449177fddb364cd5eeff4e6a37bc20ccc1e32735b94c3a3db4fd8b"
     }
   },
-  "digest": "cce35e17c2e2b3fd7bcad49520b294003ce12e5f7e3b58fc16828e0a6fae22e5"
+  "digest": "69be1aaa0195fe2f53a75d93ded5d2658de1472f52d018df08ca9ac7ed3cda18"
 }
