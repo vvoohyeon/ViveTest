@@ -84,6 +84,8 @@ export interface LandingGridCardProps {
   onMouseLeave?: MouseEventHandler<HTMLElement>;
   onExpandedBodyKeyDown?: KeyboardEventHandler<HTMLElement>;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
+  /** 제자리 오버레이의 숨은 닫기(마지막 탭 스톱). 폰 시트의 닫기는 시트가 갖는다. */
+  onOverlayClose?: () => void;
 }
 
 export function getDefaultCardCopy(): LandingCardCopy {

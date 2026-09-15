@@ -121,7 +121,8 @@ export function LandingGridCard({
   onMouseEnter,
   onMouseLeave,
   onExpandedBodyKeyDown,
-  onAnswerChoiceSelect
+  onAnswerChoiceSelect,
+  onOverlayClose
 }: LandingGridCardProps) {
   const cardA11yId = useId();
   const isUnavailable = isUnavailablePresentation(card);
@@ -336,6 +337,7 @@ export function LandingGridCard({
           copy={copy}
           floorPx={resolvedExpandedFloorPx}
           titleSplit={desktopTitleSplit}
+          onOverlayClose={onOverlayClose}
           onExpandedBodyKeyDown={onExpandedBodyKeyDown}
           onAnswerChoiceSelect={onAnswerChoiceSelect}
         />

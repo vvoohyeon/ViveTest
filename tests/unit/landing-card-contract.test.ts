@@ -17,6 +17,7 @@ import type {
   LandingCardVisualState
 } from '../../src/features/landing/grid/landing-grid-card';
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
+import {LANDING_OVERLAY_VIEWPORT_INSET_PX} from '../../src/features/landing/grid/layout-plan';
 import {resolveLandingCatalog} from '../../src/features/variant-registry';
 
 function readLandingGridCardCss(): string {
@@ -604,6 +605,48 @@ describe('landing card slot contract', () => {
   // 모바일 확장 제목의 타이포와 닫기 컨트롤의 44×44 는 **시트로 옮겨 갔다** — 카드는 폰에서
   // 확장 표면을 그리지 않는다(명세 규칙 3). 두 계약은 `landing-card-sheet.test.ts` 가 같은
   // 단언으로 이어받는다; 여기서 지우기만 하면 계약이 사라진다.
+
+  it('제자리 오버레이는 보이는 X 없이 숨긴 닫기를 마지막 탭 스톱으로 둔다', () => {
+    const catalog = resolveLandingCatalog('en');
+    const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
+
+    if (!card || card.type !== 'test') {
+      throw new Error('Expected rhythm-b as a test card fixture');
+    }
+
+    const doc = renderDesktopExpandedCardDocument({card});
+    const overlay = doc.querySelector('[data-slot="expandedBody"]');
+
+    // 보이는 X 는 없다 — 카드 밖이 곧 닫기 영역이므로 중복이다.
+    expect(doc.querySelector('[data-slot="mobileClose"]')).toBeNull();
+
+    const focusable = Array.from(
+      overlay?.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? []
+    );
+    expect(focusable.length).toBeGreaterThan(0);
+    expect(focusable.at(-1)?.getAttribute('data-slot')).toBe('overlayHiddenClose');
+    expect(focusable.at(-1)?.textContent).toBe(getDefaultCardCopy().closeExpandedAria);
+  });
+
+  it('제자리 오버레이는 뷰포트 높이 상한 안에서 본문을 스크롤한다', () => {
+    const catalog = resolveLandingCatalog('en');
+    const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
+
+    if (!card || card.type !== 'test') {
+      throw new Error('Expected rhythm-b as a test card fixture');
+    }
+
+    const doc = renderDesktopExpandedCardDocument({card});
+    const stageStyle = doc.querySelector('[data-slot="desktopStage"]')?.getAttribute('style') ?? '';
+    const bodyClassName = doc.querySelector('[data-slot="expandedBody"]')?.getAttribute('class') ?? '';
+
+    // 값의 정본은 `LANDING_OVERLAY_VIEWPORT_INSET_PX` 이고 변수로 내려온다 — 가로로 눕힌 폰이
+    // 이 조건으로 들어오고, 넘치면 배경이 잠겨 있어 스크롤로도 볼 수 없다(명세 규칙 3).
+    expect(stageStyle).toContain(`calc(100dvh - ${LANDING_OVERLAY_VIEWPORT_INSET_PX}px)`);
+    expect(bodyClassName).toContain('[max-height:var(--landing-overlay-max-height)]');
+    expect(bodyClassName).toContain('overflow-y-auto');
+    expect(bodyClassName).toContain('overscroll-contain');
+  });
 
   it('applies the responsive title/subtitle clamp matrix and BQ-30 tag treatment', () => {
     const catalog = resolveLandingCatalog('en');

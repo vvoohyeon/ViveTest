@@ -299,6 +299,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     onMouseLeave={interactionBindings.onMouseLeave}
                     onExpandedBodyKeyDown={interactionBindings.onExpandedBodyKeyDown}
                     onAnswerChoiceSelect={interactionBindings.onAnswerChoiceSelect}
+                    onOverlayClose={interactionBindings.onOverlayClose}
                   />
                 );
               })}

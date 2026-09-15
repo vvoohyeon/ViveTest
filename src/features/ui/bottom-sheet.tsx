@@ -33,6 +33,7 @@ import {useOverlayHistoryEntry} from '@/features/ui/use-overlay-history-entry';
 import {useSheetSwipe} from '@/features/ui/use-sheet-swipe';
 
 import styles from '@/features/ui/bottom-sheet.module.css';
+import hiddenControlStyles from '@/features/ui/visually-hidden.module.css';
 
 // 시트 프리미티브 — 명세 §3-4. **카드 시트와 instruction 시트가 이 하나를 쓴다.** 다른 것은
 // 셋뿐이고 그 셋은 prop 이다: grabber · 제스처 닫기(backdrop 탭 · 스와이프 다운) · history 항목.
@@ -332,7 +333,7 @@ export function BottomSheet({
             (규칙 3). 보이지 않으므로 「보이는 X 를 두지 않는다」와 충돌하지 않는다. */}
         <button
           type="button"
-          className={styles.visuallyHiddenClose}
+          className={hiddenControlStyles.hiddenControl}
           data-slot="sheetHiddenClose"
           onClick={() => requestClose('control')}
         >

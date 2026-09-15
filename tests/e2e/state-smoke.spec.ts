@@ -1580,6 +1580,73 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(card).not.toHaveAttribute('data-card-state', 'expanded');
   });
 
+  test('@smoke assertion:TT-03 rotating a phone both ways keeps the expanded card alive across the axis change', async ({
+    page
+  }) => {
+    // 가로로 눕힌 폰은 폭 844 라 **폭 축상 제자리 오버레이**로 들어온다(명세 §2-11). 종전에는
+    // 회전이 tier 를 바꾸면서 확장이 통째로 파괴됐다 — 생명주기가 폭에 묶여 있었기 때문이다.
+    // 입력 축으로 옮긴 뒤 그 파괴가 사라졌는지를 **양방향**으로 고정한다.
+    await setTouchViewport(page, {width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
+
+    // 세로 → 가로: 형태가 시트에서 제자리 오버레이로 바뀌되 **확장 자체는 살아남는다.**
+    await page.setViewportSize({width: 844, height: 390});
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-expanded-layer', 'desktop-overlay');
+
+    // 가로 → 세로: 되돌아와도 살아남는다.
+    await page.setViewportSize({width: 390, height: 844});
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
+  });
+
+  test('@smoke assertion:TT-04 landscape phone overlay stays inside the viewport and scrolls its own body', async ({
+    page
+  }) => {
+    // 844×390 에서 본문(제목 · 두 줄 질문 · 답변 둘 · 메타)은 가용 높이를 넘칠 수 있고, 배경이
+    // 잠겨 있어 스크롤로도 볼 수 없다. **살아남기만 하고 잘려 있으면 통과가 아니다**(명세 §2-11).
+    await setTouchViewport(page, {width: 844, height: 390});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-expanded-layer', 'desktop-overlay');
+
+    const overlay = card.locator('[data-slot="expandedBody"]');
+    const geometry = await overlay.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+        overflowY: style.overflowY,
+        overscrollBehavior: style.overscrollBehaviorY,
+        viewportHeight: window.innerHeight
+      };
+    });
+
+    // 오버레이는 뷰포트를 넘지 않는다.
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+    // 넘치는 본문은 오버레이 **안에서** 스크롤한다.
+    expect(geometry.overflowY).toBe('auto');
+    expect(geometry.overscrollBehavior).toBe('contain');
+
+    if (geometry.scrollHeight > geometry.clientHeight + 1) {
+      const scrolled = await overlay.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+        return element.scrollTop;
+      });
+      expect(scrolled).toBeGreaterThan(0);
+    }
+  });
+
   test('@smoke assertion:BD-01 backdrop fades in and out with the card, and stops capturing input while it leaves', async ({
     page
   }) => {

@@ -487,7 +487,8 @@ export function useLandingInteractionController({
       onMouseEnter: hoverHandlers.onMouseEnter,
       onMouseLeave: hoverHandlers.onMouseLeave,
       onExpandedBodyKeyDown: keyboardHandlers.onExpandedBodyKeyDown,
-      onAnswerChoiceSelect: handleAnswerChoiceSelect
+      onAnswerChoiceSelect: handleAnswerChoiceSelect,
+      onOverlayClose: collapseDesktopOverlayStable
     };
   };
 

@@ -67,7 +67,11 @@ export const LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME =
   'landing-grid-card-title [font:var(--label)] text-[var(--expanded-context-ink)] [overflow-wrap:anywhere]';
 // Desktop overlay expandedBody is a flex column so the BQ-24 height-floor surplus can be absorbed
 // by a single spacer (design §7.3). Mobile expanded/transient bodies keep their own grid layout.
-export const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4';
+// 높이 상한과 내부 스크롤은 설계 명세 규칙 3 이다 — 가로로 눕힌 폰이 이 조건으로 들어오고
+// 거기서 본문이 넘치면 배경이 잠겨 있어 스크롤로도 볼 수 없다. 상한값의 정본은
+// `LANDING_OVERLAY_VIEWPORT_INSET_PX` 이고 `--landing-overlay-max-height` 로 내려온다.
+export const LANDING_GRID_CARD_EXPANDED_CLASSNAME =
+  'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4 [max-height:var(--landing-overlay-max-height)] overflow-y-auto overscroll-contain';
 // desktop-overlay-floor body chain: flex-1 body fills the floored expandedBody; the single spacer
 // (flex:1, min-height 14px) sits between the last choice / subtitle and the meta(+CTA) group so the
 // meta anchors to the bottom and the card grows downward (content-fit) when content overflows.
