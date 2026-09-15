@@ -768,6 +768,11 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.keyboard.press('Tab');
     await expect(page.locator('[data-slot="answerChoiceB"]:focus')).toHaveCount(1);
 
+    // 제자리 오버레이의 **마지막 탭 스톱은 시각적으로 숨긴 닫기**다(명세 규칙 3) — 보조기술은
+    // 「빈 곳」을 탭할 수 없으므로 그 자리가 필요하다. 다음 카드로 가는 길은 한 걸음 늘었다.
+    await page.keyboard.press('Tab');
+    await expect(firstCard.locator('[data-slot="overlayHiddenClose"]:focus')).toHaveCount(1);
+
     await page.keyboard.press('Tab');
     await expect(secondTrigger).toBeFocused();
     await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
@@ -833,6 +838,12 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     await page.keyboard.press('Tab');
     await expect(page.locator('[data-card-variant="energy-check"] [data-slot="answerChoiceB"]:focus')).toHaveCount(1);
+
+    // 마지막 탭 스톱은 시각적으로 숨긴 닫기다(명세 규칙 3).
+    await page.keyboard.press('Tab');
+    await expect(
+      page.locator('[data-card-variant="energy-check"] [data-slot="overlayHiddenClose"]:focus')
+    ).toHaveCount(1);
 
     // Forward (D1/BQ-26): Tab out of the last choice SKIPS the unavailable card and lands on the
     // next enterable card (egtt); the prior card collapses (collapse-prior intact).
@@ -1581,30 +1592,19 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(card).not.toHaveAttribute('data-card-state', 'expanded');
   });
 
-  test('@smoke assertion:TT-03 rotating a phone both ways keeps the expanded card alive across the axis change', async ({
-    page
-  }) => {
-    // 가로로 눕힌 폰은 폭 844 라 **폭 축상 제자리 오버레이**로 들어온다(명세 §2-11). 종전에는
-    // 회전이 tier 를 바꾸면서 확장이 통째로 파괴됐다 — 생명주기가 폭에 묶여 있었기 때문이다.
-    // 입력 축으로 옮긴 뒤 그 파괴가 사라졌는지를 **양방향**으로 고정한다.
-    await setTouchViewport(page, {width: 390, height: 844});
-    await page.goto('/en');
-
-    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
-    await card.getByTestId('landing-grid-card-trigger').click();
-    await expect(card).toHaveAttribute('data-card-state', 'expanded');
-    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
-
-    // 세로 → 가로: 형태가 시트에서 제자리 오버레이로 바뀌되 **확장 자체는 살아남는다.**
-    await page.setViewportSize({width: 844, height: 390});
-    await expect(card).toHaveAttribute('data-card-state', 'expanded');
-    await expect(card).toHaveAttribute('data-expanded-layer', 'desktop-overlay');
-
-    // 가로 → 세로: 되돌아와도 살아남는다.
-    await page.setViewportSize({width: 390, height: 844});
-    await expect(card).toHaveAttribute('data-card-state', 'expanded');
-    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
-  });
+  // **`assertion:TT-03`(회전 양방향 보존)은 문서 충돌로 보류한다 — 2026-09-16.**
+  //
+  // 명세 §2-11 과 점수표의 `rotation-discards-expanded-card` 는 「회전으로 펼친 카드가
+  // 파괴되지 않는 것을 E2E 로 고정한다」고 하고, 점수표는 그 원인을 「가로에서 폰이 폭 844 라
+  // tier=tablet 이 되는 것」으로 보아 입력 축 이동으로 해소된다고 적었다. 그러나 실제로 확장을
+  // 지우는 것은 축이 아니라 **폭 변경 시의 강제 닫기**다 —
+  // `use-grid-geometry-controller.ts:415` 가 plan key 가 바뀌고 새 tier 가 모바일이 아니면
+  // `collapseExpandedCard()` 를 부르며, 그것을 `assertion:B4-width-change-force-close` 가
+  // 고정하고 있다(`grid-smoke.spec.ts:2201`).
+  //
+  // 둘은 **동시에 참일 수 없다.** 회전은 폭 변경이다. 어느 쪽을 접을지는 계약 결정이므로 이
+  // 세션이 임의로 정하지 않는다(`AGENTS.md` §10 「지침 충돌 시 자체 해소 금지」). 결정이 나면
+  // 이 자리에 검사를 되살린다.
 
   test('@smoke assertion:TT-04 landscape phone overlay stays inside the viewport and scrolls its own body', async ({
     page

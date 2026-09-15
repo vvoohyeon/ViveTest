@@ -62,8 +62,14 @@ export interface BottomSheetProps {
   /** 닫힘 요청. **프리미티브는 스스로 닫지 않는다** — 소비자가 요청을 받아 상태를 바꾼다.
    *  instruction 시트의 `Esc` no-op(BQ-41)이 이 분리 위에서 성립한다. */
   onCloseRequest: (reason: SheetCloseReason) => void;
-  /** 시각적으로 숨긴 마지막 탭 스톱 닫기 버튼의 접근 가능한 이름. */
-  closeLabel: string;
+  /**
+   * 시각적으로 숨긴 마지막 탭 스톱 닫기 버튼의 접근 가능한 이름.
+   *
+   * **`dismissible` 인 시트에만 존재한다.** 그 버튼은 「빈 곳 탭」의 보조기술 대체재이므로,
+   * 빈 곳 탭이 닫지 않는 모달 시트에 두면 계약이 금지한 닫기 경로를 하나 새로 만드는 것이 된다
+   * (명세 §2-3 — 모달은 선택을 강제한다).
+   */
+  closeLabel?: string;
   children: ReactNode;
   header?: ReactNode;
   actionRow?: ReactNode;
@@ -337,15 +343,18 @@ export function BottomSheet({
           </div>
         ) : null}
         {/* 보조기술은 「빈 곳」을 탭할 수 없다. 마지막 탭 스톱의 숨은 닫기가 그 길이다
-            (규칙 3). 보이지 않으므로 「보이는 X 를 두지 않는다」와 충돌하지 않는다. */}
-        <button
-          type="button"
-          className={hiddenControlStyles.hiddenControl}
-          data-slot="sheetHiddenClose"
-          onClick={() => requestClose('control')}
-        >
-          {closeLabel}
-        </button>
+            (규칙 3). 보이지 않으므로 「보이는 X 를 두지 않는다」와 충돌하지 않는다.
+            제스처로 닫히지 않는 모달 시트에는 두지 않는다 — 대체할 경로가 없다. */}
+        {dismissible && closeLabel ? (
+          <button
+            type="button"
+            className={hiddenControlStyles.hiddenControl}
+            data-slot="sheetHiddenClose"
+            onClick={() => requestClose('control')}
+          >
+            {closeLabel}
+          </button>
+        ) : null}
       </div>
     </div>,
     document.body

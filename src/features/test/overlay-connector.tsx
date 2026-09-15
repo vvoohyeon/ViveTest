@@ -59,10 +59,10 @@ export function OverlayConnector({
   onQualifierSelect,
   onQualifierBack
 }: OverlayConnectorProps) {
-  if (!visible) {
-    return null;
-  }
-
+  // **`visible` 로 일찍 `null` 을 돌려주지 않는다.** 모달 시트가 이탈 모션을 그리려면 닫힌 뒤에도
+  // 트리에 남아 있어야 하고, 마운트 경계를 넘나들면 cleanup 이 자기 side effect 를 되돌린다
+  // (`docs/LESSONS_LEARNED.md` L39). 보이지 않는 동안 무엇을 그릴지는 표면이 스스로 정한다 —
+  // 데스크톱 다이얼로그는 `null`, 시트는 닫힌 위상이다.
   const fallbackQualifierStepIndex = typeof overlayStep === 'number' ? overlayStep : 0;
   const qualifierStepIndex = currentQualifierStepIndex ?? fallbackQualifierStepIndex;
   const qualifierStep = currentQualifierItem
@@ -88,6 +88,7 @@ export function OverlayConnector({
 
   return (
     <InstructionOverlay
+      visible={visible}
       title={title}
       instructionText={instructionText}
       consentNote={consentNote}

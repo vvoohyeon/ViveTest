@@ -738,7 +738,7 @@
 
 **Rule**: instruction 노출·분기·CTA 규칙을 아래와 같이 고정한다.
 
-- Desktop: centered card overlay. Mobile: full-screen overlay.
+- Desktop/Tablet: centered card overlay. Mobile: **모달 바텀시트** — 카드 시트와 같은 프리미티브를 쓰되 grabber·제스처 닫기·history 항목 셋을 끈다(§8.5 시트 공통 규격). 종전의 전면 오버레이는 본문과 CTA 사이가 화면의 72% 만큼 비었고 유일한 CTA 가 상단 우측 1/4 에 있었다.
 - instruction overlay 활성 중 하위 입력 차단.
 - instructionSeen은 variant 단위로 저장한다.
 
