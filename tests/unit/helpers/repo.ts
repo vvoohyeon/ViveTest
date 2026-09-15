@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process';
-import {existsSync, readFileSync, statSync} from 'node:fs';
+import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -8,6 +8,36 @@ export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url
 
 export function readRepoFile(relativePath: string): string {
   return readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
+}
+
+/**
+ * `root` 아래 파일 전부를 저장소 상대 경로로 돌려준다. `extensions` 를 주면 그것만 남긴다.
+ *
+ * **소유자 허용목록 대신 쓴다.** 「이 파일 목록만 본다」 형태의 가드는 목록 **밖**에 생긴
+ * 같은 결함을 구조적으로 보지 못한다 — 가드의 규칙은 사건의 모양이 아니라 고장의 조건으로
+ * 쓴다(`docs/LESSONS_LEARNED.md` L30). 전수를 훑고 발견된 것 전부에 규칙을 묻는 쪽이
+ * 목록을 손보는 쪽보다 싸다.
+ */
+export function walkRepoFiles(root: string, extensions?: readonly string[]): string[] {
+  const absolute = path.join(REPO_ROOT, root);
+  if (!existsSync(absolute)) {
+    return [];
+  }
+
+  const found: string[] = [];
+  for (const entry of readdirSync(absolute, {withFileTypes: true})) {
+    const relative = `${root}/${entry.name}`;
+    if (entry.isDirectory()) {
+      found.push(...walkRepoFiles(relative, extensions));
+      continue;
+    }
+    if (extensions && !extensions.some((extension) => entry.name.endsWith(extension))) {
+      continue;
+    }
+    found.push(relative);
+  }
+
+  return found.sort();
 }
 
 export function repoPathExists(relativePath: string): boolean {

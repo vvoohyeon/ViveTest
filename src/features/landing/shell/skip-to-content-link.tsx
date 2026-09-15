@@ -16,6 +16,14 @@ export const PAGE_SHELL_MAIN_ID = 'page-shell-main';
  *
  * 표준 대안으로 교체한다 — 탭 순서는 **언제나 문서 순서**이고, 본문으로 바로 가고 싶은 사용자는
  * 첫 탭 스톱에서 그것을 **선택**한다.
+ *
+ * **드러나는 조건은 `:focus` 이지 `:focus-visible` 이 아니다.** 명세 §2-13 은 「포커스를 받을
+ * 때만 보인다」이고, `:focus-visible` 은 브라우저의 휴리스틱이 키보드라고 판정한 경우에만
+ * 참이다. 그 차이는 실측으로 드러난다 — 마우스 클릭 뒤 `focus()` 로 포커스를 주면 링크의 폭이
+ * **1px 에 머물렀다**(2026-09-15, 1280·390 양쪽). 스크립트나 보조기술이 옮긴 포커스가 그
+ * 경로이고, 그때 보이지 않는 링크는 「포커스가 어디에 있는지」를 잃게 한다(WCAG 2.4.7).
+ * 포커스 **링**만은 `focusRingClassName` 이 `:focus-visible` 로 유지한다 — 링은 키보드 사용자를
+ * 위한 표식이고, 드러나는 것과 링이 그려지는 것은 다른 질문이다.
  */
 export function SkipToContentLink() {
   const t = useTranslations('gnb');
@@ -32,12 +40,12 @@ export function SkipToContentLink() {
         // 삼킨다(실측: `body` 를 `(1,1)` 에서 클릭하면 링크가 포커스를 가져갔다). 보이지 않는
         // 것은 눌리지도 않아야 한다.
         'sr-only pointer-events-none',
-        'focus-visible:pointer-events-auto',
+        'focus:pointer-events-auto',
         // 포커스를 받으면 GNB 좌측 상단에 뜬다. `fixed` 라 문서 흐름을 밀지 않는다.
-        'focus-visible:not-sr-only focus-visible:fixed focus-visible:left-[var(--shell-gutter)] focus-visible:top-2.5 focus-visible:z-[1200]',
-        'focus-visible:inline-flex focus-visible:h-9 focus-visible:items-center focus-visible:rounded-[var(--radius-md)]',
-        'focus-visible:bg-[var(--accent)] focus-visible:px-4 focus-visible:text-[var(--accent-fg)]',
-        'focus-visible:[font:var(--button)]',
+        'focus:not-sr-only focus:fixed focus:left-[var(--shell-gutter)] focus:top-2.5 focus:z-[1200]',
+        'focus:inline-flex focus:h-9 focus:items-center focus:rounded-[var(--radius-md)]',
+        'focus:bg-[var(--accent)] focus:px-4 focus:text-[var(--accent-fg)]',
+        'focus:[font:var(--button)]',
         focusRingClassName
       ].join(' ')}
     >

@@ -304,13 +304,20 @@ test.describe('Phase 1 routing smoke', () => {
 
     // 그리고 반대 방향 — 저장된 다크. 종전에는 두 테마 중 **light 값 하나만** 단언했다.
     //
-    // **이 단언이 보는 것의 경계를 적어 둔다.** 이것은 해석된 다크가 런타임 경로를 거쳐
-    // `content` 에 도달하는 것을 본다. **첫 페인트는 보지 못한다** — 부트스트랩의 dark
-    // 리터럴을 `#000000` 으로 바꿔도 이 케이스는 초록이다(실측 2026-09-15). 하이드레이션
-    // 뒤에 `use-theme-preference` 가 같은 meta 를 다시 써서 가리기 때문이고, 그래서 두 경로
-    // 중 하나만 깨면 이 케이스가 침묵한다. 부트스트랩 사본의 값은 정의 대조가 갖는다
-    // (`tests/unit/theme-color-parity.test.ts`). 첫 페인트 자체를 증인으로 세우는 것은
-    // 별도 항목이다.
+    // **이 단언이 보는 것의 경계를 적어 둔다.** 이것은 해석된 다크가 **하이드레이션 뒤**
+    // `content` 에 도달하는 것을 본다. 부트스트랩 경로는 보지 못한다 — 그 파일만 요청 차단해도
+    // 이 케이스는 초록이다(실측 2026-09-16, preview: `data-theme=dark` · `media` 제거 ·
+    // `#141110`). `use-theme-preference` 가 같은 meta 를 다시 쓰기 때문이고, 그래서 두 경로 중
+    // 하나만 깨면 여기가 침묵한다. 그래서 경로를 갈라 증인을 세웠다 — 부트스트랩 자신의 동작은
+    // `tests/unit/theme-bootstrap-behavior.test.ts` 가, 그 리터럴 값은
+    // `tests/unit/theme-color-parity.test.ts` 가 본다.
+    //
+    // **여기서도 저기서도 볼 수 없는 것은 타이밍이다.** App Router 의 `beforeInteractive` 는
+    // 스크립트를 `self.__next_s` 큐에 넣고 **Next 런타임 청크가** 실행한다 — 청크를 전부 막으면
+    // 큐에 `/theme-bootstrap.js` 가 미실행으로 남고 `data-theme` 이 SSR 기본값에 머문다(실측
+    // 2026-09-16). 즉 「첫 페인트 전」이라는 상태가 존재하지 않으므로 청크를 막아 그 경로만
+    // 읽는 증인은 만들 수 없다. 그 타이밍 결함은 점수표 `theme-bootstrap-never-runs-before-paint`
+    // 이고 `docs/plans/2026-09-11-mobile-refactor-step3-surfaces.md` §4 가 소유한다.
     await page.emulateMedia({colorScheme: 'light'});
     await page.evaluate(() => window.localStorage.setItem('vivetest-theme', 'dark'));
     await page.reload();

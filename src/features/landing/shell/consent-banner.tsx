@@ -44,7 +44,8 @@ const CONSENT_BANNER_OCCLUDED_CLASS = 'invisible opacity-0';
 // 따른다. 종전 값 719 는 저장소·문서·테스트 어디에도 근거가 없는 고아 임계값이었고(전수 검색
 // 결과 이 파일 7 곳이 유일한 출현), 그 때문에 브라우저가 받는 폭 경계가 두 벌로 갈려 있었다.
 // 리터럴로 적을 수밖에 없는 것은 Tailwind 임의 variant 가 TS 상수를 읽지 못하기 때문이고,
-// 그 결합은 `tests/unit/consent-banner-breakpoint.test.ts` 가 고정한다.
+// 그 결합은 `tests/unit/mobile-breakpoint-literals.test.ts` 가 고정한다 — 그 검사는 소유자
+// 목록이 아니라 `src` 전수를 훑으므로 이 파일 밖에 생긴 같은 리터럴도 함께 잡는다.
 const CONSENT_BANNER_SURFACE_CLASS =
   'rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-raised)] shadow-[var(--shadow-lg)]';
 // 어휘는 `@/features/ui/button-class-names` 가 갖는다. 배너가 더하는 것은 표식 클래스뿐이고,

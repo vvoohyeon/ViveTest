@@ -5,14 +5,20 @@
  *
  * | 축 | 무엇이 정하는가 | 쓰는 곳 |
  * |:---|:---|:---|
- * | `LayoutBreakpoint` (`layout-plan.ts`) | 뷰포트 **폭** | 열 수 · 좌우 여백 · 썸네일 비율 · clamp · 타입 스케일 |
- * | `InputProfile` (이 파일) | `(hover: hover) and (pointer: fine)` | 확장 생명주기 · 닫기 어포던스 · hover intent · 설정 hover 열기 |
+ * | `LayoutBreakpoint` (`layout-plan.ts`) | 뷰포트 **폭** | 열 수 · 좌우 여백 · 썸네일 비율 · clamp · 타입 스케일 · **확장의 형태** |
+ * | `InputProfile` (이 파일) | `(hover: hover) and (pointer: fine)` | **닫는 법**(닫기 어포던스) · hover intent · 설정 hover 열기 |
  * | `KeyboardAffordance` (`req-landing.md` §7.6-a) | **둘 중 어느 축에도 속하지 않는다** | 순차 확장 · 포커스 처분 · Escape |
  *
  * 폭으로 입력을 대리하지 않는다 — hover 없는 768px 이상 기기(외장 키보드를 붙인 태블릿,
  * 터치 모니터)가 실재하고, 그 기기에 데스크톱 hover 생명주기를 주면 열고 닫을 수 없는 카드가
  * 된다. 반대로 입력으로 폭을 대리하지도 않는다 — 1열이냐 4열이냐는 손가락이 아니라 공간이
  * 정한다.
+ *
+ * **형태는 공간이, 닫는 법은 입력이 정한다**(BQ-40 (B) · `req-landing-interaction.md` §0.3).
+ * 이 축이 정하는 것에 **확장 생명주기 전체가 들어가지 않는다** — 제자리 오버레이냐 시트냐는
+ * 폭이 정하고, 이 파일은 그 위에 얹히는 닫기 어포던스만 가른다. 종전 이 표는 계획서의 원안을
+ * 옮겨 적어 「확장 생명주기」를 통째로 이 축에 배정했고, 그것은 명세와 등재된 결정이 뒤집은
+ * 쪽이다.
  */
 export type InputProfile = 'hover-capable' | 'touch';
 
