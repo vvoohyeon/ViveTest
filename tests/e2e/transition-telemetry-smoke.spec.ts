@@ -532,7 +532,12 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(Math.abs(restoredSourceAnchor - expectedRestoredScroll)).toBeGreaterThan(40);
   });
 
-  test('@smoke assertion:B14-mobile-baseline mobile expanded lifecycle keeps transition-window anchor, title baseline, unlock timing, and restore gating stable', async ({
+  // 폰의 확장은 **바텀시트**다(`req-landing-interaction.md` §8.5, 2026-09-16 재작성). 아래 검사들이
+  // 붙들던 in-flow 성질 — y-anchor drift · snapshot 복귀 · queue-close · transient 셸의 모션 —
+  // 은 확장이 흐름 안에 있던 사정에서 나온 것이고 그 사정이 없어졌다. 지키려던 둘은 그대로다:
+  // **연속성**과 **복귀 정확성**. 아래는 그 둘을 시트의 언어로 다시 잰다.
+
+  test('@smoke assertion:B14-mobile-baseline mobile expanded opens a sheet that locks the page, keeps the card in place, and restores scroll on close', async ({
     page
   }) => {
     await setTouchViewport(page, {width: 390, height: 844});
@@ -542,224 +547,110 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const trigger = card.getByTestId('landing-grid-card-trigger');
+    const sheet = page.getByTestId('landing-card-sheet');
     const before = await card.boundingBox();
-    const beforeTitleTop = await card
-      .locator('[data-slot="cardTitle"]')
-      .evaluate((element) => element.getBoundingClientRect().top);
-
     expect(before).not.toBeNull();
-    await card.getByTestId('landing-grid-card-trigger').click();
 
-    await expect(page.getByTestId('landing-grid-mobile-backdrop')).toBeVisible();
+    await trigger.click();
+
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toHaveAttribute('role', 'dialog');
+    await expect(sheet).toHaveAttribute('aria-modal', 'true');
+    await expect(card).toHaveAttribute('data-mobile-phase', /OPENING|OPEN/u);
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
+    // 시트는 열려 있는 **동안 내내** 배경을 잠근다 — in-flow 때처럼 정착 후 풀지 않는다.
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
-    await expect(card).toHaveAttribute('data-mobile-phase', /OPENING|OPEN/u);
-    await expect.poll(() => card.getAttribute('data-mobile-snapshot-writes')).toBeNull();
-
-    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
-    await backdrop.dispatchEvent('pointerdown', {
-      pointerType: 'touch',
-      clientX: 16,
-      clientY: 16
-    });
-    await backdrop.dispatchEvent('pointermove', {
-      pointerType: 'touch',
-      clientX: 16,
-      clientY: 44
-    });
-    await backdrop.dispatchEvent('pointerup', {
-      pointerType: 'touch',
-      clientX: 16,
-      clientY: 44
-    });
-
-    await expect(card).toHaveAttribute('data-mobile-phase', /OPENING|OPEN/u);
     await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
-    const afterOpen = await card.boundingBox();
-    const afterOpenTitleTop = await card
-      .locator('[data-slot="cardTitle"]')
-      .evaluate((element) => element.getBoundingClientRect().top);
-    expect(Math.abs((afterOpen?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
-    // TODO(Wave-13): BQ-08 moved Normal title ~62px down (Thumbnail now above Title).
-    // Expanded header title position unchanged. Continuity gap is a Wave 13 concern.
-    // Re-enable after mobile expanded shape/position is resolved.
-    test.fixme(
-      Math.abs(afterOpenTitleTop - beforeTitleTop) > 1,
-      'Wave-13: B14 title-continuity recalibration pending mobile expanded layout'
-    );
-    const activeCardElementAtPoint = await card.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + 32);
-      return target?.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-variant') ?? null;
-    });
-    expect(activeCardElementAtPoint).toBe(PRIMARY_AVAILABLE_TEST_VARIANT);
 
-    await backdrop.dispatchEvent('pointerdown', {
-      pointerType: 'touch',
-      clientX: 18,
-      clientY: 18
-    });
-    await backdrop.dispatchEvent('pointerup', {
-      pointerType: 'touch',
-      clientX: 18,
-      clientY: 18
-    });
+    // **아무것도 밀지 않는다.** 복귀 정확성이 절차가 아니라 구조로 성립하는 지점이 여기다.
+    const duringOpen = await card.boundingBox();
+    expect(Math.abs((duringOpen?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((duringOpen?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(1);
+
+    await sheet.locator('[data-slot="mobileClose"]').click();
+
     await expect(card).toHaveAttribute('data-card-state', 'normal');
-    await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
-    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
     await expect(trigger).toHaveAttribute('data-trigger-state', 'collapsed');
-    await expect
-      .poll(() => shell.getAttribute('data-mobile-restore-ready-card-variant'))
-      .toBe(PRIMARY_AVAILABLE_TEST_VARIANT);
+    await expect(sheet).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+
+    const afterClose = await card.boundingBox();
+    expect(Math.abs((afterClose?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((afterClose?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(1);
   });
 
-  test('@smoke assertion:B14-mobile-open-continuity mobile open keeps the root footprint stable while the transient shell morphs into the expanded surface', async ({
+  test('@smoke assertion:B14-mobile-open-continuity mobile sheet carries the card title and sits above the GNB', async ({
     page
   }) => {
     await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
-    const before = await card.boundingBox();
-    const beforeTitleTop = await card
-      .locator('[data-slot="cardTitle"]')
-      .evaluate((element) => element.getBoundingClientRect().top);
+    const cardTitle = await card.locator('[data-slot="cardTitle"]').innerText();
 
-    expect(before).not.toBeNull();
     await card.getByTestId('landing-grid-card-trigger').click();
+    const sheet = page.getByTestId('landing-card-sheet');
+    await expect(sheet).toBeVisible();
 
-    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'OPENING');
-    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-opening-shell');
-    await expect(card.locator('[data-slot="mobileTransientShell"]')).toHaveAttribute('data-state', 'OPENING');
+    // 연속성 — 원본 카드와 시트가 같은 것으로 읽힌다.
+    await expect(sheet.locator('[data-slot="cardTitle"]')).toHaveText(cardTitle);
 
-    const duringOpen = await card.boundingBox();
-    expect(Math.abs((duringOpen?.width ?? 0) - (before?.width ?? 0))).toBeLessThanOrEqual(2);
-    expect(Math.abs((duringOpen?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(2);
-
-    const zOrder = await page.evaluate(() => {
-      const transient = document.querySelector<HTMLElement>('[data-slot="mobileTransientShell"]');
-      const backdrop = document.querySelector<HTMLElement>('[data-testid="landing-grid-mobile-backdrop"]');
+    // 층 — 오버레이는 GNB **위**에 있다(설계 명세 규칙 1).
+    const layers = await page.evaluate(() => {
+      const readZ = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector);
+        return element ? Number.parseInt(getComputedStyle(element).zIndex || '0', 10) : 0;
+      };
       return {
-        transient: transient ? Number.parseInt(getComputedStyle(transient).zIndex || '0', 10) : 0,
-        backdrop: backdrop ? Number.parseInt(getComputedStyle(backdrop).zIndex || '0', 10) : 0
+        sheetLayer: readZ('[data-slot="sheetLayer"]'),
+        gnb: readZ('[data-testid="site-gnb"]')
       };
     });
-    expect(zOrder.transient).toBeGreaterThan(zOrder.backdrop);
-
-    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-in-flow');
-
-    const afterOpenTitleTop = await card
-      .locator('[data-slot="cardTitle"]')
-      .evaluate((element) => element.getBoundingClientRect().top);
-    // TODO(Wave-13): BQ-08 moved Normal title ~62px down (Thumbnail now above Title).
-    // Expanded header title position unchanged. Continuity gap is a Wave 13 concern.
-    // Re-enable after mobile expanded shape/position is resolved.
-    test.fixme(
-      Math.abs(afterOpenTitleTop - beforeTitleTop) > 1,
-      'Wave-13: B14 title-continuity recalibration pending mobile expanded layout'
-    );
+    expect(layers.sheetLayer).toBeGreaterThan(layers.gnb);
   });
 
-  test('@smoke assertion:B14-mobile-close-perception assertion:B14-mobile-close-choreography assertion:B14-mobile-title-continuity mobile close immediately restores the root footprint while keeping the active closing shell above the backdrop', async ({
+  test('@smoke assertion:B14-mobile-close-perception assertion:B14-mobile-close-choreography assertion:B14-mobile-title-continuity mobile close keeps the sheet drawn while it leaves and preserves the current scroll', async ({
     page
   }) => {
     await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
-    const before = await card.boundingBox();
-
-    expect(before).not.toBeNull();
-    await card.getByTestId('landing-grid-card-trigger').click();
-    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+    const sheet = page.getByTestId('landing-card-sheet');
 
     const userScrolledY = await page.evaluate(() => {
       window.scrollBy(0, 220);
       return Math.round(window.scrollY);
     });
     expect(userScrolledY).toBeGreaterThan(0);
-    await expect
-      .poll(() => page.evaluate(() => Math.round(window.scrollY)))
-      .toBeGreaterThanOrEqual(userScrolledY - 1);
 
-    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
-    await backdrop.dispatchEvent('pointerdown', {
-      pointerType: 'touch',
-      clientX: 18,
-      clientY: 18
-    });
-    await backdrop.dispatchEvent('pointerup', {
-      pointerType: 'touch',
-      clientX: 18,
-      clientY: 18
-    });
-
-    await expect(card).toHaveAttribute('data-card-state', 'normal');
-    await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
-    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-closing-shell');
-    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'CLOSING');
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
 
-    // 닫힘 직후 애니메이션 이름을 먼저 읽어 transient shell 정리 타이머와의 경합을 피한다.
-    const closingPreviewAnimation = await card
-      .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
-      .evaluate((element) => getComputedStyle(element).animationName);
-    expect(closingPreviewAnimation).toContain('landing-card-detail-quiet-exit');
+    const titleDuringOpen = await sheet.locator('[data-slot="cardTitle"]').innerText();
 
-    const afterClose = await card.boundingBox();
-    expect(Math.abs((afterClose?.width ?? 0) - (before?.width ?? 0))).toBeLessThanOrEqual(2);
-    expect(Math.abs((afterClose?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(2);
+    // 스크림 빈 곳 탭으로 닫는다 — 닫기 경로 다섯 중 하나.
+    await page.getByTestId('landing-card-sheet-scrim').click({position: {x: 10, y: 10}});
 
-    // Atomic snapshot avoids racing the 280ms transient shell cleanup under parallel E2E load.
-    await expect
-      .poll(
-        () =>
-          card.evaluate((element) => {
-            const rootTitle = element.querySelector<HTMLElement>('.landing-grid-card-content > [data-slot="cardTitle"]');
-            const transientTitle = element.querySelector<HTMLElement>(
-              '[data-slot="mobileTransientShell"] [data-slot="cardTitleTransient"]'
-            );
-            const rootTitleOpacity = rootTitle ? Number.parseFloat(getComputedStyle(rootTitle).opacity) : Number.NaN;
-            const transientTitleOpacity = transientTitle
-              ? Number.parseFloat(getComputedStyle(transientTitle).opacity)
-              : Number.NaN;
+    // **이탈이 보인다.** 닫히는 동안에도 시트는 트리에 남아 있고 제목을 잃지 않는다 —
+    // 곧바로 언마운트하면 이탈 모션이 존재할 수 없고, 그 결함은 끝 값만 보는 단언에는
+    // 보이지 않는다(L38).
+    await expect(sheet).toHaveAttribute('data-state', 'closing');
+    await expect(sheet.locator('[data-slot="cardTitle"]')).toHaveText(titleDuringOpen);
 
-            return {
-              rootTitleHidden: rootTitleOpacity === 0,
-              transientTitleVisible: transientTitleOpacity >= 0.95
-            };
-          }),
-        {timeout: 4000, intervals: [100, 200, 500]}
-      )
-      .toEqual({
-        rootTitleHidden: true,
-        transientTitleVisible: true
-      });
+    // 사라지는 스크림은 입력을 통과시킨다.
+    const scrimPointerEvents = await page
+      .getByTestId('landing-card-sheet-scrim')
+      .evaluate((element) => getComputedStyle(element).pointerEvents);
+    expect(scrimPointerEvents).toBe('none');
 
-    const zOrder = await page.evaluate(() => {
-      const transient = document.querySelector<HTMLElement>('[data-slot="mobileTransientShell"]');
-      const backdrop = document.querySelector<HTMLElement>('[data-testid="landing-grid-mobile-backdrop"]');
-      return {
-        transient: transient ? Number.parseInt(getComputedStyle(transient).zIndex || '0', 10) : 0,
-        backdrop: backdrop ? Number.parseInt(getComputedStyle(backdrop).zIndex || '0', 10) : 0
-      };
-    });
-    expect(zOrder.transient).toBeGreaterThan(zOrder.backdrop);
-
-    await expect(backdrop).toHaveAttribute('data-state', 'CLOSING');
-    await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
-    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'NONE');
+    await expect(sheet).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
-    await expect
-      .poll(() => page.evaluate(() => Math.round(window.scrollY)))
-      .toBeGreaterThanOrEqual(userScrolledY - 1);
-    await expect(card.locator('.landing-grid-card-content > [data-slot="cardTitle"]')).toHaveCSS('opacity', '1');
+    expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(userScrolledY);
   });
 
-  test('@smoke assertion:B14-mobile-reduced-motion mobile reduced-motion / V1 low-spec fallback keeps continuity markers while simplifying slot motion', async ({
+  test('@smoke assertion:B14-mobile-reduced-motion mobile sheet drops the translate and keeps the fade under reduced motion', async ({
     page
   }) => {
     const pageErrors: string[] = [];
@@ -779,118 +670,89 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     const shell = page.getByTestId('landing-grid-shell');
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
-    const trigger = card.getByTestId('landing-grid-card-trigger');
-
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
-    const motionToken = await card.evaluate((element) =>
-      getComputedStyle(element).getPropertyValue('--landing-card-motion-ms').trim()
-    );
-    const normalizedMotionMs = motionToken.endsWith('ms') ? parseFloat(motionToken) : parseFloat(motionToken) * 1000;
-    expect(normalizedMotionMs).toBe(180);
 
-    await trigger.click();
-    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-opening-shell');
+    await card.getByTestId('landing-grid-card-trigger').click();
+    const sheet = page.getByTestId('landing-card-sheet');
+    await expect(sheet).toBeVisible();
 
-    const openingShellAnimation = await card
-      .locator('[data-slot="mobileTransientShell"]')
-      .evaluate((element) => getComputedStyle(element).animationName);
-    expect(openingShellAnimation).toContain('landing-card-shell-reduced-open');
-
-    const openingPreviewAnimation = await card
-      .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
-      .evaluate((element) => getComputedStyle(element).animationName);
-    expect(openingPreviewAnimation).toContain('landing-card-shell-reduced-open');
-
-    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
-
-    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
-    await backdrop.dispatchEvent('pointerdown', {
-      pointerType: 'touch',
-      clientX: 18,
-      clientY: 18
+    // 이동을 버리고 페이드만 남긴다 — 모션을 통째로 없애지 않는다(설계 명세 §3-4).
+    const motion = await sheet.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        transform: style.transform,
+        transitionProperty: style.transitionProperty
+      };
     });
-    await backdrop.dispatchEvent('pointerup', {
-      pointerType: 'touch',
-      clientX: 18,
-      clientY: 18
-    });
-
-    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-closing-shell');
-    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
-
-    const closingShellAnimation = await card
-      .locator('[data-slot="mobileTransientShell"]')
-      .evaluate((element) => getComputedStyle(element).animationName);
-    expect(closingShellAnimation).toContain('landing-card-shell-reduced-close');
-
-    const closingPreviewAnimation = await card
-      .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
-      .evaluate((element) => getComputedStyle(element).animationName);
-    expect(closingPreviewAnimation).toContain('landing-card-shell-reduced-open');
-
-    const reducedMotionTransientTitleOpacity = await card
-      .locator('[data-slot="mobileTransientShell"] [data-slot="cardTitleTransient"]')
-      .evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity));
-    expect(reducedMotionTransientTitleOpacity).toBeGreaterThanOrEqual(0.95);
+    expect(motion.transform === 'none' || motion.transform === 'matrix(1, 0, 0, 1, 0, 0)').toBe(true);
+    expect(motion.transitionProperty).toContain('opacity');
 
     expect(pageErrors).toEqual([]);
     expect(consoleErrors).toEqual([]);
   });
 
-  test('@smoke assertion:B14-mobile-queue-close mobile queue-close is processed once and closing ignores further open-close inputs', async ({
-    page
-  }) => {
+  // 폐지된 `assertion:B14-mobile-queue-close` 의 자리다. queue-close 는 in-flow 확장이
+  // `OPENING` 중의 닫기 입력을 정착 직후 1 회로 미루던 규칙이었고, 위상을 시트가 소유하면서
+  // 사라졌다. 증인을 지우기만 하면 blocker 14 의 근거가 하나 줄어들므로, **더 강한 증인**으로
+  // 바꾼다 — 닫기 경로 다섯이 각각 실제로 닫는다.
+  test('@smoke assertion:B14-mobile-close-paths mobile sheet closes through every declared path', async ({page}) => {
     await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
-    const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
-    const secondCard = page.locator('[data-card-variant="rhythm-b"]');
-    await firstCard.getByTestId('landing-grid-card-trigger').click();
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    const trigger = card.getByTestId('landing-grid-card-trigger');
+    const sheet = page.getByTestId('landing-card-sheet');
 
-    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
-    await backdrop.dispatchEvent('pointerdown', {
-      pointerType: 'touch',
-      clientX: 16,
-      clientY: 16
-    });
-    await backdrop.dispatchEvent('pointerup', {
-      pointerType: 'touch',
-      clientX: 16,
-      clientY: 16
-    });
+    // ⑴ 닫기 컨트롤
+    await trigger.click();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await sheet.locator('[data-slot="mobileClose"]').click();
+    await expect(sheet).toHaveCount(0);
 
-    await expect.poll(() => firstCard.getAttribute('data-mobile-snapshot-writes')).toBeNull();
-    await expect(firstCard).toHaveAttribute('data-mobile-phase', /OPENING|CLOSING/u);
+    // ⑵ backdrop 탭
+    await trigger.click();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await page.getByTestId('landing-card-sheet-scrim').click({position: {x: 10, y: 10}});
+    await expect(sheet).toHaveCount(0);
 
-    await secondCard.getByTestId('landing-grid-card-trigger').click();
-    await backdrop.dispatchEvent('pointerdown', {
-      pointerType: 'touch',
-      clientX: 20,
-      clientY: 20
-    });
-    await backdrop.dispatchEvent('pointerup', {
-      pointerType: 'touch',
-      clientX: 20,
-      clientY: 20
-    });
+    // ⑶ Escape — 폭과 입력 방식에 무관한 전 표면 규칙(WCAG 2.1.1 · 2.1.2)
+    await trigger.click();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
 
-    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
-    await expect(secondCard).toHaveAttribute('data-card-state', 'normal');
+    // ⑷ 시스템 뒤로가기 — 오버레이 층 전부가 같은 규칙을 쓴다(설계 명세 규칙 3).
+    await trigger.click();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await page.goBack();
+    await expect(sheet).toHaveCount(0);
+    await expect(page).toHaveURL(/\/en$/u);
+
+    // ⑸ 스와이프 다운 — 이동량이 시트 높이의 30% 를 넘으면 닫힌다.
+    await trigger.click();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    const sheetBox = await sheet.boundingBox();
+    const startY = (sheetBox?.y ?? 0) + 8;
+    const endY = startY + (sheetBox?.height ?? 0) * 0.5;
+    await sheet.dispatchEvent('pointerdown', {pointerType: 'touch', pointerId: 1, clientX: 195, clientY: startY});
+    await sheet.dispatchEvent('pointermove', {pointerType: 'touch', pointerId: 1, clientX: 195, clientY: endY});
+    await sheet.dispatchEvent('pointerup', {pointerType: 'touch', pointerId: 1, clientX: 195, clientY: endY});
+    await expect(sheet).toHaveCount(0);
   });
 
-  test('@smoke mobile expanded header remains sticky during internal scroll', async ({page}) => {
+  test('@smoke mobile sheet header stays pinned while the body scrolls', async ({page}) => {
     await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
 
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await card.getByTestId('landing-grid-card-trigger').click();
 
-    const expandedBody = card.locator('[data-slot="expandedBody"]');
-    const header = card.locator('[data-slot="mobileHeader"]');
+    const sheet = page.getByTestId('landing-card-sheet');
+    const header = sheet.locator('[data-slot="sheetHeader"]');
+    const body = sheet.locator('[data-slot="sheetBody"]');
     const headerTopBefore = await header.evaluate((element) => element.getBoundingClientRect().top);
 
-    await expandedBody.evaluate((element) => {
+    await body.evaluate((element) => {
       element.scrollTop = 120;
       element.dispatchEvent(new Event('scroll'));
     });

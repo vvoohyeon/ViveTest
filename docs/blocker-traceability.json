@@ -171,7 +171,7 @@
     "blocker": 14,
     "kind": "automated_assertion",
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
-    "assertionId": "assertion:B14-mobile-queue-close"
+    "assertionId": "assertion:B14-mobile-close-paths"
   },
   {
     "blocker": 14,

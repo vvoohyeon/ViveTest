@@ -1027,23 +1027,35 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstCard).toHaveAttribute('data-mobile-phase', 'OPEN');
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
 
+    // 확장 표면이 시트로 옮겨 가면서 탭 순서도 시트 안에서 돈다 — 포커스는 열릴 때 시트
+    // 컨테이너로 들어오고(첫 컨트롤이 아니다), 그 다음 Tab 이 헤더의 닫기에 닿는다.
+    const sheet = page.getByTestId('landing-card-sheet');
     await page.keyboard.press('Tab');
-    await expect(firstCard.locator('[data-slot="mobileClose"]:focus')).toHaveCount(1);
+    await expect(sheet.locator('[data-slot="mobileClose"]:focus')).toHaveCount(1);
 
     await page.keyboard.press('Tab');
-    await expect(
-      page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"] [data-slot="answerChoiceA"]:focus`)
-    ).toHaveCount(1);
+    await expect(sheet.locator('[data-slot="answerChoiceA"]:focus')).toHaveCount(1);
 
     await page.keyboard.press('Tab');
-    await expect(
-      page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"] [data-slot="answerChoiceB"]:focus`)
+    await expect(sheet.locator('[data-slot="answerChoiceB"]:focus')
     ).toHaveCount(1);
+
+    // **여기서 Tab 은 더 이상 다음 카드로 가지 않는다.** 시트가 모달이고 그 아래 층은 배너까지
+    // `inert` 이므로(설계 명세 규칙 1) Tab 은 시트 안에서 순환한다(§3-4). 다음 카드로 가는 길은
+    // 사라진 것이 아니라 한 걸음 늘었다: 닫으면 포커스가 트리거로 돌아오고, 거기서 Tab 이다.
+    await page.keyboard.press('Tab');
+    await expect(sheet.locator('[data-slot="sheetHiddenClose"]:focus')).toHaveCount(1);
+    await page.keyboard.press('Tab');
+    await expect(sheet.locator('[data-slot="mobileClose"]:focus')).toHaveCount(1);
+
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(firstCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
+    await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
 
     await page.keyboard.press('Tab');
     await expect(secondTrigger).toBeFocused();
-    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
-    await expect(firstCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
     await expect(secondCard).toHaveAttribute('data-card-state', 'focused');
 
     await page.keyboard.press('Space');
@@ -1051,7 +1063,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
   });
 
-  test('@smoke Mobile full subtitle pre-open height matches OPENING CLOSING snapshot and final NORMAL restore under normal and reduced-motion', async ({
+  test('@smoke Mobile full subtitle keeps the card height unchanged through the sheet lifecycle under normal and reduced-motion', async ({
     page
   }) => {
     const rootMinimums: string[] = [];
@@ -1094,21 +1106,22 @@ test.describe('Phase 7 state + capability smoke', () => {
       expect(Math.abs(preOpen.triggerTopDelta)).toBeLessThanOrEqual(1);
       expect(Math.abs(preOpen.triggerBottomDelta)).toBeLessThanOrEqual(1);
 
+      // 확장이 시트가 되면서 스냅샷 계약이 폐지됐다(§8.5 재작성). 재는 성질은 같다 —
+      // **카드의 높이는 확장 내내 변하지 않는다.** 종전에는 그것을 스냅샷과 대조해 확인했고,
+      // 이제는 카드를 직접 재면 된다: 시트가 흐름 밖이라 밀 것이 없다.
       await card.getByTestId('landing-grid-card-trigger').click();
-      await expect(card).toHaveAttribute('data-mobile-phase', 'OPENING');
-      const openingSnapshotHeight = Number(await card.getAttribute('data-mobile-snapshot-height'));
-      expect(Math.abs(openingSnapshotHeight - preOpen.cardHeight)).toBeLessThanOrEqual(1);
+      await expect(card).toHaveAttribute('data-mobile-phase', /OPENING|OPEN/u);
       const openingHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
       expect(Math.abs(openingHeight - preOpen.cardHeight)).toBeLessThanOrEqual(2);
 
+      const sheet = page.getByTestId('landing-card-sheet');
       await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-      const answerChoiceHeight = await card
+      const answerChoiceHeight = await sheet
         .locator('[data-slot="answerChoiceA"]')
         .evaluate((element) => element.getBoundingClientRect().height);
       expect(answerChoiceHeight).toBeGreaterThanOrEqual(44);
 
-      await card.locator('[data-slot="mobileClose"]').click();
-      await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
+      await sheet.locator('[data-slot="mobileClose"]').click();
       const closingHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
       expect(Math.abs(closingHeight - preOpen.cardHeight)).toBeLessThanOrEqual(2);
       await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
@@ -1149,7 +1162,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(mobileCard).toHaveAttribute('data-natural-height', settledNaturalHeight ?? '');
     await expectNonCompGapZero();
 
-    await mobileCard.locator('[data-slot="mobileClose"]').click();
+    await page.getByTestId('landing-card-sheet').locator('[data-slot="mobileClose"]').click();
     await expect(mobileCard).toHaveAttribute('data-mobile-phase', /CLOSING|NORMAL/);
     await expectNonCompGapZero();
     await expect(mobileCard).toHaveAttribute('data-mobile-phase', 'NORMAL');

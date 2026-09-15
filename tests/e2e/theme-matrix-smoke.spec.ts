@@ -299,7 +299,8 @@ async function openMobileExpandedCard(page: Page, cardVariant: string) {
     }
   });
   await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-  await expect(card.locator('[data-slot="expandedBody"]')).toBeVisible();
+  // 확장 본문은 카드 안이 아니라 시트 안이다(§8.5 재작성).
+  await expect(page.getByTestId('landing-card-sheet').locator('[data-slot="expandedBody"]')).toBeVisible();
   await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
