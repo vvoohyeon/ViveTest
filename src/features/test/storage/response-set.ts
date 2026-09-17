@@ -1,20 +1,9 @@
 import type {VariantId} from '@/features/test/domain';
 import {testVariantKey} from '@/features/test/storage/test-storage-keys';
 import {CANONICAL_INDEX_KEY_PATTERN} from '@/features/test/canonical-key';
+import {readLocal, removeLocal, writeLocal} from '@/lib/safe-storage';
 
 export type ResponseSet = Record<string, string>;
-
-function getLocalStorage(): Storage | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function isResponseSetPayload(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -42,20 +31,14 @@ export function writeResponseSet(
   variantId: string,
   responses: ResponseSet
 ): void {
-  localStorage.setItem(
-    testVariantKey.responseSet(variantId as VariantId),
-    JSON.stringify(responses)
-  );
+  // 종전에는 전역 `localStorage` 를 직접 불렀다 — 접근 자체가 던지는 브라우저에서 이 한 줄이
+  // 회차 시작을 통째로 막았다.
+  writeLocal(testVariantKey.responseSet(variantId as VariantId), JSON.stringify(responses));
 }
 
 export function readResponseSet(variantId: string): ResponseSet | null {
-  const storage = getLocalStorage();
-  if (!storage) {
-    return null;
-  }
-
   const key = testVariantKey.responseSet(variantId as VariantId);
-  const raw = storage.getItem(key);
+  const raw = readLocal(key);
   if (!raw) {
     return null;
   }
@@ -64,12 +47,12 @@ export function readResponseSet(variantId: string): ResponseSet | null {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    storage.removeItem(key);
+    removeLocal(key);
     return null;
   }
 
   if (!isResponseSetPayload(parsed)) {
-    storage.removeItem(key);
+    removeLocal(key);
     return null;
   }
 

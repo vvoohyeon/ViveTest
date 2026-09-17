@@ -1,3 +1,13 @@
+/**
+ * 제자리 오버레이가 뷰포트에서 비워 두는 세로 여백. GNB 데스크톱 띠 64px + 24px 이다
+ * (설계 명세 규칙 3 — 「공간에는 높이도 들어간다」).
+ *
+ * **이 상한은 선택이 아니다.** 가로로 눕힌 폰(844×390)이 폭 축상 제자리 오버레이로 들어오는데,
+ * 그 뷰포트에서 본문(제목 · 두 줄 질문 · 답변 둘 · 메타)은 가용 높이를 넘칠 수 있고 배경이
+ * 잠겨 있어 스크롤로도 볼 수 없다. 넘치면 오버레이 **안에서** 스크롤한다.
+ */
+export const LANDING_OVERLAY_VIEWPORT_INSET_PX = 88;
+
 export const MOBILE_MAX_VIEWPORT_WIDTH = 767;
 export const TABLET_MAX_VIEWPORT_WIDTH = 1023;
 export const CONTAINER_MAX_WIDTH = 1280;

@@ -4,6 +4,7 @@ import {testVariantKey} from '../../src/features/test/storage/test-storage-keys'
 import {expectPageToBeAxeClean} from './helpers/axe';
 import {seedTelemetryConsent} from './helpers/consent';
 import {buildLocalizedTestRoute} from './helpers/landing-fixture';
+import {setTouchViewport} from './helpers/touch-context';
 
 const EGTT_VARIANT = 'egtt';
 const EGTT_QUALIFIER_QUESTION = 'My sexual identity is';
@@ -289,5 +290,81 @@ test.describe('qualifier overlay — reentry', () => {
     await expect(page.getByTestId('test-question-panel')).toBeVisible();
     await expect(page.getByTestId('test-question-number')).toHaveText('Q1');
     await expect(page.getByTestId('test-question-panel')).not.toContainText(EGTT_QUALIFIER_QUESTION);
+  });
+});
+
+// 위 14 케이스는 전부 1280px 이고 **중앙 다이얼로그**를 본다. 폰에서는 같은 흐름이 모달
+// 바텀시트로 그려지므로(명세 §2-3) 그 형태를 따로 고정한다 — 행동은 같은 것을 재확인하는 것이
+// 아니라, 형태가 모달의 셋을 지키는지와 흐름이 시트 안에서 이어지는지를 본다.
+test.describe('qualifier overlay — 폰의 모달 바텀시트', () => {
+  async function openEgttInstructionOnPhone(page: Page) {
+    await seedTelemetryConsent(page, 'OPTED_IN');
+    await setTouchViewport(page, {width: 390, height: 844});
+    await page.goto(buildLocalizedTestRoute('en', EGTT_VARIANT));
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+  }
+
+  test('@smoke instruction 은 시트로 그려지고 모달의 셋을 지킨다', async ({page}) => {
+    await openEgttInstructionOnPhone(page);
+
+    const sheet = page.getByTestId('test-instruction-overlay');
+    await expect(sheet).toHaveAttribute('data-slot', 'sheet');
+    await expect(sheet).toHaveAttribute('aria-modal', 'true');
+
+    // grabber 도 숨은 닫기도 없다 — 둘 다 「닫을 수 있다」는 약속이다.
+    await expect(page.locator('[data-slot="sheetGrabber"]')).toHaveCount(0);
+    await expect(page.locator('[data-slot="sheetHiddenClose"]')).toHaveCount(0);
+
+    // backdrop 탭은 닫지 않는다.
+    await page.locator('[data-slot="sheetScrim"]').click({position: {x: 10, y: 10}});
+    await expect(sheet).toBeVisible();
+
+    // Esc 도 instruction step 에서는 아무것도 하지 않는다(BQ-41).
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`${buildLocalizedTestRoute('en', EGTT_VARIANT)}$`, 'u'));
+  });
+
+  test('@smoke 액션 행은 하단에 고정되고 본문만 스크롤한다', async ({page}) => {
+    await openEgttInstructionOnPhone(page);
+
+    const geometry = await page.evaluate(() => {
+      const body = document.querySelector('[data-slot="sheetBody"]');
+      const actions = document.querySelector('[data-slot="sheetActionRow"]');
+      if (!(body instanceof HTMLElement) || !(actions instanceof HTMLElement)) {
+        return null;
+      }
+      return {
+        bodyOverflowY: getComputedStyle(body).overflowY,
+        bodyBottom: body.getBoundingClientRect().bottom,
+        actionsTop: actions.getBoundingClientRect().top,
+        actionsBottom: actions.getBoundingClientRect().bottom,
+        viewportHeight: window.innerHeight
+      };
+    });
+
+    expect(geometry).not.toBeNull();
+    expect(geometry?.bodyOverflowY).toBe('auto');
+    // 액션 행은 본문 **아래**에 있고 뷰포트를 넘지 않는다.
+    expect(geometry?.actionsTop ?? 0).toBeGreaterThanOrEqual((geometry?.bodyBottom ?? 0) - 1);
+    expect(geometry?.actionsBottom ?? 0).toBeLessThanOrEqual((geometry?.viewportHeight ?? 0) + 1);
+  });
+
+  test('@smoke qualifier 단계는 같은 시트 안에서 내용만 바뀐다', async ({page}) => {
+    await openEgttInstructionOnPhone(page);
+
+    const sheet = page.getByTestId('test-instruction-overlay');
+    await page.getByTestId('test-start-button').click();
+
+    await expect(page.getByTestId('test-qualifier-step')).toBeVisible();
+    // 시트는 내려가지 않는다 — 같은 원소가 그대로 열려 있다.
+    await expect(sheet).toHaveAttribute('data-state', 'open');
+    await expect(sheet.getByTestId('test-qualifier-step')).toBeVisible();
+
+    await page.getByTestId('test-qualifier-choice-m').click();
+    await page.getByTestId('test-qualifier-continue-button').click();
+
+    await expect(page.getByTestId('test-instruction-overlay')).toHaveCount(0);
+    await expect(page.getByTestId('test-question-panel')).toBeVisible();
   });
 });

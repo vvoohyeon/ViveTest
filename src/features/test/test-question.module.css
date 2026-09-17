@@ -1,0 +1,40 @@
+/* 문항 전환의 슬라이드 — 종전에는 `motion/react` 의 `<motion.div>` 하나가 이것만을 위해
+   테스트 플로우에 실려 있었다(gzip 40 KB · parse 120 KB). 이동은 18px, 180ms, ease-out 이고
+   방향만 두 가지다. 그 전부가 키프레임 둘로 적힌다.
+
+   **키를 바꾸면 애니메이션이 다시 걸린다.** 문항이 바뀔 때 React 가 `key` 로 이 원소를 새로
+   마운트하므로, 진입 애니메이션이 매 문항마다 처음부터 재생된다 — 라이브러리가 하던 일과
+   같은 기전이고 JS 는 한 줄도 필요 없다.
+
+   CSS 모듈로 둔 이유: 키프레임은 호출자에 인라인할 수 없고, 이 저장소는 choreography 를
+   feature CSS 모듈에 두는 선례를 이미 갖고 있다(`landing-grid-card.module.css`). */
+
+/* 180ms 는 종전 구현의 실현값 그대로다(`transition={{duration: 0.18}}`). `--dur-*` 에 이 값이
+   없어 토큰으로 적지 않는다 — 한 자리를 위해 토큰을 새로 미러링하면 설계 정의와 런타임 사이에
+   소비자 하나짜리 이름이 하나 더 생긴다. */
+.answerGrid {
+  animation: test-answer-slide 180ms ease-out both;
+  --test-answer-slide-from: 18px;
+}
+
+.answerGrid[data-slide='backward'] {
+  --test-answer-slide-from: -18px;
+}
+
+@keyframes test-answer-slide {
+  from {
+    transform: translateX(var(--test-answer-slide-from));
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+/* 감소 모드에서는 이동을 버린다. 종전 구현이 `duration: 0` 으로 하던 것과 같은 처분이고,
+   여기서는 선호를 CSS 가 직접 읽으므로 JS 가 그 판정을 들고 있을 이유가 없다. */
+@media (prefers-reduced-motion: reduce) {
+  .answerGrid {
+    animation: none;
+  }
+}

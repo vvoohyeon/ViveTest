@@ -12,6 +12,7 @@ import {
   LANDING_GRID_CARD_EXPANDED_FLOOR_BODY_CLASSNAME,
   LANDING_GRID_CARD_EXPANDED_FLOOR_GROUP_CLASSNAME,
   LANDING_GRID_CARD_EXPANDED_FLOOR_SPACER_CLASSNAME,
+  LANDING_GRID_CARD_META_GROUP_CLASSNAME,
   LANDING_GRID_CARD_META_ITEM_CLASSNAME,
   LANDING_GRID_CARD_META_ITEM_LEAD_CLASSNAME,
   LANDING_GRID_CARD_META_LABEL_CLASSNAME,
@@ -102,33 +103,58 @@ interface ExpandedMetaEntry {
 
 // Quiet data row (design §6.10): inline "value label" items separated by decorative dots,
 // with the complete duration item emphasized. data-slot/data-motion-slot preserved for QA + motion.
-function ExpandedMetaRow({entries, interactive}: {entries: [ExpandedMetaEntry, ...ExpandedMetaEntry[]]; interactive: boolean}) {
+//
+// 명세 §3-3 — 왼쪽은 **회차에 관한 둘**(소요 · 완료)이고 오른쪽은 **다른 사람들에 관한 하나**
+// (공유)다. 그 둘은 같은 종류의 주장이 아니므로 같은 점으로 잉지 않고 행의 끝으로 갈라진다.
+function ExpandedMetaItem({entry, lead}: {entry: ExpandedMetaEntry; lead: boolean}) {
+  const valueClassName = lead ? LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME : LANDING_GRID_CARD_META_VALUE_CLASSNAME;
+  const content = (
+    <>
+      <span className={valueClassName}>{formatMetaValue(entry.value)}</span>
+      <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
+    </>
+  );
+
+  return lead ? (
+    <strong className={LANDING_GRID_CARD_META_ITEM_LEAD_CLASSNAME}>{content}</strong>
+  ) : (
+    <span className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>{content}</span>
+  );
+}
+
+function ExpandedMetaRow({
+  leading,
+  trailing,
+  interactive
+}: {
+  leading: readonly [ExpandedMetaEntry, ...ExpandedMetaEntry[]];
+  trailing: ExpandedMetaEntry;
+  interactive: boolean;
+}) {
   return (
     <p
-      className={joinClassNames(LANDING_GRID_CARD_META_ROW_CLASSNAME, styles.motionStageMiddle)}
+      // 3 단 stagger 의 셋째 칸이다(`design.md:374`). CSS 는 40/100/160ms 를 정의하는데 meta 가
+      // Middle 로 배정돼 **Late 가 소비자 0 인 채로 남아** 있었다 — 죽은 코드가 아니라 배정
+      // 누락이다. 순서는 질문(Early) → 선택지(Middle) → 메타(Late).
+      className={joinClassNames(LANDING_GRID_CARD_META_ROW_CLASSNAME, styles.motionStageLate)}
       data-slot={interactive ? 'meta' : undefined}
       data-motion-slot="meta"
     >
-      {entries.map((entry, index) => (
-        <Fragment key={entry.label}>
-          {index > 0 ? (
-            <span className={LANDING_GRID_CARD_META_SEPARATOR_CLASSNAME} aria-hidden="true">
-              ·
-            </span>
-          ) : null}
-          {index === 0 ? (
-            <strong className={LANDING_GRID_CARD_META_ITEM_LEAD_CLASSNAME}>
-              <span className={LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME}>{formatMetaValue(entry.value)}</span>
-              <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
-            </strong>
-          ) : (
-            <span className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
-              <span className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(entry.value)}</span>
-              <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
-            </span>
-          )}
-        </Fragment>
-      ))}
+      <span className={LANDING_GRID_CARD_META_GROUP_CLASSNAME} data-meta-group="run">
+        {leading.map((entry, index) => (
+          <Fragment key={entry.label}>
+            {index > 0 ? (
+              <span className={LANDING_GRID_CARD_META_SEPARATOR_CLASSNAME} aria-hidden="true">
+                ·
+              </span>
+            ) : null}
+            <ExpandedMetaItem entry={entry} lead={index === 0} />
+          </Fragment>
+        ))}
+      </span>
+      <span className={LANDING_GRID_CARD_META_GROUP_CLASSNAME} data-meta-group="social">
+        <ExpandedMetaItem entry={trailing} lead={false} />
+      </span>
     </p>
   );
 }
@@ -172,11 +198,11 @@ function ExpandedTestBody({card, locale, copy, interactive, layoutMode, onAnswer
   const meta = (
     <ExpandedMetaRow
       interactive={interactive}
-      entries={[
+      leading={[
         {label: copy.metaEstimated, value: card.test.meta.durationM},
-        {label: copy.metaShares, value: card.test.meta.sharedC},
         {label: copy.metaAttempts, value: card.test.meta.engagedC}
       ]}
+      trailing={{label: copy.metaShares, value: card.test.meta.sharedC}}
     />
   );
 

@@ -17,6 +17,7 @@ import {
   useTelemetryConsentSource
 } from '@/features/telemetry/consent-source';
 import {LOCAL_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
+import {readLocal, removeLocal, writeLocal} from '@/lib/safe-storage';
 import type {
   AttemptStartTelemetryEvent,
   CardAnsweredTelemetryEvent,
@@ -49,21 +50,8 @@ const runtimeState: TelemetryRuntimeState = {
   sentLandingViews: new Set()
 };
 
-function getLocalStorage(): Storage | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 function resolveSessionId(): string | null {
-  const storage = getLocalStorage();
-  const stored = storage?.getItem(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID)?.trim() ?? '';
+  const stored = readLocal(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID)?.trim() ?? '';
   if (stored) {
     return stored;
   }
@@ -73,22 +61,15 @@ function resolveSessionId(): string | null {
     return null;
   }
 
-  try {
-    storage?.setItem(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID, nextSessionId);
-  } catch {
-    // Ignore storage failures and keep the in-memory value.
-  }
+  // 못 써도 그대로 간다 — 이 회차 동안은 메모리 값이 세션을 대신한다.
+  writeLocal(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID, nextSessionId);
 
   return nextSessionId;
 }
 
 function clearSessionId(): void {
   runtimeState.sessionId = null;
-  try {
-    getLocalStorage()?.removeItem(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID);
-  } catch {
-    // Ignore storage failures during opt-out cleanup.
-  }
+  removeLocal(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID);
 }
 
 function canSendToNetwork(): boolean {
@@ -218,7 +199,7 @@ export function resetTelemetryRuntimeForTests(): void {
   resetTelemetryConsentSourceForTests();
 
   try {
-    getLocalStorage()?.removeItem(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID);
+    removeLocal(LOCAL_STORAGE_KEYS.TELEMETRY_SESSION_ID);
   } catch {
     // Ignore storage cleanup failures in test reset helpers.
   }

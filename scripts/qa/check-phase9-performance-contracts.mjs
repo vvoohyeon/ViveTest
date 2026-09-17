@@ -1,11 +1,11 @@
 import {createChecker, fileExists, read, readExisting} from './_utils.mjs';
-import {e2e, gnb, landing, styles} from './_path-config.mjs';
+import {e2e, gnb, landing, styles, ui} from './_path-config.mjs';
 
 const {fail, finish} = createChecker();
 
 const requiredFiles = [
   'src/app/layout.tsx',
-  'public/theme-bootstrap.js',
+  'src/features/gnb/theme-bootstrap-source.ts',
   landing.grid.catalogGridLoader,
   landing.grid.catalogGrid,
   landing.grid.gridCardCss,
@@ -123,13 +123,20 @@ if (fileExists(gnb.capabilityHook)) {
 if (fileExists('src/app/layout.tsx')) {
   const rootLayoutFile = read('src/app/layout.tsx');
 
-  if (!/data-theme="light"/u.test(rootLayoutFile) || !/theme-bootstrap\.js/u.test(rootLayoutFile)) {
+  if (!/data-theme="light"/u.test(rootLayoutFile) || !/THEME_BOOTSTRAP_SOURCE/u.test(rootLayoutFile)) {
     fail('Root layout must provide a deterministic theme bootstrap before hydration.');
+  }
+
+  // 부트스트랩이 **별도 요청**으로 돌아가면 첫 페인트를 막지 못한다 — 실측(2026-09-16):
+  // Fast 4G 1,343ms · Slow 4G 5,483ms 동안 다크 사용자가 라이트 화면을 봤다. 인라인으로
+  // 되돌아오지 못하게 그 경로를 여기서 막는다.
+  if (/from\s+['"]next\/script['"]/u.test(rootLayoutFile) || /src=["'][^"']*theme-bootstrap/u.test(rootLayoutFile)) {
+    fail('Theme bootstrap must be inlined in the document, not fetched as a separate script.');
   }
 }
 
-if (fileExists('public/theme-bootstrap.js')) {
-  const themeBootstrapFile = read('public/theme-bootstrap.js');
+if (fileExists('src/features/gnb/theme-bootstrap-source.ts')) {
+  const themeBootstrapFile = read('src/features/gnb/theme-bootstrap-source.ts');
 
   if (!/localStorage/u.test(themeBootstrapFile) || !/prefers-color-scheme/u.test(themeBootstrapFile)) {
     fail('Theme bootstrap must resolve stored and system theme before hydration.');
@@ -150,11 +157,22 @@ if (fileExists(landing.grid.gridCardCss)) {
     fail('Landing grid styles must define reduced-motion open/close motion tokens.');
   }
 
-  if (
-    !/\.root\.reducedMotion \.transientShell\.transientOpening[\s\S]*animation-name:\s*landing-card-shell-reduced-open/ums.test(css) ||
-    !/\.root\.reducedMotion \.transientShell\.transientClosing[\s\S]*animation-name:\s*landing-card-shell-reduced-close/ums.test(css)
+}
+
+// 폰의 확장 모션이 시트로 옮겨 가면서 reduced-motion 의 처분처도 함께 옮겨 갔다. 요구는
+// 같다 — **이동을 버리고 페이드만 남긴다**(명세 §3-4). 「전부 0 으로」가 아니라는 것이 요점이고,
+// 그래서 지속 시간이 아니라 `transform` 이 사라지고 `opacity` 가 남는 것을 본다.
+if (fileExists(ui.bottomSheetCss)) {
+  const sheetCss = read(ui.bottomSheetCss);
+  const reducedBlock = sheetCss.slice(sheetCss.indexOf('@media (prefers-reduced-motion: reduce)'));
+
+  if (!reducedBlock) {
+    fail('Sheet styles must define a reduced-motion block.');
+  } else if (
+    !/transition-property:\s*opacity/u.test(reducedBlock) ||
+    !/transform:\s*none/u.test(reducedBlock)
   ) {
-    fail('Landing grid styles must simplify mobile transient-shell motion under reduced-motion through semantic transient-shell classes.');
+    fail('Sheet reduced-motion must drop the translate and keep the fade rather than removing motion entirely.');
   }
 }
 

@@ -1,4 +1,5 @@
 import {SESSION_STORAGE_KEYS, variantSessionKeys} from '@/features/landing/storage/storage-keys';
+import {readSession, removeSession, writeSession} from '@/lib/safe-storage';
 
 export type LandingTransitionResultReason =
   | 'USER_CANCEL'
@@ -27,25 +28,8 @@ export interface LandingIngressRecord {
 export const LANDING_TRANSITION_STORE_EVENT = 'landing:transition-store-change';
 export const LANDING_TRANSITION_CLEANUP_EVENT = 'landing:transition-cleanup';
 
-function getSessionStorage(): Storage | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return window.sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
 function readJson<T>(key: string): T | null {
-  const storage = getSessionStorage();
-  if (!storage) {
-    return null;
-  }
-
-  const raw = storage.getItem(key);
+  const raw = readSession(key);
   if (!raw) {
     return null;
   }
@@ -53,18 +37,13 @@ function readJson<T>(key: string): T | null {
   try {
     return JSON.parse(raw) as T;
   } catch {
-    storage.removeItem(key);
+    removeSession(key);
     return null;
   }
 }
 
 function writeJson(key: string, value: unknown): void {
-  const storage = getSessionStorage();
-  if (!storage) {
-    return;
-  }
-
-  storage.setItem(key, JSON.stringify(value));
+  writeSession(key, JSON.stringify(value));
 }
 
 function dispatchStoreChangeEvent(name: string, detail: Record<string, unknown>): void {
@@ -92,8 +71,7 @@ export function readPendingLandingTransition(): PendingLandingTransition | null 
 }
 
 export function clearPendingLandingTransition(): void {
-  const storage = getSessionStorage();
-  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION);
+  removeSession(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION);
   dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     key: SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION,
     transitionId: null
@@ -114,21 +92,15 @@ export function readLandingIngress(variant: string): LandingIngressRecord | null
 }
 
 export function consumeLandingIngress(variant: string): LandingIngressRecord | null {
-  const storage = getSessionStorage();
-  if (!storage) {
-    return null;
-  }
-
   const key = variantSessionKeys.landingIngress(variant);
   const value = readJson<LandingIngressRecord>(key);
-  storage.removeItem(key);
+  removeSession(key);
   return value;
 }
 
 export function clearLandingIngress(variant: string): void {
-  const storage = getSessionStorage();
   const key = variantSessionKeys.landingIngress(variant);
-  storage?.removeItem(key);
+  removeSession(key);
   dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     key,
     variant
@@ -136,16 +108,11 @@ export function clearLandingIngress(variant: string): void {
 }
 
 export function saveLandingReturnScrollY(scrollY: number, sourceVariant?: string): void {
-  const storage = getSessionStorage();
-  if (!storage) {
-    return;
-  }
-
-  storage.setItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y, String(Math.max(0, Math.trunc(scrollY))));
+  writeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y, String(Math.max(0, Math.trunc(scrollY))));
   if (sourceVariant) {
-    storage.setItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT, sourceVariant);
+    writeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT, sourceVariant);
   } else {
-    storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
+    removeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   }
 
   dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
@@ -155,12 +122,7 @@ export function saveLandingReturnScrollY(scrollY: number, sourceVariant?: string
 }
 
 export function readLandingReturnScrollY(): number | null {
-  const storage = getSessionStorage();
-  if (!storage) {
-    return null;
-  }
-
-  const raw = storage.getItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
+  const raw = readSession(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
   if (!raw) {
     return null;
   }
@@ -171,36 +133,24 @@ export function readLandingReturnScrollY(): number | null {
 
 export function consumeLandingReturnScrollY(): number | null {
   const value = readLandingReturnScrollY();
-  const storage = getSessionStorage();
-  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
+  removeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
   return value;
 }
 
 export function readLandingReturnVariant(): string | null {
-  const storage = getSessionStorage();
-  if (!storage) {
-    return null;
-  }
-
-  const value = storage.getItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
+  const value = readSession(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   return value && value.trim().length > 0 ? value : null;
 }
 
 export function consumeLandingReturnVariant(): string | null {
   const value = readLandingReturnVariant();
-  const storage = getSessionStorage();
-  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
+  removeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   return value;
 }
 
 export function clearLandingReturnScroll(): void {
-  const storage = getSessionStorage();
-  if (!storage) {
-    return;
-  }
-
-  storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
-  storage.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
+  removeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
+  removeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     keys: [
       SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y,
@@ -213,13 +163,11 @@ export function clearLandingReturnScroll(): void {
 export function rollbackLandingTransition(input: {
   variant?: string;
 }): void {
-  const storage = getSessionStorage();
-
-  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION);
-  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
-  storage?.removeItem(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
+  removeSession(SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION);
+  removeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_SCROLL_Y);
+  removeSession(SESSION_STORAGE_KEYS.LANDING_RETURN_VARIANT);
   if (input.variant) {
-    storage?.removeItem(variantSessionKeys.landingIngress(input.variant));
+    removeSession(variantSessionKeys.landingIngress(input.variant));
   }
   dispatchStoreChangeEvent(LANDING_TRANSITION_STORE_EVENT, {
     key: SESSION_STORAGE_KEYS.LANDING_PENDING_TRANSITION,

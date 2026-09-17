@@ -7,7 +7,10 @@
     "history": "History",
     "blog": "Blog",
     "settings": "Settings",
-    "theme": "Language ⋅ Theme",
+    "theme": "Theme",
+    "language": "Language",
+    "system": "System",
+    "themeEffective": "Currently applied",
     "light": "Light",
     "dark": "Dark",
     "menu": "Menu",
@@ -20,8 +23,9 @@
     "skipToContent": "Skip to main content"
   },
   "landing": {
-    "heroTitle": "Find your working rhythm in one pass",
-    "heroBody": "Available tests and engineering blog notes live in a single catalog. Expand a card, choose an action, and move forward with one deterministic handoff.",
+    "pageTitle": "Find your working rhythm",
+    "pageSubtitle": "Tests and notes in one catalog.",
+    "pageHeadAria": "Page title",
     "comingSoon": "coming soon",
     "closeExpandedAria": "Close expanded card",
     "close": "Close",
@@ -30,7 +34,9 @@
     "metaAttempts": "completed",
     "metaReadTime": "min read",
     "metaViews": "views",
-    "readMore": "Read more"
+    "readMore": "Read more",
+    "optedOutNotice": "{count, plural, =1 {1 test needs analytics consent.} other {# tests need analytics consent.}}",
+    "optedOutNoticeAction": "Change consent"
   },
   "test": {
     "progressLabel": "Progress",
@@ -41,6 +47,12 @@
     "submit": "Submit",
     "resultLabel": "Final Result",
     "resultBody": "Result is computed from your final answers, including any updated Q1 choice.",
+    "resultPageTitle": "Result",
+    "resultTypeLabel": "Type",
+    "resultErrorTitle": "We can't open this result",
+    "resultErrorBody": "The link is incomplete or no longer valid.",
+    "resultRetake": "Take it again",
+    "resultTakeTest": "Take the test",
     "goHome": "Back to landing",
     "goHistory": "Open history",
     "instructionTitle": "Before we start",
@@ -63,19 +75,32 @@
     "allArticles": "All articles"
   },
   "history": {
-    "title": "Local Result History",
-    "body": "Each completed run is stored as an independent entry (newest first, max 50).",
+    "title": "Run history",
+    "body": "Runs on this device — newest first, up to 50.",
+    "emptyBody": "No runs on this device yet.",
+    "browseTests": "Browse tests",
+    "abandoned": "Stopped",
     "clearAll": "Clear all",
-    "goHome": "Go home",
     "open": "Open",
     "delete": "Delete"
   },
+  "error": {
+    "notFoundTitle": "That page is not here",
+    "notFoundBody": "This address is valid, but nothing lives at it any more.",
+    "entryBlockedTitle": "We could not open that test",
+    "entryBlockedBody": "The test may have been retired, or its link may be incomplete. The catalog has the ones you can take now.",
+    "crashTitle": "This screen did not render",
+    "crashBody": "Something broke while drawing this page. Trying again usually works.",
+    "retry": "Try again",
+    "backToLanding": "Return home"
+  },
   "consent": {
-    "regionLabel": "Cookie consent",
-    "message": "We use cookies and similar technologies to help the service work properly and to understand how it is used. You can choose whether to allow optional cookies, and you can change your choice at any time.",
-    "accept": "Accept all",
+    "regionLabel": "Analytics consent",
+    "message": "We use optional analytics to see which tests people finish. Nothing you answer is sent.",
+    "accept": "Allow",
     "deny": "Deny",
-    "preferences": "Preferences",
-    "preferencesTitle": "Preferences panel coming soon"
+    "recall": "Privacy preferences",
+    "close": "Close",
+    "previousChoice": "Your previous choice"
   }
 }

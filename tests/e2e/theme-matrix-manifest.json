@@ -1,35 +1,146 @@
 {
-  "locales": ["en", "kr"],
-  "themes": ["light", "dark"],
+  "locales": [
+    "en",
+    "kr"
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
   "viewports": {
-    "desktop-wide": {"width": 1440, "height": 980, "tier": "desktop", "boundary": true, "stateCanonical": true},
-    "desktop-medium": {"width": 1180, "height": 980, "tier": "desktop", "boundary": true, "stateCanonical": false},
-    "desktop-narrow": {"width": 1024, "height": 980, "tier": "desktop", "boundary": true, "stateCanonical": false},
-    "tablet-wide": {"width": 1023, "height": 980, "tier": "tablet", "boundary": true, "stateCanonical": true},
-    "tablet-narrow": {"width": 900, "height": 980, "tier": "tablet", "boundary": true, "stateCanonical": false},
-    "mobile": {"width": 390, "height": 844, "tier": "mobile", "boundary": true, "stateCanonical": true}
+    "desktop-wide": {
+      "width": 1440,
+      "height": 980,
+      "tier": "desktop",
+      "boundary": true,
+      "stateCanonical": true
+    },
+    "desktop-medium": {
+      "width": 1180,
+      "height": 980,
+      "tier": "desktop",
+      "boundary": true,
+      "stateCanonical": false
+    },
+    "desktop-narrow": {
+      "width": 1024,
+      "height": 980,
+      "tier": "desktop",
+      "boundary": true,
+      "stateCanonical": false
+    },
+    "tablet-wide": {
+      "width": 1023,
+      "height": 980,
+      "tier": "tablet",
+      "boundary": true,
+      "stateCanonical": true
+    },
+    "tablet-narrow": {
+      "width": 900,
+      "height": 980,
+      "tier": "tablet",
+      "boundary": true,
+      "stateCanonical": false
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "tier": "mobile",
+      "boundary": true,
+      "stateCanonical": true
+    }
   },
   "closure": {
     "layoutCaseViewportKeys": {
-      "landing-normal": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
-      "blog-default": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
-      "history-default": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
-      "test-instruction": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+      "landing-normal": [
+        "desktop-wide",
+        "desktop-medium",
+        "desktop-narrow",
+        "tablet-wide",
+        "tablet-narrow",
+        "mobile"
+      ],
+      "blog-default": [
+        "desktop-wide",
+        "desktop-medium",
+        "desktop-narrow",
+        "tablet-wide",
+        "tablet-narrow",
+        "mobile"
+      ],
+      "history-default": [
+        "desktop-wide",
+        "desktop-medium",
+        "desktop-narrow",
+        "tablet-wide",
+        "tablet-narrow",
+        "mobile"
+      ],
+      "test-instruction": [
+        "desktop-wide",
+        "desktop-medium",
+        "desktop-narrow",
+        "tablet-wide",
+        "tablet-narrow",
+        "mobile"
+      ],
+      "test-error": [
+        "mobile"
+      ]
     },
     "stateCaseViewportKeys": {
-      "landing-test-expanded": ["desktop-wide", "tablet-wide"],
-      "landing-blog-expanded": ["desktop-wide", "tablet-wide"],
-      "landing-settings-open": ["desktop-wide"],
-      "blog-settings-open": ["desktop-wide"],
-      "history-settings-open": ["desktop-wide"],
-      "test-question": ["desktop-wide", "tablet-wide"],
-      "test-result": ["desktop-wide", "tablet-wide"],
-      "mobile-landing-test-expanded": ["mobile"],
-      "mobile-landing-menu-open": ["mobile"],
-      "mobile-blog-menu-open": ["mobile"],
-      "mobile-history-menu-open": ["mobile"],
-      "mobile-test-question": ["mobile"],
-      "mobile-test-result": ["mobile"]
+      "landing-test-expanded": [
+        "desktop-wide",
+        "tablet-wide"
+      ],
+      "landing-blog-expanded": [
+        "desktop-wide",
+        "tablet-wide"
+      ],
+      "landing-settings-open": [
+        "desktop-wide"
+      ],
+      "blog-settings-open": [
+        "desktop-wide"
+      ],
+      "history-settings-open": [
+        "desktop-wide"
+      ],
+      "test-question": [
+        "desktop-wide",
+        "tablet-wide"
+      ],
+      "test-result": [
+        "desktop-wide",
+        "tablet-wide"
+      ],
+      "mobile-landing-test-expanded": [
+        "mobile"
+      ],
+      "mobile-landing-menu-open": [
+        "mobile"
+      ],
+      "mobile-blog-menu-open": [
+        "mobile"
+      ],
+      "mobile-history-menu-open": [
+        "mobile"
+      ],
+      "mobile-test-question": [
+        "mobile"
+      ],
+      "mobile-test-result": [
+        "mobile"
+      ],
+      "landing-consent-unknown": [
+        "desktop-wide",
+        "mobile"
+      ],
+      "landing-consent-opted-out": [
+        "desktop-wide",
+        "mobile"
+      ]
     }
   },
   "layoutCases": [
@@ -38,8 +149,18 @@
       "suite": "layout",
       "routeTemplate": "/{locale}",
       "settleRecipe": "landing-normal",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "desktop-medium",
+        "desktop-narrow",
+        "tablet-wide",
+        "tablet-narrow",
+        "mobile"
+      ],
       "gate": true
     },
     {
@@ -47,8 +168,18 @@
       "suite": "layout",
       "routeTemplate": "/{locale}/blog",
       "settleRecipe": "landing-normal",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "desktop-medium",
+        "desktop-narrow",
+        "tablet-wide",
+        "tablet-narrow",
+        "mobile"
+      ],
       "gate": true
     },
     {
@@ -56,8 +187,18 @@
       "suite": "layout",
       "routeTemplate": "/{locale}/history",
       "settleRecipe": "landing-normal",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "desktop-medium",
+        "desktop-narrow",
+        "tablet-wide",
+        "tablet-narrow",
+        "mobile"
+      ],
       "gate": true
     },
     {
@@ -65,9 +206,34 @@
       "suite": "layout",
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-instruction",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "desktop-medium",
+        "desktop-narrow",
+        "tablet-wide",
+        "tablet-narrow",
+        "mobile"
+      ],
       "gate": true
+    },
+    {
+      "id": "test-error",
+      "suite": "layout",
+      "routeTemplate": "/{locale}/test/error",
+      "settleRecipe": "landing-normal",
+      "captureRoot": "main",
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "mobile"
+      ],
+      "gate": false
     }
   ],
   "stateCases": [
@@ -76,8 +242,14 @@
       "suite": "state",
       "routeTemplate": "/{locale}",
       "settleRecipe": "landing-test-expanded",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "tablet-wide"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "tablet-wide"
+      ],
       "gate": true
     },
     {
@@ -85,8 +257,14 @@
       "suite": "state",
       "routeTemplate": "/{locale}",
       "settleRecipe": "landing-blog-expanded",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "tablet-wide"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "tablet-wide"
+      ],
       "gate": true
     },
     {
@@ -94,8 +272,13 @@
       "suite": "state",
       "routeTemplate": "/{locale}",
       "settleRecipe": "desktop-settings-open",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide"
+      ],
       "gate": true
     },
     {
@@ -103,8 +286,13 @@
       "suite": "state",
       "routeTemplate": "/{locale}/blog",
       "settleRecipe": "desktop-settings-open",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide"
+      ],
       "gate": true
     },
     {
@@ -112,8 +300,13 @@
       "suite": "state",
       "routeTemplate": "/{locale}/history",
       "settleRecipe": "desktop-settings-open",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide"
+      ],
       "gate": true
     },
     {
@@ -121,8 +314,14 @@
       "suite": "state",
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-question",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "tablet-wide"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "tablet-wide"
+      ],
       "gate": true
     },
     {
@@ -130,8 +329,14 @@
       "suite": "state",
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-result",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["desktop-wide", "tablet-wide"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "tablet-wide"
+      ],
       "gate": true
     },
     {
@@ -139,8 +344,13 @@
       "suite": "state",
       "routeTemplate": "/{locale}",
       "settleRecipe": "mobile-landing-test-expanded",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "mobile"
+      ],
       "gate": true
     },
     {
@@ -148,8 +358,13 @@
       "suite": "state",
       "routeTemplate": "/{locale}",
       "settleRecipe": "mobile-menu-open",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "mobile"
+      ],
       "gate": true
     },
     {
@@ -157,8 +372,13 @@
       "suite": "state",
       "routeTemplate": "/{locale}/blog",
       "settleRecipe": "mobile-menu-open",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "mobile"
+      ],
       "gate": true
     },
     {
@@ -166,8 +386,13 @@
       "suite": "state",
       "routeTemplate": "/{locale}/history",
       "settleRecipe": "mobile-menu-open",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "mobile"
+      ],
       "gate": true
     },
     {
@@ -175,8 +400,13 @@
       "suite": "state",
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-question",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "mobile"
+      ],
       "gate": true
     },
     {
@@ -184,9 +414,46 @@
       "suite": "state",
       "routeTemplate": "/{locale}/test/qmbti",
       "settleRecipe": "test-result",
-      "localeKeys": ["en", "kr"],
-      "viewportKeys": ["mobile"],
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "mobile"
+      ],
       "gate": true
+    },
+    {
+      "id": "landing-consent-unknown",
+      "suite": "state",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "landing-normal",
+      "consent": "UNKNOWN",
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "mobile"
+      ],
+      "gate": false
+    },
+    {
+      "id": "landing-consent-opted-out",
+      "suite": "state",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "landing-normal",
+      "consent": "OPTED_OUT",
+      "localeKeys": [
+        "en",
+        "kr"
+      ],
+      "viewportKeys": [
+        "desktop-wide",
+        "mobile"
+      ],
+      "gate": false
     }
   ]
 }

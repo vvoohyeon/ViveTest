@@ -32,27 +32,36 @@ export const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
 export const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
   'landing-grid-card-subtitle min-w-0 [font:var(--t-card-subtitle)] text-[var(--normal-subtitle-ink)] [overflow-wrap:anywhere]';
 export const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
-  'landing-grid-card-thumbnail-slot relative aspect-[16/6] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--surface-muted)_85%,transparent)]';
+  'landing-grid-card-thumbnail-slot relative aspect-[16/4] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--surface-muted)_85%,transparent)]';
 export const LANDING_GRID_CARD_TAGS_CLASSNAME =
   'landing-grid-card-tags m-0 flex min-h-7 min-w-0 shrink-0 list-none items-center gap-2 overflow-hidden p-0';
 export const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
   'landing-grid-card-tags-gap h-[calc(var(--landing-card-base-gap)_+_var(--landing-card-comp-gap))]';
 export const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
 export const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
+  // ds-literal: partial-role --caption — 크기만 `--caption`(13px)과 같다. 무게는 500 이고
+  // `[font:var(--caption)]` 단축은 400 을 싣고 옆의 `font-medium` 을 이긴다(L10 ⑷).
   'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium text-[var(--normal-tag-ink)]';
 export const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME =
   'landing-grid-card-preview-question m-0 [font:var(--t-expanded-question)] [letter-spacing:var(--track-tight)] text-[var(--expanded-question-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 export const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
 export const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
-  'landing-grid-card-answer-choice group/answerChoice flex items-start gap-3 cursor-pointer overflow-visible rounded-[12px] border border-[var(--expanded-choice-border)] bg-[var(--expanded-choice-surface)] px-3.5 py-3 text-left text-clip transition-[border-color,background-color] duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none disabled:cursor-default hover:border-[var(--expanded-choice-accent)] hover:bg-[var(--expanded-choice-accent-surface)] focus-visible:[outline:2px_solid_var(--expanded-choice-accent)] focus-visible:[outline-offset:2px]';
+  'landing-grid-card-answer-choice group/answerChoice flex items-start gap-3 cursor-pointer overflow-visible rounded-[12px] border border-[var(--expanded-choice-border)] bg-[var(--expanded-choice-surface)] px-3.5 py-3 text-left text-clip transition-[border-color,background-color] duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none disabled:cursor-default hover:border-[var(--expanded-choice-accent)] hover:bg-[var(--expanded-choice-accent-surface)] active:border-[var(--expanded-choice-accent)] active:bg-[var(--expanded-choice-accent-surface)] focus-visible:[outline:2px_solid_var(--expanded-choice-accent)] focus-visible:[outline-offset:2px]';
 export const LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME =
   'landing-grid-card-answer-choice-text min-w-0 flex-1 [font:var(--t-choice)] text-[var(--expanded-choice-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 export const LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME =
   'landing-grid-card-answer-choice-arrow shrink-0 [font:var(--t-choice)] text-[var(--expanded-choice-arrow-ink)] transition-colors duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/answerChoice:text-[var(--expanded-choice-accent)]';
 // design §6.10 quiet data row: horizontal wrapping row, dot separators, 13px/500/--muted,
 // with the complete duration item emphasized. Inline value+label per item (no dt/dd stack).
+// 명세 §3-3 — `소요 · 완료` 는 **왼쪽**, `공유` 는 **오른쪽 정렬**이다. 폰 시트와 태블릿·
+// 데스크톱 제자리 오버레이가 같은 규칙을 쓴다. 종전에는 셋이 한 줄에 점으로 이어져 있었고
+// 순서도 `소요 · 공유 · 완료` 여서, 회차에 관한 둘 사이에 공유가 끼어 있었다.
 export const LANDING_GRID_CARD_META_ROW_CLASSNAME =
-  'landing-grid-card-meta-row m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] font-medium leading-[1.35] text-[var(--expanded-context-ink)]';
+  // ds-literal: partial-role --caption — 크기만 같다. 무게 500 · 행간 1.35 로 토큰의
+  // 400/1.45 와 다르다.
+  'landing-grid-card-meta-row m-0 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[13px] font-medium leading-[1.35] text-[var(--expanded-context-ink)]';
+export const LANDING_GRID_CARD_META_GROUP_CLASSNAME =
+  'landing-grid-card-meta-group inline-flex flex-wrap items-baseline gap-x-2 gap-y-1';
 export const LANDING_GRID_CARD_META_ITEM_CLASSNAME =
   'landing-grid-card-meta-item inline-flex items-baseline gap-1 whitespace-nowrap';
 export const LANDING_GRID_CARD_META_ITEM_LEAD_CLASSNAME =
@@ -67,7 +76,11 @@ export const LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME =
   'landing-grid-card-title [font:var(--label)] text-[var(--expanded-context-ink)] [overflow-wrap:anywhere]';
 // Desktop overlay expandedBody is a flex column so the BQ-24 height-floor surplus can be absorbed
 // by a single spacer (design §7.3). Mobile expanded/transient bodies keep their own grid layout.
-export const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4';
+// 높이 상한과 내부 스크롤은 설계 명세 규칙 3 이다 — 가로로 눕힌 폰이 이 조건으로 들어오고
+// 거기서 본문이 넘치면 배경이 잠겨 있어 스크롤로도 볼 수 없다. 상한값의 정본은
+// `LANDING_OVERLAY_VIEWPORT_INSET_PX` 이고 `--landing-overlay-max-height` 로 내려온다.
+export const LANDING_GRID_CARD_EXPANDED_CLASSNAME =
+  'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4 [max-height:var(--landing-overlay-max-height)] overflow-y-auto overscroll-contain';
 // desktop-overlay-floor body chain: flex-1 body fills the floored expandedBody; the single spacer
 // (flex:1, min-height 14px) sits between the last choice / subtitle and the meta(+CTA) group so the
 // meta anchors to the bottom and the card grows downward (content-fit) when content overflows.
@@ -91,20 +104,6 @@ export const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
   'landing-grid-card-mobile-close relative inline-flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--hairline-strong)] bg-[var(--surface-strong)] p-0 font-semibold [color:var(--ink)]';
 export const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
   `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} cursor-pointer disabled:cursor-default disabled:opacity-70`;
-export const LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME =
-  `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} landing-grid-card-mobile-close-ghost pointer-events-none`;
-export const LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME =
-  'landing-grid-card-mobile-expanded grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-auto overscroll-contain px-4 pb-4';
-export const LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME =
-  'landing-grid-card-mobile-header sticky top-0 z-[4] flex items-start justify-between gap-3 bg-[var(--expanded-card-surface)] pt-4 pb-[14px]';
 export const LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME =
   `${LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME} landing-grid-card-mobile-title min-w-0 flex-1`;
 export const LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME = 'landing-grid-card-mobile-body grid min-w-0 gap-[10px]';
-export const LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME =
-  'landing-grid-card-mobile-transient-shell fixed left-[var(--landing-mobile-card-left,0px)] top-[var(--landing-mobile-anchor-top,0px)] z-[21] max-h-[calc(100dvh-116px)] max-w-full w-[var(--landing-mobile-card-width,100vw)] overflow-hidden rounded-[var(--landing-card-radius)] [box-shadow:var(--expanded-card-shadow)] pointer-events-none isolate';
-export const LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME =
-  'landing-grid-card-mobile-transient-panel pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[var(--expanded-card-surface)]';
-export const LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME =
-  'landing-grid-card-mobile-transient-surface relative z-[1] grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-hidden px-4 pb-4';
-export const LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME =
-  `${LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} landing-grid-card-mobile-transient-header relative z-[1] bg-transparent`;

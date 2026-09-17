@@ -8,349 +8,127 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {
   initialLandingMobileLifecycleState,
-  MOBILE_EXPANDED_DURATION_MS,
-  reduceLandingMobileLifecycleState,
-  type LandingMobileLifecycleState,
-  type LandingMobileSnapshot
+  isMobileLifecycleActive,
+  mobilePhaseFromSheetPhase
 } from '../../src/features/landing/grid/mobile-lifecycle';
 import {useMobileCardLifecycle} from '../../src/features/landing/grid/use-mobile-card-lifecycle';
-import {useMobileRestorePolling} from '../../src/features/landing/grid/use-mobile-restore-polling';
-import {useMobileTransientShell} from '../../src/features/landing/grid/use-mobile-transient-shell';
 import type {LandingCardInteractionMode} from '../../src/features/landing/grid/landing-grid-card';
-import type {LandingInteractionState} from '../../src/features/landing/model/interaction-state';
 
-type RafCallback = FrameRequestCallback;
+// 폰의 확장이 바텀시트가 되면서 이 모듈에서 위상 기계가 사라졌다 — **시트가 위상의 정본**이고
+// 여기 남는 것은 그 위상을 계약 이름으로 옮기는 사전과, 의도를 상호작용 상태로 옮기는 셋이다.
+// 스냅샷·복귀 폴링·transient 셸·열림/닫힘 타이머를 보던 검사들이 함께 사라진 이유가 그것이다:
+// 그것들이 지키던 성질(복귀 정확성)은 이제 절차가 아니라 구조가 준다.
 
-let rafCallbacks: Map<number, RafCallback>;
-let nextRafId: number;
+const interactionMode: LandingCardInteractionMode = 'tap';
 
-function createMobileSnapshot(): LandingMobileSnapshot {
-  return {
-    cardHeightPx: 200,
-    anchorTopPx: 32,
-    cardLeftPx: 16,
-    cardWidthPx: 358,
-    titleTopPx: 32
-  };
-}
+function renderLifecycle(dispatchInteraction = vi.fn(), clearHoverTimer = vi.fn()) {
+  const shellRef = createRef<HTMLElement>() as {current: HTMLElement | null};
+  shellRef.current = document.createElement('section');
 
-function installRafStubs() {
-  rafCallbacks = new Map();
-  nextRafId = 1;
-  vi.stubGlobal('requestAnimationFrame', (callback: RafCallback) => {
-    const id = nextRafId;
-    nextRafId += 1;
-    rafCallbacks.set(id, callback);
-    return id;
-  });
-  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
-    rafCallbacks.delete(id);
-  });
-}
+  const view = renderHook(() =>
+    useMobileCardLifecycle({
+      interactionMode,
+      dispatchInteraction,
+      shellRef,
+      clearHoverTimer
+    })
+  );
 
-function flushNextRaf() {
-  const [id, callback] = rafCallbacks.entries().next().value ?? [];
-  if (id === undefined || callback === undefined) {
-    return false;
-  }
-  rafCallbacks.delete(id);
-  callback(window.performance.now());
-  return true;
+  return {view, dispatchInteraction, clearHoverTimer, shellRef};
 }
 
 beforeEach(() => {
   vi.useFakeTimers();
-  installRafStubs();
 });
 
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
 
-describe('landing mobile lifecycle reducer', () => {
-  it('uses the fixed mobile duration contract', () => {
-    expect(MOBILE_EXPANDED_DURATION_MS).toBe(280);
+describe('시트 위상 → 계약 위상', () => {
+  it('네 위상이 일대일로 옮겨진다', () => {
+    expect(mobilePhaseFromSheetPhase('closed')).toBe('NORMAL');
+    expect(mobilePhaseFromSheetPhase('entering')).toBe('OPENING');
+    expect(mobilePhaseFromSheetPhase('open')).toBe('OPEN');
+    expect(mobilePhaseFromSheetPhase('closing')).toBe('CLOSING');
   });
 
-  it('queues close during OPENING and settles back to NORMAL after close', () => {
-    const opening = reduceLandingMobileLifecycleState(initialLandingMobileLifecycleState, {
-      type: 'OPEN_START',
-      cardVariant: 'qmbti',
-      snapshot: {
-        cardHeightPx: 200,
-        anchorTopPx: 32,
-        cardLeftPx: 16,
-        cardWidthPx: 358,
-        titleTopPx: 32
-      }
-    });
-    const queued = reduceLandingMobileLifecycleState(opening, {type: 'QUEUE_CLOSE'});
-    const closing = reduceLandingMobileLifecycleState(queued, {type: 'OPEN_SETTLED'});
-    const restoreReady = reduceLandingMobileLifecycleState(closing, {type: 'RESTORE_READY'});
-    const normal = reduceLandingMobileLifecycleState(restoreReady, {type: 'CLOSE_SETTLED'});
-
-    expect(opening.phase).toBe('OPENING');
-    expect(opening.snapshotWriteCount).toBe(1);
-    expect(queued.queuedClose).toBe(true);
-    expect(closing.phase).toBe('CLOSING');
-    expect(restoreReady.restoreReady).toBe(true);
-    expect(normal).toEqual(initialLandingMobileLifecycleState);
+  it('초기 상태는 아무 카드도 열려 있지 않다', () => {
+    expect(initialLandingMobileLifecycleState).toEqual({phase: 'NORMAL', cardVariant: null});
+    expect(isMobileLifecycleActive(initialLandingMobileLifecycleState)).toBe(false);
   });
 
-  it('ignores close-start when not OPEN', () => {
-    expect(
-      reduceLandingMobileLifecycleState(initialLandingMobileLifecycleState, {
-        type: 'CLOSE_START'
-      })
-    ).toEqual(initialLandingMobileLifecycleState);
-  });
-
-  it('does not rewrite the pre-open snapshot during the same mobile sequence', () => {
-    const snapshot = {
-      cardHeightPx: 200,
-      anchorTopPx: 32,
-      cardLeftPx: 16,
-      cardWidthPx: 358,
-      titleTopPx: 32
-    };
-    const opening = reduceLandingMobileLifecycleState(initialLandingMobileLifecycleState, {
-      type: 'OPEN_START',
-      cardVariant: 'qmbti',
-      snapshot
-    });
-    const restarted = reduceLandingMobileLifecycleState(opening, {
-      type: 'OPEN_START',
-      cardVariant: 'qmbti',
-      snapshot: {
-        cardHeightPx: 420,
-        anchorTopPx: 72,
-        cardLeftPx: 0,
-        cardWidthPx: 390,
-        titleTopPx: 88
-      }
-    });
-
-    expect(restarted.snapshot).toEqual(snapshot);
-    expect(restarted.snapshotWriteCount).toBe(1);
-  });
-
-  it('does not allow NORMAL terminal before restore-ready', () => {
-    const closing = reduceLandingMobileLifecycleState(
-      {
-        phase: 'CLOSING',
-        cardVariant: 'qmbti',
-        queuedClose: false,
-        snapshot: {
-          cardHeightPx: 200,
-          anchorTopPx: 32,
-          cardLeftPx: 16,
-          cardWidthPx: 358,
-          titleTopPx: 32
-        },
-        snapshotWriteCount: 1,
-        restoreReady: false
-      },
-      {type: 'CLOSE_SETTLED'}
-    );
-
-    expect(closing.phase).toBe('CLOSING');
-  });
-
-  it('exposes the controller-owned mobile card lifecycle hook entrypoint', () => {
-    expect(typeof useMobileCardLifecycle).toBe('function');
+  it('닫히는 중도 활성이다 — 그 동안 다른 카드의 활성화가 막힌다', () => {
+    expect(isMobileLifecycleActive({phase: 'CLOSING', cardVariant: 'qmbti'})).toBe(true);
+    expect(isMobileLifecycleActive({phase: 'OPENING', cardVariant: 'qmbti'})).toBe(true);
   });
 });
 
-describe('useMobileRestorePolling - predicate injection', () => {
-  it('settled predicate returning true ends polling immediately', () => {
-    const shellElement = document.createElement('section');
-    const shellRef = createRef<HTMLElement | null>();
-    shellRef.current = shellElement;
-    const dispatchMobileLifecycle = vi.fn();
-    const isRestoreSettled = vi.fn(() => true);
-    const snapshot = createMobileSnapshot();
-    const {result} = renderHook(() =>
-      useMobileRestorePolling({
-        shellRef,
-        dispatchMobileLifecycle,
-        isRestoreSettled
-      })
+describe('useMobileCardLifecycle', () => {
+  it('열기는 hover 타이머를 걷고 CARD_EXPAND 를 보낸다', () => {
+    const {view, dispatchInteraction, clearHoverTimer} = renderLifecycle();
+
+    act(() => {
+      view.result.current.beginMobileOpen('qmbti');
+    });
+
+    expect(clearHoverTimer).toHaveBeenCalled();
+    expect(dispatchInteraction).toHaveBeenCalledWith(
+      expect.objectContaining({type: 'CARD_EXPAND', cardVariant: 'qmbti', available: true, interactionMode})
     );
-
-    act(() => {
-      result.current.settleMobileCloseAfterRestore('qmbti', snapshot);
-    });
-    act(() => {
-      expect(flushNextRaf()).toBe(true);
-    });
-
-    expect(isRestoreSettled).toHaveBeenCalledOnce();
-    expect(isRestoreSettled).toHaveBeenCalledWith(shellElement, 'qmbti', snapshot);
-    expect(result.current.mobileRestoreReadyVariant).toBe('qmbti');
-    expect(rafCallbacks.size).toBe(1);
   });
 
-  it('settled predicate returning false for N attempts ends at max attempts', () => {
-    const shellElement = document.createElement('section');
-    const shellRef = createRef<HTMLElement | null>();
-    shellRef.current = shellElement;
-    const dispatchMobileLifecycle = vi.fn();
-    const isRestoreSettled = vi.fn(() => false);
-    const snapshot = createMobileSnapshot();
-    const expectedAttemptCount = 30;
-    const {result} = renderHook(() =>
-      useMobileRestorePolling({
-        shellRef,
-        dispatchMobileLifecycle,
-        isRestoreSettled
-      })
-    );
+  it('syncInteraction 이 거짓이면 상태를 쓰지 않는다 — 이미 열려 있는 것을 다시 열지 않는다', () => {
+    const {view, dispatchInteraction} = renderLifecycle();
 
     act(() => {
-      result.current.settleMobileCloseAfterRestore('qmbti', snapshot);
+      view.result.current.beginMobileOpen('qmbti', false);
     });
-    for (let attempt = 0; attempt < expectedAttemptCount; attempt += 1) {
-      act(() => {
-        expect(flushNextRaf()).toBe(true);
-      });
-    }
 
-    expect(isRestoreSettled).toHaveBeenCalledTimes(expectedAttemptCount);
-    expect(result.current.mobileRestoreReadyVariant).toBe('qmbti');
-    expect(rafCallbacks.size).toBe(1);
+    expect(dispatchInteraction).not.toHaveBeenCalled();
   });
 
-  it('cleanup cancels pending RAF', () => {
-    const shellElement = document.createElement('section');
-    const shellRef = createRef<HTMLElement | null>();
-    shellRef.current = shellElement;
-    const dispatchMobileLifecycle = vi.fn();
-    const isRestoreSettled = vi.fn(() => true);
-    const snapshot = createMobileSnapshot();
-    const {result} = renderHook(() =>
-      useMobileRestorePolling({
-        shellRef,
-        dispatchMobileLifecycle,
-        isRestoreSettled
-      })
+  it('닫기는 CARD_COLLAPSE 를 보낸다', () => {
+    const {view, dispatchInteraction} = renderLifecycle();
+
+    act(() => {
+      view.result.current.beginMobileClose('qmbti');
+    });
+
+    expect(dispatchInteraction).toHaveBeenCalledWith(
+      expect.objectContaining({type: 'CARD_COLLAPSE', cardVariant: 'qmbti'})
     );
-    let cancelRestore: (() => void) | undefined;
-
-    act(() => {
-      cancelRestore = result.current.settleMobileCloseAfterRestore('qmbti', snapshot);
-    });
-    act(() => {
-      cancelRestore?.();
-    });
-    act(() => {
-      expect(flushNextRaf()).toBe(false);
-    });
-
-    expect(isRestoreSettled).not.toHaveBeenCalled();
-  });
-});
-
-describe('transient shell timer consolidation', () => {
-  function buildLifecycleProps(
-    mobileLifecycleState: LandingMobileLifecycleState,
-    shellRef: ReturnType<typeof createRef<HTMLElement | null>>
-  ) {
-    return {
-      interactionMode: 'tap' as LandingCardInteractionMode,
-      interactionState: {
-        pageState: 'ACTIVE',
-        activeRampUntilMs: null,
-        focusedCardVariant: null,
-        expandedCardVariant: mobileLifecycleState.cardVariant,
-        hoverLock: {enabled: false, cardVariant: null, keyboardMode: false}
-      } as LandingInteractionState,
-      dispatchInteraction: vi.fn(),
-      mobileLifecycleState,
-      dispatchMobileLifecycle: vi.fn(),
-      isMobileViewport: true,
-      shellRef,
-      clearHoverTimer: vi.fn(),
-      collapseDesktopOverlay: vi.fn()
-    };
-  }
-
-  it('transient shell teardown occurs after the orchestrator close lifecycle timer', () => {
-    const shellEl = document.createElement('section');
-    const cardEl = document.createElement('div');
-    cardEl.setAttribute('data-testid', 'landing-grid-card');
-    cardEl.setAttribute('data-card-variant', 'qmbti');
-    shellEl.appendChild(cardEl);
-    const shellRef = createRef<HTMLElement | null>();
-    shellRef.current = shellEl;
-
-    const snapshot = createMobileSnapshot();
-    const openState: LandingMobileLifecycleState = {
-      phase: 'OPEN',
-      cardVariant: 'qmbti',
-      snapshot,
-      queuedClose: false,
-      snapshotWriteCount: 1,
-      restoreReady: false
-    };
-
-    const {result, rerender} = renderHook(
-      (props: ReturnType<typeof buildLifecycleProps>) => useMobileCardLifecycle(props),
-      {initialProps: buildLifecycleProps(openState, shellRef)}
-    );
-
-    act(() => {
-      result.current.beginMobileClose();
-    });
-
-    const closingState: LandingMobileLifecycleState = {
-      ...openState,
-      phase: 'CLOSING'
-    };
-    rerender(buildLifecycleProps(closingState, shellRef));
-
-    expect(result.current.mobileTransientShellState.mode).not.toBe('NONE');
-
-    act(() => {
-      vi.advanceTimersByTime(MOBILE_EXPANDED_DURATION_MS - 1);
-    });
-    expect(result.current.mobileTransientShellState.mode).not.toBe('NONE');
-
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    act(() => {
-      flushNextRaf();
-    });
-
-    expect(result.current.mobileTransientShellState.mode).toBe('NONE');
   });
 
-  it('manual resetMobileRuntime clears transient shell synchronously without timers', () => {
-    const shellEl = document.createElement('section');
-    const shellRef = createRef<HTMLElement | null>();
-    shellRef.current = shellEl;
+  it('키보드 핸드오프는 원본을 접고 다음 카드로 포커스를 넘긴다', () => {
+    const {view, dispatchInteraction, shellRef} = renderLifecycle();
+    const nextCard = document.createElement('div');
+    nextCard.dataset.cardVariant = 'egtt';
+    const trigger = document.createElement('button');
+    trigger.dataset.testid = 'landing-grid-card-trigger';
+    nextCard.appendChild(trigger);
+    shellRef.current?.appendChild(nextCard);
 
-    const {result} = renderHook(() =>
-      useMobileCardLifecycle(buildLifecycleProps(initialLandingMobileLifecycleState, shellRef))
+    act(() => {
+      view.result.current.beginMobileKeyboardHandoff('qmbti', 'egtt', 10);
+    });
+
+    expect(dispatchInteraction).toHaveBeenCalledWith(
+      expect.objectContaining({type: 'CARD_COLLAPSE', cardVariant: 'qmbti', nowMs: 10})
     );
-
-    act(() => {
-      result.current.beginMobileOpen('qmbti', false);
-    });
-    expect(result.current.mobileTransientShellState.mode).not.toBe('NONE');
-
-    act(() => {
-      result.current.resetMobileRuntime();
-    });
-    expect(result.current.mobileTransientShellState.mode).toBe('NONE');
   });
 
-  it('clearMobileTransientShellTimer is not part of the hook output type', () => {
-    type Output = ReturnType<typeof useMobileTransientShell>;
-    type HasTimer = 'clearMobileTransientShellTimer' extends keyof Output ? true : false;
-    const check: HasTimer = false;
-    expect(check).toBe(false);
+  it('넘길 다음 카드가 없으면 접기만 한다', () => {
+    const {view, dispatchInteraction} = renderLifecycle();
+
+    act(() => {
+      view.result.current.beginMobileKeyboardHandoff('qmbti', null, 10);
+    });
+
+    expect(dispatchInteraction).toHaveBeenCalledTimes(1);
+    expect(dispatchInteraction).toHaveBeenCalledWith(
+      expect.objectContaining({type: 'CARD_COLLAPSE', cardVariant: 'qmbti'})
+    );
   });
 });

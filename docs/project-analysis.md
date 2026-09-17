@@ -37,7 +37,7 @@ This repository is a localized Next.js App Router application. Its current techn
 | Area | Current implementation |
 |---|---|
 | Test result pipeline | Runtime can submit scoring answers and show a placeholder result panel. Real score derivation wiring, result URL/payload rendering, domain-token response projection, history persistence, and final `derived_type` telemetry are still deferred. |
-| Test error recovery | `/[locale]/test/error` exists and is routed through `PageShell`, but the user-facing recovery-card experience remains a stub. |
+| Test error recovery | `/[locale]/test/error` renders the shared recovery surface with 12-locale copy and a forward path (2026-09-16). Invalid variants **redirect** here rather than resolving a 404 inside `[locale]` — a 404 that resolves there ships an empty `<body>`. The §6.1 Phase 4 recovery-card list is still unbuilt. |
 | Sync/data pipeline | Landing and Questions Sheets loading, generated registry serialization, local dry run, and production sync orchestration exist. Production sync still validates Landing↔Questions in 2-source mode; Results fixture IDs participate only in dev/test runtime fallback and unit-level 3-source validation until a real Results Sheets loader/secret is added. |
 | Blog destination | List and detail routes exist, but article content remains fixture/model driven rather than a full publishing system. |
 | CI quality enforcement | Local quality scripts and Playwright config are present, but `.github/workflows/sync.yml` is the only checked-in workflow and it only runs the Sheets sync job on `main` pushes. No repository workflow currently invokes the default Done gate, `qa:rules`, or E2E gate. |
@@ -144,7 +144,13 @@ Route tree
             │         ├─ src/features/test/use-before-unload-guard.ts
             │         ├─ src/features/test/use-landing-transition-completion.ts
             │         └─ src/features/test/question-bank.ts
-            ├─ src/app/[locale]/test/error/page.tsx (stub recovery surface)
+            ├─ src/app/[locale]/test/error/page.tsx (shared recovery surface, 12 locales)
+            ├─ src/app/[locale]/error.tsx (locale error boundary — translated, keeps theme and GNB)
+            ├─ src/app/global-error.tsx (last net when the root layout itself fails — English, own stylesheet)
+            ├─ src/app/[locale]/result/[variant]/[type]/page.tsx (self-contained result address)
+            │    └─ src/features/test/result-view-model.ts
+            │         ├─ domain/result-payload.ts (base64 → JSON → schema)
+            │         └─ domain/type-segment.ts (derivedType + qualifier)
             └─ src/app/[locale]/history/page.tsx
 
 Shared page wrapper (all localized routes)
@@ -187,18 +193,21 @@ Current route files under `src/app/` expose the following application surface:
 /{locale}/blog
 /{locale}/blog/{variant}
 /{locale}/history
+/{locale}/result/{variant}/{type}
 /{locale}/test/{variant}
 /{locale}/test/error
 /api/telemetry
 ```
 
+결과 주소는 self-contained 하다 — `{variant}`/`{type}` 과 키 없는 query string 의 base64 payload 만으로 화면이 재구성되며 서버 상태를 읽지 않는다(`req-test.md` §5.1).
+
 Route authoring is split deliberately:
 
-- `src/lib/routes/route-builder.ts` owns locale-free app routes, including `/test/error`.
+- `src/lib/routes/route-builder.ts` owns locale-free app routes, including `/test/error` and `/result/[variant]/[type]`. `tests/unit/route-builder.test.ts` 가 그 선언과 `src/app/[locale]/**/page.tsx` 를 **양방향으로** 대조한다 — 등록을 잊은 라우트는 페이지가 열리는 채로 GNB 의 현재 위치 표시만 조용히 틀린다.
 - `src/i18n/localized-path.ts` applies the locale prefix and returns typed localized paths.
 - `src/i18n/routing.ts` defines the `next-intl` always-prefixed routing contract for the main localized public pathnames.
 
-Segment/global 404 handling is implemented through `src/app/not-found.tsx` and `src/app/global-not-found.tsx`. The test error page is not a 404 surface; it is the user-facing recovery stub for runtime-blocked variants and lazy validation failures.
+Segment/global 404 handling is implemented through `src/app/not-found.tsx` and `src/app/global-not-found.tsx`. **The segment half currently has no reachable caller** — every `notFound()` under `src/app` guards on `!isLocale(locale)`, and `dynamicParams = false` on `[locale]/layout.tsx` ends an unknown locale at the routing level before the page function runs, so `global-not-found` answers it (measured 2026-09-17 across eight paths). The file is kept: the two conventions are not substitutes, and its server-render gap is the subject of an open analysis item. The test error page is not a 404 surface; it is the user-facing recovery stub for runtime-blocked variants and lazy validation failures.
 
 ### 4.2 Supported Locales
 

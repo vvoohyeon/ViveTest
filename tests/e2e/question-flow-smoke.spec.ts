@@ -19,10 +19,13 @@ async function enterRuntime(page: Page): Promise<void> {
   await setTouchViewport(page, {width: 390, height: 844});
   await page.goto(buildLocalizedPrimaryTestRoute('en'));
 
-  const start = page.getByTestId('test-start-button');
-  if ((await start.count()) > 0) {
-    await start.click();
-  }
+  // **`count()` 로 관문을 판정하지 않는다.** 렌더 전에는 0 이 나오고, 그 0 은 「관문이 없다」와
+  // 구별되지 않는다 — 통과하지 않은 채 문항을 누르러 가면 모달 스크림이 클릭을 삼켜 30 초
+  // 타임아웃이 된다. 알려진 동의 + 직접 진입은 반드시 instruction 을 거치므로 그것을 기다린다.
+  const sheet = page.getByTestId('test-instruction-overlay');
+  await expect(sheet).toBeVisible();
+  await page.getByTestId('test-start-button').click();
+  await expect(sheet).toHaveCount(0);
 
   await expect(page.getByTestId('test-choice-a')).toBeVisible();
 }

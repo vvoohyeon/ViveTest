@@ -3,11 +3,10 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
 import {THEME_GROUND_COLOR} from '@/app/theme-ground-color';
-
-import {readRepoFile} from './helpers/repo';
+import {THEME_BOOTSTRAP_SOURCE} from '@/features/gnb/theme-bootstrap-source';
 
 /**
- * `public/theme-bootstrap.js` 의 **동작** 증인.
+ * 테마 부트스트랩의 **동작** 증인 — 원문은 `src/features/gnb/theme-bootstrap-source.ts` 다.
  *
  * 종전에 이 경로를 보는 것은 값 대조 하나뿐이었다(`theme-color-parity.test.ts` — 부트스트랩의
  * `GROUND` 리터럴이 `--canvas` 와 같은가). 값이 맞아도 **로직이 죽으면** 아무것도 붉어지지
@@ -20,15 +19,17 @@ import {readRepoFile} from './helpers/repo';
  * 부트스트랩 자신은 이 검사가 본다. 제품이 보내는 바이트를 그대로 실행하므로 로직을 여기
  * 옮겨 적지 않는다(사본은 원본과 갈라진다).
  *
- * **이 검사가 보지 못하는 것 — 타이밍.** 「부트스트랩이 첫 페인트 **전에** 도는가」는 여기서
- * 답할 수 없고, 실측상 지금은 **돌지 않는다**: App Router 의 `beforeInteractive` 는 스크립트를
- * `self.__next_s` 큐에 넣고 **Next 런타임 청크가** 그것을 실행한다(2026-09-15 SSR HTML 확인 ·
- * 청크 16 개를 전부 차단하면 큐에 `/theme-bootstrap.js` 가 미실행으로 남고 `data-theme` 이
- * SSR 기본값에 머문다). 그 타이밍 결함은 점수표 `theme-bootstrap-never-runs-before-paint`
- * 이고 `docs/plans/2026-09-11-mobile-refactor-step3-surfaces.md` §4 가 소유한다 — 인라인 동기
- * 스크립트로 옮기고 스로틀링으로 라이트 프레임 0 을 재는 것이 그 단위의 일이다.
+ * **타이밍은 이제 여기서 답하지 않는다 — 고쳤기 때문이다.** 종전에는 App Router 의
+ * `beforeInteractive` 가 스크립트를 `self.__next_s` 큐에 넣고 Next 런타임 청크가 그것을
+ * 실행해서 첫 페인트 **뒤**에 돌았다(실측 2026-09-16: Fast 4G 1,343ms · Slow 4G 5,483ms
+ * 동안 다크 사용자가 라이트 화면을 봤다). 지금은 `<body>` 첫머리의 인라인 동기 스크립트라
+ * 문서와 함께 도착한다. 「별도 요청으로 되돌아가지 않는가」는
+ * `check-phase9-performance-contracts.mjs` 가 막고, 「라이트 프레임이 0 인가」는
+ * `assertion:TB-01` 이 잡는다.
  */
-const BOOTSTRAP_SOURCE = readRepoFile('public/theme-bootstrap.js');
+// 제품이 문서에 실제로 실어 보내는 **그 문자열**을 실행한다. 파일을 읽어 파싱하면 TS 모듈
+// 문법에 걸리고, 로직을 여기 옮겨 적으면 사본이 원본과 갈라진다.
+const BOOTSTRAP_SOURCE = THEME_BOOTSTRAP_SOURCE;
 const THEME_STORAGE_KEY = 'vivetest-theme';
 
 /** SSR 이 실제로 내는 head 를 재현한다 — `media` 두 값이 붙은 meta 두 장(2026-09-15 실측). */

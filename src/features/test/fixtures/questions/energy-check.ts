@@ -19,18 +19,18 @@ export const energyCheckQuestions: ReadonlyArray<QuestionSourceRow> = [
   },
   {
     seq: '3',
-    question: {en: 'Q_placeholder_energy-check_3', kr: 'Q_placeholder_energy-check_3'},
+    question: {en: '☕ On a break between tasks, I usually', kr: '☕ 일 사이에 잠깐 쉬될 때 나는'},
     poleA: 'E',
     poleB: 'I',
-    answerA: {en: 'Option A', kr: '옵션 A'},
-    answerB: {en: 'Option B', kr: '옵션 B'}
+    answerA: {en: 'go find someone to talk to.', kr: '누군가와 이야기하러 가는 편'},
+    answerB: {en: 'step away on my own for a bit.', kr: '혼자 잠깐 빠져 있는 편'}
   },
   {
     seq: '4',
-    question: {en: 'Q_placeholder_energy-check_4', kr: 'Q_placeholder_energy-check_4'},
+    question: {en: '🗓️ When the day starts, I feel better if', kr: '🗓️ 하루를 시작할 때 나는'},
     poleA: 'J',
     poleB: 'P',
-    answerA: {en: 'Option A', kr: '옵션 A'},
-    answerB: {en: 'Option B', kr: '옵션 B'}
+    answerA: {en: 'the order of things is already settled.', kr: '뭐부터 할지 정해져 있어야 마음이 편해'},
+    answerB: {en: 'I can pick what to do as I go.', kr: '그때그때 골라가며 하는 게 더 편해'}
   }
 ];

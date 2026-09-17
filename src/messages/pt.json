@@ -7,7 +7,10 @@
     "history": "Histórico",
     "blog": "Blog",
     "settings": "Configurações",
-    "theme": "Idioma ⋅ Tema",
+    "theme": "Tema",
+    "language": "Idioma",
+    "system": "Sistema",
+    "themeEffective": "Aplicado atualmente",
     "light": "Claro",
     "dark": "Escuro",
     "menu": "Menu",
@@ -20,8 +23,9 @@
     "skipToContent": "Ir para o conteúdo principal"
   },
   "landing": {
-    "heroTitle": "Encontre seu ritmo de trabalho em um só fluxo",
-    "heroBody": "Os testes disponíveis e as notas do blog de engenharia ficam em um único catálogo. Expanda um cartão, escolha uma ação e siga em frente com uma transição clara.",
+    "pageTitle": "Encontre seu ritmo de trabalho",
+    "pageSubtitle": "Testes e notas em um catálogo.",
+    "pageHeadAria": "Título da página",
     "comingSoon": "em breve",
     "closeExpandedAria": "Fechar cartão expandido",
     "close": "Fechar",
@@ -30,7 +34,9 @@
     "metaAttempts": "concluídos",
     "metaReadTime": "min de leitura",
     "metaViews": "visualizações",
-    "readMore": "Ler mais"
+    "readMore": "Ler mais",
+    "optedOutNotice": "{count, plural, =1 {1 teste precisa de consentimento de análises.} other {# testes precisam de consentimento de análises.}}",
+    "optedOutNoticeAction": "Alterar consentimento"
   },
   "test": {
     "progressLabel": "Progresso",
@@ -41,6 +47,12 @@
     "submit": "Enviar",
     "resultLabel": "Resultado final",
     "resultBody": "O resultado é calculado com base nas suas respostas finais, incluindo qualquer atualização na escolha da pergunta 1.",
+    "resultPageTitle": "Resultado",
+    "resultTypeLabel": "Tipo",
+    "resultErrorTitle": "Não foi possível abrir este resultado",
+    "resultErrorBody": "O link está incompleto ou não é mais válido.",
+    "resultRetake": "Refazer o teste",
+    "resultTakeTest": "Fazer o teste",
     "goHome": "Voltar ao início",
     "goHistory": "Abrir histórico",
     "instructionTitle": "Antes de começar",
@@ -63,19 +75,32 @@
     "allArticles": "Todos os artigos"
   },
   "history": {
-    "title": "Histórico local de resultados",
-    "body": "Cada execução concluída é armazenada como uma entrada independente (mais recente primeiro, máximo de 50).",
+    "title": "Histórico",
+    "body": "Sessões neste dispositivo — as mais recentes primeiro, até 50.",
+    "emptyBody": "Ainda não há sessões neste dispositivo.",
+    "browseTests": "Ver testes",
+    "abandoned": "Interrompido",
     "clearAll": "Limpar tudo",
-    "goHome": "Ir ao início",
     "open": "Abrir",
     "delete": "Excluir"
   },
+  "error": {
+    "notFoundTitle": "Esta página não está aqui",
+    "notFoundBody": "O endereço é válido, mas já não há nada nele.",
+    "entryBlockedTitle": "Não foi possível abrir esse teste",
+    "entryBlockedBody": "O teste pode ter sido retirado, ou o link está incompleto. O catálogo tem os que você pode fazer agora.",
+    "crashTitle": "Esta tela não foi desenhada",
+    "crashBody": "Algo falhou ao desenhar esta página. Tentar de novo costuma resolver.",
+    "retry": "Tentar de novo",
+    "backToLanding": "Voltar ao início"
+  },
   "consent": {
-    "regionLabel": "Consentimento de cookies",
-    "message": "Usamos cookies e tecnologias semelhantes para ajudar o serviço a funcionar corretamente e para entender como ele é utilizado. Você pode escolher se deseja permitir cookies opcionais e pode mudar sua escolha a qualquer momento.",
-    "accept": "Aceitar tudo",
+    "regionLabel": "Consentimento de análises",
+    "message": "Análises opcionais mostram quais testes são concluídos. Suas respostas não são enviadas.",
+    "accept": "Permitir",
     "deny": "Recusar",
-    "preferences": "Preferências",
-    "preferencesTitle": "O painel de preferências chegará em breve"
+    "recall": "Preferências de privacidade",
+    "close": "Fechar",
+    "previousChoice": "Sua escolha anterior"
   }
 }

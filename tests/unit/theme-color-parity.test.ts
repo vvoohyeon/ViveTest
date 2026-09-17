@@ -17,7 +17,7 @@ import {THEME_GROUND_COLOR} from '@/app/theme-ground-color';
  */
 describe('theme-color 지면 색 동기화', () => {
   const globals = readFileSync(resolve(__dirname, '../../src/app/globals.css'), 'utf8');
-  const bootstrap = readFileSync(resolve(__dirname, '../../public/theme-bootstrap.js'), 'utf8');
+  const bootstrap = readFileSync(resolve(__dirname, '../../src/features/gnb/theme-bootstrap-source.ts'), 'utf8');
 
   function resolveBootstrapLiteral(theme: 'light' | 'dark'): string {
     const groundMatch = bootstrap.match(/GROUND\s*=\s*\{([^}]*)\}/u);

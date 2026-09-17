@@ -1,6 +1,6 @@
 import {expect, test, type Browser, type Page, type TestInfo, type ViewportSize} from '@playwright/test';
 
-import {seedTelemetryConsent} from './helpers/consent';
+import {clearTelemetryConsent, seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT, SECONDARY_BLOG_VARIANT} from './helpers/landing-fixture';
 import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
 import rawThemeMatrixManifest from './theme-matrix-manifest.json';
@@ -48,6 +48,14 @@ interface ThemeMatrixCaseTemplate {
   themeKeys?: MatrixTheme[];
   viewportKeys: ViewportKey[];
   gate?: boolean;
+  /**
+   * 캡처할 뿌리. 기본은 `.page-shell` 이고, **그것이 없는 표면**만 이 값을 적는다 —
+   * 복구 화면과 404 는 `PageShell` 밖에서 렌더된다(실측: 그 둘의 HTML 에 `page-shell` 0 건).
+   * 검사를 위해 제품에 껍데기를 덧대는 대신 케이스가 자기 뿌리를 말한다.
+   */
+  captureRoot?: 'main' | 'body';
+  /** 동의 상태. 기본은 `OPTED_IN` — 첫 방문자 화면을 찍는 케이스만 `UNKNOWN` 을 적는다. */
+  consent?: 'UNKNOWN' | 'OPTED_IN' | 'OPTED_OUT';
 }
 
 interface ThemeMatrixManifest {
@@ -165,10 +173,18 @@ async function setTheme(page: Page, theme: MatrixTheme) {
 async function openThemedPage(
   browser: Browser,
   theme: MatrixTheme,
-  viewport?: ViewportSize
+  viewport?: ViewportSize,
+  consent: 'UNKNOWN' | 'OPTED_IN' | 'OPTED_OUT' = 'OPTED_IN'
 ): Promise<Page> {
   const page = await browser.newPage({viewport});
-  await seedTelemetryConsent(page, 'OPTED_IN');
+
+  // `UNKNOWN` 은 저장된 값이 없는 상태다 — 적는 것이 아니라 **지우는** 것이므로 별도 경로를 탄다.
+  if (consent === 'UNKNOWN') {
+    await clearTelemetryConsent(page);
+  } else {
+    await seedTelemetryConsent(page, consent);
+  }
+
   await setTheme(page, theme);
   return page;
 }
@@ -181,10 +197,13 @@ async function captureRepresentativeState(input: {
   testInfo: TestInfo;
   viewport?: ViewportSize;
   settle?: (page: Page) => Promise<void>;
+  captureRoot?: 'main' | 'body';
+  consent?: 'UNKNOWN' | 'OPTED_IN' | 'OPTED_OUT';
 }) {
-  const page = await openThemedPage(input.browser, input.theme, input.viewport);
+  const page = await openThemedPage(input.browser, input.theme, input.viewport, input.consent);
   await page.goto(`${PREVIEW_HOST}${input.route}`);
-  await expect(page.locator('.page-shell')).toBeVisible();
+  const captureRoot = input.captureRoot ?? '.page-shell';
+  await expect(page.locator(captureRoot)).toBeVisible();
   await waitForWebFonts(page);
 
   if (input.settle) {
@@ -194,7 +213,7 @@ async function captureRepresentativeState(input: {
   // BQ-07 의 생성 이연은 2026-09-11 에 풀렸다 — 이 매트릭스의 baseline 은 전부 추적된다.
   // 따라서 `allowMissingBaseline` 을 넘기지 않는다: 없는 baseline 은 생성-후-통과가 아니라
   // 실패여야 한다(L11).
-  await expectLocatorToMatchLocalSnapshot(page.locator('.page-shell'), input.screenshotName, input.testInfo);
+  await expectLocatorToMatchLocalSnapshot(page.locator(captureRoot), input.screenshotName, input.testInfo);
   await page.close();
 }
 
@@ -284,7 +303,9 @@ async function completeTestAttempt(page: Page) {
     }
   }
 
-  await expect(page.getByTestId('test-result-panel')).toBeVisible();
+  // 제출은 결과 **주소**로 이동한다(명세 §2-6). `test-result` · `mobile-test-result` 케이스의
+  // 피사체가 인계 패널에서 그 도착 화면으로 바뀌었다 — provenance 의 단위 8 행이 그것을 적는다.
+  await expect(page.getByTestId('result-screen')).toBeVisible();
   await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
@@ -299,7 +320,8 @@ async function openMobileExpandedCard(page: Page, cardVariant: string) {
     }
   });
   await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-  await expect(card.locator('[data-slot="expandedBody"]')).toBeVisible();
+  // 확장 본문은 카드 안이 아니라 시트 안이다(§8.5 재작성).
+  await expect(page.getByTestId('landing-card-sheet').locator('[data-slot="expandedBody"]')).toBeVisible();
   await page.waitForTimeout(REPRESENTATIVE_SETTLE_WAIT_MS);
 }
 
@@ -361,6 +383,8 @@ test.describe('Phase 11 theme matrix smoke', () => {
         viewport: matrixCase.viewport,
         screenshotName: matrixCase.screenshotName,
         testInfo,
+        captureRoot: matrixCase.captureRoot,
+        consent: matrixCase.consent,
         settle: async (page) => {
           await applySettleRecipe(page, matrixCase.settleRecipe);
         }
@@ -381,6 +405,8 @@ test.describe('Phase 11 theme matrix gate', () => {
         viewport: matrixCase.viewport,
         screenshotName: matrixCase.screenshotName,
         testInfo,
+        captureRoot: matrixCase.captureRoot,
+        consent: matrixCase.consent,
         settle: async (page) => {
           await applySettleRecipe(page, matrixCase.settleRecipe);
         }

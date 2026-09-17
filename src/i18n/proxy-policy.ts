@@ -8,7 +8,16 @@ import {resolveLocaleAlias, type AppLocale} from '@/config/site';
 
 const globalUnmatchedPath = '/_not-found';
 
-const allowlistPattern = [/^\/blog\/?$/u, /^\/blog\/[^/]+\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/?$/u] as const;
+// locale 접두가 **없는** 진입만 여기를 본다 — 접두가 있으면 `parseLocalePrefix` 가 앱 소유로
+// 판정한다. 결과 주소가 이 목록에 있어야 하는 이유는 이 표면의 쓰임이 **공유**이기 때문이다:
+// 링크를 옮겨 붙이다 접두가 떨어진 주소가 404 가 아니라 읽는 사람의 언어로 열려야 한다.
+const allowlistPattern = [
+  /^\/blog\/?$/u,
+  /^\/blog\/[^/]+\/?$/u,
+  /^\/history\/?$/u,
+  /^\/result\/[^/]+\/[^/]+\/?$/u,
+  /^\/test\/[^/]+\/?$/u
+] as const;
 
 function isLocaleLessAllowlistedPath(pathname: string): boolean {
   return allowlistPattern.some((pattern) => pattern.test(pathname));

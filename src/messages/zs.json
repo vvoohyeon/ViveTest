@@ -7,7 +7,10 @@
     "history": "历史记录",
     "blog": "博客",
     "settings": "设置",
-    "theme": "语言 ⋅ 主题",
+    "theme": "主题",
+    "language": "语言",
+    "system": "系统",
+    "themeEffective": "当前应用",
     "light": "浅色",
     "dark": "深色",
     "menu": "菜单",
@@ -20,8 +23,9 @@
     "skipToContent": "跳转到主要内容"
   },
   "landing": {
-    "heroTitle": "一气呵成，找到你的工作节奏",
-    "heroBody": "可用测试和工程博客笔记汇集于同一目录。展开卡片、选择操作，并通过一次明确的切换继续前进。",
+    "pageTitle": "找到你的工作节奏",
+    "pageSubtitle": "测试与笔记，集中在一个目录。",
+    "pageHeadAria": "页面标题",
     "comingSoon": "即将推出",
     "closeExpandedAria": "关闭展开的卡片",
     "close": "关闭",
@@ -30,7 +34,9 @@
     "metaAttempts": "完成",
     "metaReadTime": "分钟阅读",
     "metaViews": "浏览",
-    "readMore": "阅读更多"
+    "readMore": "阅读更多",
+    "optedOutNotice": "{count, plural, other {#项测试需要分析同意。}}",
+    "optedOutNoticeAction": "更改同意"
   },
   "test": {
     "progressLabel": "进度",
@@ -41,6 +47,12 @@
     "submit": "提交",
     "resultLabel": "最终结果",
     "resultBody": "结果将根据你最终提交的答案计算，包括更新后的第 1 题选择。",
+    "resultPageTitle": "结果",
+    "resultTypeLabel": "类型",
+    "resultErrorTitle": "无法打开此结果",
+    "resultErrorBody": "链接不完整或已失效。",
+    "resultRetake": "再测一次",
+    "resultTakeTest": "我也来测",
     "goHome": "返回首页",
     "goHistory": "打开历史记录",
     "instructionTitle": "开始之前",
@@ -63,19 +75,32 @@
     "allArticles": "全部文章"
   },
   "history": {
-    "title": "本地结果历史",
-    "body": "每次完成的运行都会作为独立条目保存（按时间倒序，最多 50 条）。",
+    "title": "测试记录",
+    "body": "本设备上的记录 — 按时间倒序，最多 50 条。",
+    "emptyBody": "本设备上还没有记录。",
+    "browseTests": "浏览测试",
+    "abandoned": "已中断",
     "clearAll": "全部清除",
-    "goHome": "返回首页",
     "open": "打开",
     "delete": "删除"
   },
+  "error": {
+    "notFoundTitle": "此页面不存在",
+    "notFoundBody": "地址有效，但这里已经没有内容了。",
+    "entryBlockedTitle": "无法打开这个测试",
+    "entryBlockedBody": "测试可能已下线，或链接不完整。目前可以做的都在目录里。",
+    "crashTitle": "页面未能呈现",
+    "crashBody": "绘制此页面时出了问题。重试通常可以解决。",
+    "retry": "重试",
+    "backToLanding": "返回首页"
+  },
   "consent": {
-    "regionLabel": "Cookie 同意",
-    "message": "我们使用 Cookie 及类似技术来帮助服务正常运行，并了解其使用情况。你可以选择是否允许可选 Cookie，并且可以随时更改你的选择。",
-    "accept": "全部接受",
+    "regionLabel": "分析同意",
+    "message": "我们使用可选分析来了解哪些测试被完成。您的答案不会被发送。",
+    "accept": "允许",
     "deny": "拒绝",
-    "preferences": "偏好设置",
-    "preferencesTitle": "偏好设置面板即将推出"
+    "recall": "隐私设置",
+    "close": "关闭",
+    "previousChoice": "上次的选择"
   }
 }

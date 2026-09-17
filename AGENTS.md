@@ -16,8 +16,9 @@ ViveTest은 다국어 랜딩·테스트 플로우 Next.js 앱이다. 라우팅·
 
 | Fact | Value |
 |:---|:---|
-| Routes | `/{locale}`, `/{locale}/blog`, `/{locale}/blog/{variant}`, `/{locale}/history`, `/{locale}/test/{variant}`, `/{locale}/test/error`, `/api/telemetry` |
-| 404 surface | `src/app/not-found.tsx`, `src/app/global-not-found.tsx` |
+| Routes | `/{locale}`, `/{locale}/blog`, `/{locale}/blog/{variant}`, `/{locale}/history`, `/{locale}/result/{variant}/{type}`, `/{locale}/test/{variant}`, `/{locale}/test/error`, `/{locale}/manifest.webmanifest`, `/api/telemetry`. **이 행은 `src/app/**` 에서 유도된다** — `tests/unit/contract-citations.test.ts` 가 양방향으로 대조하므로 라우트를 더하거나 지우면 이 행을 고치기 전에는 `npm test` 가 붉다 |
+| 404 surface | `src/app/not-found.tsx`, `src/app/global-not-found.tsx`. **`[locale]` 안에서 404 를 해결하지 않는다** — 그 응답은 원인과 무관하게 `<body>` 가 빈 Next 오류 문서로 나간다(실측 2026-09-16, L51). 모르는 variant 는 `req-test.md` §6.1 의 복구 페이지로, 모르는 경로는 프록시가 `[locale]` 밖에서 처리한다 |
+| 오류 경계 | `src/app/[locale]/error.tsx`(번역·테마 유지), `src/app/global-error.tsx`(루트 레이아웃 밖 — 스타일시트를 스스로 싣는다). 둘 다 **하이드레이션 뒤에** 그려진다 — 서버 HTML 은 여전히 Next 오류 문서이므로 서버 복구가 아니다 |
 | Locales | `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru` (정규화: `ko* → kr` · Simplified Chinese → `zs` · Traditional Chinese → `zt`). **URL·스토리지·telemetry 의 정본은 이 코드다.** 표시용 `<html lang>` 은 BCP 47 태그로 따로 갖고(`kr→ko` · `zs→zh-Hans` · `zt→zh-Hant`, 나머지 9 개는 코드 그대로), BCP 47 로 들어온 진입은 canonical 코드로 redirect 한다 — 둘 다 `src/config/site.ts` 가 소유한다 (BQ-40) |
 | Request entry | 단일 진입 `src/proxy.ts` (middleware 없음). `[locale]/layout.tsx`: `dynamicParams = false` |
 | `next.config.ts` flags | `typedRoutes`, `experimental.globalNotFound`, `outputFileTracingRoot = cwd`, `allowedDevOrigins = ['127.0.0.1']`, `turbopack.root = cwd` |
@@ -107,7 +108,7 @@ rollback 앵커의 실체는 `origin`의 주석 태그이지 브랜치가 아니
 관련 계약 문서·테스트 앵커를 확인한 뒤에만 손댄다.
 - `src/proxy.ts` · `src/app/layout.tsx` · `src/app/[locale]/layout.tsx`
 - `src/app/globals.css` (Tailwind v4 tokens/base SSOT — 분할 금지, in-place 정리만)
-- `public/theme-bootstrap.js`
+- `src/features/gnb/theme-bootstrap-source.ts`
 - `src/lib/routes/route-builder.ts` · `src/i18n/localized-path.ts`
 - `src/features/variant-registry/{source-fixture,builder,resolvers,types}.ts` 및 `variant-registry.generated.ts`(생성물 — source 먼저)
 - `scripts/qa/*.mjs` · `tests/e2e/theme-matrix-manifest.json` · `docs/blocker-traceability.json`
@@ -120,7 +121,7 @@ rollback 앵커의 실체는 `origin`의 주석 태그이지 브랜치가 아니
 계획에 위험 차원(usability / a11y / responsiveness / performance / design-system consistency)을 명시하고 Playwright E2E 회귀 커버리지(§5·§8)를 포함한다.
 - `src/features/landing/grid/{use-landing-interaction-controller,use-mobile-card-lifecycle,use-keyboard-handoff}.ts`
 - `src/features/gnb/site-gnb.tsx` · `src/features/landing/shell/page-shell.tsx`
-- `public/theme-bootstrap.js` · `src/features/telemetry/consent-source.ts` · `src/features/transition/`
+- `src/features/gnb/theme-bootstrap-source.ts` · `src/features/telemetry/consent-source.ts` · `src/features/transition/`
 
 ### SSOT contracts
 동작·플로우·시각 계약 정본: `docs/req-landing.md`(동작), `docs/req-landing-interaction.md`(제스처·모션 — 동작 계약을 override 하지 않는다), `docs/req-test.md`, `docs/req-test-plan.md`, `docs/project-analysis.md`, `docs/design/design.md`(visual-only), `docs/design/ds/colors_and_type.css`(토큰 실현값, BQ-38), 그리고 이 파일과 `docs/agent-guides/**`. rebuild 결정 정본 = `docs/decision-register.md` · `docs/wave-roadmap.md`.
@@ -131,7 +132,7 @@ rollback 앵커의 실체는 `origin`의 주석 태그이지 브랜치가 아니
 `.planning/STATE.md`(세션 연속성) ≠ `docs/plans/`(기능 계획 SSOT) — 상호 대체 금지. 어떤 런타임 모듈도 `.planning/`을 import하지 않는다.
 
 ### Hard stops (repo-specific)
-- theme-matrix/golden baseline `--update`(`qa:visual:full`)는 사람 승인 없이 실행하지 않는다.
+- 시각 baseline `--update` 는 **2026-09-17 사전 승인**됐다 — 매번 묻지 않고 진행하되, **무엇이 왜 바뀜었는지를 낡은 baseline 과 새 렌더를 나란히 보여 보고한다.** 면제된 것은 **실행**이지 설명이 아니다. 회귀와 의도된 변경을 구별하지 못한 채로는 재생성하지 않는다 — 구별이 안 되면 그때는 묻는다. **재생성은 `qa:visual:full` 하나로 끝나지 않는다**: 그 명령은 `theme-matrix-smoke.spec.ts` 한 파일만 다시 찍고, 릴리스 게이트는 `safari-hover-ghosting.spec.ts` 의 PNG 도 본다.
 - `.env`·비밀값은 사용자 입력 영역 — 읽거나 출력하거나 커밋하지 않는다.
 
 ## 5. Build and verification commands

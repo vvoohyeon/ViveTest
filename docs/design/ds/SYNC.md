@@ -64,6 +64,30 @@ Ship the full face, not a subset: a subset would add a build step and a way for 
 document.fonts.check('16px "Pretendard Variable"')   // must be true
 ```
 
+## Push log
+
+Recorded here because nothing else can answer "is the project current?" — `_ds_manifest.json` lags by design (below), and git records the repo edit but not the transfer.
+
+| Date | Paths written | Verified by |
+|:---|:---|:---|
+| 2026-09-06 | rebaseline — the whole bundle | `list_files` + `get_file` |
+| 2026-09-11 | programme close — the whole bundle (46 here, 82 there) | `list_files` |
+| 2026-09-16 | `26744ad`'s bundle (README · both component sheets · seven cards, four of them new) | the four new cards present in `list_files` |
+| 2026-09-16 | `colors_and_type.css` · `README.md` | `get_file` — the mobile type column and the corrected `--button` came back |
+| 2026-09-16 | `colors_and_type.css` · `README.md` | `get_file` — `--thumb-ratio: 16 / 4` came back |
+| 2026-09-16 | `README.md` · `app-components.css` · `catalog-components.css` · `preview/card-mobile-expanded.html` | `get_file` ×2 — 다시 쓴 카드가 바이트 그대로 돌아왔고, `catalog-components.css` 에서 지운 여섯 규칙이 저쪽에도 없다 |
+| 2026-09-16 | D-21 — `colors_and_type.css` · `README.md` · preview 일곱 | `get_file` — `surface-landing-head.html` 의 폰 상자 둘이 `vt-phone` 을 달고 돌아왔다 |
+| 2026-09-17 | D-14 · D-15 · D-16 · D-20 — `colors_and_type.css` · `app-components.css` · `README.md` · `preview/comp-sheet.html` | `get_file` — `comp-sheet.html` 에서 걷어 낸 `.t-caption` 덮어쓰기가 저쪽에도 없다 |
+| 2026-09-17 | D-16 후속 — `README.md` 한 장 | `write_files` 개수 — 삭제 없는 한 파일 교체다. 전량 smoke 가 링 검사를 전환 프레임에서 읽는 것을 잡아 그 행에 정착 이야기를 더했다 |
+
+여섯 번째는 **D-14 · D-15 · D-16 의 닫힘과 D-20 의 해소**다. 앞 셋은 제품이 2026-09-16 에 이미 따라왔는데 그 세션이 이 표를 들르지 않아 열린 채로 있었던 것이고, 값이 바뀐 것은 D-20 하나다 — `--fg3` 가 `--muted-aa` 를 가리킨다. **되읽기는 `comp-sheet.html` 한 장만 했고 그것이 이 push 의 유일한 삭제이기 때문이다**: `colors_and_type.css` 와 `app-components.css` 는 값과 주석만 바뀐 통째 교체라 `write_files` 의 개수가 이미 답하고, 규칙을 걷어 낸 파일은 그렇지 않다(네 번째 2026-09-16 항목과 같은 판단).
+
+다섯 번째는 **D-21** 이다 — `.vt-phone` 한 블록과 그것을 다는 열일곱 개의 폰 상자. **이번에는 되읽기를 한 번만 했고 그 이유가 앞 항목과 다르다**: 삭제가 없는 push 이므로 `write_files` 의 개수가 이미 「무엇이 쓰였나」에 답한다. 되읽어 확인할 것은 마크업 변경이 실제로 반영됐는지 하나였고, 그것은 preview 한 장으로 판정된다. `colors_and_type.css` 를 통째로 다시 읽지 않은 것은 생략이 아니라 이 판단이다.
+
+네 번째 2026-09-16 push 는 **D-17 승격 패스**를 나른다 — `[intent]` 다섯이 `[realized]` 가 됐고, 지워진 in-flow 모델의 다섯 규칙과 `.vt-scrim` 의 두 번째 정의가 저쪽에서도 사라졌다. **삭제를 `get_file` 로 확인한 것이 이 항목의 요점이다**: `write_files` 가 돌려주는 개수는 무엇이 **쓰였는지**만 말하고 무엇이 **없어졌는지**는 말하지 않으므로, 규칙을 걷어 낸 push 는 그 파일을 되읽어야 확인된다.
+
+The first 2026-09-16 pair carried BQ-48's mobile type column, the `--button` line-height correction, and the findings that closed when the product caught up (D-13 · D-18 · D-19). The second carried step 3 §7: `--thumb-ratio` `16 / 6` → `16 / 4`, and the D-08 and D-17 rows that record what moved with it. **`app-components.css` and `catalog-components.css` were not rewritten** in either — they had not changed since the push above them, and `catalog-components.css` follows the new ratio on its own because it reads `var(--thumb-ratio)`. The two thumbnail preview cards still draw `16 / 6` deliberately: they are the record of the D-08 pass, which argued 3 : 2 against 16 : 6, and re-cropping them would make that argument unreadable.
+
 ## How to push
 
 Use the `DesignSync` tool with `localDir` set to this directory. The order is fixed: `list_files` → `finalize_plan` (declares the exact paths and gets a `planId`) → `write_files`. A write outside the finalized plan is rejected.

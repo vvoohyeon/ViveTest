@@ -1,4 +1,9 @@
 export {computeScoreStats, deriveDerivedType} from '@/features/test/domain/derivation';
+export {decodeResultPayload, encodeResultPayload} from '@/features/test/domain/result-payload';
+export type {
+  DecodeResultPayloadResult,
+  InvalidResultPayloadReason
+} from '@/features/test/domain/result-payload';
 export {buildTypeSegment, parseTypeSegment} from '@/features/test/domain/type-segment';
 export {
   asQuestionIndex,

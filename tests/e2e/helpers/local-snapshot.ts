@@ -1,6 +1,13 @@
-import {existsSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import path from 'node:path';
 
-import {expect, type Locator, type TestInfo} from '@playwright/test';
+import {expect, type Locator, type Page, type TestInfo} from '@playwright/test';
+
+import {
+  currentSnapshotEnvironment,
+  snapshotEnvironmentNote,
+  type SnapshotEnvironment
+} from './snapshot-environment';
 
 /**
  * 없는 baseline 은 **만들지 않고 실패한다.**
@@ -39,13 +46,88 @@ function assertBaselineExists(snapshotName: string, testInfo: TestInfo) {
   );
 }
 
+/**
+ * **`document.fonts.ready` 는 일회성 장벽이 아니다.**
+ *
+ * `unicode-range` 로 쪼갠 폰트에서는 브라우저가 화면에 실제로 나온 문자를 덮는 조각만 받는다.
+ * 그래서 로드 직후에 한 번 기다려도, 그 뒤에 카드를 펼치거나 시트를 열어 **새 글자가 나오면**
+ * 그때 새 조각 요청이 시작되고 `fonts.ready` 는 다시 pending 이 된다. 정착 뒤에 다시 기다리지
+ * 않으면 스냅샷이 스왑 중간을 찍는다 — 실측(2026-09-16, webkit): 전체 face 시절에 찍힌
+ * baseline 과 글자 가장자리가 달라 `steady-row1-short-expanded-content-fit` 이 붉었다.
+ *
+ * 그래서 barrier 를 **캡처 직전**에 둔다. 촬영 지점이 한 곳이 아니므로 호출부마다 적지 않고
+ * 여기서 한 번 건다.
+ */
+export async function waitForFontsSettled(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
+/**
+ * 재생성이 남긴 환경 기록을 읽고 쓰는 쪽. 판정 자체는 `snapshot-environment.ts` 가 갖는다.
+ *
+ * 경로는 설정 파일에서 유도한다. `import.meta.url` 은 쓸 수 없다 — 이 저장소는 `type: module` 이
+ * 아니라 Playwright 가 스펙을 CJS 로 옮기고, 그러면 그 자리에서 `exports is not defined` 로 죽는다.
+ */
+function snapshotEnvironmentPath(testInfo: TestInfo): string {
+  const root = testInfo.config.configFile
+    ? path.dirname(testInfo.config.configFile)
+    : testInfo.config.rootDir;
+
+  return path.join(root, 'tests', 'e2e', 'snapshot-environment.json');
+}
+
+let environmentRecorded = false;
+
+/** 승인된 재생성(`--update-snapshots`)만 환경을 남긴다 — 그 실행이 baseline 의 저자다. */
+function recordSnapshotEnvironmentWhenUpdating(testInfo: TestInfo) {
+  if (testInfo.config.updateSnapshots !== 'all' && testInfo.config.updateSnapshots !== 'changed') {
+    return;
+  }
+  if (environmentRecorded) {
+    return;
+  }
+  environmentRecorded = true;
+
+  const target = snapshotEnvironmentPath(testInfo);
+  mkdirSync(path.dirname(target), {recursive: true});
+  writeFileSync(
+    target,
+    `${JSON.stringify(currentSnapshotEnvironment(testInfo.config.version), null, 2)}\n`,
+    'utf8'
+  );
+}
+
+async function withEnvironmentNote(testInfo: TestInfo, compare: () => Promise<void>): Promise<void> {
+  try {
+    await compare();
+  } catch (error) {
+    const recordedPath = snapshotEnvironmentPath(testInfo);
+    const recorded = existsSync(recordedPath)
+      ? (JSON.parse(readFileSync(recordedPath, 'utf8')) as SnapshotEnvironment)
+      : null;
+    const note = snapshotEnvironmentNote(recorded, currentSnapshotEnvironment(testInfo.config.version));
+
+    if (error instanceof Error) {
+      error.message += note;
+      throw error;
+    }
+    throw new Error(`${String(error)}${note}`);
+  }
+}
+
 export async function expectLocatorToMatchLocalSnapshot(
   locator: Locator,
   snapshotName: string,
   testInfo: TestInfo
 ) {
   assertBaselineExists(snapshotName, testInfo);
-  await expect(locator).toHaveScreenshot(snapshotName);
+  recordSnapshotEnvironmentWhenUpdating(testInfo);
+  await waitForFontsSettled(locator.page());
+  await withEnvironmentNote(testInfo, async () => {
+    await expect(locator).toHaveScreenshot(snapshotName);
+  });
 }
 
 export async function expectBufferToMatchLocalSnapshot(
@@ -54,5 +136,9 @@ export async function expectBufferToMatchLocalSnapshot(
   testInfo: TestInfo
 ) {
   assertBaselineExists(snapshotName, testInfo);
-  expect(actual).toMatchSnapshot(snapshotName);
+  recordSnapshotEnvironmentWhenUpdating(testInfo);
+  await withEnvironmentNote(testInfo, async () => {
+    expect(actual).toMatchSnapshot(snapshotName);
+  });
 }
+

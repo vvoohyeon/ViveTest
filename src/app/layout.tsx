@@ -1,6 +1,5 @@
 import type {Metadata, Viewport} from 'next';
 import {headers} from 'next/headers';
-import Script from 'next/script';
 import type {ReactNode} from 'react';
 
 import {APP_BODY_CLASSNAME} from '@/app/app-body-class';
@@ -8,6 +7,7 @@ import {VercelAnalyticsGate} from '@/app/vercel-analytics-gate';
 import {VercelSpeedInsightsGate} from '@/app/vercel-speed-insights-gate';
 import {THEME_GROUND_COLOR} from '@/app/theme-ground-color';
 import {resolveHtmlLang, resolveSiteOrigin} from '@/config/site';
+import {THEME_BOOTSTRAP_SOURCE} from '@/features/gnb/theme-bootstrap-source';
 import {resolveRequestLocaleFromHeaderBag} from '@/i18n/request-locale-header';
 
 import './globals.css';
@@ -46,7 +46,7 @@ export const viewport: Viewport = {
   // 첫 표면이라 여기서 먼저 연다.
   viewportFit: 'cover',
   // 두 값을 다 내되, **OS 가 아니라 해석된 테마**를 따라가는 것은 부트스트랩과 preference
-  // 변경 경로가 맡는다(`public/theme-bootstrap.js`). `media` 만으로 끝내면 OS-다크에서
+  // 변경 경로가 맡는다(`theme-bootstrap-source.ts`). `media` 만으로 끝내면 OS-다크에서
   // 라이트를 고른 사용자의 크롬이 다크로 남아 theme F5 와 같은 결함을 새로 만든다.
   themeColor: [
     {media: '(prefers-color-scheme: light)', color: THEME_GROUND_COLOR.light},
@@ -64,7 +64,9 @@ export default async function RootLayout({children}: {children: ReactNode}) {
   return (
     <html data-theme="light" lang={resolveHtmlLang(locale)} suppressHydrationWarning>
       <body className={APP_BODY_CLASSNAME}>
-        <Script src="/theme-bootstrap.js" strategy="beforeInteractive" />
+        {/* 첫 페인트를 막는 동기 스크립트다. 별도 요청이면 문서보다 늦게 도착해 다크
+            사용자가 라이트 화면을 본다(실측 Fast 4G 1,343ms · Slow 4G 5,483ms). */}
+        <script dangerouslySetInnerHTML={{__html: THEME_BOOTSTRAP_SOURCE}} />
         {children}
         {/* 기존 opt-in 정책을 지킨 사용자에게만 Vercel Analytics를 연결한다. */}
         <VercelAnalyticsGate />

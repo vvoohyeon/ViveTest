@@ -472,9 +472,10 @@
   font: var(--overline);
   letter-spacing: var(--track-over);
   text-transform: uppercase;
-  /* `--fg3` is `--muted`, which BQ-29 measured at 4.23:1 on white — below AA for
-     normal text, and an overline is normal text however small it is. `--muted-aa`
-     is the correction that finding produced, and this is what it is for. */
+  /* An overline is normal text however small it is, so it needs 4.5:1. This reads
+     the correction by name rather than the role, because the requirement belongs to
+     the component: it must hold whatever `--fg3` happens to resolve to. (Since
+     D-20 the two are the same value — `--fg3` is `--muted-aa`.) */
   color: var(--muted-aa);
 }
 
@@ -797,7 +798,7 @@
 .vt-banner__body { font: var(--body-sm); color: var(--ink-body); margin: 0; }
 .vt-banner__actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
 
-/* [intent — step 3 §3 / 명세 규칙 4 · §2-1 · §2-5 가 구현한다]
+/* [realized — step 3 §3, 실측 2026-09-16 · `src/features/landing/shell/consent-banner.tsx`]
 
    TWO BUTTONS, AND THEY DO NOT WEIGH THE SAME.
 
@@ -815,7 +816,18 @@
    `Allow optional cookies?` heading and forbids neutral wording like `Not now`.
 
    The line budget (390px 2 lines, 320px 3) is a property of the copy in twelve
-   locales, not of this stylesheet — it is measured at render, not declared. */
+   locales, not of this stylesheet — it is measured at render, not declared.
+
+   **REALIZED 2026-09-16 (390x844, light).** The product ships exactly this: two
+   controls and no third, `Allow` 71.6 x 46 filled `rgb(75, 119, 100)`
+   (= `--accent-solid`) with white ink, `Deny` 69.1 x 44 on a transparent ground
+   with `rgb(117, 109, 102)` ink, zero headings, and no close control. The recall
+   banner is the same component with one more: a 44 x 44 close, three controls in
+   all. The panel itself measures white ground, `--radius-lg` 16px, 14px padding
+   and a 14px gap — this block declares 20px / 16px instead, and those two are the
+   only numbers below that the product does not match. They are container values
+   the product sets from its shell, so the system keeps its own spacing rather
+   than mirroring a per-surface inset. */
 .vt-banner--consent { position: relative; }
 
 /* 재호출에만 닫기가 붙는다. 첫 방문 배너에서는 선택이 곧 닫기이므로 X 가 없다 —
@@ -868,18 +880,27 @@
 
 /* ---- Sheet -----------------------------------------------------------------
 
-   [intent — step 3 §1 · §1-2 / 명세 §3-4 가 구현한다. 제품에 아직 없다.]
+   [realized — step 3 §1 · §1-2, 실측 2026-09-16 · `src/features/ui/bottom-sheet.module.css`]
 
    ONE PRIMITIVE, TWO SHEETS. 명세 §3-4: the card sheet and the instruction sheet
    are the same component, and the only differences are three props — grabber,
    gesture close, history entry. If the two ever grow separate stylesheets, the
    unit that built them finished wrong.
 
-   Nothing in this block exists in the product today: `grabber`, `dvh`,
-   `safe-area-inset` and `overscroll-behavior` appear **zero times** across the
-   whole bundle and across `src/**` (검색 2026-09-16, `6e783a6`). The phone's
-   expanded card is still the full-bleed in-flow model that
-   `catalog-components.css` describes, and step 3 §1 replaces it with this.
+   **All four now exist.** `grabber`, `dvh`, `safe-area-inset` and
+   `overscroll-behavior` appeared zero times across this bundle and across `src/**`
+   when this block was written; step 3 §1 landed the primitive and §1-2 moved the
+   instruction surface onto it, and the in-flow model this replaced is gone —
+   `mobileTransientShell` renders zero times. Measured at 390 x 844: the sheet is
+   `position: fixed` on a white ground with `24px 24px 0 0` corners, a 1px
+   `rgb(214, 209, 196)` top edge (= `--border-strong`), `max-height: 788px`
+   (= `calc(100dvh - 56px)` at that height), `touch-action: pan-y`, and
+   `transform 260ms` easing. The scrim is `rgba(30, 26, 22, 0.48)` fading over the
+   same 260ms. The body scrolls with `overscroll-behavior: contain`. The grabber
+   bar is 36 x 4 at `999px` in `rgb(214, 209, 196)`. The card sheet carries the
+   grabber and no action row; the instruction sheet is `role="dialog"`
+   `aria-modal="true"` with an action row and **no** grabber — the three props,
+   one stylesheet.
 
    WHY A SHEET AND NOT A TALLER CARD. 규칙 3: 형태는 공간이 정한다 — one column
    gets a sheet, many columns keep the in-place overlay. The sheet is what makes
@@ -897,10 +918,12 @@
    GNB **위**이고, 그래서 스크림이 GNB 를 함께 덮는다. `.vt-gnb` 가 1100 을 선언하므로
    그 위 한 칸이 이 값이다.
 
-   제품은 아직 반대다: 모바일 확장의 스크림은 `z-index: 10`, 시트는 20, GNB 는 1100 —
-   `preview/card-mobile-expanded.html` 이 그 실측을 적고 있다. 그래서 모달이 열린 채
-   GNB 로 회차를 버릴 수 있고, 그것이 blocker `GNB 가 모달 다이얼로그 위 층에 있다`
-   이다. 이 한 줄이 그 순서를 뒤집는다.
+   **제품이 따라왔다**(step 3 §1). 시트와 스크림은 `z-index: 1200` 인 포탈 컨테이너
+   안에 있고(`src/features/ui/bottom-sheet.tsx:296`), GNB 는 1100 이다. 실측
+   2026-09-16: 시트가 열린 동안 GNB 띠 한가운데에서 `elementFromPoint` 가 **스크림**을
+   돌려준다 — 스크림이 GNB 를 함께 덮는다는 규칙 1 의 진술이 그 한 줄로 확인된다.
+   종전에는 스크림 10 · 시트 20 · GNB 1100 이어서 모달이 열린 채 GNB 로 회차를 버릴 수
+   있었고, 그것이 blocker `GNB 가 모달 다이얼로그 위 층에 있다` 였다.
 
    렌더해 보고 알았다: z 를 적지 않았더니 스크림이 카드만 덮고 GNB 는 밝은 채로
    남았다 — 규칙 1 이 거짓인 그림이 나왔다. */
@@ -937,7 +960,7 @@
   border-top: 1px solid var(--border-strong);
   box-shadow: var(--shadow-overlay);
   transform: translateY(0);
-  /* [intent — step 3 §1 이 결정한다 · 사다리에 없는 값 · 등재됨: README findings D-18]
+  /* [realized — step 3 §1 이 결정했다 · 사다리에 없는 값 · 등재됨: README findings D-18]
 
      명세 §3-4 는 진입 260ms · 이탈 220ms 를 요구하는데 이 시스템의 duration 사다리는
      120 / 140 / 180 / 280 이고 그 둘이 없다. 그리고 그 부재는 우연이 아니다 —
@@ -945,10 +968,15 @@
      claimed 220ms / 260ms and were never implemented)" 라고 적으며 정확히 이 두
      값을 내렸다. 명세가 그 둘을 되살린 셈이다.
 
-     그래서 여기서 토큰을 새로 만들지 않는다. 사다리를 늘릴지(`--dur-sheet-*` 신설)
-     명세를 사다리에 맞출지(280 / 180)는 등재되어야 하는 결정이고, 그때까지 이 두
-     리터럴이 **명세의 값**임을 밝혀 둔다. 리터럴인 채로 남는 것이 조용히 다른 값을
-     쓰는 것보다 낫다. */
+     **결정은 둘 중 어느 쪽도 아니었다**(2026-09-16). 사다리는 두 이름을 얻지 않았고
+     시트는 280 / 180 으로 옮겨 가지도 않았다. 두 값은 시트의 시간을 소유하는 제품
+     모듈에 이름 있는 상수로 한 번만 산다 — `src/features/ui/sheet-motion.ts` 의
+     `SHEET_ENTER_DURATION_MS` 260 · `SHEET_EXIT_DURATION_MS` 220 · 단계 전환의
+     `SHEET_RESIZE_DURATION_MS` 220 — 이고, 컴포넌트가 그것을 커스텀 프로퍼티로 CSS 에
+     내려 준다(실측 2026-09-16: `--sheet-enter-ms: 260ms` · `--sheet-exit-ms: 220ms`).
+     이유는 MOTION 주석이 두 값을 내릴 때 이미 적은 그것이다: 소비자가 정확히 하나인
+     지속은 사다리의 칸이 아니고, 그것을 토큰으로 올리면 유일한 소비자가 시스템 밖에
+     있는 토큰이 생긴다. 그래서 여기서는 리터럴로 남되 출처를 밝힌다. */
   transition: transform 260ms var(--ease-standard);
 }
 
@@ -1040,12 +1068,23 @@
 
 /* ---- Notice row ------------------------------------------------------------
 
-   [intent — step 3 §3 / 명세 §2-1 이 구현한다. 제품에 아직 없다.]
+   [realized — step 3 §3, 실측 2026-09-16 · `src/features/landing/grid/landing-catalog-grid-loader.tsx:23`]
 
    `OPTED_OUT` 에서 카탈로그가 8 장에서 2 장으로 줄어드는데 화면에 설명이 0 줄이다.
    숨긴 이유와 해제 경로가 **같은 자리**에 있어야 한다 — 그래서 그리드 상단의 한
    줄이고, 카드도 패널도 아니다. 조용한 행이어야 하는 이유는 이것이 콘텐츠가 아니라
-   콘텐츠에 대한 말이기 때문이다. */
+   콘텐츠에 대한 말이기 때문이다.
+
+   **REALIZED 2026-09-16 (390x844).** 제품이 이 행을 그린다 — 카탈로그가 8 장에서
+   2 장으로 줄고 그리드 **위**에 `6 tests need analytics consent. · Change consent`
+   한 줄이 선다. 바탕 `rgb(236, 232, 223)`(= `--surface-muted`) · `--radius-md` 12px ·
+   `--body-sm` · `--ink-body` 로 이 블록과 같고, 해제 경로는 밑줄 친 `--accent-fg`
+   텍스트로 버튼도 칩도 아니다.
+
+   **한 가지가 제품에만 있었고 그것이 옳다**: 해제 경로의 높이가 **44px** 다. 이 블록은
+   `font: inherit` 만 주어 링크 높이가 줄높이(21.7px)로 떨어졌는데, 그러면 이 시스템으로
+   만든 화면이 `--tap-min` 을 놓친다 — 본문 한가운데의 인라인 링크가 아니라 행의 유일한
+   조작 대상이기 때문이다. 아래에 그 바닥을 넣었다. */
 
 .vt-notice {
   display: flex;
@@ -1069,6 +1108,11 @@
   padding: 0;
   font: inherit;
   cursor: pointer;
+  /* 행의 유일한 조작 대상이므로 본문 인라인 링크의 예외를 쓰지 않는다 — 제품이 실측
+     44px 를 준다(2026-09-16). `inline-flex` 없이 높이만 주면 밑줄이 글자에서 떨어진다. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
 }
 
 .vt-notice__action:focus-visible {
@@ -1140,35 +1184,70 @@
 
 /* ---- Page head -------------------------------------------------------------
 
-   [intent — step 3 §7 / 명세 §2-12 가 구현한다. 제품은 아직 히어로 밴드다.]
+   [realized — step 3 §7, 실측 2026-09-16 · `src/app/[locale]/page.tsx:44-50`]
 
    `design.md` §7.1 은 "No hero" 인데 랜딩은 `aria-label="Landing Hero"` 를 단
-   `h1` 과 두 문장 단락을 렌더한다. 둘 중 하나를 골라야 했고 **페이지 제목을 남기는
+   `h1` 과 두 문장 단락을 렌더했다. 둘 중 하나를 골라야 했고 **페이지 제목을 남기는
    쪽**으로 정해졌다 — 모바일 GNB 에 화면 이름 슬롯이 없어 본문 최상단의 `h1` 이
    현재 위치를 말하는 유일한 것이기 때문이다.
 
    남는 것은 제목 한 줄 + 부제 한 줄이다. 밴드도 배경도 일러스트도 없고, 위아래
    여백은 카드 간격과 같다 — 그래서 이 블록에는 `background` 가 없다. 그것이
-   "히어로가 아니다"의 실제 내용이다. */
+   "히어로가 아니다"의 실제 내용이고, 실측이 그것을 수로 말한다: 390x844 에서 영역
+   높이 **97.6px**(밴드는 177.6px)이고, 그 값이 두 줄과 선언한 여백의 합과 정확히
+   같다 — 설명되지 않는 높이가 0 이라는 뜻이다.
+
+   **세 값이 이 블록의 원래 선언과 달랐고, 셋 다 제품 쪽이 옳았다.**
+
+   - `--h3` → `--h1`. 바로 아래 주석이 "제목 역할(22~24px)" 이라고 적어 놓고 폰에서
+     18px 인 토큰을 골랐다 — 이 파일이 저 혼자 어긋나 있었다. `--h1` 이 폰 24px ·
+     데스크톱 30px 이고, 그것이 주석이 말한 역할이다.
+   - `--body-sm` · `--muted-aa` → `--body` · `--ink-body`. 부제는 보조 캡션이 아니라
+     제목 다음의 한 문장이다. BQ-48 의 모바일 열은 `--body` 를 움직이지 않으므로
+     폰에서도 16px 이고, 358px 열에서 50자 — 45~75 관행 안이다.
+   - `white-space: nowrap` → **줄 단위 clamp**. `nowrap` 은 아예 접지 않으므로 CJK
+     처럼 어디서든 접히는 글에서도 한 줄을 강제로 밀어낸다. 제품은 접은 뒤 첫 줄만
+     남기고(`-webkit-line-clamp: 1`) 제목은 상한이 둘이다 — 기준 폭 390px 에서는
+     12 locale 전부 한 줄로 실현되고, 320px 에서 여섯 locale 의 제목이 넘칠 때
+     잘린 페이지 제목보다 접힌 쪽이 낫기 때문이다.
+
+   **이 specimen 을 볼 때 주의할 것이 하나 있다.** 카드가 1300px 폭에서 렌더되므로
+   안의 390px 상자에도 **데스크톱 타입 열**이 걸린다 — `--h1` 은 30px, `--body` 는
+   16px 로 나온다. 폰 값(24px)은 뷰포트가 767px 이하일 때만 나온다. 이것은 이 카드의
+   문제가 아니라 상자 안에 폰을 그리는 모든 카드의 문제이고, README findings D-21 이
+   그것을 갖는다. */
 
 .vt-pagehead {
   display: grid;
-  gap: var(--space-1);
-  padding: var(--space-2) 0 var(--space-4);
+  /* 제목과 부제 사이 12px, 위아래는 카드 간격 15px — 둘 다 실측값이다. */
+  gap: var(--space-3);
+  padding: var(--grid-gutter-mobile) 0;
 }
 
-/* 모바일에서 제목 역할(22~24px)을 쓰고 큰 헤드라인 clamp 를 버린다. `--h3` 가 그
-   역할이며 여기서 새 크기를 만들지 않는다. */
-.vt-pagehead__title { font: var(--h3); color: var(--ink); margin: 0; }
-
-/* 부제는 한 줄로 자른다 — 12 locale 에서 두 줄이 되면 밀도 목표가 흔들린다. */
-.vt-pagehead__sub {
-  font: var(--body-sm);
-  color: var(--muted-aa);
+/* 제목 역할(폰 24px · 데스크톱 30px)을 쓰고 큰 헤드라인 clamp 를 버린다 — 여기서 새
+   크기를 만들지 않는다. 상한이 두 줄인 이유는 위 주석이 적는다. */
+.vt-pagehead__title {
+  font: var(--h1);
+  color: var(--ink);
+  letter-spacing: var(--track-tight);
   margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+/* 부제는 한 줄이다 — 12 locale 에서 두 줄이 되면 밀도 목표가 흔들린다. */
+.vt-pagehead__sub {
+  font: var(--body);
+  color: var(--ink-body);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---- Empty / error ---------------------------------------------------------

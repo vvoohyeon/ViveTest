@@ -66,18 +66,18 @@ export const qmbtiQuestions: ReadonlyArray<QuestionSourceRow> = [
   },
   {
     seq: '7',
-    question: {en: 'Q_placeholder_qmbti_7', kr: 'Q_placeholder_qmbti_7'},
+    question: {en: '🔋 After a long week, I get my energy back by', kr: '🔋 긴 한 주가 끝나면 나는'},
     poleA: 'E',
     poleB: 'I',
-    answerA: {en: 'Option A', kr: '옵션 A'},
-    answerB: {en: 'Option B', kr: '옵션 B'}
+    answerA: {en: 'going out and seeing people.', kr: '밖에 나가 사람들을 만나면서 충전해'},
+    answerB: {en: 'staying in and having time to myself.', kr: '집에서 혼자 있는 시간으로 충전해'}
   },
   {
     seq: '8',
-    question: {en: 'Q_placeholder_qmbti_8', kr: 'Q_placeholder_qmbti_8'},
+    question: {en: '🧳 When a trip is coming up, I usually', kr: '🧳 여행을 앞두면 나는'},
     poleA: 'J',
     poleB: 'P',
-    answerA: {en: 'Option A', kr: '옵션 A'},
-    answerB: {en: 'Option B', kr: '옵션 B'}
+    answerA: {en: 'plan the days out before I leave.', kr: '떠나기 전에 일정을 미리 짜둘 두는 편'},
+    answerB: {en: 'decide once I get there.', kr: '가서 그때그때 정하는 편'}
   }
 ];

@@ -20,7 +20,8 @@ import {
   type LandingGridColumnMode
 } from '@/features/landing/grid/layout-plan';
 import {resolveDesktopTransformOriginX} from '@/features/landing/grid/hover-intent';
-import {BACKDROP_MOTION_DURATION_MS} from '@/features/landing/grid/use-mobile-backdrop-gesture';
+import {BACKDROP_MOTION_DURATION_MS} from '@/features/landing/grid/use-overlay-backdrop-gesture';
+import {LandingCardSheet} from '@/features/landing/grid/landing-card-sheet';
 import {useLandingInteractionController} from '@/features/landing/grid/use-landing-interaction-controller';
 import {useGridGeometryController} from '@/features/landing/grid/use-grid-geometry-controller';
 import {useLandingTransition} from '@/features/transition/use-landing-transition';
@@ -31,7 +32,7 @@ const INITIAL_GRID_INLINE_SIZE = CONTAINER_MAX_WIDTH - TABLET_DESKTOP_SIDE_PADDI
 // 모션은 `landing-catalog-grid.module.css` 의 `.backdrop` 이 갖는다 — 등장·소멸이 대칭이어야
 // 하고, 그 대칭은 상태 셋(`OPENING`/`CLOSING`/`EXITING`)에 걸쳐 있어 유틸리티 한 줄로 적히지
 // 않는다.
-const LANDING_GRID_MOBILE_BACKDROP_CLASSNAME =
+const LANDING_GRID_OVERLAY_BACKDROP_CLASSNAME =
   'landing-grid-mobile-backdrop fixed inset-0 z-10 bg-[var(--overlay-scrim-medium)] touch-pan-y';
 
 export {LANDING_GRID_PLAN_CHANGED_EVENT} from '@/features/landing/grid/use-grid-geometry-controller';
@@ -73,9 +74,9 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
     interactionState,
     prefersReducedMotion,
     mobileLifecycleState,
-    mobileBackdropBindings,
+    overlayBackdropBindings,
     activeVisualCardVariant,
-    mobileRestoreReadyVariant,
+    setMobileLifecycleState,
     resolveCardInteractionBindings,
     collapseExpandedCard
   } = useLandingInteractionController({
@@ -120,6 +121,15 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
     metaViews: t('metaViews'),
     readMore: t('readMore')
   };
+
+  // 시트가 여는 카드. 확장은 test 카드에서만 일어나므로 타입까지 여기서 좁힌다 — 시트가
+  // 다시 판정하면 두 곳이 같은 조건을 각자 갖게 된다.
+  const sheetCardCandidate = interactionState.expandedCardVariant
+    ? cards.find((card) => card.variant === interactionState.expandedCardVariant)
+    : undefined;
+  const sheetCard =
+    sheetCardCandidate && sheetCardCandidate.type === 'test' ? sheetCardCandidate : null;
+  const sheetBindings = sheetCard ? resolveCardInteractionBindings(sheetCard) : null;
 
   useLayoutEffect(() => {
     let frame = 0;
@@ -194,21 +204,35 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
       data-interaction-expanded-card-variant={interactionState.expandedCardVariant ?? ''}
       data-active-visual-card-variant={activeVisualCardVariant ?? ''}
       data-mobile-phase={mobileLifecycleState.phase}
-      data-mobile-restore-ready-card-variant={mobileRestoreReadyVariant ?? ''}
       data-baseline-phase={baselineState.phase}
       data-baseline-active-card-variant={baselineState.activeCardVariant ?? ''}
       data-baseline-frozen-rows={[...baselineState.snapshots.keys()].join(',')}
     >
-      {mobileBackdropBindings.active ? (
+      {overlayBackdropBindings.active ? (
         <div
-          className={`${LANDING_GRID_MOBILE_BACKDROP_CLASSNAME} ${gridStyles.backdrop}`}
+          className={`${LANDING_GRID_OVERLAY_BACKDROP_CLASSNAME} ${gridStyles.backdrop}`}
           data-testid="landing-grid-mobile-backdrop"
-          data-state={mobileBackdropBindings.state}
+          data-state={overlayBackdropBindings.state}
           style={{'--landing-backdrop-motion-ms': `${BACKDROP_MOTION_DURATION_MS}ms`} as CSSProperties}
-          onPointerDown={mobileBackdropBindings.onPointerDown}
-          onPointerMove={mobileBackdropBindings.onPointerMove}
-          onPointerUp={mobileBackdropBindings.onPointerUp}
-          onPointerCancel={mobileBackdropBindings.onPointerCancel}
+          onPointerDown={overlayBackdropBindings.onPointerDown}
+          onPointerMove={overlayBackdropBindings.onPointerMove}
+          onPointerUp={overlayBackdropBindings.onPointerUp}
+          onPointerCancel={overlayBackdropBindings.onPointerCancel}
+        />
+      ) : null}
+      {/* 폰의 확장은 흐름 밖의 시트 **하나**다 — 카드마다 표면을 두지 않는다. 열려 있는 카드가
+          누구인지는 상호작용 상태가 알고, 위상은 시트가 여기로 알린다. */}
+      {plan.tier === 'mobile' ? (
+        <LandingCardSheet
+          card={sheetCard}
+          locale={locale}
+          copy={cardCopy}
+          open={sheetCard !== null}
+          reducedMotion={prefersReducedMotion}
+          onCloseRequest={collapseExpandedCard}
+          onStateChange={setMobileLifecycleState}
+          onExpandedBodyKeyDown={sheetBindings?.onExpandedBodyKeyDown}
+          onAnswerChoiceSelect={sheetBindings?.onAnswerChoiceSelect}
         />
       ) : null}
       <div
@@ -249,12 +273,9 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     interactionMode={interactionMode}
                     viewportTier={plan.tier}
                     mobilePhase={interactionBindings.mobilePhase}
-                    mobileTransientMode={interactionBindings.mobileTransientMode}
-                    mobileRestoreReady={interactionBindings.mobileRestoreReady}
                     desktopMotionRole={interactionBindings.desktopMotionRole}
                     desktopShellPhase={interactionBindings.desktopShellPhase}
                     reducedMotion={prefersReducedMotion}
-                    mobileSnapshot={interactionBindings.mobileSnapshot}
                     desktopTransformOriginX={resolveDesktopTransformOriginX({
                       cardOffset: offset,
                       rowCardCount: row.cardCount
@@ -278,7 +299,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     onMouseLeave={interactionBindings.onMouseLeave}
                     onExpandedBodyKeyDown={interactionBindings.onExpandedBodyKeyDown}
                     onAnswerChoiceSelect={interactionBindings.onAnswerChoiceSelect}
-                    onMobileClose={interactionBindings.onMobileClose}
+                    onOverlayClose={interactionBindings.onOverlayClose}
                   />
                 );
               })}

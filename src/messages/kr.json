@@ -7,7 +7,10 @@
     "history": "이력",
     "blog": "블로그",
     "settings": "설정",
-    "theme": "언어 ⋅ 테마",
+    "theme": "테마",
+    "language": "언어",
+    "system": "시스템",
+    "themeEffective": "현재 적용 중",
     "light": "라이트",
     "dark": "다크",
     "menu": "메뉴",
@@ -20,8 +23,9 @@
     "skipToContent": "본문으로 건너뛰기"
   },
   "landing": {
-    "heroTitle": "한 번의 흐름으로 내 작업 리듬 찾기",
-    "heroBody": "이용 가능한 테스트와 블로그를 하나의 카탈로그에서 확인합니다. 카드를 확장하고 액션을 선택하면 결정적인 전환으로 목적지로 이동합니다.",
+    "pageTitle": "내 작업 리듬 찾기",
+    "pageSubtitle": "테스트와 노트를 한 카탈로그에서.",
+    "pageHeadAria": "페이지 제목",
     "comingSoon": "출시 예정",
     "closeExpandedAria": "확장 카드 닫기",
     "close": "닫기",
@@ -30,7 +34,9 @@
     "metaAttempts": "완료",
     "metaReadTime": "분 읽기",
     "metaViews": "조회",
-    "readMore": "더 읽기"
+    "readMore": "더 읽기",
+    "optedOutNotice": "{count, plural, other {#개 테스트는 분석 동의가 필요합니다.}}",
+    "optedOutNoticeAction": "동의 변경"
   },
   "test": {
     "progressLabel": "진행률",
@@ -41,6 +47,12 @@
     "submit": "제출",
     "resultLabel": "최종 결과",
     "resultBody": "최종 제출 시점의 답변(수정된 1번 포함)으로 결과가 계산됩니다.",
+    "resultPageTitle": "결과",
+    "resultTypeLabel": "유형",
+    "resultErrorTitle": "이 결과를 열 수 없습니다",
+    "resultErrorBody": "링크가 완전하지 않거나 더 이상 유효하지 않습니다.",
+    "resultRetake": "다시하기",
+    "resultTakeTest": "나도 테스트하기",
     "goHome": "랜딩으로",
     "goHistory": "이력 보기",
     "instructionTitle": "시작 전 안내",
@@ -63,19 +75,32 @@
     "allArticles": "전체 글"
   },
   "history": {
-    "title": "로컬 결과 이력",
-    "body": "완료된 실행은 각각 독립 항목으로 저장됩니다(최신순, 최대 50개).",
+    "title": "회차 이력",
+    "body": "이 기기에 남은 회차 — 최신순, 최대 50개.",
+    "emptyBody": "이 기기에 아직 회차가 없습니다.",
+    "browseTests": "테스트 둘러보기",
+    "abandoned": "중단됨",
     "clearAll": "전체 삭제",
-    "goHome": "홈으로",
     "open": "열기",
     "delete": "삭제"
   },
+  "error": {
+    "notFoundTitle": "이 페이지는 여기 없습니다",
+    "notFoundBody": "주소는 맞지만 더 이상 아무것도 없습니다.",
+    "entryBlockedTitle": "이 테스트를 열 수 없습니다",
+    "entryBlockedBody": "테스트가 내려갔거나 링크가 완전하지 않습니다. 지금 할 수 있는 것들은 카탈로그에 있습니다.",
+    "crashTitle": "화면을 그리지 못했습니다",
+    "crashBody": "이 페이지를 그리는 중에 문제가 생겼습니다. 다시 시도하면 대개 해결됩니다.",
+    "retry": "다시 시도",
+    "backToLanding": "랜딩으로 돌아가기"
+  },
   "consent": {
-    "regionLabel": "쿠키 설정",
-    "message": "서비스가 원활하게 작동하고 이용 현황을 이해하기 위해 쿠키 및 유사 기술을 사용합니다. 선택 항목은 직접 허용 여부를 정할 수 있으며, 이 설정은 언제든 변경할 수 있습니다.",
-    "accept": "모두 허용",
+    "regionLabel": "분석 동의",
+    "message": "어떤 테스트가 끝까지 진행되는지 보기 위해 선택적 분석을 사용합니다. 답변 내용은 전송되지 않습니다.",
+    "accept": "허용",
     "deny": "거부",
-    "preferences": "설정",
-    "preferencesTitle": "설정 패널은 곧 제공될 예정입니다"
+    "recall": "개인정보 설정",
+    "close": "닫기",
+    "previousChoice": "지난번 선택"
   }
 }

@@ -3,29 +3,16 @@ import Link from 'next/link';
 
 import {APP_BODY_CLASSNAME} from '@/app/app-body-class';
 import {defaultLocale} from '@/config/site';
-import {linkButtonPrimaryClassName} from '@/features/ui/button-class-names';
+import {RecoverySurface, recoveryActionClassName} from '@/features/ui/recovery-surface';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
 import './globals.css';
 
 // 이 라우트는 루트 레이아웃을 거치지 않고 제 `<html>`/`<body>` 를 직접 렌더한다. 그래서
-// 레이아웃이 하는 두 가지가 여기서는 일어나지 않는다. 첫째, **스타일시트가 실리지 않았다** —
-// 실측: `document.styleSheets.length === 0`, 규칙 0 개, `h1` 이 브라우저 기본 32px, 토큰
-// `--canvas-elevated` 는 빈 문자열. 이 파일이 지금까지 적어 온 모든 Tailwind 클래스는 한 번도
-// 적용된 적이 없다. 위의 import 가 그것을 고친다. 둘째, 테마 부트스트랩이 없어 `data-theme` 가
-// 붙지 않으므로 항상 라이트로 그려진다 — 그것은 라우팅/부트스트랩 문제라 열린 채로 둔다.
-// 카피는 README 의 voice 규칙을 따른 영어다. 이 라우트는 로케일을 모르므로 번역되지 않는다.
-const globalNotFoundMainClassName = 'grid min-h-screen place-items-center px-4 py-6';
-const globalNotFoundPanelClassName =
-  'w-full max-w-[520px] rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--canvas-elevated)] p-5 shadow-[var(--shadow-rest)]';
-const globalNotFoundEmptyClassName = 'mx-auto grid max-w-[460px] justify-items-center gap-4 px-4 py-10 text-center';
-const globalNotFoundMarkClassName =
-  'grid h-11 w-11 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-fg)]';
-const globalNotFoundTitleClassName = 'm-0 [font:var(--h3)] text-[var(--ink)]';
-const globalNotFoundBodyClassName = 'm-0 [font:var(--body-sm)] text-[var(--muted-aa)]';
-// `not-found.tsx` 와 같은 완성형(`@/features/ui/button-class-names`). 종전에는 두 파일이
-// 같은 문자열을 각자 한 벌씩 갖고 있었다.
-const globalNotFoundActionClassName = linkButtonPrimaryClassName;
+// **스타일시트를 스스로 실어야 한다** — 종전에 그것이 없어 `document.styleSheets.length === 0`
+// 이었고 이 파일이 적어 온 모든 Tailwind 클래스가 한 번도 적용된 적이 없었다(실측). 테마
+// 부트스트랩도 없어 항상 라이트로 그려지며, 그것은 라우팅/부트스트랩 문제라 열린 채로 둔다.
+// 카피는 영어다 — 이 라우트는 locale 을 모른다.
 
 // `global-not-found` 는 레이아웃을 거치지 않으므로 문서 제목도 여기서 낸다(Next 는 404 에 noindex 를 붙인다).
 export const metadata: Metadata = {
@@ -36,26 +23,16 @@ export default function GlobalNotFound() {
   return (
     <html lang={defaultLocale}>
       <body className={APP_BODY_CLASSNAME}>
-        <main className={globalNotFoundMainClassName}>
-          <section className={globalNotFoundPanelClassName} data-testid="global-not-found">
-            <div className={globalNotFoundEmptyClassName}>
-              <span className={globalNotFoundMarkClassName} aria-hidden="true">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.75]"
-                >
-                  <path d="M12 9v4M12 17h.01" />
-                  <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-                </svg>
-              </span>
-              <h1 className={globalNotFoundTitleClassName}>That page is not here</h1>
-              <p className={globalNotFoundBodyClassName}>The address may have changed, or the test may have been retired.</p>
-              <Link className={globalNotFoundActionClassName} href={{pathname: RouteBuilder.landing().pathname}}>
-                Return home
-              </Link>
-            </div>
-          </section>
-        </main>
+        <RecoverySurface
+          testId="global-not-found"
+          title="That page is not here"
+          body="The address may have changed, or the test may have been retired."
+          actions={
+            <Link className={recoveryActionClassName} href={{pathname: RouteBuilder.landing().pathname}}>
+              Return home
+            </Link>
+          }
+        />
       </body>
     </html>
   );

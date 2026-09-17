@@ -83,7 +83,9 @@ For ViveTest specifically, the **card catalog is the primary visual identity**. 
 - The display stack falls back gracefully through system bilingual faces (see `--font-sans` in Section 5).
 - **Global wrapping rule:** wrapping text uses `word-break: keep-all; overflow-wrap: anywhere;`.
 - **Catalog title matrix:** Desktop/Tablet Normal is single-line ellipsis; Mobile Normal is full text with no ellipsis; Mobile Expanded and transient titles are full text with no ellipsis; Desktop/Tablet Expanded preserves the measured Normal first-line split and reveals the full overflow text.
-- Desktop/Tablet Normal catalog subtitles use a two-line ellipsis clamp; Mobile Normal subtitles show the full text without ellipsis. Expanded choice text wraps without a line limit or truncation.
+- Normal catalog subtitles use a two-line ellipsis clamp on every tier, Mobile included. Expanded choice text wraps without a line limit or truncation.
+- **The scale has a viewport axis.** The ladder in Section 5 is the desktop column; below the mobile boundary a second column applies. Headings step down (`--h1` takes `--h2`'s step, `--h3` takes `--h4`'s) and small prose steps up (`--body-sm`, `--t-choice`, `--t-card-subtitle`) — the two move in opposite directions on purpose, because a headline sized for 1280px eats a 390px first screen while 14px prose is the reason three quarters of the phone's text sat below 16px. Secondary information (`--caption`, `--overline`, `--label`, `--t-tag`) has **no** mobile step: its size is judged together with its contrast and with catalog density. The values live in `ds/colors_and_type.css`; this document does not restate them.
+- Line height is bounded below by the face, not by taste. Pretendard's glyph content area is `1.1934em` (`unitsPerEm 2048`, ascender 1950, descender -494, `USE_TYPO_METRICS` on), so `line-height: 1` clips — `--button` carried that defect at 15px/1 and now reads 15px/1.2.
 
 ### 4.4 Color philosophy
 - **Atmosphere:** warm-neutral, low-contrast calm. The page floor is a warm off-white, never cool grey or pure white. Cards sit one step brighter than the canvas.
@@ -249,7 +251,7 @@ These primitives are built from tokens and kept general enough to reuse beyond t
 Warm elevated fill, `1px solid var(--hairline)` border at rest, large radius, resting shadow, **16px** padding, vertical flex with gap. The 1px border box already exists, so the structural hairline introduces no layout shift. The 16px padding is intentional and creates the thumbnail's outer margin on all sides — do not remove it or apply negative thumbnail margins.
 
 ### 6.2 Thumbnail
-A `16 / 6` aspect-ratio block at medium radius, full width, clipped. It sits inside the card's 16px padding and therefore has a natural outer margin on every side.
+A `16 / 4` aspect-ratio block at medium radius, full width, clipped. It sits inside the card's 16px padding and therefore has a natural outer margin on every side.
 
 ### 6.3 Tag / chip
 Text-only lowercase borderless chip at `--radius-xs` (5px), `--tag-bg` fill, `--tag-fg` text, 13px / 500, `4px 9px` padding, and no wrap. The last visible tag may flex and ellipsize to a 56px border-box visual minimum; naturally shorter labels remain full or disappear with the suffix. Test and Blog share the available fill; the unavailable status chip uses the scoped application fill `#E6E2D8`. **No color dot, ever.**
@@ -288,7 +290,7 @@ A horizontal, wrapping row of small (13px / 500) `--muted` items separated by th
 ViveTest-specific composition of the primitives above.
 
 ### 7.1 Catalog page
-- **No hero.** No marketing band, no large headline, no illustration band.
+- **No hero band.** No marketing band, no large headline, no illustration band — **a one-line page title with a one-line subtitle is not a hero.** The mobile GNB carries no screen-name slot, so that `h1` is the only thing on the surface that says where the reader is; it uses the `--h1` step rather than a headline clamp, and the area's height is its two lines plus the card gap, nothing more.
 - A single **minimal eyebrow** line (brief service description + catalog count) sits above the grid as low-emphasis utility text — it must read as utility, not a banner, and reserves space for future search/filter.
 - **One continuous card grid** — no section dividers, labels, or row headings.
 - The **card system is the primary identity.**
@@ -425,7 +427,6 @@ Accompanying visual resources (working-tree inventory; interpretation aids, not 
 - `Catalog` item in the mobile menu.
 - `layoutId` / `LayoutGroup` as a recommended motion approach.
 - `min-height: 100%` as the expanded-overlay height invariant.
-- Swipe-down close as authorized mobile expanded behavior.
 
 ---
 

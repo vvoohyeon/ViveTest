@@ -13,11 +13,11 @@ import type {
 import type {
   LandingCardInteractionMode,
   LandingCardMobilePhase,
-  LandingCardMobileTransientMode,
   LandingCardViewportTier,
   LandingCardVisualState
 } from '../../src/features/landing/grid/landing-grid-card';
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
+import {LANDING_OVERLAY_VIEWPORT_INSET_PX} from '../../src/features/landing/grid/layout-plan';
 import {resolveLandingCatalog} from '../../src/features/variant-registry';
 
 function readLandingGridCardCss(): string {
@@ -77,7 +77,6 @@ function renderCardDocument({
   desktopShellPhase = 'idle',
   viewportTier = 'desktop',
   mobilePhase = 'NORMAL',
-  mobileTransientMode = 'NONE',
   tabIndex,
   ariaDisabled
 }: {
@@ -90,7 +89,6 @@ function renderCardDocument({
   desktopShellPhase?: LandingCardDesktopShellPhase;
   viewportTier?: LandingCardViewportTier;
   mobilePhase?: LandingCardMobilePhase;
-  mobileTransientMode?: LandingCardMobileTransientMode;
   tabIndex?: number;
   ariaDisabled?: boolean;
 }): Document {
@@ -103,7 +101,6 @@ function renderCardDocument({
       interactionMode,
       viewportTier,
       mobilePhase,
-      mobileTransientMode,
       desktopMotionRole,
       desktopShellPhase,
       copy: getDefaultCardCopy(),
@@ -214,8 +211,12 @@ describe('landing card slot contract', () => {
       (expandedChoiceA?.querySelector('.landing-grid-card-answer-choice-text')?.textContent ?? '').length
     ).toBeGreaterThan(0);
 
-    // Inline quiet data row (design §6.10): three "value label" items in a single dot-separated
-    // row, with the complete duration item emphasized and decorative dot separators.
+    // Inline quiet data row (design §6.10) 상의 **두 묶음**(명세 §3-3): 회차에 관한 둘은
+    // 왼쪽에서 점으로 이어지고, 다른 사람들에 관한 하나(공유)는 오른쪽 끝으로 간다. 점이
+    // 하나로 줄어든 것이 그 갈라짐의 직접 결과다 — 세 항목을 이었을 때만 둘이 필요했다.
+    const metaGroups = Array.from(expandedDoc.querySelectorAll('.landing-grid-card-meta-group'));
+    expect(metaGroups.map((group) => group.getAttribute('data-meta-group'))).toEqual(['run', 'social']);
+
     const expandedMetaItems = Array.from(expandedDoc.querySelectorAll('.landing-grid-card-meta-item'));
     expect(expandedMetaItems).toHaveLength(3);
     for (const item of expandedMetaItems) {
@@ -228,7 +229,9 @@ describe('landing card slot contract', () => {
     expect(expandedMetaItems[2]?.tagName.toLowerCase()).toBe('span');
     expect(expandedMetaItems[1]?.className).not.toContain('landing-grid-card-meta-item-lead');
     expect(expandedMetaItems[2]?.className).not.toContain('landing-grid-card-meta-item-lead');
-    expect(expandedDoc.querySelectorAll('.landing-grid-card-meta-separator')).toHaveLength(2);
+    expect(metaGroups[0]?.querySelectorAll('.landing-grid-card-meta-item')).toHaveLength(2);
+    expect(metaGroups[1]?.querySelectorAll('.landing-grid-card-meta-item')).toHaveLength(1);
+    expect(expandedDoc.querySelectorAll('.landing-grid-card-meta-separator')).toHaveLength(1);
 
     expect(expandedDoc.querySelector('[data-slot="primaryCTA"]')).toBeNull();
 
@@ -605,7 +608,11 @@ describe('landing card slot contract', () => {
     expect(doc.querySelector('[data-slot="cardTitle"]')?.textContent).toBe(card.title);
   });
 
-  it('uses the same full-text muted context typography for settled and transient mobile expanded titles', () => {
+  // 모바일 확장 제목의 타이포와 닫기 컨트롤의 44×44 는 **시트로 옮겨 갔다** — 카드는 폰에서
+  // 확장 표면을 그리지 않는다(명세 규칙 3). 두 계약은 `landing-card-sheet.test.ts` 가 같은
+  // 단언으로 이어받는다; 여기서 지우기만 하면 계약이 사라진다.
+
+  it('제자리 오버레이는 보이는 X 없이 숨긴 닫기를 마지막 탭 스톱으로 둔다', () => {
     const catalog = resolveLandingCatalog('en');
     const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
 
@@ -613,33 +620,38 @@ describe('landing card slot contract', () => {
       throw new Error('Expected rhythm-b as a test card fixture');
     }
 
-    const settledDoc = renderCardDocument({
-      card,
-      state: 'expanded',
-      interactionMode: 'tap',
-      viewportTier: 'mobile',
-      mobilePhase: 'OPEN'
-    });
-    const transientDoc = renderCardDocument({
-      card,
-      state: 'expanded',
-      interactionMode: 'tap',
-      viewportTier: 'mobile',
-      mobilePhase: 'OPENING',
-      mobileTransientMode: 'OPENING'
-    });
+    const doc = renderDesktopExpandedCardDocument({card});
+    const overlay = doc.querySelector('[data-slot="expandedBody"]');
 
-    for (const title of [
-      settledDoc.querySelector('[data-slot="cardTitle"]'),
-      transientDoc.querySelector('[data-slot="cardTitleTransient"]')
-    ]) {
-      const className = title?.getAttribute('class') ?? '';
-      expect(title?.textContent).toBe(card.title);
-      expect(className).toContain('[font:var(--label)]'); // = 500 14px/1.4, 미러가 값을 고정한다
-      expect(className).toContain('text-[var(--expanded-context-ink)]');
-      expect(className).not.toContain('line-clamp');
-      expect(className).not.toContain('truncate');
+    // 보이는 X 는 없다 — 카드 밖이 곧 닫기 영역이므로 중복이다.
+    expect(doc.querySelector('[data-slot="mobileClose"]')).toBeNull();
+
+    const focusable = Array.from(
+      overlay?.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? []
+    );
+    expect(focusable.length).toBeGreaterThan(0);
+    expect(focusable.at(-1)?.getAttribute('data-slot')).toBe('overlayHiddenClose');
+    expect(focusable.at(-1)?.textContent).toBe(getDefaultCardCopy().closeExpandedAria);
+  });
+
+  it('제자리 오버레이는 뷰포트 높이 상한 안에서 본문을 스크롤한다', () => {
+    const catalog = resolveLandingCatalog('en');
+    const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
+
+    if (!card || card.type !== 'test') {
+      throw new Error('Expected rhythm-b as a test card fixture');
     }
+
+    const doc = renderDesktopExpandedCardDocument({card});
+    const stageStyle = doc.querySelector('[data-slot="desktopStage"]')?.getAttribute('style') ?? '';
+    const bodyClassName = doc.querySelector('[data-slot="expandedBody"]')?.getAttribute('class') ?? '';
+
+    // 값의 정본은 `LANDING_OVERLAY_VIEWPORT_INSET_PX` 이고 변수로 내려온다 — 가로로 눕힌 폰이
+    // 이 조건으로 들어오고, 넘치면 배경이 잠겨 있어 스크롤로도 볼 수 없다(명세 규칙 3).
+    expect(stageStyle).toContain(`calc(100dvh - ${LANDING_OVERLAY_VIEWPORT_INSET_PX}px)`);
+    expect(bodyClassName).toContain('[max-height:var(--landing-overlay-max-height)]');
+    expect(bodyClassName).toContain('overflow-y-auto');
+    expect(bodyClassName).toContain('overscroll-contain');
   });
 
   it('applies the responsive title/subtitle clamp matrix and BQ-30 tag treatment', () => {
@@ -662,20 +674,19 @@ describe('landing card slot contract', () => {
       const titleClassName = doc.querySelector('[data-slot="cardTitle"]')?.getAttribute('class') ?? '';
       const subtitleClassName = doc.querySelector('[data-slot="cardSubtitle"]')?.getAttribute('class') ?? '';
 
+      // 제목은 티어로 갈리고(모바일은 전문) 부제는 갈리지 않는다(§6.6) — 그 비대칭이 이 표의 요점이다.
+      expect(subtitleClassName).toContain('line-clamp-2');
+      expect(subtitleClassName).toContain('overflow-hidden');
+      expect(subtitleClassName).toContain('text-ellipsis');
+
       if (viewportTier === 'mobile') {
         expect(titleClassName).not.toContain('line-clamp-1');
         expect(titleClassName).toContain('overflow-visible');
         expect(titleClassName).toContain('text-clip');
-        expect(subtitleClassName).not.toContain('line-clamp-2');
-        expect(subtitleClassName).toContain('overflow-visible');
-        expect(subtitleClassName).toContain('text-clip');
       } else {
         expect(titleClassName).toContain('line-clamp-1');
         expect(titleClassName).toContain('overflow-hidden');
         expect(titleClassName).toContain('text-ellipsis');
-        expect(subtitleClassName).toContain('line-clamp-2');
-        expect(subtitleClassName).toContain('overflow-hidden');
-        expect(subtitleClassName).toContain('text-ellipsis');
       }
     }
 
@@ -721,19 +732,10 @@ describe('landing card slot contract', () => {
       expect(triggerClassName).toContain('[padding:16px]');
     }
 
-    const mobileOpenDoc = renderCardDocument({
-      card: testCard,
-      state: 'expanded',
-      interactionMode: 'tap',
-      viewportTier: 'mobile',
-      mobilePhase: 'OPEN'
-    });
-    const closeClassName = mobileOpenDoc.querySelector('[data-slot="mobileClose"]')?.getAttribute('class') ?? '';
-    const choiceClassName = mobileOpenDoc.querySelector('[data-slot="answerChoiceA"]')?.getAttribute('class') ?? '';
+    const desktopExpandedDoc = renderDesktopExpandedCardDocument({card: testCard});
+    const choiceClassName =
+      desktopExpandedDoc.querySelector('[data-slot="answerChoiceA"]')?.getAttribute('class') ?? '';
 
-    // D-09: design.md 4.10 names the close button among the 44x44 targets.
-    expect(closeClassName).toContain('min-h-[var(--tap-min)]');
-    expect(closeClassName).toContain('min-w-[var(--tap-min)]');
     expect(choiceClassName).toContain('py-3');
   });
 });

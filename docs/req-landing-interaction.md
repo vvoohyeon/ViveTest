@@ -68,7 +68,7 @@
 - 새 hover 진입 시 이전 예약을 즉시 취소한다.
 - 타이머 실행 직전 `현재 hover 대상 == 예약 대상`을 재검증하고 불일치 시 no-op 처리한다.
 - handoff 경로는 지연 없이 즉시 전환한다.
-- **Expanded 활성 중 폭 변경 시 강제 종료는 이 절의 어떤 규칙으로도 완화되지 않는다**(§14.2 항목 4 · Section 6 Automated 5·11). 아래 유지 규칙은 스크롤 한정이며 resize 경로를 대상으로 하지 않는다.
+- **아래 유지 규칙은 스크롤 한정이며 resize 경로를 대상으로 하지 않는다** — 이 절은 폭 변경 강제 종료를 완화하지도 확대하지도 않는다. **그 규칙의 적용 범위는 여기서 다시 적지 않는다**: 정의는 `req-landing.md` §6.2 하나이고, 얼어 있는 row baseline 이 있는 전이 — 다 열 레이아웃 사이 — 에만 적용된다(BQ-44). 종전에 이 줄이 「어떤 규칙으로도 완화되지 않는다」로 범위를 함께 주장했고, BQ-44 가 정의 쪽을 좁힌 뒤에도 그 문장이 남아 같은 문서의 「회전은 확장을 닫지 않는다」와 정면으로 어긋났다.
 - 위 키보드 focus 규칙은 기존 pointer hover enter/leave 지연값을 변경하지 않는다.
 
 **조정값**(변경 시 `docs/decision-register.md` 등재 의무):
@@ -92,7 +92,7 @@
 8. Automated: 키보드 focus가 stale pointer intent를 무효화하고 Blog를 확장 대상으로 만들지 않는지 검증한다.
 9. Automated: 포인터 이동 없이 스크롤만으로 경계가 바뀐 경우 Expanded가 유지되고, 이어진 실제 포인터 이동에서 경계 안이면 유지·밖이면 유예 내 Normal 복귀가 수행되는지 검증한다.
 10. Automated: 유지 중인 카드가 뷰포트를 완전히 벗어나면 해제 후 Normal 복귀가 수행되고, handoff·Escape·전환 시작에서 유지 상태가 남지 않는지 검증한다.
-11. Automated: Expanded 활성 중 폭 변경 강제 종료가 유지 규칙과 무관하게 그대로 수행되는지 검증한다.
+11. Automated: **다 열 레이아웃 사이의** 폭 변경 강제 종료가 이 절의 유지 규칙과 무관하게 그대로 수행되는지 검증한다(범위는 `req-landing.md` §6.2 · BQ-44 · `assertion:TT-06`). 폰이 한쪽에 있는 전이는 이 검증의 대상이 아니다 — `assertion:TT-03` 이 그쪽을 갖는다.
 12. Automated: 포인터가 고정된 채 스크롤로 다른 카드가 경계 안에 들어와도 Expanded가 닫히지 않고, 실제 포인터 이동으로 비확장 카드에 진입할 때는 종전대로 즉시 collapse 되는지 둘 다 검증한다.
 
 ### 8.3 Core Motion Contract
@@ -139,67 +139,54 @@
 - Expanded 카드 opacity는 항상 `1.0`
 - Desktop/Tablet에서 Expanded 카드는 GNB와 Settings 레이어를 제외한 카드 레이어 중 최상위여야 하며, 인접 카드에 의해 가려지면 안 된다.
 - 카드 레이어 밖의 뷰포트 고정 표면(telemetry consent banner)도 Expanded 카드를 가리면 안 된다. 겹침은 스크롤 위치의 함수이므로 고정 기하 여유로 해소할 수 없고, **실제로 교차하는 동안에만** 그 표면이 비켜선다 — 교차하지 않는 동안 동의 UI 를 숨기는 구현을 금지한다. 비켜서는 방식은 문서 흐름의 예약 높이를 바꾸지 않아야 하며, 그 표면이 포커스를 품고 있으면 비켜서지 않는다(BQ-39).
+- **이 조항은 흐름 안에서 펼쳐지는 제자리 오버레이에만 적용된다.** 폰의 확장은 배너보다 **위** 층의 모달 바텀시트이므로 가림이 성립하지 않는다 — 시트가 열린 동안 배너는 스크림 아래에 `inert` 로 **그대로 남고**(§8.5 · 명세 §2-2), 「덮지 말라」 표식을 달지 않으며 비켜서지도 않는다. 시트가 열릴 때 동의 UI 가 사라졌다 돌아오는 구현을 금지한다 (BQ-46).
 - 다중 Expanded는 금지하며, 활성 Expanded 카드는 항상 1개여야 한다.
 
 **Verification**:
 1. Automated: 스크린샷 기반으로 shell 스케일 적용과 crop 0건을 검증한다.
-2. Automated: Desktop/Tablet에서 인접 카드 가림 현상 `0건`과 Expanded hit-target 우선순위를 검증한다. consent banner 가 교차하는 배치에서 가림 `0px`, 교차하지 않는 배치에서 banner 가시성 유지를 함께 검증한다.
+2. Automated: Desktop/Tablet에서 인접 카드 가림 현상 `0건`과 Expanded hit-target 우선순위를 검증한다. consent banner 가 교차하는 배치에서 가림 `0px`, 교차하지 않는 배치에서 banner 가시성 유지를 함께 검증한다. 폰에서는 시트가 열린 동안 배너가 마운트된 채 `visible` 이고 `inert` 이며 시트 층의 z-index 가 배너 층보다 높음을 검증한다.
 3. Automated: Desktop/Tablet의 Wide/Medium/Narrow 및 hero/main 연속 배치에서 row-edge transform-origin 판정 정확성을 검증한다.
 4. Automated: row 단일 카드 케이스에서 transform-origin `0% 0%` 적용을 검증한다.
 5. Automated: Desktop Wide/Medium/two-column 및 Tablet의 edge/center active state에서 resolved scale, stage containment, grid/container/document horizontal overflow `0px`를 검증한다.
 
-### 8.5 Mobile Expanded (`width<768`)
-**Rule**: Mobile Expanded는 in-flow full-bleed와 닫기/스크롤/레이어 규칙을 준수해야 한다.
-- 탭한 해당 카드만 Expanded로 진입한다.
-- Mobile Expanded lifecycle은 `OPENING -> OPEN -> CLOSING -> NORMAL` 단방향으로 고정한다.
-- 단일 pointer/touch 시퀀스에서 동일 카드 상태 전이는 최대 1회만 허용한다.
-- collapsed 카드의 유효 탭으로 OPENING이 시작된 동일 시퀀스에서 즉시 CLOSING으로 역전되는 전이를 금지한다.
-- Expanded는 in-flow 위치를 유지하며 top jump를 금지한다.
-- OPENING/CLOSING transition window 동안 활성 카드 상단 y-anchor(뷰포트 기준)는 편차 없이 유지되어야 한다.
-- Expanded 헤더는 `title + X` 구조를 유지한다.
-- 헤더(`title + X`)는 카드 최상단 첫 행에 위치해야 한다.
-- title은 줄바꿈 허용, truncate/ellipsis 금지, top align 유지.
-- Mobile Expanded settled에서 title 시작 기준선은 Expanded 진입 직전 Normal 상태와 `0px` 오차로 일치해야 한다.
-- X 버튼은 아이콘 `X` 단일 표현으로 헤더 우측 끝에 sticky 고정. OPENING 시작 시점부터 CLOSING 종료 직전까지 시각 노출 유지. CLOSING 중에는 비활성 상태.
-- 닫기 경로는 `X 버튼` · `카드 외부(backdrop) 탭` · `Escape` 를 허용한다. `Escape` 는 폭과 입력 방식에 무관한 전 표면 규칙이며(§7.6-a Keyboard Affordance), 외장 키보드를 붙인 터치 기기에서 이 생명주기를 닫을 유일한 키보드 경로다(WCAG 2.1.1 Keyboard · 2.1.2 No Keyboard Trap). `Escape` 가 `OPENING` 중에 오면 즉시 접지 않고 queue-close 규칙을 따른다.
-- 닫힘 후 Expanded 직전 카드 형상/높이/타이틀 연속성으로 자연 복귀해야 하며, Expanded 중 사용자가 이동한 현재 page scroll 위치는 유지해야 한다.
-- Expanded 진입 직전 Normal 카드 외곽 높이 snapshot을 기록하고, 닫힘 완료 시 해당 snapshot 높이로 `0px` 오차 복귀를 강제한다. 복원 기준 snapshot은 시퀀스 중 교체를 금지하며 시퀀스당 1개만 생성한다.
-- `NORMAL` terminal 확정은 pre-open snapshot 높이로의 복귀 완료(`0px` 오차) 이후에만 허용한다.
-- 전환 `220~360ms`(기준 `280ms`), spring/overshoot 금지.
-- Normal 카드에서 Expanded 카드로의 전환은 동일 카드의 연속 전이로 지각되어야 하며, 분리된 별도 카드가 돌출되는 듯한 강한 불연속 전이를 금지한다.
-- 모바일 외곽 컨테이너 높이 전이는 content-fit 목표 높이까지 monotonic(증가/감소)이어야 하며 overshoot를 금지한다.
-- content-fit 높이 계산은 런타임 실측(`from px -> to px -> auto`) 또는 동등 정확도 방식으로 수행한다.
-- Expanded 내부 콘텐츠 스크롤은 body에서 허용하며(OPEN settled 이후 page scroll도 허용). 콘텐츠가 viewport를 넘지 않으면 내부 스크롤이 없어야 한다.
-- 자동 viewport 보정 스크롤을 금지한다. OPENING/CLOSING transition window 동안 page scroll lock을 적용하고, OPEN settled에서는 unlock을 유지한다.
-- 다른 카드 상호작용을 비활성화한다. unavailable 카드는 Expanded 진입/닫기 토글 대상이 아니다.
-- OPENING 중 유효 닫기 입력(X/outside)은 OPEN settled 직후 1회 queue-close로 처리한다. CLOSING 중 추가 open/close 입력은 무시한다.
-- 레이어 순서는 `GNB > Expanded 카드 > backdrop > 기타 카드`로 고정한다.
-- **backdrop 의 등장과 소멸은 카드 전이와 같은 시간에 시작하고 끝난다.** 마운트 즉시 불투명해지거나 카드보다 먼저 사라지면 스크림과 카드가 한 전이의 두 면으로 읽히지 않는다. 지속의 정본은 카드 모션과 같은 상수이며 CSS 와 타이머가 그 하나를 함께 읽는다.
-- **사라지는 중인 backdrop 은 입력을 삼키지 않는다.** 모바일 `CLOSING` 은 위 조항대로 입력을 무시하지만, 그것은 생명주기가 아직 돌고 있기 때문이다. 제자리 오버레이가 닫힌 뒤 남는 스크림은 장식이므로 통과시킨다 — 닫은 직후 화면이 굳어 있으면 안 된다.
-- backdrop은 Expanded 카드를 덮으면 안 된다.
-- dim 처리는 Expanded 외부 영역에만 적용한다.
-- X 버튼은 backdrop보다 상위 레이어에 위치하고 항상 클릭 가능해야 한다.
-- Mobile Expanded settled 상태에서 활성 카드 본체 위 dim/tint는 `0%`여야 한다.
-- Mobile Expanded 내부 상호작용 우선순위는 `CTA(응답 A/B, Read more) > X 버튼 > 카드 외부 영역`으로 고정한다.
-- Mobile Expanded 내부 비-CTA 영역 탭은 no-op이어야 하며, 닫기/전환을 유발하면 안 된다.
-- Mobile tap 판정은 보수적으로 처리하며, 미세 이동이 감지된 입력은 scroll gesture로 분류해 카드 open/close 전이를 시작하면 안 된다.
-- 위 y-anchor 규칙은 transition window 기준으로 카드 인덱스/스크롤 위치/콘텐츠 길이에 따른 예외를 허용하지 않는다.
+### 8.5 Mobile Expanded (`width<768`) — 바텀시트
+
+**Rule**: 폰의 카드 확장은 흐름 밖의 **바텀시트**이며, 시트 공통 규격과 닫기 경로 다섯을 준수해야 한다.
+
+**이 절은 2026-09-16 에 전면 재작성됐다.** 종전 조항들은 확장이 **in-flow** 라는 사정에서 나온 것이었다 — 카드가 제자리에서 커지면 형제가 밀리므로, 진입 직전의 높이·좌표·제목 기준선을 snapshot 으로 적어 두고 닫을 때 `0px` 오차로 되돌리는 절차가 필요했다. 시트는 흐름 밖에 있어 아무것도 밀지 않으므로 그 절차 전체가 사라진다. **지우는 것이 아니라 다시 쓰는 이유**는 그 조항들이 지키려던 두 성질이 여전히 유효하기 때문이다: **연속성**(원본 카드와 시트가 같은 것으로 읽힌다)과 **복귀 정확성**(닫은 뒤 스크롤 위치와 카드 좌표가 진입 직전과 같다). 달라진 것은 그 둘을 **절차가 아니라 구조가** 보장한다는 점이다.
+
+- 탭한 해당 카드만 확장으로 진입한다. unavailable 카드는 확장 대상이 아니다.
+- 시트의 위상은 `OPENING -> OPEN -> CLOSING -> NORMAL` 단방향이며, **위상의 정본은 시트 자신이다.** 시간을 세는 곳이 둘이면 둘은 반드시 어긋나므로, 계약 표면(`data-mobile-phase`)은 시트가 보고한 값을 그대로 옮긴다.
+- 시트는 화면 하단에서 올라오고 grabber 를 가지며, 열린 동안 배경을 잠근다. 형태·높이 상한·내부 스크롤·safe-area·모션·접근성 규격은 **시트 공통 규격 하나**가 갖는다(설계 명세 §3-4) — 카드 시트와 instruction 시트가 같은 규격을 쓴다.
+- **닫기 경로는 다섯이다**: 닫기 컨트롤(44×44) · backdrop 탭 · 스와이프 다운 · `Escape` · 시스템 뒤로가기. `Escape` 는 폭과 입력 방식에 무관한 전 표면 규칙이며(§7.6-a Keyboard Affordance), 외장 키보드를 붙인 터치 기기에서 이 확장을 닫을 유일한 키보드 경로다(WCAG 2.1.1 Keyboard · 2.1.2 No Keyboard Trap).
+- **회전은 확장을 닫지 않는다.** 폰을 눕히면 폭 축상 제자리 오버레이로, 다시 세우면 시트로 **형태만** 바뀌고 확장 자체는 유지된다(BQ-44). 폭 변경 강제 종료(`req-landing.md` §6.2)는 얼어 있는 row baseline 이 있는 전이 — 다 열 레이아웃 사이 — 에만 적용되며, 시트는 아무것도 얼리지 않는다.
+- 시스템 뒤로가기는 오버레이 층 전부를 닫는다 — 층이 열릴 때 history 항목 하나를 넣고 다른 경로로 닫힐 때 거둔다; 뒤로가기 자체로 닫힌 경우에는 거두지 않는다.
+- **연속성**: 시트 헤더는 `title + 닫기` 구조를 유지하고 제목은 카드의 제목과 같은 문자열이다. 제목은 줄바꿈을 허용하고 truncate/ellipsis 를 금지한다.
+- **복귀 정확성**: 닫은 뒤 page scroll 위치와 카드의 좌표·높이는 진입 직전과 같다. 시트는 흐름을 건드리지 않으므로 이것은 복원 절차가 아니라 **손대지 않음**으로 성립한다. snapshot 채취·복귀 폴링·`NORMAL` terminal 의 높이 복귀 선행조건은 함께 폐지한다.
+- 닫힌 뒤 포커스는 트리거(카드)로 돌아간다.
+- 진입 `260ms`, 이탈 `220ms`, spring/overshoot 금지. 스크림의 등장·소멸은 시트와 **같은 시간에 시작하고 끝난다** — 한 전이의 두 면이므로 따로 끝나면 둘로 읽힌다.
+- **사라지는 중인 스크림은 입력을 삼키지 않는다.** 닫은 직후 화면이 굳어 있으면 안 된다.
+- 스와이프는 손가락을 1:1 로 따라가고, 놓았을 때 이동량이 시트 높이의 30% 이상이거나 속도가 `0.5px/ms` 이상이면 닫히며 아니면 제자리로 돌아온다. 위로 끄는 것은 따라가지 않는다.
+- `prefers-reduced-motion: reduce` 에서는 이동을 버리고 페이드만 남긴다 — 모션을 통째로 없애지 않는다.
+- 시트 본문이 스크롤 컨테이너를 갖고(`overscroll-behavior: contain`) 배경은 잠긴다. 자동 viewport 보정 스크롤을 금지한다.
+- **층**: 시트는 GNB **위**에 있다(설계 명세 규칙 1). 시트가 열린 동안 그 아래 층은 배너까지 `inert` 다 — 보이되 닿지 않는다.
+- 스크림은 시트를 덮지 않으며, dim 은 시트 밖 영역에만 적용한다. 시트 본체 위 dim/tint 는 `0%` 다.
+- 시트 안의 상호작용 우선순위는 `CTA(응답 A/B) > 닫기 컨트롤 > 시트 밖`으로 고정한다. 시트 안 비-CTA 영역 탭은 no-op 이다.
+- 시트 안의 마지막 탭 스톱은 **시각적으로 숨긴 닫기 버튼**이다 — 보조기술은 「빈 곳」을 탭할 수 없다.
+- tap 판정은 보수적으로 처리하며, 미세 이동이 감지된 입력은 scroll gesture 로 분류한다.
 
 **Verification**:
-1. Automated: 모바일에서 닫기 경로(X/backdrop)와 자연 복귀를 검증한다.
-2. Automated: content-fit 높이 전이 overshoot `0건`을 검증한다.
-3. Automated: 내부 스크롤 영역이 body로 제한되는지 검증한다.
-4. Automated: z-index/포인터 타깃 검증으로 모바일 레이어 순서를 확인한다.
-4-a. Automated: backdrop 의 등장이 옅은 데서 올라오고 소멸이 옅어지는 방향으로만 움직이며, 사라지는 동안 입력을 통과시키는지 검증한다(`assertion:BD-01`).
-5. Automated: Mobile Expanded settled 상태에서 활성 카드 본체 dim/tint `0%`를 검증한다.
-6. Automated: 모바일 CTA 우선순위(`CTA > X > outside`) 및 내부 non-CTA no-op를 검증한다.
-7. Automated: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`를 검증한다.
-8. Automated: 단일 pointer/touch sequence당 상태 전이가 최대 1회인지 검증한다.
-9. Automated: OPENING 중 닫기 입력이 OPEN settled 직후 queue-close 1회로만 처리되는지, CLOSING 중 추가 open/close 입력이 무시되는지 검증한다.
-10. Automated: OPENING/CLOSING transition window에서 page scroll lock 유지, OPEN settled unlock, 종료 후 현재 scroll 위치 유지 여부를 검증한다.
-11. Automated: OPENING/CLOSING transition window에서 y-anchor drift `0px`를 검증한다.
-12. Automated: 시퀀스당 snapshot 1회 생성/재기록 금지와 `NORMAL` terminal의 높이 복귀 완료 선행 조건을 검증한다.
-13. Automated: 모바일 반복 open-close에서 누적 높이 오차 `0px`를 검증한다.
+1. Automated: 닫기 경로 다섯이 각각 시트를 닫는지 검증한다.
+2. Automated: 닫은 뒤 page scroll 위치와 카드 좌표가 진입 직전과 같은지 검증한다.
+3. Automated: 시트 본문이 높이 상한 안에서 스크롤되고 배경이 잠기는지 검증한다.
+4. Automated: 층 순서(시트 > GNB > 배너 > 콘텐츠)와 시트 아래 층의 `inert` 를 검증한다.
+4-a. Automated: 스크림의 등장이 옅은 데서 올라오고 소멸이 옅어지는 방향으로만 움직이며, 사라지는 동안 입력을 통과시키는지 검증한다(`assertion:BD-01`).
+5. Automated: 시트 본체 위 dim/tint `0%` 를 검증한다.
+6. Automated: 시트 안 CTA 우선순위와 비-CTA no-op 를 검증한다.
+7. Automated: 시트 제목이 카드 제목과 같고 잘리지 않는지 검증한다.
+8. Automated: 스와이프의 두 경계(이동량 30% · 속도 `0.5px/ms`)를 검증한다.
+9. Automated: `prefers-reduced-motion` 에서 이동이 사라지고 페이드가 남는지 검증한다.
+10. Automated: 닫힌 뒤 포커스가 트리거로 돌아가는지 검증한다.
 
 ### 8.6 Transition Start Trigger (Landing→Destination)
 **Rule**: 라우팅 전환 시작은 카드 타입별 유효 trigger 활성화 시점에만 허용한다.
@@ -227,6 +214,19 @@
 
 ### 11.3 Reduced Motion / Low-spec
 **Rule**: `prefers-reduced-motion`에서 대형 이동을 금지하고 `150~220ms` 단순 전환으로 축소한다. 저사양 fallback은 시각 효과보다 상태 일관성 우선.
+
+**감소 모드에서 남는 것 — 「전부 0」이 아니다(2026-09-16 census).** `prefers-reduced-motion` 은 *움직임*에 대한 선호이지 색과 불투명도에 대한 선호가 아니다. 랜딩에서 카드를 펼친 상태로 전수 census 한 결과 전이를 가진 원소가 **31 → 18** 로 줄었고, 남은 18 은 **하나도 움직이지 않는다**(강제 `transform` 0 건).
+
+| 남은 원소 | 수 | 무엇이 전이하는가 | 처분 |
+|:---|---:|:---|:---|
+| GNB pill·칩(설정 트리거 · 테마 스와치 둘 · 언어 칩 12 · 메뉴 트리거) | 16 | `border-color` · `background-color` · `box-shadow`, 140ms | **남긴다** — 위치도 크기도 움직이지 않는다 |
+| 시트 · 스크림 | 2 | `opacity`, 140ms | **남긴다** — §8.5 가 「이동을 버리고 페이드만 남긴다」고 정한 그 페이드다 |
+
+그래서 이 절의 회귀는 **개수가 아니라 성질**로 고정한다(`assertion:MO-01`): 감소 모드에서 `transform`·위치·크기를 전이하는 원소가 0 이고, 평소 모드에서는 0 이 아니다. 개수로 재면 「몇 개면 충분한가」라는 답할 수 없는 질문이 남고, 개체수가 바뀔 때마다 숫자를 내리는 것으로 끝난다.
+
+**터치 기본값 둘**(`assertion:MO-02`): 문서 루트가 `overscroll-behavior-y: none` 으로 당겨-새로고침과 스크롤 체이닝을 끊고, 모든 컨트롤이 `touch-action: manipulation` 으로 더블탭 대기를 버린다. 본문 텍스트에는 걸지 않는다 — 더블탭 단어 선택이 함께 사라진다. 핀치 확대는 그대로 남으므로 WCAG 1.4.4 와 충돌하지 않는다.
+
+**누름 피드백**(`assertion:PF-01`): hover 로 스킨(면·선·글자색·그림자)을 바꾸는 자리는 누름으로도 바꾼다. Tailwind v4 는 `hover:` 유틸리티를 `@media (hover:hover)` 로 감싸므로 터치 기기에서 그 스킨은 **아예 적용되지 않고**, preflight 가 `-webkit-tap-highlight-color` 까지 끄므로 `active:` 가 없으면 손가락이 닿은 순간부터 목적지가 그려질 때까지 화면이 아무 말도 하지 않는다. CSS 파일의 hover 스킨은 `@media (hover: hover)` 안에 두어 스스로 hover 전용임을 선언한다.
 
 **Rule**:
 - 커스텀 커서 금지

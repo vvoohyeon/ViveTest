@@ -2,7 +2,7 @@ import {expect, test, type Locator, type Page, type TestInfo} from '@playwright/
 
 import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
-import {expectBufferToMatchLocalSnapshot} from './helpers/local-snapshot';
+import {expectBufferToMatchLocalSnapshot, waitForFontsSettled} from './helpers/local-snapshot';
 
 /**
  * lower-row 케이스의 피사체. **test 카드여야 한다.**
@@ -34,8 +34,6 @@ const STAGE_SHADOW_BLEED_TOP_PX = 56;
 const STAGE_SHADOW_BLEED_BOTTOM_PX = 192;
 const STAGE_CAPTURE_BOTTOM_EXTRA_PX = 40;
 const HOVER_OUT_REPEAT_COUNT = 20;
-const SETTINGS_PANEL_EXTRA_TOP_PX = 12;
-const SETTINGS_PANEL_EXTRA_RIGHT_PX = 15;
 const SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX = 0.5;
 const SETTINGS_PANEL_CAPTURE_SIDE_BLEED_PX = 24;
 const SETTINGS_PANEL_CAPTURE_BOTTOM_BLEED_PX = 24;
@@ -217,6 +215,7 @@ async function expectSteadyExpandedShadowSnapshot(input: {
   testInfo: TestInfo;
 }) {
   const settledBox = await settleDesktopExpandedCard(input.page, input.card);
+  await waitForFontsSettled(input.page);
   const screenshot = await input.page.screenshot({
     clip: buildStageClip(settledBox),
     ...FROZEN_CAPTURE
@@ -298,6 +297,7 @@ test.describe('Safari hover-out ghosting regression', () => {
       })
     });
 
+    await waitForFontsSettled(page);
     const screenshot = await page.screenshot({
       clip: buildStageClip(firstCardBox),
       ...FROZEN_CAPTURE
@@ -318,6 +318,7 @@ test.describe('Safari hover-out ghosting regression', () => {
       })
     });
 
+    await waitForFontsSettled(page);
     const screenshot = await page.screenshot({
       clip: buildStageClip(lowerRowCardBox),
       ...FROZEN_CAPTURE
@@ -366,45 +367,49 @@ test.describe('Safari hover-out ghosting regression', () => {
     });
   });
 
-  test('@smoke @gate desktop settings panel removes the top seam without shifting the current theme button', async ({
+  test('@smoke @gate desktop settings layer lands its corner on the trigger and covers it', async ({
     page
   }, testInfo) => {
-    const {trigger, panel} = await openDesktopSettingsPanel(page);
-    const currentButton = page.getByTestId('desktop-gnb-theme-controls').locator('button[disabled]');
+    // 종전의 계약은 「패널 안의 현재 테마 칩이 트리거 위에 정확히 올라온다」였다. 그것은
+    // 트리거가 44px 짜리 글리프 상자였기 때문에 가능했고, 명세 §2-9 의 넓은 텍스트 pill 에서는
+    // 성립하지 않는다. 규칙 8 이 직접 말하는 것을 재다 — 모서리가 일치하고 레이어가 pill 을 덮는다.
+    const {panel} = await openDesktopSettingsPanel(page);
+    const panelBox = await panel.boundingBox();
 
-    const [triggerBox, panelBox, currentButtonBox] = await Promise.all([
-      trigger.boundingBox(),
-      panel.boundingBox(),
-      currentButton.boundingBox()
-    ]);
-
-    expect(triggerBox).not.toBeNull();
     expect(panelBox).not.toBeNull();
-    expect(currentButtonBox).not.toBeNull();
 
-    expect(Math.abs((currentButtonBox?.x ?? 0) - (triggerBox?.x ?? 0))).toBeLessThanOrEqual(
-      SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX
-    );
-    expect(Math.abs((currentButtonBox?.y ?? 0) - (triggerBox?.y ?? 0))).toBeLessThanOrEqual(
-      SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX
-    );
-    expect(Math.abs((currentButtonBox?.width ?? 0) - (triggerBox?.width ?? 0))).toBeLessThanOrEqual(
-      SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX
-    );
-    expect(Math.abs((currentButtonBox?.height ?? 0) - (triggerBox?.height ?? 0))).toBeLessThanOrEqual(
-      SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX
-    );
-    expect(
-      Math.abs((currentButtonBox?.y ?? 0) - (panelBox?.y ?? 0) - SETTINGS_PANEL_EXTRA_TOP_PX)
-    ).toBeLessThanOrEqual(SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX);
-    expect(
-      Math.abs(
-        (panelBox?.x ?? 0) +
-          (panelBox?.width ?? 0) -
-          ((currentButtonBox?.x ?? 0) + (currentButtonBox?.width ?? 0) + SETTINGS_PANEL_EXTRA_RIGHT_PX)
-      )
-    ).toBeLessThanOrEqual(SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX);
+    const geometry = await page.evaluate(() => {
+      const shell = document.querySelector('.gnb-settings-trigger-shell');
+      const layer = document.querySelector('[data-testid="gnb-settings-panel"]');
 
+      if (!(shell instanceof HTMLElement) || !(layer instanceof HTMLElement)) {
+        return null;
+      }
+
+      const shellBox = shell.getBoundingClientRect();
+      const layerBox = layer.getBoundingClientRect();
+      const covering = document.elementFromPoint(
+        shellBox.left + shellBox.width / 2,
+        shellBox.top + shellBox.height / 2
+      );
+
+      return {
+        rightGap: Math.abs(layerBox.right - shellBox.right),
+        topGap: Math.abs(layerBox.top - shellBox.top),
+        expandsLeft: layerBox.left < shellBox.left,
+        expandsDown: layerBox.bottom > shellBox.bottom,
+        coversPill: covering instanceof Element && covering.closest('[data-testid="gnb-settings-panel"]') !== null
+      };
+    });
+
+    expect(geometry).not.toBeNull();
+    expect(geometry?.rightGap ?? 99).toBeLessThanOrEqual(SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX);
+    expect(geometry?.topGap ?? 99).toBeLessThanOrEqual(SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX);
+    expect(geometry?.expandsLeft).toBe(true);
+    expect(geometry?.expandsDown).toBe(true);
+    expect(geometry?.coversPill).toBe(true);
+
+    await waitForFontsSettled(page);
     const screenshot = await page.screenshot({
       clip: buildSettingsPanelClip(panelBox!),
       ...FROZEN_CAPTURE

@@ -6,7 +6,6 @@ import {
   PRIMARY_BLOG_VARIANT,
   buildLocalizedPrimaryTestRoute
 } from './helpers/landing-fixture';
-import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
 import {setHoverCapableViewport, setTouchViewport} from './helpers/touch-context';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
@@ -768,6 +767,11 @@ test.describe('Phase 7 state + capability smoke', () => {
     await page.keyboard.press('Tab');
     await expect(page.locator('[data-slot="answerChoiceB"]:focus')).toHaveCount(1);
 
+    // 제자리 오버레이의 **마지막 탭 스톱은 시각적으로 숨긴 닫기**다(명세 규칙 3) — 보조기술은
+    // 「빈 곳」을 탭할 수 없으므로 그 자리가 필요하다. 다음 카드로 가는 길은 한 걸음 늘었다.
+    await page.keyboard.press('Tab');
+    await expect(firstCard.locator('[data-slot="overlayHiddenClose"]:focus')).toHaveCount(1);
+
     await page.keyboard.press('Tab');
     await expect(secondTrigger).toBeFocused();
     await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
@@ -833,6 +837,12 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     await page.keyboard.press('Tab');
     await expect(page.locator('[data-card-variant="energy-check"] [data-slot="answerChoiceB"]:focus')).toHaveCount(1);
+
+    // 마지막 탭 스톱은 시각적으로 숨긴 닫기다(명세 규칙 3).
+    await page.keyboard.press('Tab');
+    await expect(
+      page.locator('[data-card-variant="energy-check"] [data-slot="overlayHiddenClose"]:focus')
+    ).toHaveCount(1);
 
     // Forward (D1/BQ-26): Tab out of the last choice SKIPS the unavailable card and lands on the
     // next enterable card (egtt); the prior card collapses (collapse-prior intact).
@@ -996,7 +1006,17 @@ test.describe('Phase 7 state + capability smoke', () => {
     });
   });
 
-  test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}, testInfo) => {
+  test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}) => {
+    // **이 검사는 기하로 잰다 — 픽셀이 아니라.**
+    //
+    // 종전에는 카드 상자를 그대로 스크린샷으로 비교했다. 그 상자는 **내용이 크기를 정하므로**
+    // 폰트 메트릭이 조금 다른 기계에서 398×293 대 395×292 로 갈렸고, 그래서 두 기계 중 한쪽은
+    // 언제나 붉었다(나머지 169 장은 뷰포트라는 고정 크기 영역을 찍어 기계와 무관하다). 상시
+    // 붉음은 진짜 회귀를 가린다.
+    //
+    // 이 검사가 실제로 주장하는 것은 **포커스 경계가 접힌 카드가 아니라 보이는 오버레이 셸을
+    // 따른다**는 것이고, 그것은 두 사각형의 좌표로 정확히 잴 수 있다. 픽셀은 그 주장보다 넓은
+    // 것을 재고 있었고, 그 초과분이 기계 종속의 원인이었다.
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -1007,7 +1027,59 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
     await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
-    await expectLocatorToMatchLocalSnapshot(firstCard, 'expanded-focus-shell.png', testInfo);
+
+    const focus = await firstCard.evaluate((root) => {
+      const surface = root.querySelector('[data-slot="expandedSurface"]');
+      if (!(surface instanceof HTMLElement)) {
+        return null;
+      }
+
+      const readOutline = (element: HTMLElement) => {
+        const style = window.getComputedStyle(element);
+        return {
+          style: style.outlineStyle,
+          width: style.outlineWidth,
+          color: style.outlineColor
+        };
+      };
+
+      const rootRect = root.getBoundingClientRect();
+      const surfaceRect = surface.getBoundingClientRect();
+      const focusRingToken = window
+        .getComputedStyle(root)
+        .getPropertyValue('--normal-focus-ring')
+        .trim();
+      const probe = document.createElement('span');
+      probe.style.color = focusRingToken;
+      document.body.appendChild(probe);
+      const resolvedFocusRing = window.getComputedStyle(probe).color;
+      probe.remove();
+
+      return {
+        surfaceOutline: readOutline(surface),
+        rootOutline: readOutline(root as HTMLElement),
+        resolvedFocusRing,
+        rootWidth: Math.round(rootRect.width),
+        surfaceWidth: Math.round(surfaceRect.width),
+        // 확장 셸은 접힌 카드보다 **가로로** 넓다(실측 434 대 395 — `--landing-card-shell-inline-scale`).
+        // 높이는 같으므로 세로로 재면 두 상자를 구분하지 못한다.
+        surfaceIsWiderThanRoot: surfaceRect.width > rootRect.width + 1
+      };
+    });
+
+    expect(focus, '확장 오버레이 셸을 찾지 못하면 아래 단언이 공허해진다').not.toBeNull();
+
+    // ⑴ 포커스 링은 **오버레이 셸**이 진다.
+    expect(focus?.surfaceOutline.style).toBe('solid');
+    expect(focus?.surfaceOutline.width).toBe('2px');
+    expect(focus?.surfaceOutline.color).toBe(focus?.resolvedFocusRing);
+
+    // ⑵ 접힌 카드의 root 는 링을 지지 않는다 — 두 링이 동시에 그려지면 경계가 둘이 된다.
+    expect(focus?.rootOutline.style).toBe('none');
+
+    // ⑶ 그 경계는 접힌 상자가 아니라 **보이는 오버레이**의 것이다. 확장 셸은 접힌 카드보다
+    //    가로로 넓으므로, 둘이 같다면 링이 엉뚱한 상자를 따르고 있다는 뜻이다.
+    expect(focus?.surfaceIsWiderThanRoot).toBe(true);
   });
 
   test('@smoke assertion:B5-mobile-keyboard-handoff mobile keyboard CTA traversal collapses the previous expanded card before focusing the next trigger', async ({
@@ -1027,23 +1099,36 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstCard).toHaveAttribute('data-mobile-phase', 'OPEN');
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
 
+    // 확장 표면이 시트로 옮겨 가면서 탭 순서도 시트 안에서 돈다 — 포커스는 열릴 때 시트
+    // 컨테이너로 들어오고(첫 컨트롤이 아니다), 그 다음 Tab 이 헤더의 닫기에 닿는다.
+    const sheet = page.getByTestId('landing-card-sheet');
     await page.keyboard.press('Tab');
-    await expect(firstCard.locator('[data-slot="mobileClose"]:focus')).toHaveCount(1);
+    await expect(sheet.locator('[data-slot="mobileClose"]:focus')).toHaveCount(1);
 
     await page.keyboard.press('Tab');
-    await expect(
-      page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"] [data-slot="answerChoiceA"]:focus`)
-    ).toHaveCount(1);
+    await expect(sheet.locator('[data-slot="answerChoiceA"]:focus')).toHaveCount(1);
 
     await page.keyboard.press('Tab');
-    await expect(
-      page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"] [data-slot="answerChoiceB"]:focus`)
+    await expect(sheet.locator('[data-slot="answerChoiceB"]:focus')
     ).toHaveCount(1);
+
+    // **여기서 Tab 은 더 이상 다음 카드로 가지 않는다.** 시트가 모달이고 그 아래 층은 배너까지
+    // `inert` 이므로(설계 명세 규칙 1) Tab 은 시트 안에서 순환한다(§3-4). 다음 카드로 가는 길은
+    // 사라진 것이 아니라 한 걸음 늘었다: 닫으면 포커스가 트리거로 돌아오고, 거기서 Tab 이다.
+    await page.keyboard.press('Tab');
+    await expect(sheet.locator('[data-slot="sheetHiddenClose"]:focus')).toHaveCount(1);
+    await page.keyboard.press('Tab');
+    await expect(sheet.locator('[data-slot="mobileClose"]:focus')).toHaveCount(1);
+
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await expect(firstCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
+    // 닫히면 포커스가 트리거로 돌아오므로 카드는 `normal` 이 아니라 `focused` 다(명세 §3-4).
+    await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'focused');
 
     await page.keyboard.press('Tab');
     await expect(secondTrigger).toBeFocused();
-    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
-    await expect(firstCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
     await expect(secondCard).toHaveAttribute('data-card-state', 'focused');
 
     await page.keyboard.press('Space');
@@ -1051,7 +1136,88 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
   });
 
-  test('@smoke Mobile full subtitle pre-open height matches OPENING CLOSING snapshot and final NORMAL restore under normal and reduced-motion', async ({
+  // 시트가 바닥에 붙어 있으므로 마지막 줄과 화면 아래 모서리 사이에 여백이 필요하다 —
+  // iOS 의 홈 인디케이터가 그 자리에 있다. 종전에 그 여백은 **액션 행**에 있었고, 액션 행이
+  // 없는 시트가 정확히 하나 있다: 카드 시트다(A/B 탭이 곧 진입이라 CTA 가 없다). 실측으로
+  // 그 시트의 스크롤 본문 바닥과 시트 바닥의 간격이 **0px** 이었다.
+  //
+  // 그래서 **두 시트를 같은 조건으로** 묻는다 — 프리미티브가 하나이므로 한쪽만 재면 다음에
+  // 여백이 다시 자식으로 내려가도 초록이다. `env(safe-area-inset-bottom)` 은 이 렌더러에서
+  // 0 이므로 실제로 비교되는 것은 `max()` 의 다른 쪽인 24px 이다.
+  test('@smoke assertion:SF-01 both sheets keep the safe-area floor below their last visible row', async ({
+    page
+  }) => {
+    const SHEET_FLOOR_PX = 24;
+
+    const measureFloor = () =>
+      page.evaluate(() => {
+        const sheet = document.querySelector<HTMLElement>('[class*="__sheet"]');
+
+        if (!sheet) {
+          throw new Error('Expected a bottom-sheet primitive on screen.');
+        }
+
+        const sheetBottom = sheet.getBoundingClientRect().bottom;
+        let lowest: {bottom: number; label: string} | null = null;
+
+        for (const element of sheet.querySelectorAll<HTMLElement>('*')) {
+          const style = getComputedStyle(element);
+          // 시각적으로 숨은 것은 바닥을 다투지 않는다 — 닫기 버튼의 접근성 사본이 그렇다.
+          if (style.visibility === 'hidden' || style.display === 'none' || style.clipPath.startsWith('inset(50%')) {
+            continue;
+          }
+
+          const rect = element.getBoundingClientRect();
+          if (rect.width === 0 || rect.height === 0) {
+            continue;
+          }
+
+          if (!lowest || rect.bottom > lowest.bottom) {
+            lowest = {bottom: rect.bottom, label: `${element.tagName}.${(element.getAttribute('class') ?? '').slice(0, 24)}`};
+          }
+        }
+
+        if (!lowest) {
+          throw new Error('Expected visible content inside the sheet.');
+        }
+
+        return {
+          paddingBottom: Number.parseFloat(getComputedStyle(sheet).paddingBottom),
+          floor: Math.round(sheetBottom - lowest.bottom),
+          lowest: lowest.label
+        };
+      });
+
+    await setTouchViewport(page, {width: 390, height: 844});
+    await seedTelemetryConsent(page, 'OPTED_IN');
+
+    await page.goto('/en');
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(page.getByTestId('landing-card-sheet')).toBeVisible();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+
+    const cardSheet = await measureFloor();
+    expect(cardSheet.paddingBottom, `card sheet padding-bottom (${cardSheet.lowest})`).toBeGreaterThanOrEqual(
+      SHEET_FLOOR_PX
+    );
+    expect(cardSheet.floor, `card sheet floor below ${cardSheet.lowest}`).toBeGreaterThanOrEqual(SHEET_FLOOR_PX);
+
+    await page.goto(buildLocalizedPrimaryTestRoute('en'));
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+
+    const instructionSheet = await measureFloor();
+    expect(
+      instructionSheet.paddingBottom,
+      `instruction sheet padding-bottom (${instructionSheet.lowest})`
+    ).toBeGreaterThanOrEqual(SHEET_FLOOR_PX);
+    expect(
+      instructionSheet.floor,
+      `instruction sheet floor below ${instructionSheet.lowest}`
+    ).toBeGreaterThanOrEqual(SHEET_FLOOR_PX);
+  });
+
+  test('@smoke Mobile two-line subtitle keeps the card height unchanged through the sheet lifecycle under normal and reduced-motion', async ({
     page
   }) => {
     const rootMinimums: string[] = [];
@@ -1088,27 +1254,29 @@ test.describe('Phase 7 state + capability smoke', () => {
       });
 
       rootMinimums.push(preOpen.rootMinHeight);
-      expect(preOpen.lineClamp).toBe('none');
-      expect(preOpen.subtitleHeight).toBeGreaterThan(preOpen.lineHeight * 2);
+      expect(preOpen.lineClamp).toBe('2');
+      // `rhythm-b` 의 부제는 390px 에서 자연 3 줄이라 clamp 가 실제로 문다 — 두 줄 상자다.
+      expect(Math.abs(preOpen.subtitleHeight - preOpen.lineHeight * 2)).toBeLessThanOrEqual(1);
       expect(preOpen.triggerHeight).toBeGreaterThanOrEqual(44);
       expect(Math.abs(preOpen.triggerTopDelta)).toBeLessThanOrEqual(1);
       expect(Math.abs(preOpen.triggerBottomDelta)).toBeLessThanOrEqual(1);
 
+      // 확장이 시트가 되면서 스냅샷 계약이 폐지됐다(§8.5 재작성). 재는 성질은 같다 —
+      // **카드의 높이는 확장 내내 변하지 않는다.** 종전에는 그것을 스냅샷과 대조해 확인했고,
+      // 이제는 카드를 직접 재면 된다: 시트가 흐름 밖이라 밀 것이 없다.
       await card.getByTestId('landing-grid-card-trigger').click();
-      await expect(card).toHaveAttribute('data-mobile-phase', 'OPENING');
-      const openingSnapshotHeight = Number(await card.getAttribute('data-mobile-snapshot-height'));
-      expect(Math.abs(openingSnapshotHeight - preOpen.cardHeight)).toBeLessThanOrEqual(1);
+      await expect(card).toHaveAttribute('data-mobile-phase', /OPENING|OPEN/u);
       const openingHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
       expect(Math.abs(openingHeight - preOpen.cardHeight)).toBeLessThanOrEqual(2);
 
+      const sheet = page.getByTestId('landing-card-sheet');
       await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
-      const answerChoiceHeight = await card
+      const answerChoiceHeight = await sheet
         .locator('[data-slot="answerChoiceA"]')
         .evaluate((element) => element.getBoundingClientRect().height);
       expect(answerChoiceHeight).toBeGreaterThanOrEqual(44);
 
-      await card.locator('[data-slot="mobileClose"]').click();
-      await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
+      await sheet.locator('[data-slot="mobileClose"]').click();
       const closingHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
       expect(Math.abs(closingHeight - preOpen.cardHeight)).toBeLessThanOrEqual(2);
       await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
@@ -1149,7 +1317,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(mobileCard).toHaveAttribute('data-natural-height', settledNaturalHeight ?? '');
     await expectNonCompGapZero();
 
-    await mobileCard.locator('[data-slot="mobileClose"]').click();
+    await page.getByTestId('landing-card-sheet').locator('[data-slot="mobileClose"]').click();
     await expect(mobileCard).toHaveAttribute('data-mobile-phase', /CLOSING|NORMAL/);
     await expectNonCompGapZero();
     await expect(mobileCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
@@ -1565,6 +1733,102 @@ test.describe('Phase 7 state + capability smoke', () => {
     // 최상단 띠에서는 backdrop 이 top element 가 아니다(명세 규칙 1 의 층 순서는 step 3 소관).
     await backdrop.click({position: {x: 5, y: 300}});
     await expect(card).not.toHaveAttribute('data-card-state', 'expanded');
+  });
+
+  // 아래 둘은 한 결정의 두 면이다(BQ-44). 회전은 확장을 닫지 않고, 다 열 레이아웃 사이의 폭
+  // 변경은 여전히 닫는다 — 강제 종료의 이유가 **얼어 있는 row baseline** 이고 폰의 시트는
+  // 아무것도 얼리지 않기 때문이다. 둘을 함께 두는 것이 요점이다: 위만 있으면 「닫기를 없앴다」와
+  // 구별되지 않는다.
+
+  test('@smoke assertion:TT-03 rotating a phone both ways keeps the expanded card alive across the axis change', async ({
+    page
+  }) => {
+    // 폰을 눕히면 폭 844 라 **제자리 오버레이**로, 다시 세우면 **시트**로 형태가 바뀐다. 형태가
+    // 바뀌는 것은 규칙 3 대로이고, **확장 자체는 살아남아야 한다**(명세 §2-11).
+    //
+    // 두 방향의 원인이 서로 달랐다. 눕히기는 폭 변경 강제 닫기가 지웠고 — 그 규칙의 이유는
+    // 제자리 오버레이가 row 기하를 얼린다는 것인데 시트는 얼리지 않으므로 이유가 닿지 않는
+    // 자리였다(BQ-44). 세우기는 시트가 언마운트되며 부른 `history.back()` 의 `popstate` 가
+    // **비동기로 뒤늦게** 도착해, 그 사이 다시 마운트된 시트를 닫았다. 이 검사는 둘 다 잡는다.
+    await setTouchViewport(page, {width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
+
+    // 세로 → 가로: 형태가 제자리 오버레이로 바뀌되 확장은 살아남는다.
+    await page.setViewportSize({width: 844, height: 390});
+    await expect(card).toHaveAttribute('data-expanded-layer', 'desktop-overlay');
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+
+    // 가로 → 세로: 시트로 되돌아오고, 뒤늦게 도착하는 popstate 가 그것을 닫으면 안 된다.
+    await page.setViewportSize({width: 390, height: 844});
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-sheet');
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await page.waitForTimeout(400);
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(page).toHaveURL(/\/en$/u);
+  });
+
+  test('@smoke assertion:TT-06 resizing a desktop window across a column change still force-closes the expanded card', async ({
+    page
+  }) => {
+    // 회전 보존이 강제 닫기를 **없앤 것이 아니다.** 얼어 있는 기하 위에서 재측정하지 않는다는
+    // 원래 이유는 그대로이고, 그 이유가 실제로 닿는 자리 — 다 열 레이아웃 → 다 열 레이아웃 —
+    // 에서는 여전히 닫는다(`req-landing.md` §6.2, BQ-44).
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').hover();
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+
+    await page.setViewportSize({width: 900, height: 980});
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
+  });
+
+  test('@smoke assertion:TT-04 landscape phone overlay stays inside the viewport and scrolls its own body', async ({
+    page
+  }) => {
+    // 844×390 에서 본문(제목 · 두 줄 질문 · 답변 둘 · 메타)은 가용 높이를 넘칠 수 있고, 배경이
+    // 잠겨 있어 스크롤로도 볼 수 없다. **살아남기만 하고 잘려 있으면 통과가 아니다**(명세 §2-11).
+    await setTouchViewport(page, {width: 844, height: 390});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-expanded-layer', 'desktop-overlay');
+
+    const overlay = card.locator('[data-slot="expandedBody"]');
+    const geometry = await overlay.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+        overflowY: style.overflowY,
+        overscrollBehavior: style.overscrollBehaviorY,
+        viewportHeight: window.innerHeight
+      };
+    });
+
+    // 오버레이는 뷰포트를 넘지 않는다.
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+    // 넘치는 본문은 오버레이 **안에서** 스크롤한다.
+    expect(geometry.overflowY).toBe('auto');
+    expect(geometry.overscrollBehavior).toBe('contain');
+
+    if (geometry.scrollHeight > geometry.clientHeight + 1) {
+      const scrolled = await overlay.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+        return element.scrollTop;
+      });
+      expect(scrolled).toBeGreaterThan(0);
+    }
   });
 
   test('@smoke assertion:BD-01 backdrop fades in and out with the card, and stops capturing input while it leaves', async ({

@@ -36,7 +36,7 @@ function runtimeSourceTexts(): string[] {
   };
 
   walk(path.join(REPO_ROOT, 'src'));
-  files.push(path.join(REPO_ROOT, 'public/theme-bootstrap.js'));
+  files.push(path.join(REPO_ROOT, 'src/features/gnb/theme-bootstrap-source.ts'));
   return files.map((absolute) => readFileSync(absolute, 'utf8'));
 }
 
@@ -74,29 +74,93 @@ function extract(css: string, opener: string): string {
 }
 
 /**
- * 캡션 잉크는 `--muted-aa` 를 쓴다.
+ * `:root` 의 커스텀 프로퍼티를 이름 -> 최종 hex 로 푼다. `var(--a)` 사슬을 따라가고,
+ * 사슬이 hex 로 끝나지 않으면(`color-mix()`·키워드) `null` 을 돌려준다 — 잴 수 없는 값을
+ * 통과로도 실패로도 읽지 않기 위해서다.
+ */
+function resolveLightTokens(): Map<string, string | null> {
+  const rootBody = extract(readRepoFile(TOKENS_PATH), ':root {');
+  const raw = new Map<string, string>();
+
+  for (const line of declarations(rootBody)) {
+    const [name, ...rest] = line.split(':');
+    raw.set(name.trim(), rest.join(':').trim().replace(/;$/u, '').trim());
+  }
+
+  const resolved = new Map<string, string | null>();
+
+  const walk = (name: string, seen: Set<string>): string | null => {
+    const value = raw.get(name);
+    if (value === undefined || seen.has(name)) return null;
+
+    if (/^#[0-9a-f]{6}$/iu.test(value)) return value.toLowerCase();
+
+    const reference = /^var\(\s*(--[\w-]+)\s*\)$/u.exec(value);
+    return reference ? walk(reference[1], new Set([...seen, name])) : null;
+  };
+
+  for (const name of raw.keys()) resolved.set(name, walk(name, new Set()));
+  return resolved;
+}
+
+/** WCAG 상대 휘도. */
+function luminance(hex: string): number {
+  return [0, 2, 4]
+    .map((offset) => parseInt(hex.slice(1 + offset, 3 + offset), 16) / 255)
+    .map((channel) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4))
+    .reduce((sum, channel, index) => sum + [0.2126, 0.7152, 0.0722][index] * channel, 0);
+}
+
+function contrast(foreground: string, background: string): number {
+  const [a, b] = [luminance(foreground), luminance(background)];
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/**
+ * 캡션 잉크는 AA 를 넘는 역할을 쓴다.
  *
- * `--muted`(=`--fg3`)는 캔버스에서 4.06:1, `--muted-soft`(=`--fg4`)는 2.43:1 로 둘 다 AA 미만이다
- * (BQ-29). 그런데 표본들이 그 둘을 캡션·주석·표 본문의 글자색으로 쓰고 있었고, 2026-09-07 에
- * 렌더된 텍스트/배경 쌍을 전수 측정했을 때 **418 건 중 415 건이 이 한 가지 패턴**이었다.
+ * 2026-09-07 에 렌더된 텍스트/배경 쌍을 전수 측정했을 때 **418 건 중 415 건이 한 가지
+ * 패턴**이었다 — 표본이 흐린 글자색 역할을 캡션·주석·표 본문에 쓴 것. 렌더링이 필요한
+ * 검사라 vitest 로 대비를 **관측**할 수는 없지만, 역할이 어떤 hex 로 풀리는지는 정적으로
+ * 계산되므로 **판정**은 할 수 있다.
  *
- * 렌더링이 필요한 검사라 vitest 로는 대비를 잴 수 없다. 대신 원인이 된 패턴 하나를 정적으로
- * 막는다 — 표본이 `--fg3`·`--fg4`·`--muted`·`--muted-soft` 를 **글자색으로** 선언하지 않는 것.
- * 배경·테두리·스와치로 쓰는 것은 그대로 허용한다.
+ * 그래서 금지 목록을 손으로 적지 않는다. 후보 역할들을 `colors_and_type.css` 에서 풀어
+ * 캔버스 위 대비를 재고, **4.5:1 미만인 것만** 금지한다. 역할이 교정되면 금지가 스스로
+ * 풀리고(D-20 에서 `--fg3` 가 그랬다) 역행하면 스스로 돌아온다 — 목록은 소유자 명단이
+ * 아니라 입력이다. 배경·테두리·스와치로 쓰는 것은 그대로 허용한다.
  */
 describe('design specimens — caption ink clears AA', () => {
   const previewDir = path.join(REPO_ROOT, 'docs/design/ds/preview');
   const files = readdirSync(previewDir).filter((name) => name.endsWith('.html'));
+  const tokens = resolveLightTokens();
+
+  // 흐린 글자 역할의 후보. 이 넷 중 **무엇이** 금지되는지는 아래에서 측정이 정한다.
+  const MUTED_TEXT_ROLES = ['--fg3', '--fg4', '--muted', '--muted-soft'];
+  // 캔버스는 표본의 페이지 바닥이고, 2026-09-07 감사가 4.06:1 을 잰 그 지면이다.
+  const canvas = tokens.get('--canvas');
+
+  const failing = MUTED_TEXT_ROLES.filter((role) => {
+    const ink = tokens.get(role);
+    return ink !== null && ink !== undefined && canvas != null && contrast(ink, canvas) < 4.5;
+  });
 
   it('표본이 하나 이상 있다', () => {
     expect(files.length).toBeGreaterThan(10);
   });
 
-  it.each(files)('%s 가 AA 미만 토큰을 글자색으로 쓰지 않는다', (file) => {
+  // 해석기가 조용히 망가지면 금지 집합이 비고, 빈 집합은 모든 표본을 통과시킨다. 그 통과는
+  // 「위반이 없다」가 아니라 「검사가 없다」이므로, 검사가 살아 있다는 것을 따로 고정한다.
+  it('금지 집합이 측정으로 채워진다 — 비면 검사가 아니라 해석기가 죽은 것이다', () => {
+    expect(canvas).toMatch(/^#[0-9a-f]{6}$/u);
+    expect(MUTED_TEXT_ROLES.every((role) => tokens.get(role) != null)).toBe(true);
+    expect(failing.length).toBeGreaterThan(0);
+  });
+
+  it.each(files)('%s 가 AA 미만 역할을 글자색으로 쓰지 않는다', (file) => {
     const html = readRepoFile(`docs/design/ds/preview/${file}`);
-    const offenders = [
-      ...html.matchAll(/color:\s*var\((--fg3|--fg4|--muted|--muted-soft)\)/gu)
-    ].map((match) => match[1]);
+    const offenders = [...html.matchAll(/color:\s*var\((--[\w-]+)\)/gu)]
+      .map((match) => match[1])
+      .filter((name) => failing.includes(name));
 
     expect(offenders).toEqual([]);
   });
@@ -159,8 +223,39 @@ describe('runtime token layer mirrors the design definition', () => {
 
   const cases = [
     {name: 'light', runtimeBlock: () => sentinel(runtime, 'light'), designOpener: ':root {'},
-    {name: 'dark', runtimeBlock: () => sentinel(runtime, 'dark'), designOpener: "\n[data-theme='dark'] {"}
+    {name: 'dark', runtimeBlock: () => sentinel(runtime, 'dark'), designOpener: "\n[data-theme='dark'] {"},
+    // 세 번째 열. 타이포가 뷰포트 축을 가지면서 설계 정의에 모바일 블록이 생겼고, 그것도
+    // 사본이 둘이므로 같은 이유로 같은 대조가 필요하다 — 미러 쌍을 늘리지 않고 이 구간을
+    // 그냥 두면 모바일 값만 조용히 표류한다.
+    {
+      name: 'mobile-type',
+      runtimeBlock: () => sentinel(runtime, 'mobile-type'),
+      designOpener: '@media (max-width: 767px) {'
+    }
   ] as const;
+
+  // D-21. specimen 은 폰을 **상자**로 그리므로 위 미디어 쿼리가 발동하지 않고, 그래서 같은
+  // 열을 `.vt-phone` 으로 한 번 더 적었다. CSS 는 선언 목록을 미디어 쿼리와 클래스가 나눠
+  // 갖게 할 수 없고, 둘을 `--h1-mobile` 같은 간접 참조로 잇는 대안은 그 간접을 **제품의**
+  // 토큰 층에 집어넣는다 — specimen 을 위해. 그래서 사본을 두되 여기서 붙든다.
+  it('설계 정의 안에서 모바일 열과 `.vt-phone` 이 이름과 값까지 같다', () => {
+    const toMap = (body: string) =>
+      new Map(
+        declarations(body).map((line) => {
+          const [name, ...rest] = line.split(':');
+          return [name.trim(), rest.join(':').trim()];
+        })
+      );
+
+    const byQuery = toMap(extract(design, '@media (max-width: 767px) {'));
+    const byClass = toMap(extract(design, '.vt-phone {'));
+
+    expect(byQuery.size, '전제: 모바일 열이 비면 아래 비교가 공허하다').toBeGreaterThan(0);
+    expect(
+      Object.fromEntries(byClass),
+      '`.vt-phone` 이 모바일 열과 갈렸다 — 둘은 같은 열이고, 한쪽만 고치면 상자 안의 폰이 조용히 다른 활자를 그린다'
+    ).toEqual(Object.fromEntries(byQuery));
+  });
 
   it.each(cases)('$name 미러가 설계 정의와 값까지 일치한다', ({runtimeBlock, designOpener}) => {
     const mirrored = new Map(

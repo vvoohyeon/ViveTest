@@ -1,292 +1,91 @@
 import type {Dispatch, RefObject} from 'react';
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 
 import type {LandingCardInteractionMode} from '@/features/landing/grid/landing-grid-card';
-import {MOBILE_EXPANDED_DURATION_MS, type LandingMobileLifecycleEvent, type LandingMobileLifecycleState} from '@/features/landing/grid/mobile-lifecycle';
-import {captureMobileSnapshot, isMobileSnapshotRestoreSettled} from '@/features/landing/grid/mobile-card-lifecycle-dom';
-import {type MobileBackdropBindings, useMobileBackdropGesture} from '@/features/landing/grid/use-mobile-backdrop-gesture';
-import {useMobileRestorePolling} from '@/features/landing/grid/use-mobile-restore-polling';
-import {useMobileScrollLock} from '@/features/landing/grid/use-mobile-scroll-lock';
-import {type MobileTransientShellState, useMobileTransientShell} from '@/features/landing/grid/use-mobile-transient-shell';
 import {queueFocusCardByVariant} from '@/features/landing/grid/interaction-dom';
-import type {LandingInteractionEvent, LandingInteractionState} from '@/features/landing/model/interaction-state';
+import type {LandingInteractionEvent} from '@/features/landing/model/interaction-state';
 
 type LandingInteractionDispatch = Dispatch<LandingInteractionEvent>;
-type LandingMobileLifecycleDispatch = Dispatch<LandingMobileLifecycleEvent>;
 
-export type {MobileBackdropBindings} from '@/features/landing/grid/use-mobile-backdrop-gesture';
+// 폰의 확장이 시트가 되면서 이 훅에 남는 것은 **의도를 상호작용 상태로 옮기는 일** 하나다.
+// 시트가 자기 위상과 시간을 갖고, 스크롤 잠금은 프리미티브가 걸며, 스크림과 제스처도 거기 있다.
+//
+// 사라진 것들은 전부 in-flow 확장에만 있던 사정에서 나온 것이었다 — 스냅샷 채취(카드가 그
+// 자리에서 커지므로 좌표를 적어 둬야 했다) · 복귀 폴링(닫은 뒤 그 좌표로 돌아왔는지 확인해야
+// 했다) · transient 셸 둘(흐름 안에서는 모션 전용 표면을 따로 띄워야 했다) · 열림/닫힘 타이머
+// (위상 전이를 손으로 셌다). 시트는 흐름 밖에 있어서 넷 중 어느 것도 필요로 하지 않는다.
 
 interface UseMobileCardLifecycleInput {
   interactionMode: LandingCardInteractionMode;
-  interactionState: LandingInteractionState;
   dispatchInteraction: LandingInteractionDispatch;
-  mobileLifecycleState: LandingMobileLifecycleState;
-  dispatchMobileLifecycle: LandingMobileLifecycleDispatch;
-  isMobileViewport: boolean;
   shellRef: RefObject<HTMLElement | null>;
   clearHoverTimer: () => void;
-  /** 제자리 오버레이의 닫기. 입력 축이 backdrop 을 켤 때 「빈 곳 탭」이 이것을 부른다. */
-  collapseDesktopOverlay: () => void;
 }
 
 interface UseMobileCardLifecycleOutput {
-  mobileRestoreReadyVariant: string | null;
-  mobileTransientShellState: MobileTransientShellState;
-  mobileBackdropBindings: MobileBackdropBindings;
-  clearMobileTimers: () => void;
-  resetMobileRuntime: () => void;
   beginMobileOpen: (cardVariant: string, syncInteraction?: boolean) => void;
-  beginMobileClose: () => void;
+  beginMobileClose: (cardVariant?: string | null) => void;
   beginMobileKeyboardHandoff: (sourceVariant: string, nextCardVariant: string | null, nowMs: number) => void;
+}
+
+function nowMs(): number {
+  return typeof window !== 'undefined' ? window.performance.now() : 0;
 }
 
 export function useMobileCardLifecycle({
   interactionMode,
-  interactionState,
   dispatchInteraction,
-  mobileLifecycleState,
-  dispatchMobileLifecycle,
-  isMobileViewport,
   shellRef,
-  clearHoverTimer,
-  collapseDesktopOverlay
+  clearHoverTimer
 }: UseMobileCardLifecycleInput): UseMobileCardLifecycleOutput {
-  const mobileOpenTimerRef = useRef<number | null>(null);
-  const mobileCloseTimerRef = useRef<number | null>(null);
-  const {
-    mobileRestoreReadyVariant,
-    clearMobileRestoreReadyTimer,
-    resetMobileRestoreReadyVariant,
-    markMobileRestoreReady,
-    settleMobileCloseAfterRestore
-  } = useMobileRestorePolling({
-    shellRef,
-    dispatchMobileLifecycle,
-    isRestoreSettled: isMobileSnapshotRestoreSettled
-  });
-  const {
-    mobileTransientShellState,
-    resetMobileTransientShell,
-    startMobileTransientShell
-  } = useMobileTransientShell();
+  const beginMobileOpen = useCallback(
+    (cardVariant: string, syncInteraction = true) => {
+      clearHoverTimer();
+      if (!syncInteraction) {
+        return;
+      }
 
-  const clearMobileOpenTimer = useCallback(() => {
-    if (mobileOpenTimerRef.current !== null) {
-      window.clearTimeout(mobileOpenTimerRef.current);
-      mobileOpenTimerRef.current = null;
-    }
-  }, []);
-
-  const clearMobileCloseTimer = useCallback(() => {
-    if (mobileCloseTimerRef.current !== null) {
-      window.clearTimeout(mobileCloseTimerRef.current);
-      mobileCloseTimerRef.current = null;
-    }
-  }, []);
-
-  const clearMobileTimers = useCallback(() => {
-    clearMobileOpenTimer();
-    clearMobileCloseTimer();
-    clearMobileRestoreReadyTimer();
-  }, [clearMobileCloseTimer, clearMobileOpenTimer, clearMobileRestoreReadyTimer]);
-
-  const resetMobileRuntime = useCallback(() => {
-    clearHoverTimer();
-    clearMobileTimers();
-    resetMobileRestoreReadyVariant();
-    resetMobileTransientShell();
-    dispatchMobileLifecycle({type: 'RESET'});
-  }, [clearHoverTimer, clearMobileTimers, dispatchMobileLifecycle, resetMobileRestoreReadyVariant, resetMobileTransientShell]);
-
-  const beginMobileOpen = useCallback((cardVariant: string, syncInteraction = true) => {
-    const snapshot = captureMobileSnapshot(shellRef.current, cardVariant);
-    clearMobileOpenTimer();
-    clearMobileCloseTimer();
-    clearMobileRestoreReadyTimer();
-    resetMobileRestoreReadyVariant();
-    startMobileTransientShell('OPENING', cardVariant, snapshot);
-
-    dispatchMobileLifecycle({
-      type: 'OPEN_START',
-      cardVariant,
-      snapshot
-    });
-    if (syncInteraction) {
       dispatchInteraction({
         type: 'CARD_EXPAND',
-        nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
+        nowMs: nowMs(),
         interactionMode,
         cardVariant,
         available: true
       });
-    }
-
-    mobileOpenTimerRef.current = window.setTimeout(() => {
-      dispatchMobileLifecycle({type: 'OPEN_SETTLED'});
-      resetMobileTransientShell();
-    }, MOBILE_EXPANDED_DURATION_MS);
-  }, [
-    clearMobileCloseTimer, clearMobileOpenTimer, clearMobileRestoreReadyTimer, dispatchInteraction,
-    dispatchMobileLifecycle, interactionMode, resetMobileRestoreReadyVariant, resetMobileTransientShell, shellRef,
-    startMobileTransientShell
-  ]);
-
-  const beginMobileClose = useCallback(() => {
-    if (mobileLifecycleState.phase === 'OPENING') {
-      dispatchMobileLifecycle({type: 'QUEUE_CLOSE'});
-      return;
-    }
-
-    if (mobileLifecycleState.phase !== 'OPEN') {
-      return;
-    }
-
-    clearMobileOpenTimer();
-    if (mobileLifecycleState.cardVariant && mobileLifecycleState.snapshot) {
-      const closingSnapshot = captureMobileSnapshot(shellRef.current, mobileLifecycleState.cardVariant);
-      startMobileTransientShell('CLOSING', mobileLifecycleState.cardVariant, closingSnapshot);
-    }
-    dispatchInteraction({
-      type: 'CARD_COLLAPSE',
-      nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
-      interactionMode,
-      cardVariant: mobileLifecycleState.cardVariant
-    });
-    dispatchMobileLifecycle({type: 'CLOSE_START'});
-  }, [
-    clearMobileOpenTimer, dispatchInteraction, dispatchMobileLifecycle, interactionMode,
-    mobileLifecycleState.cardVariant, mobileLifecycleState.phase, mobileLifecycleState.snapshot, shellRef,
-    startMobileTransientShell
-  ]);
-
-  const beginMobileKeyboardHandoff = useCallback(
-    (sourceVariant: string, nextCardVariant: string | null, nowMs: number) => {
-      clearMobileTimers();
-      resetMobileRestoreReadyVariant();
-      resetMobileTransientShell();
-
-      dispatchMobileLifecycle({type: 'RESET'});
-
-      if (!nextCardVariant) {
-        dispatchInteraction({
-          type: 'CARD_COLLAPSE',
-          nowMs,
-          interactionMode,
-          cardVariant: sourceVariant
-        });
-        return;
-      }
-
-      dispatchInteraction({
-        type: 'CARD_COLLAPSE',
-        nowMs,
-        interactionMode,
-        cardVariant: sourceVariant
-      });
-      queueFocusCardByVariant(shellRef.current, nextCardVariant);
     },
-    [
-      clearMobileTimers, dispatchInteraction, dispatchMobileLifecycle, interactionMode,
-      resetMobileRestoreReadyVariant, resetMobileTransientShell, shellRef
-    ]
+    [clearHoverTimer, dispatchInteraction, interactionMode]
   );
 
-  useMobileScrollLock(mobileLifecycleState.phase);
-
-  useEffect(() => {
-    if (!isMobileViewport && mobileLifecycleState.phase !== 'NORMAL') {
-      resetMobileRuntime();
+  const beginMobileClose = useCallback(
+    (cardVariant: string | null = null) => {
       dispatchInteraction({
         type: 'CARD_COLLAPSE',
-        nowMs: window.performance.now(),
-        interactionMode,
-        cardVariant: null
-      });
-    }
-  }, [dispatchInteraction, interactionMode, isMobileViewport, mobileLifecycleState.phase, resetMobileRuntime]);
-
-  useEffect(() => {
-    return () => {
-      clearMobileTimers();
-    };
-  }, [clearMobileTimers]);
-
-  useEffect(() => {
-    if (
-      !isMobileViewport ||
-      interactionState.expandedCardVariant === null ||
-      mobileLifecycleState.phase !== 'NORMAL'
-    ) {
-      return;
-    }
-
-    const cardVariant = interactionState.expandedCardVariant;
-    const frame = window.requestAnimationFrame(() => {
-      beginMobileOpen(cardVariant, false);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [beginMobileOpen, interactionState.expandedCardVariant, isMobileViewport, mobileLifecycleState.phase]);
-
-  useEffect(() => {
-    if (mobileLifecycleState.phase !== 'CLOSING' || mobileCloseTimerRef.current !== null) {
-      return;
-    }
-
-    const cardVariant = mobileLifecycleState.cardVariant;
-    const snapshot = mobileLifecycleState.snapshot;
-    let cancelRestore: (() => void) | undefined;
-
-    if (cardVariant && interactionState.expandedCardVariant === cardVariant) {
-      dispatchInteraction({
-        type: 'CARD_COLLAPSE',
-        nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
+        nowMs: nowMs(),
         interactionMode,
         cardVariant
       });
-    }
+    },
+    [dispatchInteraction, interactionMode]
+  );
 
-    mobileCloseTimerRef.current = window.setTimeout(() => {
-      mobileCloseTimerRef.current = null;
-      if (cardVariant && snapshot) {
-        cancelRestore = settleMobileCloseAfterRestore(cardVariant, snapshot);
-        resetMobileTransientShell();
-        return;
+  const beginMobileKeyboardHandoff = useCallback(
+    (sourceVariant: string, nextCardVariant: string | null, handoffNowMs: number) => {
+      clearHoverTimer();
+      dispatchInteraction({
+        type: 'CARD_COLLAPSE',
+        nowMs: handoffNowMs,
+        interactionMode,
+        cardVariant: sourceVariant
+      });
+
+      if (nextCardVariant) {
+        queueFocusCardByVariant(shellRef.current, nextCardVariant);
       }
-
-      markMobileRestoreReady(cardVariant);
-      resetMobileTransientShell();
-    }, MOBILE_EXPANDED_DURATION_MS);
-
-    return () => {
-      clearMobileCloseTimer();
-      cancelRestore?.();
-    };
-  }, [
-    clearMobileCloseTimer, dispatchInteraction, interactionMode, interactionState.expandedCardVariant,
-    markMobileRestoreReady, mobileLifecycleState.cardVariant, mobileLifecycleState.phase,
-    mobileLifecycleState.snapshot, resetMobileTransientShell, settleMobileCloseAfterRestore
-  ]);
-
-  const mobileBackdropBindings = useMobileBackdropGesture({
-    isMobileViewport,
-    phase: mobileLifecycleState.phase,
-    beginMobileClose,
-    dispatchMobileLifecycle,
-    // 닫는 법만 입력이 정한다(명세 규칙 3) — 형태는 위의 `isMobileViewport` 가 그대로 갖는다.
-    usesTouchCloseAffordance: interactionMode !== 'hover',
-    desktopOverlayExpandedCardVariant: interactionState.expandedCardVariant,
-    collapseDesktopOverlay
-  });
+    },
+    [clearHoverTimer, dispatchInteraction, interactionMode, shellRef]
+  );
 
   return {
-    mobileRestoreReadyVariant,
-    mobileTransientShellState,
-    mobileBackdropBindings,
-    clearMobileTimers,
-    resetMobileRuntime,
     beginMobileOpen,
     beginMobileClose,
     beginMobileKeyboardHandoff

@@ -14,7 +14,6 @@ import {
   DESKTOP_EXPAND_DELAY_MS
 } from '../../src/features/landing/grid/hover-intent';
 import type {LandingCardViewportTier} from '../../src/features/landing/grid/landing-grid-card';
-import {MOBILE_EXPANDED_DURATION_MS} from '../../src/features/landing/grid/mobile-lifecycle';
 import {useLandingInteractionController} from '../../src/features/landing/grid/use-landing-interaction-controller';
 import {resolveLandingCatalog, type LandingCard} from '../../src/features/variant-registry';
 
@@ -609,17 +608,14 @@ describe('landing interaction controller handlers', () => {
     expect(keyEvent.preventDefault).toHaveBeenCalled();
     expect(keyEvent.stopPropagation).toHaveBeenCalled();
 
-    // 그리고 데스크톱 close 경로가 아니라 **모바일 생명주기**로 들어간다. 탭 직후라 카드는
-    // 아직 `OPENING` 이므로 §8.5 의 queue-close 규칙대로 닫기가 예약된다 — 즉시 접히는 것이
-    // 아니라 예약되는 것이 이 구간의 계약이다.
-    expect(beforeLifecycle.phase).toBe('OPENING');
-    expect(beforeLifecycle.queuedClose).toBe(false);
-    expect(result.current.mobileLifecycleState.queuedClose).toBe(true);
+    // 그리고 데스크톱 close 경로가 아니라 **모바일 닫기**로 들어간다. 확장이 시트가 되면서
+    // 「OPENING 중의 닫기를 예약한다」는 위상 규칙이 사라졌다 — 시트가 자기 전이를 소유하므로
+    // 닫힘 요청은 언제 오든 곧바로 상태에 반영되고, 이탈 모션은 시트가 그린다.
+    expect(beforeLifecycle.phase, '위상의 정본은 시트이고 컨트롤러는 아직 받아 적지 않았다').toBe('NORMAL');
+    expect(result.current.interactionState.expandedCardVariant, 'Escape 가 확장을 접는다').toBeNull();
 
     // blur 는 그대로 무위다 — 데스크톱 close 경로는 모바일에서 여전히 실행되지 않는다.
-    expect(result.current.interactionState.expandedCardVariant).toBe(
-      beforeInteraction.expandedCardVariant
-    );
+    expect(beforeInteraction.expandedCardVariant).toBe('qmbti');
   });
 
   it('keeps the selected Test target after the source blur fires following handoff', () => {
@@ -680,7 +676,6 @@ describe('landing interaction controller handlers', () => {
 
     expect(second.onClick).toBe(first.onClick);
     expect(second.onAnswerChoiceSelect).toBe(first.onAnswerChoiceSelect);
-    expect(second.onMobileClose).toBe(first.onMobileClose);
   });
 
   it('passes the latest test card object to answer-choice callbacks after cards rerender', () => {
@@ -808,7 +803,7 @@ describe('landing interaction controller handlers', () => {
     expect(result.current.mobileLifecycleState.cardVariant).toBeNull();
   });
 
-  it('prevents default and starts mobile close from the X-button handler', () => {
+  it('collapses the expanded card when the sheet asks to close', () => {
     vi.useFakeTimers();
     const {testCard} = selectFixtureCards();
     const shell = mountShell([testCard]);
@@ -823,20 +818,20 @@ describe('landing interaction controller handlers', () => {
     act(() => {
       result.current.resolveCardInteractionBindings(testCard).onClick(createMouseEvent(trigger));
     });
+    // 시트가 열렸다고 알린다 — 위상의 정본은 시트다.
     act(() => {
-      vi.advanceTimersByTime(MOBILE_EXPANDED_DURATION_MS);
+      result.current.setMobileLifecycleState({phase: 'OPEN', cardVariant: testCard.variant});
     });
 
     expect(result.current.mobileLifecycleState.phase).toBe('OPEN');
+    expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
 
-    const closeButton = findCardChild<HTMLButtonElement>(shell, testCard.variant, '[data-slot="mobileClose"]');
-    const closeEvent = createMouseEvent(closeButton);
+    // 시트의 닫기 컨트롤·backdrop 탭·스와이프·Escape·뒤로가기가 전부 이 하나로 모인다.
     act(() => {
-      result.current.resolveCardInteractionBindings(testCard).onMobileClose(closeEvent);
+      result.current.collapseExpandedCard();
     });
 
-    expect(closeEvent.preventDefault).toHaveBeenCalledTimes(1);
-    expect(result.current.mobileLifecycleState.phase).toBe('CLOSING');
+    expect(result.current.interactionState.expandedCardVariant).toBeNull();
   });
 
   /**

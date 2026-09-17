@@ -3,7 +3,6 @@
 import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
-  useEffect,
   useRef,
   useState
 } from 'react';
@@ -13,6 +12,9 @@ import {
   shouldCancelOutsideCloseAsScroll
 } from '@/features/gnb/behavior';
 import type {MobileMenuState} from '@/features/gnb/types';
+import {useBodyScrollLock} from '@/features/ui/body-scroll-lock';
+
+const BODY_SCROLL_LOCK_TOKEN = 'gnb-mobile-menu';
 
 /**
  * @future-move R-06
@@ -129,22 +131,7 @@ export function useGnbMobileMenu() {
     outsideGestureRef.current.active = false;
   }, []);
 
-  useEffect(() => {
-    if (mobileMenuState === 'closed') {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    const previousTouchAction = document.body.style.touchAction;
-
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.touchAction = previousTouchAction;
-    };
-  }, [mobileMenuState]);
+  useBodyScrollLock(BODY_SCROLL_LOCK_TOKEN, mobileMenuState !== 'closed');
 
   return {
     mobileMenuState,

@@ -10,6 +10,7 @@ describe('buildLocalizedPath', () => {
     expect(buildLocalizedPath(RouteBuilder.blogArticle('ops-handbook'), 'kr')).toBe('/kr/blog/ops-handbook');
     expect(buildLocalizedPath(RouteBuilder.blog(), 'zs')).toBe('/zs/blog');
     expect(buildLocalizedPath(RouteBuilder.history(), 'en')).toBe('/en/history');
+    expect(buildLocalizedPath(RouteBuilder.result('egtt', 'EM'), 'ja')).toBe('/ja/result/egtt/EM');
     expect(buildLocalizedPath(RouteBuilder.question('alpha'), 'ru')).toBe('/ru/test/alpha');
     expect(buildLocalizedPath(RouteBuilder.testError(), 'kr')).toBe('/kr/test/error');
   });

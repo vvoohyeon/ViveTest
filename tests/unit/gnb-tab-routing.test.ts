@@ -41,13 +41,15 @@ function renderRouting({
   isLandingContext = false,
   settingsOpen = false,
   closeSettingsImmediate = vi.fn(),
-  focusFirstLandingCardTrigger = vi.fn(() => false)
+  focusFirstLandingCardTrigger = vi.fn(() => false),
+  trapFocus = false
 }: {
   targets: HTMLElement[];
   isLandingContext?: boolean;
   settingsOpen?: boolean;
   closeSettingsImmediate?: () => void;
   focusFirstLandingCardTrigger?: () => boolean;
+  trapFocus?: boolean;
 }) {
   const getOrderedKeyboardTargets = vi.fn(() => targets);
   const hook = renderHook(() =>
@@ -56,7 +58,8 @@ function renderRouting({
       isLandingContext,
       settingsOpen,
       closeSettingsImmediate,
-      focusFirstLandingCardTrigger
+      focusFirstLandingCardTrigger,
+      trapFocus
     })
   );
 

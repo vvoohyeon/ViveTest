@@ -10,6 +10,10 @@ import jaMessages from '../../src/messages/ja.json';
 import krMessages from '../../src/messages/kr.json';
 import {TelemetryConsentBanner} from '../../src/features/landing/shell/telemetry-consent-banner';
 import {
+  requestConsentRecall,
+  resetConsentRecallForTests
+} from '../../src/features/telemetry/consent-recall';
+import {
   resetTelemetryConsentSourceForTests,
   setTelemetryConsentState,
   syncTelemetryConsentSource,
@@ -116,6 +120,7 @@ describe('TelemetryConsentBanner', () => {
   beforeEach(() => {
     installDom();
     resetTelemetryConsentSourceForTests();
+    resetConsentRecallForTests();
   });
 
   afterEach(async () => {
@@ -126,6 +131,7 @@ describe('TelemetryConsentBanner', () => {
 
     root = null;
     resetTelemetryConsentSourceForTests();
+    resetConsentRecallForTests();
     uninstallDom();
   });
 
@@ -137,11 +143,10 @@ describe('TelemetryConsentBanner', () => {
     const banner = queryBanner();
     expect(banner).not.toBeNull();
     expect(banner?.textContent).toContain(
-      'We use cookies and similar technologies to help the service work properly and to understand how it is used.'
+      'We use optional analytics to see which tests people finish. Nothing you answer is sent.'
     );
-    expect(document.querySelector('[data-testid="telemetry-consent-accept"]')?.textContent).toBe('Accept all');
+    expect(document.querySelector('[data-testid="telemetry-consent-accept"]')?.textContent).toBe('Allow');
     expect(document.querySelector('[data-testid="telemetry-consent-deny"]')?.textContent).toBe('Deny');
-    expect(document.querySelector('[data-testid="telemetry-consent-preferences"]')?.textContent).toBe('Preferences');
   });
 
   it('renders the Korean banner when consent is synced as UNKNOWN', async () => {
@@ -152,11 +157,10 @@ describe('TelemetryConsentBanner', () => {
     const banner = queryBanner();
     expect(banner).not.toBeNull();
     expect(banner?.textContent).toContain(
-      '서비스가 원활하게 작동하고 이용 현황을 이해하기 위해 쿠키 및 유사 기술을 사용합니다.'
+      '어떤 테스트가 끝까지 진행되는지 보기 위해 선택적 분석을 사용합니다. 답변 내용은 전송되지 않습니다.'
     );
-    expect(document.querySelector('[data-testid="telemetry-consent-accept"]')?.textContent).toBe('모두 허용');
+    expect(document.querySelector('[data-testid="telemetry-consent-accept"]')?.textContent).toBe('허용');
     expect(document.querySelector('[data-testid="telemetry-consent-deny"]')?.textContent).toBe('거부');
-    expect(document.querySelector('[data-testid="telemetry-consent-preferences"]')?.textContent).toBe('설정');
   });
 
   it('renders the Japanese banner when consent is synced as UNKNOWN', async () => {
@@ -167,11 +171,10 @@ describe('TelemetryConsentBanner', () => {
     const banner = queryBanner();
     expect(banner).not.toBeNull();
     expect(banner?.textContent).toContain(
-      'サービスを正しく動作させ、利用状況を把握するために、Cookie および類似技術を使用します。'
+      'どのテストが最後まで進むかを把握するため、任意の分析を使用します。回答内容は送信されません。'
     );
-    expect(document.querySelector('[data-testid="telemetry-consent-accept"]')?.textContent).toBe('すべて許可');
+    expect(document.querySelector('[data-testid="telemetry-consent-accept"]')?.textContent).toBe('許可');
     expect(document.querySelector('[data-testid="telemetry-consent-deny"]')?.textContent).toBe('拒否');
-    expect(document.querySelector('[data-testid="telemetry-consent-preferences"]')?.textContent).toBe('設定');
   });
 
   it('hides itself immediately after accepting consent', async () => {
@@ -216,5 +219,110 @@ describe('TelemetryConsentBanner', () => {
     setTelemetryConsentState('OPTED_IN');
     await renderBanner('en');
     expect(queryBanner()).toBeNull();
+  });
+  it('shows two buttons and no close on the first-visit banner', async () => {
+    window.localStorage.removeItem(TELEMETRY_CONSENT_STORAGE_KEY);
+    syncTelemetryConsentSource();
+    await renderBanner('en');
+
+    // 규칙 4 — 세 번째 버튼은 없다. 종전의 `Preferences` 는 title 에만 설명이 있는 no-op 이었다.
+    expect(document.querySelectorAll('.telemetry-consent-banner-actions button')).toHaveLength(2);
+    expect(document.querySelector('[data-testid="telemetry-consent-preferences"]')).toBeNull();
+    // 첫 방문 배너에 X 가 있으면 「선택하지 않음」이라는 네 번째 답이 생긴다(명세 §2-5).
+    expect(document.querySelector('[data-testid="telemetry-consent-close"]')).toBeNull();
+    expect(queryBanner()?.getAttribute('data-mode')).toBe('initial');
+  });
+
+  it('recalls the same banner with a close and marks Deny as the previous choice', async () => {
+    setTelemetryConsentState('OPTED_OUT');
+    await renderBanner('en');
+    expect(queryBanner()).toBeNull();
+
+    await act(async () => {
+      requestConsentRecall();
+      await Promise.resolve();
+    });
+
+    const banner = queryBanner();
+    expect(banner).not.toBeNull();
+    expect(banner?.getAttribute('data-mode')).toBe('recall');
+    expect(document.querySelector('[data-testid="telemetry-consent-close"]')).not.toBeNull();
+
+    const deny = document.querySelector('[data-testid="telemetry-consent-deny"]');
+    expect(deny?.className).toContain('telemetry-consent-banner-previous-choice');
+    expect(deny?.textContent).toContain('Your previous choice');
+    // 재호출에서도 제품은 동의 쪽을 권한다 — CTA 는 형태를 잃지 않는다.
+    const accept = document.querySelector('[data-testid="telemetry-consent-accept"]');
+    expect(accept?.className).toContain('telemetry-consent-banner-button-accent');
+    expect(accept?.className).not.toContain('telemetry-consent-banner-previous-choice');
+  });
+
+  it('marks Allow as the previous choice when the last answer was opt-in', async () => {
+    setTelemetryConsentState('OPTED_IN');
+    await renderBanner('en');
+
+    await act(async () => {
+      requestConsentRecall();
+      await Promise.resolve();
+    });
+
+    const accept = document.querySelector('[data-testid="telemetry-consent-accept"]');
+    expect(accept?.textContent).toContain('Your previous choice');
+    expect(accept?.querySelector('.telemetry-consent-banner-mark')).not.toBeNull();
+    expect(document.querySelector('[data-testid="telemetry-consent-deny"]')?.className).not.toContain(
+      'telemetry-consent-banner-previous-choice'
+    );
+  });
+
+  it('closes the recalled banner without changing the stored choice', async () => {
+    setTelemetryConsentState('OPTED_OUT');
+    await renderBanner('en');
+
+    await act(async () => {
+      requestConsentRecall();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      document.querySelector<HTMLButtonElement>('[data-testid="telemetry-consent-close"]')?.click();
+      await Promise.resolve();
+    });
+
+    expect(queryBanner()).toBeNull();
+    expect(window.localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)).toBe('OPTED_OUT');
+  });
+
+  it('closes the recalled banner when a choice is made in it', async () => {
+    // 회귀: 선택이 곧 닫기다. 재호출 요청을 함께 거두지 않으면 답한 직후의 배너가 재호출
+    // 모드로 다시 서서 영영 닫히지 않는다.
+    setTelemetryConsentState('OPTED_OUT');
+    await renderBanner('en');
+
+    await act(async () => {
+      requestConsentRecall();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      document.querySelector<HTMLButtonElement>('[data-testid="telemetry-consent-accept"]')?.click();
+      await Promise.resolve();
+    });
+
+    expect(queryBanner()).toBeNull();
+    expect(window.localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)).toBe('OPTED_IN');
+  });
+
+  it('keeps the first-visit banner in initial mode when recall is requested before any choice', async () => {
+    window.localStorage.removeItem(TELEMETRY_CONSENT_STORAGE_KEY);
+    syncTelemetryConsentSource();
+    await renderBanner('en');
+
+    await act(async () => {
+      requestConsentRecall();
+      await Promise.resolve();
+    });
+
+    expect(queryBanner()?.getAttribute('data-mode')).toBe('initial');
+    expect(document.querySelector('[data-testid="telemetry-consent-close"]')).toBeNull();
   });
 });

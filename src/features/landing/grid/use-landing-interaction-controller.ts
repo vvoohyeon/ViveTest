@@ -11,12 +11,10 @@ import {
 } from '@/features/landing/grid/desktop-shell-phase';
 import type {
   LandingCardMobilePhase,
-  LandingCardMobileTransientMode,
   LandingCardViewportTier
 } from '@/features/landing/grid/landing-grid-card';
 import {
   initialLandingMobileLifecycleState,
-  reduceLandingMobileLifecycleState,
   type LandingMobileLifecycleState
 } from '@/features/landing/grid/mobile-lifecycle';
 import type {LandingCardInteractionBindings} from '@/features/landing/grid/landing-card-interaction-bindings';
@@ -36,10 +34,11 @@ import {useDesktopMotionController} from '@/features/landing/grid/use-desktop-mo
 import {subscribeToInputProfile} from '@/features/landing/grid/input-profile';
 import {useDesktopCardCloseController} from '@/features/landing/grid/use-desktop-card-close-controller';
 import {useHoverIntentController} from '@/features/landing/grid/use-hover-intent-controller';
+import {useMobileCardLifecycle} from '@/features/landing/grid/use-mobile-card-lifecycle';
 import {
-  useMobileCardLifecycle,
-  type MobileBackdropBindings
-} from '@/features/landing/grid/use-mobile-card-lifecycle';
+  useOverlayBackdropGesture,
+  type OverlayBackdropBindings
+} from '@/features/landing/grid/use-overlay-backdrop-gesture';
 import {useKeyboardHandoff} from '@/features/landing/grid/use-keyboard-handoff';
 
 interface UseLandingInteractionControllerInput {
@@ -56,9 +55,10 @@ interface UseLandingInteractionControllerResult {
   interactionState: LandingInteractionState;
   prefersReducedMotion: boolean;
   mobileLifecycleState: LandingMobileLifecycleState;
-  mobileBackdropBindings: MobileBackdropBindings;
+  overlayBackdropBindings: OverlayBackdropBindings;
   activeVisualCardVariant: string | null;
-  mobileRestoreReadyVariant: string | null;
+  /** 시트가 자기 위상을 여기로 알린다 — `data-mobile-phase` 의 값이 거기서 온다. */
+  setMobileLifecycleState: (state: LandingMobileLifecycleState) => void;
   resolveCardInteractionBindings: (card: LandingCard) => LandingCardInteractionBindings;
   collapseExpandedCard: () => void;
 }
@@ -109,8 +109,9 @@ export function useLandingInteractionController({
     reduceLandingInteractionState,
     initialLandingInteractionState
   );
-  const [mobileLifecycleState, dispatchMobileLifecycle] = useReducer(
-    reduceLandingMobileLifecycleState,
+  // 위상의 정본은 시트다 — 시트가 자기 전이를 세고 여기로 알린다. 두 곳이 같은 전이를 각자
+  // 세면 반드시 어긋나므로, 여기서는 받아 적기만 한다.
+  const [mobileLifecycleState, setMobileLifecycleState] = useState<LandingMobileLifecycleState>(
     initialLandingMobileLifecycleState
   );
   const [transitionSourceCardVariant, setTransitionSourceCardVariant] = useState<string | null>(null);
@@ -174,27 +175,20 @@ export function useLandingInteractionController({
     shellRef,
     setDesktopTransitionReason
   });
-  const {
-    mobileRestoreReadyVariant,
-    mobileTransientShellState,
-    mobileBackdropBindings,
-    clearMobileTimers,
-    resetMobileRuntime,
-    beginMobileOpen,
-    beginMobileClose,
-    beginMobileKeyboardHandoff
-  } = useMobileCardLifecycle({
+  const {beginMobileOpen, beginMobileClose, beginMobileKeyboardHandoff} = useMobileCardLifecycle({
     interactionMode,
-    interactionState,
     dispatchInteraction,
-    mobileLifecycleState,
-    dispatchMobileLifecycle,
-    isMobileViewport,
     shellRef,
-    clearHoverTimer,
+    clearHoverTimer
+  });
+  const overlayBackdropBindings = useOverlayBackdropGesture({
+    // 닫는 법만 입력이 정한다(명세 규칙 3) — 형태는 폭이 갖는다.
+    usesTouchCloseAffordance: interactionMode !== 'hover',
+    rendersInPlaceOverlay: !isMobileViewport,
+    expandedCardVariant: interactionState.expandedCardVariant,
     // `collapseExpandedCard` 는 훅 사슬상 아래에 정의된다. 순서를 뒤집는 대신 ref 를 통해
     // 안정 콜백으로 넘긴다 — 값은 매 렌더마다 갱신되고 신원은 바뀌지 않는다.
-    collapseDesktopOverlay: collapseDesktopOverlayStable
+    collapseOverlay: collapseDesktopOverlayStable
   });
 
   // 입력 축의 정의처는 `input-profile.ts` 한 곳이다 — 질의 문자열을 여기 다시 적지 않는다.
@@ -253,18 +247,26 @@ export function useLandingInteractionController({
   useEffect(() => {
     return () => {
       clearHoverTimer();
-      clearMobileTimers();
       clearDesktopMotionRuntime();
     };
-  }, [
-    clearDesktopMotionRuntime,
-    clearHoverTimer,
-    clearMobileTimers
-  ]);
+  }, [clearDesktopMotionRuntime, clearHoverTimer]);
+
+  /**
+   * 폰에서 시트가 열려 있는 동안 카드의 활성화는 막힌다.
+   *
+   * **판정의 근거는 시트가 보고한 위상이 아니라 `expandedCardVariant` 다.** 위상 보고는 시트가
+   * 포탈을 마운트한 뒤 effect 로 오므로 여는 커밋보다 한 박자 늦다. 그 틈으로 입력이 하나
+   * 빠져나간다 — `Space` 는 keydown 으로 시트를 열고 **keyup 에서 `click` 을 한 번 더 쏘는데**,
+   * 그 클릭이 잠금을 통과하면 방금 연 시트를 곧바로 닫는다. 확장 상태는 여는 그 커밋에 이미
+   * 참이므로 그것으로 가르면 틈이 없다.
+   */
+  const mobileExpansionLocked =
+    isMobileViewport &&
+    (interactionState.expandedCardVariant !== null || mobileLifecycleState.phase !== 'NORMAL');
+
 
   const collapseExpandedCard = useCallback(() => {
     clearHoverTimer();
-    resetMobileRuntime();
     setDesktopTransitionReason('collapse');
     setTransitionSourceCardVariant(null);
     dispatchInteraction({
@@ -273,12 +275,7 @@ export function useLandingInteractionController({
       interactionMode,
       cardVariant: null
     });
-  }, [
-    clearHoverTimer,
-    interactionMode,
-    resetMobileRuntime,
-    setDesktopTransitionReason
-  ]);
+  }, [clearHoverTimer, interactionMode, setDesktopTransitionReason]);
 
   // backdrop 의 「빈 곳 탭」이 부를 수 있도록 최신 구현을 ref 에 둔다(위의 안정 콜백이 읽는다).
   // 렌더 중 ref 쓰기는 금지이므로 effect 로 미룬다 — 첫 페인트 전에 탭이 도달할 수는 없다.
@@ -313,13 +310,12 @@ export function useLandingInteractionController({
 
   const beginTransition = useCallback((cardVariant: string) => {
     clearHoverTimer();
-    resetMobileRuntime();
     setTransitionSourceCardVariant(cardVariant);
     dispatchInteraction({
       type: 'PAGE_TRANSITION_START',
       nowMs: window.performance.now()
     });
-  }, [clearHoverTimer, resetMobileRuntime]);
+  }, [clearHoverTimer]);
 
   const {resolveKeyboardHandlers} = useKeyboardHandoff({
     state: interactionState,
@@ -357,14 +353,6 @@ export function useLandingInteractionController({
     };
   }, [recordPointerInput]);
 
-  const handleMobileClose = useCallback(
-    (event: ReactMouseEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      beginMobileClose();
-    },
-    [beginMobileClose]
-  );
-
   const handleCardClick = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
       const card = resolveInteractionCard(event.currentTarget, cardByVariant);
@@ -374,11 +362,7 @@ export function useLandingInteractionController({
 
       const cardEnterable = isEnterableCard(card);
       const isTransitioning = interactionState.pageState === 'TRANSITIONING';
-      const mobileInteractionLocked =
-        isMobileViewport &&
-        mobileLifecycleState.phase !== 'NORMAL' &&
-        (mobileLifecycleState.cardVariant !== card.variant || mobileLifecycleState.phase !== 'OPEN');
-      const activationBlocked = isTransitioning || !cardEnterable || mobileInteractionLocked;
+      const activationBlocked = isTransitioning || !cardEnterable || mobileExpansionLocked;
 
       if (activationBlocked) {
         event.preventDefault();
@@ -400,9 +384,7 @@ export function useLandingInteractionController({
       }
 
       if (isMobileViewport) {
-        if (mobileLifecycleState.phase === 'NORMAL' && mobileLifecycleState.cardVariant !== card.variant) {
-          beginMobileOpen(card.variant);
-        }
+        beginMobileOpen(card.variant);
         return;
       }
 
@@ -424,8 +406,7 @@ export function useLandingInteractionController({
       interactionMode,
       interactionState.pageState,
       isMobileViewport,
-      mobileLifecycleState.cardVariant,
-      mobileLifecycleState.phase,
+      mobileExpansionLocked,
       onPrimaryCtaSelect
     ]
   );
@@ -457,8 +438,6 @@ export function useLandingInteractionController({
       cardEnterable;
     const mobileOwnsCard = mobileLifecycleState.cardVariant === card.variant;
     const mobilePhase: LandingCardMobilePhase = mobileOwnsCard ? mobileLifecycleState.phase : 'NORMAL';
-    const mobileTransientMode: LandingCardMobileTransientMode =
-      mobileTransientShellState.cardVariant === card.variant ? mobileTransientShellState.mode : 'NONE';
     const desktopClosingVisible =
       !isMobileViewport && desktopMotionState.closingCardVariant === card.variant && cardEnterable;
     const desktopCleanupPending =
@@ -478,10 +457,7 @@ export function useLandingInteractionController({
       visuallyExpanded: transitionExpanded || (cardState === 'EXPANDED' && cardEnterable),
       cleanupPending: desktopCleanupPending
     });
-    const mobileInteractionLocked =
-      isMobileViewport &&
-      mobileLifecycleState.phase !== 'NORMAL' &&
-      (mobileLifecycleState.cardVariant !== card.variant || mobileLifecycleState.phase !== 'OPEN');
+    const mobileInteractionLocked = mobileExpansionLocked;
     const visualState = resolveVisualState({
       cardEnterable,
       cardState,
@@ -489,24 +465,6 @@ export function useLandingInteractionController({
       desktopClosingVisible,
       transitionExpanded
     });
-    const mobileSnapshotSource =
-      mobileTransientShellState.cardVariant === card.variant && mobileTransientShellState.snapshot
-        ? mobileTransientShellState.snapshot
-        : mobileOwnsCard
-          ? mobileLifecycleState.snapshot
-          : null;
-    const resolvedRestoreReady =
-      mobileRestoreReadyVariant === card.variant || (mobileOwnsCard && mobileLifecycleState.restoreReady);
-    const mobileSnapshot = mobileSnapshotSource
-      ? {
-          cardHeightPx: mobileSnapshotSource.cardHeightPx,
-          anchorTopPx: mobileSnapshotSource.anchorTopPx,
-          cardLeftPx: mobileSnapshotSource.cardLeftPx,
-          cardWidthPx: mobileSnapshotSource.cardWidthPx,
-          titleTopPx: mobileSnapshotSource.titleTopPx,
-          restoreReady: resolvedRestoreReady
-        }
-      : null;
     const hoverHandlers = resolveHoverHandlers(card);
     const activationBlocked = isTransitioning || !cardEnterable || mobileInteractionLocked;
     const keyboardHandlers = resolveKeyboardHandlers(card, {
@@ -525,9 +483,6 @@ export function useLandingInteractionController({
       ariaDisabled: isTransitioning ? true : !cardEnterable || mobileInteractionLocked,
       tabIndex: isTransitioning || mobileInteractionLocked ? -1 : resolveCardTabIndex(interactionState, card.variant, cardEnterable),
       mobilePhase,
-      mobileTransientMode,
-      mobileRestoreReady: resolvedRestoreReady,
-      mobileSnapshot,
       onCardKeyDown: (event) => handleCardKeyDown(card, event),
       onCardBlur: (event) => handleCardBlur(card, event),
       onFocus: keyboardHandlers.onFocus,
@@ -537,12 +492,12 @@ export function useLandingInteractionController({
       onMouseLeave: hoverHandlers.onMouseLeave,
       onExpandedBodyKeyDown: keyboardHandlers.onExpandedBodyKeyDown,
       onAnswerChoiceSelect: handleAnswerChoiceSelect,
-      onMobileClose: handleMobileClose
+      onOverlayClose: collapseDesktopOverlayStable
     };
   };
 
   const activeVisualCardVariant = isMobileViewport
-    ? mobileLifecycleState.cardVariant ?? mobileTransientShellState.cardVariant
+    ? mobileLifecycleState.cardVariant
     : transitionSourceCardVariant ??
       interactionState.expandedCardVariant ??
       desktopMotionState.closingCardVariant ??
@@ -553,9 +508,9 @@ export function useLandingInteractionController({
     interactionState,
     prefersReducedMotion,
     mobileLifecycleState,
-    mobileBackdropBindings,
+    overlayBackdropBindings,
     activeVisualCardVariant,
-    mobileRestoreReadyVariant,
+    setMobileLifecycleState,
     resolveCardInteractionBindings,
     collapseExpandedCard
   };

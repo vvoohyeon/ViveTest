@@ -7,7 +7,10 @@
     "history": "履歴",
     "blog": "ブログ",
     "settings": "設定",
-    "theme": "言語 ⋅ テーマ",
+    "theme": "テーマ",
+    "language": "言語",
+    "system": "システム",
+    "themeEffective": "現在適用中",
     "light": "ライト",
     "dark": "ダーク",
     "menu": "メニュー",
@@ -20,8 +23,9 @@
     "skipToContent": "メインコンテンツへスキップ"
   },
   "landing": {
-    "heroTitle": "ひと続きの流れで、自分の作業リズムを見つける",
-    "heroBody": "利用可能なテストとエンジニアリングブログのノートを、ひとつのカタログで確認できます。カードを展開してアクションを選ぶだけで、迷いのない次の一歩に進めます。",
+    "pageTitle": "自分の作業リズムを見つける",
+    "pageSubtitle": "テストと技術ノートを一箇所に。",
+    "pageHeadAria": "ページタイトル",
     "comingSoon": "近日公開",
     "closeExpandedAria": "展開したカードを閉じる",
     "close": "閉じる",
@@ -30,7 +34,9 @@
     "metaAttempts": "完了",
     "metaReadTime": "分で読了",
     "metaViews": "閲覧",
-    "readMore": "続きを読む"
+    "readMore": "続きを読む",
+    "optedOutNotice": "{count, plural, other {#件のテストには分析の同意が必要です。}}",
+    "optedOutNoticeAction": "同意を変更"
   },
   "test": {
     "progressLabel": "進行状況",
@@ -41,6 +47,12 @@
     "submit": "送信",
     "resultLabel": "最終結果",
     "resultBody": "結果は、1問目の更新内容を含む最終回答をもとに算出されます。",
+    "resultPageTitle": "結果",
+    "resultTypeLabel": "タイプ",
+    "resultErrorTitle": "この結果を開けません",
+    "resultErrorBody": "リンクが不完全か、すでに有効ではありません。",
+    "resultRetake": "もう一度受ける",
+    "resultTakeTest": "テストを受ける",
     "goHome": "ランディングへ",
     "goHistory": "履歴を見る",
     "instructionTitle": "始める前に",
@@ -63,19 +75,32 @@
     "allArticles": "すべての記事"
   },
   "history": {
-    "title": "ローカル結果履歴",
-    "body": "完了した実行は、それぞれ独立した項目として保存されます（新しい順、最大50件）。",
+    "title": "受験履歴",
+    "body": "この端末に残る履歴 — 新しい順、最大50件。",
+    "emptyBody": "この端末にはまだ履歴がありません。",
+    "browseTests": "テストを見る",
+    "abandoned": "中断",
     "clearAll": "すべて削除",
-    "goHome": "ホームへ",
     "open": "開く",
     "delete": "削除"
   },
+  "error": {
+    "notFoundTitle": "このページはありません",
+    "notFoundBody": "アドレスは正しいですが、もう何もありません。",
+    "entryBlockedTitle": "このテストを開けませんでした",
+    "entryBlockedBody": "テストが公開終了か、リンクが不完全です。今受けられるものはカタログにあります。",
+    "crashTitle": "画面を描画できませんでした",
+    "crashBody": "このページの描画中に問題が起きました。もう一度試すとたいてい解決します。",
+    "retry": "もう一度試す",
+    "backToLanding": "ホームへ戻る"
+  },
   "consent": {
-    "regionLabel": "Cookie 設定",
-    "message": "サービスを正しく動作させ、利用状況を把握するために、Cookie および類似技術を使用します。任意の Cookie を許可するかどうかはご自身で選択でき、その選択はいつでも変更できます。",
-    "accept": "すべて許可",
+    "regionLabel": "分析の同意",
+    "message": "どのテストが最後まで進むかを把握するため、任意の分析を使用します。回答内容は送信されません。",
+    "accept": "許可",
     "deny": "拒否",
-    "preferences": "設定",
-    "preferencesTitle": "設定パネルは近日公開予定です"
+    "recall": "プライバシー設定",
+    "close": "閉じる",
+    "previousChoice": "前回の選択"
   }
 }

@@ -7,7 +7,10 @@
     "history": "Riwayat",
     "blog": "Blog",
     "settings": "Pengaturan",
-    "theme": "Bahasa ⋅ Tema",
+    "theme": "Tema",
+    "language": "Bahasa",
+    "system": "Sistem",
+    "themeEffective": "Sedang diterapkan",
     "light": "Terang",
     "dark": "Gelap",
     "menu": "Menu",
@@ -20,8 +23,9 @@
     "skipToContent": "Lompat ke konten utama"
   },
   "landing": {
-    "heroTitle": "Temukan ritme kerja Anda dalam satu alur",
-    "heroBody": "Tes yang tersedia dan catatan blog engineering ada dalam satu katalog. Buka kartu, pilih tindakan, lalu lanjutkan dengan transisi yang jelas.",
+    "pageTitle": "Temukan ritme kerja Anda",
+    "pageSubtitle": "Tes dan catatan, satu katalog.",
+    "pageHeadAria": "Judul halaman",
     "comingSoon": "segera hadir",
     "closeExpandedAria": "Tutup kartu yang diperluas",
     "close": "Tutup",
@@ -30,7 +34,9 @@
     "metaAttempts": "selesai",
     "metaReadTime": "menit baca",
     "metaViews": "dilihat",
-    "readMore": "Baca selengkapnya"
+    "readMore": "Baca selengkapnya",
+    "optedOutNotice": "{count, plural, other {# tes memerlukan persetujuan analitik.}}",
+    "optedOutNoticeAction": "Ubah persetujuan"
   },
   "test": {
     "progressLabel": "Progres",
@@ -41,6 +47,12 @@
     "submit": "Kirim",
     "resultLabel": "Hasil akhir",
     "resultBody": "Hasil dihitung dari jawaban akhir Anda, termasuk perubahan apa pun pada pilihan pertanyaan 1.",
+    "resultPageTitle": "Hasil",
+    "resultTypeLabel": "Tipe",
+    "resultErrorTitle": "Hasil ini tidak dapat dibuka",
+    "resultErrorBody": "Tautan tidak lengkap atau sudah tidak berlaku.",
+    "resultRetake": "Ulangi tes",
+    "resultTakeTest": "Ikuti tes",
     "goHome": "Kembali ke beranda",
     "goHistory": "Buka riwayat",
     "instructionTitle": "Sebelum mulai",
@@ -63,19 +75,32 @@
     "allArticles": "Semua artikel"
   },
   "history": {
-    "title": "Riwayat hasil lokal",
-    "body": "Setiap sesi yang selesai disimpan sebagai entri terpisah (terbaru lebih dulu, maksimal 50).",
+    "title": "Riwayat",
+    "body": "Sesi di perangkat ini — terbaru dulu, maksimal 50.",
+    "emptyBody": "Belum ada sesi di perangkat ini.",
+    "browseTests": "Lihat tes",
+    "abandoned": "Terhenti",
     "clearAll": "Hapus semua",
-    "goHome": "Ke beranda",
     "open": "Buka",
     "delete": "Hapus"
   },
+  "error": {
+    "notFoundTitle": "Halaman itu tidak ada di sini",
+    "notFoundBody": "Alamatnya valid, tetapi tidak ada apa-apa lagi di sana.",
+    "entryBlockedTitle": "Kami tidak bisa membuka tes itu",
+    "entryBlockedBody": "Tes mungkin sudah ditarik, atau tautannya tidak lengkap. Yang bisa dikerjakan sekarang ada di katalog.",
+    "crashTitle": "Layar ini gagal digambar",
+    "crashBody": "Ada yang gagal saat menggambar halaman ini. Mencoba lagi biasanya berhasil.",
+    "retry": "Coba lagi",
+    "backToLanding": "Kembali ke beranda"
+  },
   "consent": {
-    "regionLabel": "Persetujuan cookie",
-    "message": "Kami menggunakan cookie dan teknologi serupa untuk membantu layanan berfungsi dengan baik dan untuk memahami bagaimana layanan digunakan. Anda dapat memilih apakah akan mengizinkan cookie opsional, dan Anda dapat mengubah pilihan kapan saja.",
-    "accept": "Terima semua",
+    "regionLabel": "Persetujuan analitik",
+    "message": "Analitik opsional menunjukkan tes mana yang diselesaikan. Jawaban Anda tidak dikirim.",
+    "accept": "Izinkan",
     "deny": "Tolak",
-    "preferences": "Preferensi",
-    "preferencesTitle": "Panel preferensi akan segera hadir"
+    "recall": "Preferensi privasi",
+    "close": "Tutup",
+    "previousChoice": "Pilihan Anda sebelumnya"
   }
 }

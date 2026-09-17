@@ -1,15 +1,12 @@
 @import "tailwindcss";
+@import "./fonts.generated.css";
 
 /* ============================================================================
    TYPEFACE
    ----------------------------------------------------------------------------
    The system has rested on Pretendard since the rebaseline — `--font-sans` names
    it, `design.md` §4.3 builds the bilingual claim on its matched Korean and Latin
-   metrics, and every measurement in `docs/design/ds/` was taken in it. The app
-   never loaded it. Until this commit every Korean character the product rendered
-   came from `Noto Sans KR` and every Latin one from Avenir Next, so the claim was
-   unrealized on every surface. `BQ-25` calls this "the wave-16 Pretendard switch"
-   and forbids the expanded-choice arrow's optical nudge until after it.
+   metrics, and every measurement in `docs/design/ds/` was taken in it.
 
    Declared here rather than through `next/font` on purpose. `next/font` generates
    a hashed family name, and `--font-sans` is a MIRRORED token — the design bundle
@@ -19,21 +16,59 @@
    sides. It sits outside the @mirror sentinels because it is a runtime concern:
    the bundle points at its own copy of the file at its own path.
 
-   `swap`, and deliberately NOT preloaded. The full variable face is 1.96 MB —
-   Korean coverage is not cheap — so text must never wait on it. Fallback renders
-   immediately, Pretendard swaps in when it arrives. Shipping the full face rather
-   than a subset is a choice this repository has already made once, for the design
-   bundle (`SYNC.md`): a subset needs a build step and becomes a way for the two
-   sides to diverge on which glyphs exist. The unresolved cost is the payload, and
-   the way to reduce it is the upstream dynamic subset (per-unicode-range files),
-   which needs assets this repository does not have.
+   **이 저장소는 이제 전체 face 를 내보내지 않는다.** 종전에는 2,057,688 B 짜리 한 파일을
+   12 locale 이 전부 받았고, 그것이 랜딩 첫 방문 전송량의 **89%**(2,058 / 2,314 KB)였다.
+   실측(2026-09-16, CDP 스로틀링 · 390×844 · 콜드 캐시): Slow 4G 에서 폰트 하나가
+   **11,699 ms**, Slow 3G 에서 **46,561 ms** 회선을 물었다.
+
+   그 자리를 업스트림 dynamic subset 92 조각이 대신한다(`fonts.generated.css`). 종전 주석이
+   이 해법을 적어 두고 "needs assets this repository does not have" 로 막아 두었는데, 그 자산은
+   같은 릴리스가 이미 배포하고 있었고 저장소의 파일과 **sha256 이 같았다**. 다만 그 조각들이
+   커버리지를 다 갖지 못해 601 자짜리 보충 조각 하나를 함께 싣는다(아래, BQ-47).
+
+   **`font-display: swap` 과 「preload 하지 않는다」는 둘 다 유지한다.** 조각이 작아졌으니
+   preload 해도 되겠다고 보고 실제로 해 봤는데, 실측이 그것을 기각했다(2026-09-16, HTTP/2
+   프록시 · Slow 4G · 390×844 · 3 회):
+
+   | 구성 | 폰트 전송 | CSS 완료 | LCP |
+   |:---|---:|---:|---:|
+   | 전체 face · preload 없음 | 2,058 KB | 1,902 ms | 2,568 ms |
+   | 조각 · **preload 4** | 116 KB | 2,866 ms | 3,588 ms |
+   | 조각 · `fetchPriority=low` preload | 116 KB | 2,725 ms | 3,154 ms |
+   | **조각 · preload 없음** | **116 KB** | 2,212 ms | **2,622 ms** |
+
+   preload 한 116 KB 는 렌더를 막는 CSS 와 **같은 우선순위**로 회선을 나눠 쓴다. 그래서 CSS
+   완료가 650 ms 밀리고 LCP 가 그만큼 따라 밀린다 — `fetchPriority="low"` 로도 회복되지 않았다.
+   조각만 쓰고 preload 를 걷으면 LCP 는 전체 face 와 같아지면서 전송량만 6 배 줄어든다.
+   종전 주석이 적어 둔 근거("text must never wait on it")는 조각 뒤에도 그대로 참이다.
    ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   COVERAGE SUPPLEMENT — 업스트림 조각이 놓친 글리프
+
+   **업스트림 dynamic subset 은 전체 face 의 글리프를 다 갖고 있지 않다.** 같은 기계·같은
+   브라우저에서 두 face 를 나란히 띄워 글리프 advance 를 비교한 결과(2026-09-16, chromium
+   117 자 · webkit 68 자), 조각 쪽이 fallback 으로 떨어지는 자리가 있었다. 범위로 펴면
+   **651 개 코드포인트**이고 그중 전체 face 가 실제로 갖고 있던 것은 **601 자**다 — Latin-1
+   Supplement 와 Latin Extended-A/B 의 상당수(`á í ó ú ä ö ã õ ñ å` 등), 그리고 **키릴 전체**
+   (U+0400–U+04FF 커버 0 개). v1.3.9 가 최신이고 static·variable 양쪽 dynamic subset 모두
+   같으므로 업스트림에는 이 조건을 만족하는 묶음이 없다.
+
+   그래서 그 601 자만 담은 조각을 **한 번 만들어** 함께 싣는다. 이것이 저장소가 생성한 유일한
+   폰트 자산이며, 그 생성이 빌드 단계가 되지는 않는다 — 업스트림 릴리스가 바뀔 때만 다시 만든다.
+   생성 명령과 출처는 `docs/design/ds/SYNC.md` 가 아니라 `decision-register.md` BQ-47 이 갖는다.
+
+   범위는 조각들의 합집합의 **여집합**으로 기계 계산했으므로 조각과 겹치지 않는다 — 겹치면
+   나중 선언이 이겨서 그 문자 하나 때문에 모두가 이 파일을 받는다. 그 불변식은
+   `tests/unit/font-subset-manifest.test.ts` 가 지킨다.
+   ---------------------------------------------------------------------------- */
 @font-face {
   font-family: 'Pretendard Variable';
   font-weight: 45 920;
   font-style: normal;
   font-display: swap;
-  src: url('/fonts/PretendardVariable.woff2') format('woff2-variations');
+  src: url('/fonts/PretendardVariable.supplement.woff2') format('woff2-variations');
+  unicode-range: U+00a6, U+00af, U+00b5, U+00c1, U+00c3-00c5, U+00cc-00cd, U+00d1-00d3, U+00d5-00d6, U+00da, U+00dd, U+00e1, U+00e3-00e5, U+00ec-00ed, U+00f1-00f3, U+00f5-00f6, U+00fa, U+00fd, U+0100-0110, U+0112-0125, U+0128-0130, U+0134-0137, U+0139-013e, U+0143-0148, U+014c-0151, U+0154-0165, U+0168-024f, U+0400-052f;
 }
 
 /* ============================================================================
@@ -193,6 +228,7 @@
 
   /* motion */
   --ease-standard:  cubic-bezier(0.2, 0, 0, 1);
+  --ease-in:       cubic-bezier(0.4, 0, 1, 1);
   --ease-in-out:    cubic-bezier(0.45, 0, 0.2, 1);
   --dur-fast:       140ms;
   --dur-slow:       280ms;
@@ -209,7 +245,7 @@
   --label:   500 14px/1.4  var(--font-sans);
   --caption: 400 13px/1.45 var(--font-sans);
   --overline:600 12px/1.4  var(--font-sans);
-  --button:  600 15px/1    var(--font-sans);
+  --button:  600 15px/1.2  var(--font-sans);
 
   /* type — tracking helpers */
   --track-tight:   -0.01em;
@@ -335,6 +371,28 @@
   }
 }
 
+/* @mirror-begin mobile-type */
+/* 타이포의 뷰포트 축. 설계 정의(`docs/design/ds/colors_and_type.css`)의 모바일 열을 그대로
+   베낀 것이며 값은 거기서 고친다 — `tests/unit/design-tokens-dark-parity.test.ts` 가 세 번째
+   미러 쌍으로 이 구간을 대조한다.
+
+   `--shell-gutter` 가 보여 준 모양 그대로다: 토큰 하나에 미디어 쿼리를 달고 소비처는 그대로
+   둔다. 제목이 내려가고 작은 본문이 올라가는 두 방향이 함께 들어 있으며, 13px 무리(캡션·
+   오버라인·라벨·태그)는 밀도와 함께 판정하므로 여기 없다. */
+@media (max-width: 767px) {
+  :root {
+    --h1: 700 24px/1.25 var(--font-sans);
+    --h3: 600 18px/1.4  var(--font-sans);
+    --body-sm: 400 15px/1.55 var(--font-sans);
+
+    --t-card-title:        600 18px/1.4  var(--font-sans);
+    --t-card-subtitle:     400 16px/1.5  var(--font-sans);
+    --t-expanded-question: 600 20px/1.35 var(--font-sans);
+    --t-choice:            400 16px/1.5  var(--font-sans);
+  }
+}
+/* @mirror-end mobile-type */
+
 /* ---------------------------------------------------------------------------
    DARK — mirrored from docs/design/ds/colors_and_type.css
 
@@ -427,5 +485,32 @@
 @layer base {
   a {
     color: var(--ink);
+  }
+
+  /* 터치의 두 기본값. 둘 다 이 저장소에 없었다.
+
+     `overscroll-behavior-y: none` — 문서 루트에서 당겨-새로고침과 스크롤 체이닝을 끊는다.
+     시트와 드로어는 자기 본문에 `contain` 을 걸어 두었지만 그것은 **그 안**의 이야기이고,
+     페이지 자체를 위로 당겼을 때 일어나는 일은 누구도 정하지 않고 있었다.
+
+     `touch-action: manipulation` — 더블탭 확대를 끄는 대신 **탭 반응을 즉시** 만든다.
+     브라우저는 더블탭 가능성을 남겨 두려고 탭마다 약 300ms 를 기다리는데, 이 저장소는
+     Tailwind preflight 가 `-webkit-tap-highlight-color` 까지 껐으므로 그 대기 동안 화면이
+     아무 말도 하지 않았다. 확대는 핀치로 그대로 남는다(WCAG 1.4.4 는 핀치 확대를 요구하지
+     `user-scalable` 을 요구하지 않는다).
+
+     컨트롤에만 걸고 문서 전체에 걸지 않는 이유: 본문 텍스트에 `manipulation` 을 걸면 더블탭
+     단어 선택이 함께 사라진다. */
+  html {
+    overscroll-behavior-y: none;
+  }
+
+  button,
+  a[href],
+  [role='button'],
+  label,
+  input[type='checkbox'],
+  input[type='radio'] {
+    touch-action: manipulation;
   }
 }

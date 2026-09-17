@@ -7,7 +7,10 @@
     "history": "Verlauf",
     "blog": "Blog",
     "settings": "Einstellungen",
-    "theme": "Sprache ⋅ Thema",
+    "theme": "Thema",
+    "language": "Sprache",
+    "system": "System",
+    "themeEffective": "Derzeit angewendet",
     "light": "Hell",
     "dark": "Dunkel",
     "menu": "Menü",
@@ -20,8 +23,9 @@
     "skipToContent": "Zum Hauptinhalt springen"
   },
   "landing": {
-    "heroTitle": "Finde deinen Arbeitsrhythmus in einem Durchgang",
-    "heroBody": "Verfügbare Tests und Notizen aus dem Engineering-Blog finden sich in einem einzigen Katalog. Öffne eine Karte, wähle eine Aktion und gehe mit einer klaren Übergabe weiter.",
+    "pageTitle": "Finde deinen Arbeitsrhythmus",
+    "pageSubtitle": "Tests und Notizen, ein Katalog.",
+    "pageHeadAria": "Seitentitel",
     "comingSoon": "demnächst",
     "closeExpandedAria": "Erweiterte Karte schließen",
     "close": "Schließen",
@@ -30,7 +34,9 @@
     "metaAttempts": "abgeschlossen",
     "metaReadTime": "Min. Lesezeit",
     "metaViews": "Aufrufe",
-    "readMore": "Mehr lesen"
+    "readMore": "Mehr lesen",
+    "optedOutNotice": "{count, plural, =1 {1 Test benötigt die Analyse-Einwilligung.} other {# Tests benötigen die Analyse-Einwilligung.}}",
+    "optedOutNoticeAction": "Einwilligung ändern"
   },
   "test": {
     "progressLabel": "Fortschritt",
@@ -41,6 +47,12 @@
     "submit": "Absenden",
     "resultLabel": "Endergebnis",
     "resultBody": "Das Ergebnis wird aus deinen endgültigen Antworten berechnet, einschließlich einer aktualisierten Auswahl bei Frage 1.",
+    "resultPageTitle": "Ergebnis",
+    "resultTypeLabel": "Typ",
+    "resultErrorTitle": "Dieses Ergebnis lässt sich nicht öffnen",
+    "resultErrorBody": "Der Link ist unvollständig oder nicht mehr gültig.",
+    "resultRetake": "Test wiederholen",
+    "resultTakeTest": "Test machen",
     "goHome": "Zur Startseite",
     "goHistory": "Verlauf öffnen",
     "instructionTitle": "Bevor wir beginnen",
@@ -63,19 +75,32 @@
     "allArticles": "Alle Artikel"
   },
   "history": {
-    "title": "Lokaler Ergebnisverlauf",
-    "body": "Jeder abgeschlossene Durchlauf wird als eigenständiger Eintrag gespeichert (neueste zuerst, maximal 50).",
+    "title": "Verlauf",
+    "body": "Durchläufe auf diesem Gerät — neueste zuerst, bis zu 50.",
+    "emptyBody": "Auf diesem Gerät gibt es noch keine Durchläufe.",
+    "browseTests": "Tests ansehen",
+    "abandoned": "Abgebrochen",
     "clearAll": "Alles löschen",
-    "goHome": "Zur Startseite",
     "open": "Öffnen",
     "delete": "Löschen"
   },
+  "error": {
+    "notFoundTitle": "Diese Seite ist nicht hier",
+    "notFoundBody": "Die Adresse ist gültig, aber dort liegt nichts mehr.",
+    "entryBlockedTitle": "Dieser Test ließ sich nicht öffnen",
+    "entryBlockedBody": "Der Test wurde vielleicht zurückgezogen, oder der Link ist unvollständig. Im Katalog stehen die, die jetzt möglich sind.",
+    "crashTitle": "Dieser Bildschirm wurde nicht gezeichnet",
+    "crashBody": "Beim Aufbau dieser Seite ging etwas schief. Ein zweiter Versuch hilft meistens.",
+    "retry": "Erneut versuchen",
+    "backToLanding": "Zur Startseite"
+  },
   "consent": {
-    "regionLabel": "Cookie-Einwilligung",
-    "message": "Wir verwenden Cookies und ähnliche Technologien, damit der Dienst ordnungsgemäß funktioniert und um zu verstehen, wie er genutzt wird. Du kannst wählen, ob optionale Cookies erlaubt werden, und diese Auswahl jederzeit ändern.",
-    "accept": "Alle akzeptieren",
+    "regionLabel": "Analyse-Einwilligung",
+    "message": "Optionale Analysen zeigen, welche Tests enden. Antworten senden wir nicht.",
+    "accept": "Zulassen",
     "deny": "Ablehnen",
-    "preferences": "Präferenzen",
-    "preferencesTitle": "Der Präferenzen-Bereich kommt bald"
+    "recall": "Datenschutzeinstellungen",
+    "close": "Schließen",
+    "previousChoice": "Deine vorherige Auswahl"
   }
 }

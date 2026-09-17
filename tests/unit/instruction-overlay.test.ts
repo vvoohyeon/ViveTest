@@ -13,13 +13,13 @@ type OverlayProps = React.ComponentProps<typeof InstructionOverlay>;
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-function renderOverlay(props: OverlayProps): HTMLDivElement {
+function renderOverlay(props: Omit<OverlayProps, 'visible'> & {visible?: boolean}): HTMLDivElement {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
 
   act(() => {
-    root?.render(React.createElement(InstructionOverlay, props));
+    root?.render(React.createElement(InstructionOverlay, {visible: true, ...props}));
   });
 
   return container;

@@ -14,6 +14,14 @@ interface UseGnbTabRoutingInput {
   settingsOpen: boolean;
   closeSettingsImmediate: () => void;
   focusFirstLandingCardTrigger: () => boolean;
+  /**
+   * 순회를 목록 안에서 닫는다 — 모달 층(GNB 드로어)이 열린 동안만 참이다.
+   *
+   * `aria-modal="true"` 는 **주장**이고 이것이 그 주장을 사실로 만든다. 실측(2026-09-16):
+   * 트랩 없이 드로어를 연 채 Tab 을 22 회 누르면 17 번째부터 여섯 번이 드로어 뒤의 랜딩
+   * 카드로 나갔다 — 보이지도 않는 곳으로 포커스가 사라진다.
+   */
+  trapFocus: boolean;
 }
 
 interface UseGnbTabRoutingOutput {
@@ -46,6 +54,13 @@ function routeKeyboardWithinGnb(event: GnbTabRoutableEvent, input: UseGnbTabRout
   }
 
   const nextIndex = currentIndex + (event.shiftKey ? -1 : 1);
+
+  if (input.trapFocus) {
+    event.preventDefault();
+    targets[(nextIndex + targets.length) % targets.length]?.focus();
+    return;
+  }
+
   if (nextIndex >= 0 && nextIndex < targets.length) {
     event.preventDefault();
     targets[nextIndex]?.focus();

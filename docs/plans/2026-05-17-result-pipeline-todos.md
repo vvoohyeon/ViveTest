@@ -46,3 +46,15 @@
 ## 5. 사용자 확인이 필요한 결정
 
 결과 콘텐츠 스키마 자체(어떤 섹션을, 어떤 데이터로, 어떤 fallback 으로). 이 계획은 그것을 정하지 않는다 — Phase 9 의 본체다.
+## 6. step 3 단위 8 이 지은 것과 남긴 것 — 2026-09-16
+
+**주소가 생겼다.** `/{locale}/result/{variant}/{type}?{base64}` 가 라우트로 존재하고(`src/app/[locale]/result/[variant]/[type]/page.tsx`), §5.1 의 payload 코덱과 `type` 세그먼트 파싱이 그 뒤에 있으며, §6.3 의 실패 열 갈래가 전부 한 에러 화면으로 모인다(`assertion:RS-01` · `RS-02` · `RS-03`). 그러므로 이 문서 §2 의 「⑵ 관측할 블록이 없다」 중 **주소가 없다는 부분은 더 이상 사실이 아니다.**
+
+**그래도 착수 조건은 그대로다.** 이 라우트가 그리는 것은 `derived_type` 한 칸이고, 그 한 칸은 URL 이 이미 나르는 값을 그대로 보인 것이다 — 계산하지 않고 받아 적었다. 남은 것은 이 문서가 처음부터 말하던 둘이다.
+
+1. ~~**`response-projection.ts`** 는 여전히 export 가 없다~~ — **2026-09-16 에 구현됐다**(§3 의 1 번이 닫혔다). 회차가 끝나면 투영 → `computeScoreStats` → `deriveDerivedType` → `buildTypeSegment` → payload 인코딩을 거쳐 결과 주소로 `router.replace` 한다. **이 문서가 적어 둔 사상 하나는 틀렸다**: qualifier 는 `A → values[0]` 로 옮기는 것이 아니라 **옮기지 않는다** — 오버레이가 `QualifierFieldSpec.values` 를 그대로 토큰으로 쓰므로 런타임에 이미 토큰으로 저장돼 있고, 여기서 또 옮기면 같은 변환이 두 곳에 생긴다.
+2. **결과 콘텐츠 스키마**(§5)가 없으므로 `axis_chart` · `type_desc` 는 그릴 것이 없다. 단위 8 은 그 둘을 렌더하지 않고, `supportedSections` 도 읽지 않는다 — 읽으면 없는 내용을 위한 빈 컨테이너를 발명하게 된다(§6.4 는 그 fallback 을 **선언된 섹션**에 대해서만 요구한다).
+
+**동적 OG 도 만들지 않았다.** `[locale]/opengraph-image.tsx` 는 locale 을 갖지 않는 한 장이고 결과별 그림은 Phase 9 소관이다 — 공유 링크의 미리보기가 결과마다 달라야 한다는 결정 자체가 아직 없다.
+
+**Phase 9 세션이 §3 의 순서를 밟을 때 남은 것은 2 · 4 · 5 · 6 이다.** 1 번과 3 번은 닫혔다 — `ResultConnector` 가 주소를 만들어 `router.replace` 하고, 그 주소가 파생 타입을 나른다. 4 번(IntersectionObserver)은 **여전히 막혀 있다**: 관측할 `derived_type` 블록이 생기려면 2 번(콘텐츠 스키마)이 먼저다. 그때 옮길 발화 지점은 이제 `test-result-panel` 이 아니라 **결과 라우트**이고, 그 라우트는 서버 컴포넌트이므로 클라이언트 자식 하나가 필요하다.

@@ -236,6 +236,11 @@ describe('landing interaction reducer fingerprint (F1)', () => {
 
   // 고장 주입 — 지문이 실제로 변화를 잡는지 같은 스펙 안에서 보인다.
   // 이것이 없으면 지문은 조용히 초록이 되는 장치다.
+  // 지문 전체를 **두 번** 만드는 검사라 초 단위로 걸린다 — vitest 의 기본 제한 5,000ms 는 이
+  // 일에 맞춰 정해진 값이 아니다. 실측(2026-09-16): F1 3,072ms · F2 **6,281ms** · F3 785ms 이고
+  // F2 는 파일 셋만 나란히 돌려도 기본 제한을 넘는다. 즉 이 붉음은 조용한 기계에서만 초록이던
+  // 잠복이었고, 단위 9 가 파일 하나를 더하면서 드러났다. 단언은 그대로 두고 **제한만** 실제
+  // 소요에 맞춘다 — 매달린 검사는 여전히 여기서 걸린다.
   it('changes when a single reducer outcome is perturbed', () => {
     const perturbed: Reducer = (state, event) => {
       const next = reduceLandingInteractionState(state, event);
@@ -257,7 +262,7 @@ describe('landing interaction reducer fingerprint (F1)', () => {
     expect(faulty.byEvent[canonicalize({type: 'KEYBOARD_MODE_EXIT'})]).toBe(
       report.byEvent[canonicalize({type: 'KEYBOARD_MODE_EXIT'})]
     );
-  });
+  }, 30_000);
 
   it('keeps the documented initial state inside the enumerated space', () => {
     expect(enumerateStates()).toContainEqual(initialLandingInteractionState);

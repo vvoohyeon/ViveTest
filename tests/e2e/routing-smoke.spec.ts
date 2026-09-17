@@ -92,11 +92,18 @@ test.describe('Phase 1 routing smoke', () => {
     }
   });
 
-  test('@smoke segment-local domain errors resolve to segment not-found', async ({page}) => {
-    const response = await page.goto('/en/test/INVALID!');
-    expect(response?.status()).toBe(404);
-    await expect(page.getByTestId('segment-not-found').getByRole('heading', {name: 'That page is not here'})).toBeVisible();
+  // 종전에는 이 케이스가 404 + `segment-not-found` 였다. 그 404 는 **상태 코드만 있었다** —
+  // `[locale]` 안에서 해결되는 404 는 `<body>` 가 빈 Next 오류 문서로 나가므로, 스크립트를 돌리기
+  // 전에는 글자가 하나도 없었다(실측 2026-09-16). `req-test.md` §6.1 이 애초에 invalid variant 를
+  // 404 가 아니라 **에러 복구 페이지**로 정해 두었고, 형제 라우트(blog 상세)가 이미 그렇게 한다.
+  test('@smoke segment-local domain errors resolve to the recovery page, not an empty 404 document', async ({page}) => {
+    await page.goto('/en/test/INVALID!');
+
+    await expect(page).toHaveURL(/\/en\/test\/error\?variant=/u);
+    await expect(page.getByTestId('test-error-recovery')).toBeVisible();
     await expect(page.getByTestId('global-not-found')).toHaveCount(0);
+    // 모르는 **경로**는 여전히 404 다 — 그쪽은 프록시가 `[locale]` 밖에서 처리한다.
+    expect((await page.goto('/en/no-such-route'))?.status()).toBe(404);
   });
 
   test('@smoke assertion:B30-runtime-lazy-validation-error-route lazy validation failure redirects to the test error recovery stub without mounting runtime', async ({
@@ -116,15 +123,16 @@ test.describe('Phase 1 routing smoke', () => {
     await page.goto('/en/test/debug-sample');
 
     await expect(page).toHaveURL(/\/en\/test\/error\?variant=debug-sample$/u);
-    await expect(page.getByTestId('test-error-recovery')).toContainText(
-      '이 테스트에 진입할 수 없습니다 (variant: debug-sample)'
-    );
+    // 식별자는 **쿼리에 남고 화면에는 오지 않는다**(명세 §2-8) — 읽는 사람에게 `debug-sample` 은
+    // 아무 뜻이 없고, 보여 준다고 돌아갈 길이 생기지도 않는다. 문구는 읽는 사람의 언어를 따른다.
+    await expect(page.getByTestId('test-error-recovery')).toContainText('We could not open that test');
+    await expect(page.getByTestId('test-error-recovery')).not.toContainText('debug-sample');
     await expect(page.getByTestId('test-shell-card')).toHaveCount(0);
     await page.waitForTimeout(100);
     expect(telemetryRequests).toEqual([]);
 
     await page.goto('/en/test/error');
-    await expect(page.getByTestId('test-error-recovery')).toContainText('이 테스트에 진입할 수 없습니다');
+    await expect(page.getByTestId('test-error-recovery')).toContainText('We could not open that test');
     await expect(page.getByTestId('test-error-recovery')).not.toContainText('variant:');
   });
 
@@ -396,4 +404,55 @@ test.describe('Phase 1 routing smoke', () => {
     // 12 개가 서로 다른 문장이어야 한다 — 하나라도 같으면 그 locale 은 번역되지 않은 것이다.
     expect(new Set(seen.values()).size, `locale 별 문장이 겹친다: ${JSON.stringify([...seen])}`).toBe(locales.length);
   });
+});
+
+/**
+ * **사용자가 실제로 닿는 404 는 스크립트 없이도 글자를 낸다.**
+ *
+ * 이 파일의 다른 404 검사는 전부 JS 가 켜진 페이지에서 `getByTestId` 를 기다린다 —
+ * 즉 하이드레이션 **뒤**만 본다. 그래서 「상태 코드만 맞고 본문이 빈 문서」와 「서버가
+ * 본문을 낸 문서」를 구조적으로 구분하지 못한다. 단위 10 이 도달 가능한 404 를
+ * `[locale]` 밖으로 옮겨 그 결함을 해소했지만, **옮겼다는 사실 자체를 재는 검사가
+ * 없었다** — 여기가 그 자리다.
+ *
+ * 조건은 셋이고 마지막이 핵심이다. 상태가 404 이고, 탈출 링크가 보이고, 문서가
+ * `id="__next_error__"` 가 **아니다**. 셋째가 L51 이 말하는 빈 오류 문서의 표식이다 —
+ * 그것이면 앞의 둘은 하이드레이션이 끝난 뒤에야 참이 되고, JS 가 실패하면 영영 거짓이다.
+ */
+test.describe('Reachable 404 surfaces render without scripts', () => {
+  // 도달 가능한 404 의 **모양**을 적는다. 주소 하나가 아니라 프록시가 404 를 내는 네 갈래다.
+  const REACHABLE_404_SHAPES = [
+    {label: 'unknown root path', path: '/foo'},
+    {label: 'unknown path under a known locale', path: '/en/no-such-route'},
+    {label: 'unknown locale', path: '/zz'},
+    {label: 'duplicate locale prefix', path: '/ja/ja/blog'}
+  ] as const;
+
+  for (const shape of REACHABLE_404_SHAPES) {
+    test(`@smoke assertion:NF-01 ${shape.label} serves its body from the server`, async ({browser}) => {
+      const context = await browser.newContext({javaScriptEnabled: false});
+      const page = await context.newPage();
+
+      try {
+        const response = await page.goto(shape.path);
+        expect(response?.status(), `${shape.path} 가 404 가 아니다`).toBe(404);
+
+        const html = await page.content();
+        expect(
+          html,
+          `${shape.path} 가 빈 Next 오류 문서로 나갔다 — 상태 코드만 있고 본문이 없다(L51)`
+        ).not.toContain('id="__next_error__"');
+
+        // 스크립트가 없으므로 이 셋이 보인다는 것은 **서버가 그렸다**는 뜻이다.
+        await expect(page.getByTestId('global-not-found')).toBeVisible();
+        await expect(page.getByRole('heading', {name: 'That page is not here'})).toBeVisible();
+        await expect(
+          page.getByRole('link', {name: 'Return home'}),
+          '탈출 링크가 없다 — JS 가 실패하면 나갈 길이 0 이다'
+        ).toBeVisible();
+      } finally {
+        await context.close();
+      }
+    });
+  }
 });

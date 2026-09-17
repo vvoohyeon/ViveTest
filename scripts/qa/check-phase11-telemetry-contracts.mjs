@@ -266,9 +266,11 @@ if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
       fail(`Theme matrix case ${matrixCase.id} must express locale-aware routes via {locale}.`);
     }
 
+    // `/test/error` 는 variant 라우트가 아니라 복구 화면이다 — 대표 variant 정렬 규칙의 대상이 아니다.
     if (
       representativeVariant &&
       matrixCase.routeTemplate.includes('/test/') &&
+      matrixCase.routeTemplate !== '/{locale}/test/error' &&
       matrixCase.routeTemplate !== `/{locale}/test/${representativeVariant}`
     ) {
       fail(
@@ -289,6 +291,18 @@ if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
       if (!viewports[viewportKey]) {
         fail(`Theme matrix case ${matrixCase.id} references unknown viewport key ${viewportKey}.`);
       }
+    }
+
+    // 캡처 루트를 직접 적는 케이스는 **`.page-shell` 이 없는 표면**이다(복구 화면·404).
+    // 임의의 선택자를 허용하면 다음 세션이 「잘 찍히는 조각」을 골라 피사체를 좀힐 수 있으므로
+    // 문서 전체를 덮는 둘만 받는다.
+    if (matrixCase.captureRoot !== undefined && !['main', 'body'].includes(matrixCase.captureRoot)) {
+      fail(`Theme matrix case ${matrixCase.id} may only widen its capture root to main or body.`);
+    }
+
+    // 동의 축은 상태 이름으로만 적는다 — 임의 문자열이 들어오면 시드가 조용히 안 된다.
+    if (matrixCase.consent !== undefined && !['UNKNOWN', 'OPTED_IN', 'OPTED_OUT'].includes(matrixCase.consent)) {
+      fail(`Theme matrix case ${matrixCase.id} declares an unknown consent state ${matrixCase.consent}.`);
     }
   }
 
@@ -345,7 +359,10 @@ if (fileExists(e2e.themeMatrixSmoke)) {
     fail('Theme matrix smoke must wait for expanded desktop/mobile representative states before capturing screenshots.');
   }
 
-  if (!/gnb-settings-panel/u.test(e2eSpec) || !/test-result-panel/u.test(e2eSpec)) {
+  // 결과 표면의 앵커가 `test-result-panel` 에서 `result-screen` 으로 옮겨 갔다 — 제출이 결과
+  // **주소**로 이동하면서 피사체가 인계 패널에서 도착 화면으로 바뀌었기 때문이다(명세 §2-6).
+  // manifest 의 케이스 이름(`test-result` · `mobile-test-result`)은 그대로다.
+  if (!/gnb-settings-panel/u.test(e2eSpec) || !/result-screen/u.test(e2eSpec)) {
     fail('Theme matrix smoke must include destination settings-open and test-result representative states.');
   }
 }

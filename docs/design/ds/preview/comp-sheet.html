@@ -18,16 +18,16 @@
      하므로 레이어만 absolute 로 바꾼다. 시트 자신의 규칙은 건드리지 않는다. */
   .vt-sheet-layer { position: absolute; }
   .rule { border: 0; border-top: 1px solid var(--hairline); margin: 14px 0; }
-  /* `.t-caption` 은 **font 만** 정하고 색은 `--muted`(4.23:1)를 물고 온다. 시스템의
-     컴포넌트는 전부 `--muted-aa` 로 덮어쓰지만(`.vt-datarow__key` · `.vt-settings__label`)
-     손으로 쓴 마크업은 그것을 잊는다 — 이 specimen 이 그랬고 대비 전수 검사가 잡았다. */
-  .vt-sheet__body .t-caption { color: var(--muted-aa); }
+  /* 종전에 이 자리에 `.vt-sheet__body .t-caption { color: var(--muted-aa) }` 가 있었다.
+     `.t-caption` 이 `--fg3` 를 물고 오고 그것이 4.23:1 이었기 때문인데, 그 국소 덮어쓰기는
+     같은 결함을 다음 손수 마크업에서 다시 만나게 할 뿐이었다(D-20). `--fg3` 자체가 교정값을
+     가리키므로 여기 덮어쓸 것이 없다 — 규칙이 사라진 자리를 비워 두지 않고 적어 둔다. */
 </style></head>
 <body>
 
 <div class="col">
   <span class="lab">Card sheet — light</span>
-  <div class="phone vive">
+  <div class="phone vive vt-phone">
     <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
       <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
       <div class="vt-gnb__col vt-gnb__col--end"><button class="vt-pill vt-pill--gnb">Menu</button></div>
@@ -59,7 +59,7 @@
 
 <div class="col">
   <span class="lab">Instruction sheet — modal, light</span>
-  <div class="phone vive">
+  <div class="phone vive vt-phone">
     <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
       <div class="vt-gnb__col"><button class="vt-pill vt-pill--gnb">Back</button></div>
       <div class="vt-gnb__col vt-gnb__col--center"><span class="t-label">Quick MBTI</span></div>
@@ -90,7 +90,7 @@
 
 <div class="col">
   <span class="lab">Card sheet — dark</span>
-  <div class="phone vive" data-theme="dark">
+  <div class="phone vive vt-phone" data-theme="dark">
     <header class="vt-gnb"><div class="vt-gnb__inner vt-gnb__inner--mobile">
       <div class="vt-gnb__col"><a class="vt-gnb__brand" href="#">ViveTest</a></div>
       <div class="vt-gnb__col vt-gnb__col--end"><button class="vt-pill vt-pill--gnb">Menu</button></div>

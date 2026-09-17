@@ -1,7 +1,6 @@
 'use client';
 
 import {useCallback} from 'react';
-import type {RefObject} from 'react';
 
 import {isVisibleFocusableGnbElement} from '@/features/gnb/gnb-keyboard-dom';
 import type {MobileMenuState} from '@/features/gnb/types';
@@ -11,7 +10,6 @@ interface UseGnbKeyboardTargetsInput {
   mobileMenuPanelId: string;
   settingsOpen: boolean;
   mobileMenuState: MobileMenuState;
-  mobileMenuTriggerRef: RefObject<HTMLButtonElement | null>;
 }
 
 interface UseGnbKeyboardTargetsOutput {
@@ -22,7 +20,7 @@ const GNB_TARGET_SELECTOR = 'a[href], button';
 const GNB_PANEL_SELECTOR = '[data-testid="gnb-settings-panel"], [data-testid="gnb-mobile-menu-panel"]';
 
 export function useGnbKeyboardTargets(input: UseGnbKeyboardTargetsInput): UseGnbKeyboardTargetsOutput {
-  const {settingsPanelId, mobileMenuPanelId, settingsOpen, mobileMenuState, mobileMenuTriggerRef} = input;
+  const {settingsPanelId, mobileMenuPanelId, settingsOpen, mobileMenuState} = input;
 
   const getOrderedKeyboardTargets = useCallback((): HTMLElement[] => {
     if (typeof document === 'undefined') {
@@ -68,13 +66,15 @@ export function useGnbKeyboardTargets(input: UseGnbKeyboardTargetsInput): UseGnb
       return [];
     }
 
+    // 드로어가 열리면 순회는 **패널 안에서 닫힌다**(명세 §2-4 의 포커스 트랩). 종전에는 목록이
+    // 햄버거로 시작했는데, 패널은 바 위층이라 그 버튼을 덮는다 — 보이지 않는 컨트롤이 첫
+    // 탭 스톱이었다는 뜻이다. 이제 닫기는 패널 헤더 안에 보이는 것으로 있다.
     if (mobileMenuState !== 'closed') {
-      const trigger = mobileMenuTriggerRef.current;
-      return [...(isVisibleFocusableGnbElement(trigger) ? [trigger] : []), ...getPanelTargets(mobilePanel)];
+      return getPanelTargets(mobilePanel);
     }
 
     return mobileTargets;
-  }, [mobileMenuPanelId, mobileMenuState, mobileMenuTriggerRef, settingsOpen, settingsPanelId]);
+  }, [mobileMenuPanelId, mobileMenuState, settingsOpen, settingsPanelId]);
 
   return {getOrderedKeyboardTargets};
 }

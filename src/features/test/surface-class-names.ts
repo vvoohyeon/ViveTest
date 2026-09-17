@@ -29,7 +29,6 @@ import {
   buttonFormBaseClassName,
   buttonPrimaryClassName,
   buttonPrimaryLiftClassName,
-  buttonPrimaryPressedClassName,
   buttonQuietClassName,
   buttonSecondaryClassName,
   focusRingClassName,
@@ -56,7 +55,7 @@ export const testScrimClassName = 'bg-[var(--overlay-scrim-medium)]';
  * 짓는다. 폼·다이얼로그의 바탕에 세 의도를 얹은 것이며, primary 만 눌림과 1px lift 를 갖는다.
  */
 export const testPrimaryButtonClassName =
-  `${buttonFormBaseClassName} ${buttonPrimaryClassName} ${buttonPrimaryPressedClassName} ${buttonPrimaryLiftClassName}`;
+  `${buttonFormBaseClassName} ${buttonPrimaryClassName} ${buttonPrimaryLiftClassName}`;
 
 export const testSecondaryButtonClassName = `${buttonFormBaseClassName} ${buttonSecondaryClassName}`;
 
@@ -80,7 +79,7 @@ export const testQuietButtonClassName = `${buttonFormBaseClassName} ${buttonQuie
  * (구성 표본)은 앞. 컴포넌트 정의와 명세 산문이 일치하는 쪽을 따른다.
  */
 export const testAnswerChoiceClassName =
-  `group/answer flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] px-3.5 py-3 text-left [transition-property:border-color,background-color] ${skinTransitionClassName} hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)] disabled:cursor-default ${focusRingClassName}`;
+  `group/answer flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] px-3.5 py-3 text-left [transition-property:border-color,background-color] ${skinTransitionClassName} hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] active:border-[var(--accent)] active:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)] disabled:cursor-default ${focusRingClassName}`;
 
 /**
  * 마크 슬롯. **항상 렌더되는 고정 크기 상자**이고 그것이 이 자리의 핵심이다 — 세 상태가
@@ -99,7 +98,9 @@ export const testAnswerChoiceTextClassName =
 
 /** `.vt-chip` — 자격 문항 재진입 칩. */
 export const testChipClassName =
-  `inline-flex w-fit min-h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] px-[11px] py-[5px] text-[13px] font-semibold leading-[1.45] text-[var(--ink-body)] [transition-property:background-color,border-color] ${skinTransitionClassName} hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] ${focusRingClassName}`;
+  // ds-literal: partial-role --caption — 크기만 같다. 무게 600 · 행간 1.45 로, 토큰의 400 을
+  // 단축으로 실으면 옆의 `font-semibold` 가 진다.
+  `inline-flex w-fit min-h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] px-[11px] py-[5px] text-[13px] font-semibold leading-[1.45] text-[var(--ink-body)] [transition-property:background-color,border-color] ${skinTransitionClassName} hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] active:border-[var(--border-strong)] active:bg-[var(--surface-strong)] ${focusRingClassName}`;
 
 /** `.vt-datarow` — 라벨과 값의 조용한 한 줄(`design.md` §6.10). */
 export const testDataRowClassName =

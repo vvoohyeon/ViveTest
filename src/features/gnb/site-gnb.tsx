@@ -5,7 +5,12 @@ import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {useCallback, useEffect, useId, useMemo, useRef} from 'react';
 
-import type {AppLocale} from '@/config/site';
+import {localeOptions, type AppLocale} from '@/config/site';
+import {
+  gnbControlHitClassName,
+  gnbControlShellClassName
+} from '@/features/gnb/components/gnb-control-class-names';
+import {GnbMobileDrawer} from '@/features/gnb/components/gnb-mobile-drawer';
 import {SettingsControls} from '@/features/gnb/components/settings-controls';
 import {ThemeModeIcon} from '@/features/gnb/components/theme-mode-icon';
 import {shouldOpenDesktopSettingsByHover} from '@/features/gnb/behavior';
@@ -18,8 +23,8 @@ import {useGnbTabRouting} from '@/features/gnb/hooks/use-gnb-tab-routing';
 import {useGnbMobileMenu} from '@/features/gnb/hooks/use-gnb-mobile-menu';
 import {getTransitionOrigin} from '@/features/gnb/hooks/theme-transition';
 import {useThemePreference} from '@/features/gnb/hooks/use-theme-preference';
-import type {GnbContext} from '@/features/gnb/types';
-import {focusRingClassName} from '@/features/ui/button-class-names';
+import type {GnbContext, ThemePreference} from '@/features/gnb/types';
+import {discardOverlayHistoryEntry, useOverlayHistoryEntry} from '@/features/ui/use-overlay-history-entry';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder, type LocaleFreeRoute} from '@/lib/routes/route-builder';
 
@@ -27,6 +32,11 @@ interface SiteGnbProps {
   locale: AppLocale;
   context: GnbContext;
   currentRoute: LocaleFreeRoute;
+  /**
+   * 모바일 띄의 화면 이름(명세 §2-3). 지금은 테스트 표면만 준다 — instruction 이 열려
+   * 있는 동안 카드의 `h1` 이 시트 뒤에 가려 **지금 어디인지를 말하는 것이 하나도 없었다.**
+   */
+  screenTitle?: string;
 }
 
 // design.md 6.7: flat until content scrolls beneath it, then a hairline. The bar
@@ -49,62 +59,59 @@ const gnbBrandLinkClassName =
 const gnbDesktopLinksClassName = 'gnb-desktop-links flex items-center gap-4';
 // The rest colour is `--muted-aa`, not `--muted`: BQ-29 measured `--muted` at
 // 4.23:1 on white, and a nav link is normal-sized text however small it looks.
+// ds-literal: off-ladder — 0.96rem = 15.36px. `--button` 15px 이 가장 가깝지만 그것은 무게
+// 600 이고 이 링크는 기본 무게다. 이 크기는 옆의 설정 트리거와 함께 서야 하는 값이고
+// (`assertion:GN-04` 가 둘을 같게 고정한다) 사다리에는 없다.
 const gnbDesktopLinkClassName =
-  'gnb-desktop-link relative py-2 text-[0.96rem] text-[color:var(--muted-aa)] [transition-duration:140ms] [transition-property:color] [transition-timing-function:ease] motion-reduce:transition-none hover:text-[color:var(--ink)] aria-[current=page]:text-[color:var(--ink)]';
+  'gnb-desktop-link relative py-2 text-[0.96rem] text-[color:var(--muted-aa)] [transition-duration:140ms] [transition-property:color] [transition-timing-function:ease] motion-reduce:transition-none hover:text-[color:var(--ink)] active:text-[color:var(--ink)] aria-[current=page]:text-[color:var(--ink)]';
 // design.md 7.6 asks the menu to mark its current item with a dot. Same signal on
 // the desktop row and in the drawer rather than inventing a second one.
 const gnbDesktopLinkCurrentMarkerClassName =
   'gnb-desktop-link-marker pointer-events-none absolute bottom-0 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[var(--accent)]';
-// D-09: design.md 4.10 names the hamburger and the close button at 44x44. Fixed on
-// the shared pill rather than on one button, so back / menu / settings all clear it.
-//
-// 포커스 링은 `focusRingClassName` 을 그대로 쓴다. 종전에는 두 층 box-shadow 였고 안쪽 층이
-// `--canvas` 였는데, 그것은 *페이지* 지면이지 *이 요소의* 지면이 아니다 — 실측(2026-09-10,
-// chromium): 링 안쪽 틈이 `241,243,239` 인데 바로 바깥 지면은 `251,250,247` 이라, 투명한
-// 틈이 아니라 옅은 크림색 테가 하나 더 보였다. `outline-offset` 은 아무것도 칠하지 않으므로
-// 어떤 표면 위에서든 지면이 그대로 비친다.
-const gnbInteractiveButtonBaseClassName =
-  `inline-flex min-h-[var(--tap-min)] cursor-pointer items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-muted)] px-3 py-[7px] text-[0.88rem] font-semibold text-[var(--ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-strong)] ${focusRingClassName}`;
+// 레이어의 우측 상단 모서리가 트리거의 우측 상단 모서리와 **일치**한다(규칙 8). 뿌리를
+// `items-center` 로 두어 그 상자가 44px 히트 영역과 같아지고, 그 안에서 36px 껍데기의 위쪽
+// 여백이 4px 이다 — 레이어의 `top` 은 그 뺄셈의 결과다.
 const gnbSettingsRootClassName =
-  'gnb-settings-root relative flex items-stretch [--gnb-settings-trigger-size:var(--tap-min)] [--gnb-settings-trigger-icon-size:18px] [--gnb-settings-panel-base-width:324px] [--gnb-settings-panel-extra-top:12px] [--gnb-settings-panel-inner-left:15px] [--gnb-settings-panel-extra-right:var(--gnb-settings-panel-inner-left)] [--gnb-settings-panel-inner-bottom:15px]';
-const gnbSettingsTriggerClassName =
-  `${gnbInteractiveButtonBaseClassName} gnb-settings-trigger h-[var(--gnb-settings-trigger-size)] w-[var(--gnb-settings-trigger-size)] shrink-0 !p-0`;
+  'gnb-settings-root relative flex items-center [--gnb-settings-control-size:var(--tap-min)] [--gnb-settings-trigger-icon-size:18px]';
+// 명세 §2-9 — 조용한 pill 이다. 테두리도 배경도 없고 글자 무게는 기본값이며, 옆의 `History`·
+// `Blog` 텍스트 링크와 같은 무게로 선다(규칙 7). hover 에서만 면이 들어온다.
+// ds-literal: off-ladder — 0.96rem = 15.36px. 위 nav 링크와 **같은 값이어야 한다**(규칙 7,
+// `assertion:GN-04`). 두 자리가 같은 리터럴을 쓰는 것이 여기서는 결함이 아니라 계약이다.
+const gnbSettingsTriggerShellClassName =
+  'gnb-settings-trigger-shell pointer-events-none inline-flex h-9 items-center gap-2 rounded-full border border-transparent bg-transparent px-3 text-[0.96rem] font-normal text-[color:var(--ink-body)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] group-hover:bg-[var(--surface-muted)] group-focus-visible:[outline:2px_solid_var(--focus-ring)] group-focus-visible:[outline-offset:2px]';
+const gnbSettingsTriggerLocaleClassName = 'gnb-settings-trigger-locale truncate';
+const gnbSettingsTriggerDividerClassName =
+  'gnb-settings-trigger-divider h-4 w-px shrink-0 bg-[var(--hairline-strong)]';
 const gnbSettingsTriggerIconClassName =
   'gnb-settings-trigger-icon h-[var(--gnb-settings-trigger-icon-size)] w-[var(--gnb-settings-trigger-icon-size)] shrink-0';
 // design.md 6.6 / 6.8: the layer is an overlay surface -- `--surface-raised` with a
 // `--border-strong` edge, the same pair the drawer takes and for the same measured
 // reason in dark. Identical to the previous fill in light (both resolve to #fff).
+//
+// `top-1` 은 (44 − 36) / 2 = 4px 이고 `right-0` 은 히트 상자의 우변이다 — 그 둘이 곧 껍데기의
+// 우측 상단 모서리다. 레이어는 트리거를 **덮으며** 아래·왼쪽으로 펼쳐진다(규칙 8).
 const gnbSettingsPanelClassName =
-  "gnb-settings-panel absolute z-[1] grid isolate rounded-b-[12px] top-[calc(var(--gnb-settings-panel-extra-top)*-1)] right-[calc(var(--gnb-settings-panel-extra-right)*-1)] [width:min(calc(var(--gnb-settings-panel-base-width)_+_var(--gnb-settings-panel-extra-right)),calc(100vw_-_24px_+_var(--gnb-settings-panel-extra-right)))] [grid-template-columns:minmax(0,1fr)_var(--gnb-settings-panel-extra-right)] [grid-template-rows:var(--gnb-settings-panel-extra-top)_auto] before:pointer-events-none before:absolute before:z-0 before:content-[''] before:[inset:-1px_0_0_0] before:rounded-[inherit] before:bg-[var(--surface-raised)] after:pointer-events-none after:absolute after:z-0 after:content-[''] after:inset-0 after:rounded-[inherit] after:[border-right:1px_solid_var(--border-strong)] after:[border-bottom:1px_solid_var(--border-strong)] after:[border-left:1px_solid_var(--border-strong)] after:shadow-[var(--shadow-overlay)]";
-const gnbBackButtonClassName = `${gnbInteractiveButtonBaseClassName} gnb-back-button`;
-const gnbMenuTriggerClassName = `${gnbInteractiveButtonBaseClassName} gnb-menu-trigger`;
+  'gnb-settings-panel absolute right-0 top-1 z-[1] w-[min(324px,calc(100vw_-_24px))] rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] p-[15px] shadow-[var(--shadow-overlay)]';
 const gnbDesktopTimerClassName = 'gnb-desktop-timer m-0 font-semibold tabular-nums text-[var(--ink-body)]';
 const gnbMobileTimerClassName = 'gnb-mobile-timer m-0 font-semibold tabular-nums text-[var(--ink-body)]';
-const gnbMobileLayerClassName = 'gnb-mobile-layer fixed inset-0 z-[1200]';
-const gnbMobileBackdropClassName =
-  'gnb-mobile-backdrop absolute inset-0 bg-[var(--overlay-scrim-strong)] [transition:opacity_180ms_ease] data-[state=closing]:opacity-0';
-// `--surface-raised` and a `--border-strong` edge, per design.md 6.8. The edge is
-// load-bearing in dark: the scrim can only dim a near-black page 1.04:1, so the
-// panel's own boundary is what separates it (4.73:1 against the scrimmed ground).
-const gnbMobilePanelClassName =
-  'gnb-mobile-panel absolute right-0 top-0 flex h-screen max-h-screen w-[min(87vw,340px)] flex-col gap-5 overflow-y-auto border-l border-[var(--border-strong)] bg-[var(--surface-raised)] px-4 pt-4 pb-[calc(32px+env(safe-area-inset-bottom,0px))] opacity-100 shadow-[var(--shadow-overlay)] overscroll-contain [height:100dvh] [max-height:100dvh] [-webkit-overflow-scrolling:touch] [transform:translateX(0)] [transition:transform_180ms_ease,opacity_180ms_ease] motion-reduce:[transition:opacity_180ms_ease] motion-reduce:data-[state=closing]:translate-x-0 data-[state=closing]:translate-x-[12px] data-[state=closing]:opacity-0';
-// The head names the surface, matching the foot's overline. It deliberately carries
-// NO close control: the panel sits above the bar (z 1200 over 1100) and covers the
-// hamburger, so while the drawer is open there is no visible close affordance --
-// measured with elementFromPoint at the hamburger's centre, which returns the panel.
-// The specimen answers that with a 44x44 close in this row, but adding a focusable
-// control here re-orders the drawer's tab traversal, which two @smoke keyboard-matrix
-// checks fix. Behaviour outranks the visual, so the control is deferred rather than
-// landed here.
-const gnbMobileHeadClassName = 'gnb-mobile-head flex min-h-10 items-center gap-3';
-const gnbMobileHeadLabelClassName =
-  'gnb-mobile-head-label text-[0.78rem] font-bold uppercase leading-none tracking-[0.03em] text-[color:var(--muted-aa)]';
-const gnbMobileLinksClassName = 'gnb-mobile-links grid gap-1';
-const gnbMobileLinkClassName =
-  'gnb-mobile-link -mx-3 flex min-h-[var(--tap-min)] items-center gap-2 rounded-[8px] px-3 text-base font-semibold [transition:background-color_140ms_ease] motion-reduce:transition-none hover:bg-[var(--surface-sunken)]';
-const gnbMobileLinkCurrentMarkerClassName =
-  'gnb-mobile-link-marker pointer-events-none h-[5px] w-[5px] flex-none rounded-full bg-[var(--accent)]';
-const gnbMobileSettingsClassName = 'gnb-mobile-settings mt-auto grid gap-3';
+/**
+ * 화면 이름의 띄 — 명세 §2-3 · §4 결함 1.
+ *
+ * **중앙 정렬의 기준은 컬테이너 전체 폭이다.** 양쪽 컨트롤을 열로 두고 그 사이에서 가운데
+ * 정렬하면 둘의 폭이 다를 때마다 제목이 한쪽으로 밀린다 — `Back` 과 타이머는 글자 수가 다르고
+ * 12 locale 에서 그 차가 더 벌어진다. 그래서 제목이 띄의 전체 폭을 갖고 컨트롤 둘은 절대 위치로
+ * **엹힌다.** 양쪽 예약 폭은 하나의 값(`--gnb-title-reserve`)이므로 좌우가 어긋날 수 없다.
+ *
+ * 접힘을 방치하지 않는다(§4 결함 3) — 긴 이름은 한 줄로 잘린다.
+ *
+ * 예약 폭 88px 는 고른 값이 아니라 재서 나온 것이다 — 12 locale 에서 `Back` 이 가장 넓은 것이
+ * `id`(`Kembali`, 우변 93.9px)이고 그것을 넘기는 최소값에 여유를 더했다. 상수가 아니라
+ * **겹치지 않음**이 계약이고, `assertion:TB-01` 이 12 locale × 두 폭에서 그것을 재다.
+ */
+const gnbMobileTitleClassName =
+  'gnb-mobile-title pointer-events-none m-0 w-full truncate px-[var(--gnb-title-reserve)] text-center [font:var(--label)] !font-semibold text-[var(--ink)]';
+const gnbMobileTitleBarClassName = `${gnbMobileInnerClassName} relative [--gnb-title-reserve:88px]`;
+const gnbMobileTitleSideClassName = 'gnb-column absolute inset-y-0 flex items-center';
 
 function isCurrentSection(currentRoute: LocaleFreeRoute, section: 'landing' | 'history' | 'blog'): boolean {
   if (section === 'landing') {
@@ -118,12 +125,12 @@ function isCurrentSection(currentRoute: LocaleFreeRoute, section: 'landing' | 'h
   return currentRoute.pathname === '/blog' || currentRoute.pathname === '/blog/[variant]';
 }
 
-export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
+export function SiteGnb({locale, context, currentRoute, screenTitle}: SiteGnbProps) {
   const t = useTranslations('gnb');
   const router = useRouter();
   const pathname = usePathname();
   const {viewportWidth, hoverCapable, elevated} = useGnbCapability();
-  const {resolvedTheme, applyTheme} = useThemePreference();
+  const {themePreference, resolvedTheme, applyTheme} = useThemePreference();
   const settingsPanelId = useId();
   const mobileMenuPanelId = useId();
 
@@ -174,8 +181,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     settingsPanelId,
     mobileMenuPanelId,
     settingsOpen,
-    mobileMenuState,
-    mobileMenuTriggerRef
+    mobileMenuState
   });
 
   const boundFocusFirstLandingCard = useCallback(() => focusFirstLandingCardTrigger(), []);
@@ -185,7 +191,16 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     isLandingContext,
     settingsOpen,
     closeSettingsImmediate,
-    focusFirstLandingCardTrigger: boundFocusFirstLandingCard
+    focusFirstLandingCardTrigger: boundFocusFirstLandingCard,
+    trapFocus: mobileMenuState !== 'closed'
+  });
+
+  // 규칙 3 — 설정 레이어도 시스템 뒤로가기로 닫힌다. 드로어와 시트만 답하고 이 층은 페이지를
+  // 떠나게 두면 같은 제스처가 표면마다 다른 뜻이 된다.
+  useOverlayHistoryEntry({
+    layerId: 'gnb-desktop-settings',
+    open: settingsOpen,
+    onPopClose: closeSettingsImmediate
   });
 
   const handleLocaleChange = useCallback(
@@ -196,6 +211,9 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
 
       closeSettingsImmediate();
       closeMobileMenuImmediate();
+      // 층을 닫고 **동시에** 페이지를 떠난다 — 닫힌 층이 제 항목을 되돌리려 들면 그 되돌림이
+      // 방금의 이동을 지운다. 표시를 먼저 걷어 되돌릴 것이 없게 한다.
+      discardOverlayHistoryEntry();
       router.push(buildLocalizedPath(currentRoute, nextLocale));
     },
     [closeMobileMenuImmediate, closeSettingsImmediate, currentRoute, locale, router]
@@ -233,20 +251,61 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
 
   const settingsLabels = {
     theme: t('theme'),
+    language: t('language'),
+    settings: t('settings'),
+    system: t('system'),
     light: t('light'),
-    dark: t('dark')
+    dark: t('dark'),
+    effective: t('themeEffective')
   };
+
+  const currentLocaleLabel = localeOptions.find(({code}) => code === locale)?.label ?? locale;
+  // 타이틀은 모바일 테스트 띄에만 둔다. 럜딩·블로그·히스토리는 GNB 자체가 현재 위치를 표시하고
+  // (드로어의 sage 점), 데스크톱은 중앙 열에 타이머가 이미 서 있다.
+  const showMobileTitle = context === 'test' && typeof screenTitle === 'string' && screenTitle.length > 0;
+
+  const handleDesktopThemeChange = useCallback(
+    (preference: ThemePreference, sourceEl: HTMLElement | null) => {
+      const transitionOrigin = sourceEl ? getTransitionOrigin(sourceEl) : undefined;
+
+      closeSettingsImmediate();
+      applyTheme(preference, {transitionOrigin});
+    },
+    [applyTheme, closeSettingsImmediate]
+  );
+
+  const handleMobileThemeChange = useCallback(
+    (preference: ThemePreference, sourceEl: HTMLElement | null) => {
+      applyTheme(preference, {sourceEl});
+    },
+    [applyTheme]
+  );
+
+  const drawerNavItems = useMemo(
+    () =>
+      (
+        [
+          {key: 'landing', href: homeHref, label: t('home'), scroll: false},
+          {key: 'history', href: historyHref, label: t('history'), scroll: true},
+          {key: 'blog', href: blogHref, label: t('blog'), scroll: true}
+        ] as const
+      ).map((item) => ({
+        ...item,
+        current: isCurrentSection(currentRoute, item.key)
+      })),
+    [blogHref, currentRoute, historyHref, homeHref, t]
+  );
 
   const desktopLeading =
     context === 'test' ? (
       <button
         type="button"
-        className={gnbBackButtonClassName}
+        className={gnbControlHitClassName}
         onClick={handleTestBack}
         aria-label={t('backAria')}
         data-testid="gnb-desktop-test-back"
       >
-        {t('back')}
+        <span className={gnbControlShellClassName}>{t('back')}</span>
       </button>
     ) : (
       <Link href={{pathname: homeHref}} className={`${gnbBrandLinkClassName}`} scroll={false}>
@@ -264,7 +323,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <Link
           className={gnbDesktopLinkClassName}
           href={{pathname: historyHref}}
-         
           aria-current={isCurrentSection(currentRoute, 'history') ? 'page' : undefined}
         >
           {t('history')}
@@ -275,7 +333,6 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <Link
           className={gnbDesktopLinkClassName}
           href={{pathname: blogHref}}
-         
           aria-current={isCurrentSection(currentRoute, 'blog') ? 'page' : undefined}
         >
           {t('blog')}
@@ -297,13 +354,15 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       >
         <button
           type="button"
-          className={gnbSettingsTriggerClassName}
-          aria-label={t('settings')}
-          title={t('settings')}
+          className={gnbControlHitClassName}
+          // 보이는 글자가 값(현재 언어)이므로 접근 가능한 이름이 그것을 포함해야 한다
+          // (WCAG 2.5.3) — 이름만 `Settings` 로 두면 「English」라고 말한 사용자의 음성
+          // 명령이 이 컨트롤에 닿지 않는다.
+          aria-label={`${t('settings')} — ${currentLocaleLabel}`}
           aria-expanded={settingsOpen}
           aria-controls={settingsPanelId}
           data-current-theme={resolvedTheme}
-         
+          data-theme-preference={themePreference}
           onFocus={() => {
             if (!hoverOpenEnabled) {
               openSettingsImmediate();
@@ -312,7 +371,11 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           onClick={toggleSettingsOpen}
           data-testid="gnb-settings-trigger"
         >
-          <ThemeModeIcon theme={resolvedTheme} className={gnbSettingsTriggerIconClassName} />
+          <span className={gnbSettingsTriggerShellClassName}>
+            <span className={gnbSettingsTriggerLocaleClassName}>{currentLocaleLabel}</span>
+            <span className={gnbSettingsTriggerDividerClassName} aria-hidden="true" />
+            <ThemeModeIcon theme={resolvedTheme} className={gnbSettingsTriggerIconClassName} />
+          </span>
         </button>
         <div
           id={settingsPanelId}
@@ -326,15 +389,11 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           <SettingsControls
             scope="desktop"
             locale={locale}
+            themePreference={themePreference}
             resolvedTheme={resolvedTheme}
             labels={settingsLabels}
             onLocaleChange={handleLocaleChange}
-            onThemeChange={(theme, sourceEl) => {
-              const transitionOrigin = sourceEl ? getTransitionOrigin(sourceEl) : undefined;
-
-              closeSettingsImmediate();
-              applyTheme(theme, {transitionOrigin});
-            }}
+            onThemeChange={handleDesktopThemeChange}
           />
         </div>
       </div>
@@ -355,8 +414,14 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           <div className={gnbTrailingColumnClassName}>{desktopTrailing}</div>
         </div>
 
-        <div className={gnbMobileInnerClassName}>
-          <div className={gnbLeadingColumnClassName}>
+        <div className={showMobileTitle ? gnbMobileTitleBarClassName : gnbMobileInnerClassName}>
+          <div
+            className={
+              showMobileTitle
+                ? `${gnbMobileTitleSideClassName} left-[var(--shell-gutter)] justify-start`
+                : gnbLeadingColumnClassName
+            }
+          >
             {context === 'landing' ? (
               <Link href={{pathname: homeHref}} className={gnbBrandLinkClassName} scroll={false}>
                 ViveTest
@@ -364,26 +429,37 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
             ) : (
               <button
                 type="button"
-                className={gnbBackButtonClassName}
+                className={gnbControlHitClassName}
                 onClick={context === 'test' ? handleTestBack : handleStandardBack}
                 aria-label={t('backAria')}
                 data-testid={context === 'test' ? 'gnb-mobile-test-back' : 'gnb-mobile-back'}
               >
-                {t('back')}
+                <span className={gnbControlShellClassName}>{t('back')}</span>
               </button>
             )}
           </div>
 
-          <div className={gnbTrailingColumnClassName}>
+          {showMobileTitle ? (
+            <p className={gnbMobileTitleClassName} data-testid="gnb-mobile-title">
+              {screenTitle}
+            </p>
+          ) : null}
+
+          <div
+            className={
+              showMobileTitle
+                ? `${gnbMobileTitleSideClassName} right-[var(--shell-gutter)] justify-end`
+                : gnbTrailingColumnClassName
+            }
+          >
             {mobileMenuEnabled ? (
               <button
                 ref={mobileMenuTriggerRef}
                 type="button"
-                className={gnbMenuTriggerClassName}
+                className={gnbControlHitClassName}
                 aria-label={mobileMenuState === 'closed' ? t('menuAria') : t('closeMenuAria')}
                 aria-expanded={mobileMenuState !== 'closed'}
                 aria-controls={mobileMenuPanelId}
-               
                 onClick={() => {
                   if (mobileMenuState === 'closed') {
                     setMobileMenuOpen();
@@ -393,7 +469,9 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                 }}
                 data-testid="gnb-mobile-menu-trigger"
               >
-                {mobileMenuState === 'closed' ? t('menu') : t('close')}
+                <span className={gnbControlShellClassName}>
+                  {mobileMenuState === 'closed' ? t('menu') : t('close')}
+                </span>
               </button>
             ) : (
               <p className={gnbMobileTimerClassName} data-testid="gnb-mobile-test-timer">
@@ -405,67 +483,23 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       </header>
 
       {mobileMenuEnabled && mobileMenuState !== 'closed' ? (
-        <div className={gnbMobileLayerClassName} data-state={mobileMenuState} data-testid="gnb-mobile-layer">
-          <div
-            className={gnbMobileBackdropClassName}
-            data-testid="gnb-mobile-backdrop"
-            data-state={mobileMenuState}
-            onPointerDown={mobileMenuBackdropPointerDown}
-            onPointerMove={mobileMenuBackdropPointerMove}
-            onPointerUp={mobileMenuBackdropPointerEnd}
-            onPointerCancel={mobileMenuBackdropPointerEnd}
-          />
-          <div
-            id={mobileMenuPanelId}
-            className={gnbMobilePanelClassName}
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('menu')}
-            data-state={mobileMenuState}
-            data-testid="gnb-mobile-menu-panel"
-            onKeyDownCapture={handleGnbKeyDownCapture}
-          >
-            <div className={gnbMobileHeadClassName}>
-              <span className={gnbMobileHeadLabelClassName}>{t('menu')}</span>
-            </div>
-            <nav className={gnbMobileLinksClassName} aria-label="Mobile Primary">
-              {(
-                [
-                  {key: 'landing', href: homeHref, label: t('home'), scroll: false},
-                  {key: 'history', href: historyHref, label: t('history'), scroll: true},
-                  {key: 'blog', href: blogHref, label: t('blog'), scroll: true}
-                ] as const
-              ).map(({key, href, label, scroll}) => {
-                const current = isCurrentSection(currentRoute, key);
-
-                return (
-                  <Link
-                    key={key}
-                    className={gnbMobileLinkClassName}
-                    href={{pathname: href}}
-                    scroll={scroll}
-                    aria-current={current ? 'page' : undefined}
-                  >
-                    {current ? <span aria-hidden="true" className={gnbMobileLinkCurrentMarkerClassName} /> : null}
-                    {label}
-                  </Link>
-                );
-              })}
-            </nav>
-            <div className={gnbMobileSettingsClassName}>
-              <SettingsControls
-                scope="mobile"
-                locale={locale}
-                resolvedTheme={resolvedTheme}
-                labels={settingsLabels}
-                onLocaleChange={handleLocaleChange}
-                onThemeChange={(theme, sourceEl) => {
-                  applyTheme(theme, {sourceEl});
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <GnbMobileDrawer
+          panelId={mobileMenuPanelId}
+          state={mobileMenuState}
+          locale={locale}
+          themePreference={themePreference}
+          resolvedTheme={resolvedTheme}
+          labels={{...settingsLabels, menu: t('menu'), close: t('closeMenuAria')}}
+          navItems={drawerNavItems}
+          onLocaleChange={handleLocaleChange}
+          onThemeChange={handleMobileThemeChange}
+          onRequestClose={() => requestMobileMenuClose('button')}
+          onCloseImmediate={closeMobileMenuImmediate}
+          onKeyDownCapture={handleGnbKeyDownCapture}
+          onBackdropPointerDown={mobileMenuBackdropPointerDown}
+          onBackdropPointerMove={mobileMenuBackdropPointerMove}
+          onBackdropPointerEnd={mobileMenuBackdropPointerEnd}
+        />
       ) : null}
     </>
   );

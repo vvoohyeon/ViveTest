@@ -8,6 +8,8 @@ type LocalizedRoutePathFor<Pathname extends LocaleFreePathname> = Pathname exten
   ? `/${AppLocale}`
   : Pathname extends '/blog/[variant]'
     ? `/${AppLocale}/blog/${string}`
+  : Pathname extends '/result/[variant]/[type]'
+    ? `/${AppLocale}/result/${string}/${string}`
   : Pathname extends '/test/[variant]'
     ? `/${AppLocale}/test/${string}`
   : Pathname extends '/test/error'

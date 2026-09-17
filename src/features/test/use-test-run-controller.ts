@@ -8,6 +8,7 @@ import type {QualifierOverlayItem} from '@/features/test/qualifier-overlay-model
 import type {ResolvedQuestion} from '@/features/test/question-bank';
 import {saveActiveRun, writeLastAnsweredAt} from '@/features/test/storage/active-run';
 import {writeResponseSet} from '@/features/test/storage/response-set';
+import {recordRunCompleted, recordRunStarted} from '@/features/test/storage/run-history';
 import {
   findFirstScoringQuestion,
   isProfileQuestion,
@@ -129,6 +130,9 @@ export function useTestRunController({
         startedAtMs: now,
         lastAnsweredAtMs: now
       });
+      // 이력은 **시작할 때** 한 줄을 받는다 — 끝난 것만 적으면 중단한 회차가 존재한 적 없는
+      // 것이 되고, 중단은 나중에 관찰할 방법이 없다(`req-test.md` §8.4).
+      recordRunStarted(variant, now);
 
       if (Object.keys(runState.entryAnswersSnapshot).length > 0) {
         writeResponseSet(variant, runState.entryAnswersSnapshot);
@@ -259,6 +263,7 @@ export function useTestRunController({
       landingIngressFlag: runState.landingIngressFlag,
       finalResponses
     });
+    recordRunCompleted(variant, Date.now());
     dispatchRunAction({type: 'SUBMIT', allAnswered});
   };
 

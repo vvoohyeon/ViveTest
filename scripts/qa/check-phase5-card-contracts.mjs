@@ -112,14 +112,12 @@ if (fileExists(landing.grid.gridCard)) {
   // 계약 문자열은 이름을 따라 옮겨 갔다 — 슬롯 이름은 그것을 그리는 파일에서 찾는다.
   const normalFaceFile = fileExists(landing.grid.gridCardNormalFace) ? read(landing.grid.gridCardNormalFace) : '';
   const expandedBodyFile = fileExists(landing.grid.gridCardExpandedBody) ? read(landing.grid.gridCardExpandedBody) : '';
-  const mobileSurfacesFile = fileExists(landing.grid.gridCardMobileSurfaces)
-    ? read(landing.grid.gridCardMobileSurfaces)
-    : '';
+  const cardSheetFile = fileExists(landing.grid.cardSheet) ? read(landing.grid.cardSheet) : '';
   const classnamesFile = fileExists(landing.grid.gridCardClassnames) ? read(landing.grid.gridCardClassnames) : '';
-  const cardFamily = [cardFile, normalFaceFile, expandedBodyFile, mobileSurfacesFile, classnamesFile].join('\n');
+  const cardFamily = [cardFile, normalFaceFile, expandedBodyFile, cardSheetFile, classnamesFile].join('\n');
 
   if (
-    !/data-slot=(["'])cardTitle\1/u.test(normalFaceFile + mobileSurfacesFile) ||
+    !/data-slot=(["'])cardTitle\1/u.test(normalFaceFile + cardSheetFile) ||
     !/cardThumbnail/u.test(normalFaceFile)
   ) {
     fail('LandingGridCard must define normal slot markers.');
@@ -138,12 +136,19 @@ if (fileExists(landing.grid.gridCard)) {
     fail('LandingGridCard must expose card state and interaction mode markers.');
   }
 
-  if (
-    !/data-visible-tag-count/u.test(normalFaceFile) ||
-    !/data-tag-tail-ellipsis/u.test(normalFaceFile) ||
-    !/isMobileViewport\s*\?\s*'overflow-visible text-clip'\s*:\s*'overflow-hidden text-ellipsis line-clamp-2'/u.test(normalFaceFile)
-  ) {
-    fail('LandingGridCard must keep visible-prefix markers and the Mobile/full versus Desktop/Tablet clamp branch.');
+  if (!/data-visible-tag-count/u.test(normalFaceFile) || !/data-tag-tail-ellipsis/u.test(normalFaceFile)) {
+    fail('LandingGridCard must keep visible-prefix markers.');
+  }
+
+  // 부제의 2 줄 clamp 는 티어와 무관하다(`req-landing.md` §6.6). 철자를 통째로 단언하는 대신
+  // **부제 컴포넌트 본문 안에 뷰포트 분기가 없을 것**을 조건으로 묻는다 — 분기가 어떤 모양으로
+  // 돌아오든(삼항·`&&`·헬퍼 호출) 이름 하나가 거기 나타나는 것은 같기 때문이다.
+  const subtitleTextSource =
+    normalFaceFile.match(/function LandingCardSubtitleText\(([\s\S]*?)\n\}\n/u)?.[1] ?? '';
+  if (!subtitleTextSource) {
+    fail('LandingGridCard normal face must define LandingCardSubtitleText.');
+  } else if (!/line-clamp-2/u.test(subtitleTextSource) || /isMobileViewport/u.test(subtitleTextSource)) {
+    fail('LandingGridCard Normal subtitle must clamp to two lines on every tier, with no viewport branch.');
   }
 
   const tagChipClassSource =
@@ -238,7 +243,7 @@ if (fileExists(e2e.gridSmoke)) {
 
   if (
     !/tag tail ellipsis hides right-first and reappears on widen across all 12 locales/u.test(e2eSpec) ||
-    !/mobile full subtitle preserves tag-row geometry across all 12 locales/u.test(e2eSpec) ||
+    !/mobile subtitle renders min\(natural, 2\) lines across all 12 locales and keeps tag-row geometry/u.test(e2eSpec) ||
     !/BQ-30 tag visuals stay borderless with available and unavailable fills/u.test(e2eSpec)
   ) {
     fail('Grid smoke spec must cover Wave 10 tag fitting, Mobile subtitle, and BQ-30 visuals.');

@@ -28,7 +28,6 @@
 - blog 진입/표시 규칙
 - admin analytics / ops
 - Action 실패 오퍼레이터 알림 메커니즘 (파이프라인 계약은 §2 포함, 알림 계약 정의 제외)
-- local history 저장 및 조회
 - share URL 생성 UI/로직 (URL 구조 설계는 포함)
 - 닉네임 입력
 - 프레임워크/라우팅/i18n 기반 구조 재설계 (랜딩 단계 계승)
@@ -69,10 +68,10 @@
 - `/test/{variant}` route guard, instruction overlay, consent note/divider/CTA policy, qualifier overlay, qualifier re-entry, `instructionSeen` 생명주기, landing ingress/direct/resume bootstrap, scoring-only question panel, answer lock 기반 delayed auto-advance, previous navigation(응답 보존), active-run resume, `final_submit`/placeholder result panel, `attempt_start`·`question_answered`·`final_submit`·임시 `result_viewed` telemetry hook.
 
 **아직 target contract 또는 placeholder bridge인 범위**:
-- score derivation → result-entry loading → self-contained result URL → 실제 result page rendering pipeline은 live runtime에 연결되지 않았다.
+- self-contained result URL은 **live runtime에 연결됐다**(2026-09-16, step 3 §8): 회차가 끝나면 응답 투영 → `computeScoreStats` → `deriveDerivedType` → `buildTypeSegment` → payload 인코딩을 거쳐 `/{locale}/result/{variant}/{type}?{base64}`로 `router.replace` 한다. 남은 것은 result **내용**의 렌더링 파이프라인(섹션 스키마·콘텐츠 매핑)이고, 그것은 아래 target contract로 유지한다.
 - staged entry record는 `createdAtMs`를 저장하지만, 현재 test bootstrap은 7분 만료/commit-failure UX를 집행하지 않는다. §3.5의 expiry/commit-failure 규칙은 요구사항상 목표로 유지하되, live 구현 의무로 완료 처리하지 않는다.
-- 현재 final step은 locale `submit` CTA로 placeholder submit을 수행하고, 즉시 placeholder result panel을 렌더한다. 이 placeholder result surface는 현 단계에서 허용된 live surface다. §4.5~§8.3의 result derivation/loading/result URL/cleanup 계약은 이후 result pipeline 통합 시 적용할 target contract로 유지하며, 현 시점의 다음 단계 필수 구현 범위로 보지 않는다.
-- `result_viewed`는 현재 placeholder result panel mount 시 1회 발화하며 `derived_type`을 포함하지 않는다.
+- 현재 final step은 locale `submit` CTA로 placeholder submit을 수행하고, 곧바로 결과 **주소**로 이동한다. placeholder result panel은 그 이동의 **중간 상태**로만 남아 있다 — 이동이 끝날 때까지 빈 화면을 만들지 않고 `result_viewed`의 마운트 발화를 잃지 않기 위해서다. 주소를 만들 수 없는 회차(schema 없음·응답 누락 등)에서는 이동하지 않고 그 패널이 그대로 남는다. §4.5~§8.3의 result derivation/loading/result URL/cleanup 계약은 이후 result pipeline 통합 시 적용할 target contract로 유지하며, 현 시점의 다음 단계 필수 구현 범위로 보지 않는다.
+- `result_viewed`는 현재 placeholder result panel mount 시 1회 발화하며 `derived_type`을 포함하지 않는다. 그 패널이 중간 상태가 된 뒤에도 발화 시점은 같다 — 자식의 effect가 부모의 이동 요청보다 먼저 돌기 때문이며, 그 순서는 우연이 아니라 배치에서 나온다(`result-connector.tsx`).
 - user-visible error render telemetry는 아직 live event union에 포함되지 않는다.
 
 ---
@@ -789,6 +788,8 @@ result 페이지 URL은 서버 없이 result view를 재구성할 수 있는 sel
 
 URL 예시: `/result/mbti/infj?{base64}` (MBTI), `/result/egtt/EM?{base64}` (EGTT, `EM` = derivedType `E` + qualifier gender `M`)
 
+**위 표기는 locale-free route 표기이고 실제 URL 은 `/{locale}/result/{variant}/{type}?{base64}` 다** — §6.1 이 `/[locale]/test/error` 로 적는 것과 같은 사실을 다르게 적은 것이었고, 두 표기를 여기서 맞춘다. 첫 예시의 `mbti` 는 scoring logic 이름이라 예시로만 읽는다: `variant` 자리에 들어가는 것은 registry 의 variant id(`qmbti` · `egtt` …)이며, logic type 은 그 id 로 조회한다(`schema-registry.ts`).
+
 **필드 분리 원칙**:
 - `variant`: test variant 식별자. URL path segment 1. 이 값 하나로 고정 scoring logic과 rendering schema를 유일하게 식별한다. `scoringSchemaId`는 URL 어느 위치에도 포함하지 않는다.
 - `type`: `type` segment. URL path segment 2. derivedType 파트(길이 = `axisCount`)와 qualifier 파트(`qualifierFields` 순서대로 각 `tokenLength` 합산)의 연결. `qualifierFields`가 없거나 빈 배열이면 derivedType과 동일. 전체 길이 = `axisCount + sum(qualifierFields[i].tokenLength)`.
@@ -837,6 +838,8 @@ result 페이지 접근 시 아래 케이스 매트릭스에 따라 UX를 분기
 
 **케이스 3**: history 미구현 상태이므로 이번 단계에서 케이스 2와 동일하게 처리한다. history 구현 단계에서 케이스 3 분기를 반드시 추가해야 한다 (AR-006).
 
+**진입 방식**: 회차를 끝낸 사람은 `router.replace`로 이 주소에 도착한다 — `/test/{variant}` history 항목을 **대체**한다. `push`하면 결과에서 뒤로가기 한 번이 완료된 회차의 테스트 페이지를 다시 부트스트랩하고, 그 페이지는 `instructionSeen`이 지워진 뒤라 instruction부터 다시 보여 준다. 대체하면 뒤로가기의 목적지는 **테스트에 들어오기 전 페이지**(대개 랜딩)다. 결과 주소는 새로고침과 공유로 복원되므로 history에서 테스트 항목이 사라져도 잃는 것이 없다. GNB 문맥은 `test`가 아니라 `result`이며 진행률·타이머를 갖지 않는다.
+
 CTA 동작:
 - **다시하기**: `/test/{variant}`로 이동. result screen entry commit 완료 시 `instructionSeen`이 삭제되므로, 테스트 페이지 진입 시 instruction overlay(qualifier question 수집 포함)가 자동 표시된다. 별도 `/instruction` 라우트를 거치지 않는다.
 - **나도 테스트하기**: `/test/{variant}`로 이동. `instructionSeen`이 없는 첫 진입이므로, 테스트 페이지 진입 시 instruction overlay (qualifier question 수집 포함)가 자동 표시된다.
@@ -845,6 +848,7 @@ CTA 동작:
 1. Automated: `payload.shared = false`인 유효 payload 접근 시 케이스 1 UX를 검증한다.
 2. Automated: `payload.shared = true`인 유효 payload 접근 시 케이스 2 UX를 검증한다.
 3. Automated: 무효 payload 접근 시 에러 렌더링을 검증한다.
+4. Automated: 회차 종료가 `/test/{variant}` 항목을 **대체**하고, 결과에서 브라우저 뒤로가기가 테스트 페이지가 아니라 그 앞 페이지로 가며, 결과 주소가 새로고침으로 복원되는 것을 검증한다 (`assertion:RS-04`).
 
 ---
 
@@ -858,8 +862,10 @@ invalid variant 입력은 runtime을 시작하지 않고 에러 복구 페이지
 - crash를 유발하면 안 된다.
 - session / run context를 생성하면 안 된다.
 - route: `/[locale]/test/error`
-- 메시지: `이 테스트에 진입할 수 없습니다`
-- `?variant=...` query가 있으면 차단된 variant를 함께 표시한다.
+- 메시지는 **12 locale 메시지 키**로 낸다(`error.entryBlockedTitle` / `error.entryBlockedBody`). 하드코딩된 한 언어를 열두 로케일에 내보내지 않는다.
+- `?variant=...` query는 **유지하되 화면에 표시하지 않는다**(명세 §2-8). 식별자는 읽는 사람에게 뜻이 없고, 보여 준다고 돌아갈 길이 생기지도 않는다 — 쿼리에 남아 운영자가 로그로 본다.
+- **앞으로 가는 경로를 최소 하나** 둔다. 막다른 곳에 막다른 화면을 두지 않는다.
+- **`notFound()`로 처리하지 않는다.** `[locale]` 안에서 해결되는 404는 이 앱에서 `<body>`가 빈 Next 오류 문서(`html#__next_error__`)로 나간다 — 상태 코드는 404인데 스크립트를 돌리기 전에는 글자가 하나도 없다(실측 2026-09-16). 모르는 **경로**는 프록시가 `[locale]` 밖에서 404로 처리하며 그쪽은 본문이 서버에서 나온다.
 
 **Phase 4 확장 계약 — 복구 카드 선정 규칙**:
 1. 랜딩 카탈로그의 카드 목록을 선언 순서 기준으로 앞에서부터 순회한다.
@@ -873,6 +879,7 @@ invalid variant 입력은 runtime을 시작하지 않고 에러 복구 페이지
 
 **Verification**:
 1. Automated: invalid/lazy-validation-failed variant 진입 시 stub 에러 복구 route로 redirect되고 session 생성 `0건`을 검증한다.
+6. Automated: 복구 화면이 읽는 사람의 언어로 나오고, 본문에 variant 식별자가 없으며, 앞으로 가는 경로가 최소 하나인 것을 검증한다 (`assertion:BL-01`).
 2. Phase 4 확장 Automated: 미완료 카드 2개 이상 존재 시 카드 2개 표시를 검증한다.
 3. Phase 4 확장 Automated: 미완료 카드 1개 시 카드 1개만 표시를 검증한다.
 4. Phase 4 확장 Automated: 전체 완료 시 카드 0개 + 랜딩 CTA 표시를 검증한다.
@@ -912,8 +919,11 @@ payload가 아래 조건 중 하나라도 해당하면 에러 렌더링으로 �
 - `type` segment 전체 길이가 `axisCount + sum(qualifierFields[i].tokenLength)`와 불일치
 - `type` segment에서 추출한 qualifier 값이 해당 `QualifierFieldSpec.values`에 없음
 - `scoreStats` 구조가 `variant`로 식별된 schema의 scoring axes 선언과 불일치 (profile 문항 axis 포함 여부 무관)
+- `shared`가 있는데 boolean이 아님. 없으면 `false`로 읽되(필수 필드가 아니다), 참도 거짓도 아닌 값은 §5.2 케이스 매트릭스의 분기에 닿으면 안 된다
 
 에러 렌더링 UX: 랜딩으로 돌아가기 CTA 제공. 부분 렌더링을 금지한다.
+
+**「부분 렌더링 금지」는 순서가 아니라 구조로 만든다.** 검증을 단계마다 그려 가며 진행하면 어느 실패는 절반 그려진 화면을 남기고, 그 절반은 실패 갈래마다 다르다. 그래서 주소를 푸는 일 전체를 순수 함수 하나(`resolveResultView`)에 두고 화면은 그 결과의 `ok` 하나만 본다 — 실패 갈래의 렌더 경로가 결과 내용을 **손에 쥐지 못하는 것**이 이 조항의 실현이다.
 
 **Verification**:
 1. Automated: `variant` path 누락, `type` path 누락, Base64 디코딩 실패, JSON 파싱 실패 각각에서 에러 렌더링을 검증한다.
@@ -922,6 +932,8 @@ payload가 아래 조건 중 하나라도 해당하면 에러 렌더링으로 �
 4. Automated: `type` segment 길이가 `axisCount + qualifierFields tokenLength 합산`과 불일치 시 에러 렌더링을 검증한다.
 5. Automated: qualifier 값이 `QualifierFieldSpec.values`에 없을 때 에러 렌더링을 검증한다.
 6. Automated: `variant`에 해당하는 schema 조회 실패에서 에러 렌더링을 검증한다.
+7. Automated: 위 조건 **전부**에 대해 에러 렌더링이 나오고, 그때 결과 내용 원소가 `0건`이며, 실제로 밟은 실패 갈래가 의도한 갈래인지를 함께 검증한다 (`assertion:RS-01`). 갈래 확인이 없으면 모든 조건이 같은 화면을 그리므로 잘못 만든 입력이 엉뚱한 갈래로 떨어져도 통과한다.
+8. Automated: 유효 URL이 같은 선택자로 결과 내용을 `0건이 아니게` 내는 것을 짝으로 검증한다 (`assertion:RS-02`) — 그것이 없으면 7번의 `0건`은 '원래 아무것도 없었다'와 구별되지 않는다.
 
 ### 6.4 Result Content Fallback
 
@@ -1104,6 +1116,7 @@ result derivation 전환 구간에서 아래 상태를 구분해서 관리해야
 | `result_entry_committed` | result screen entry commit 완료 여부 |
 | `result_persisted` | 결과 확정 저장 완료 여부 |
 
+- **저장소 쓰기는 던지지 않는다.** Safari의 「모든 쿠키 차단」에서 `setItem`은 `QuotaExceededError`를 던지며, 그 한 줄이 던지면 그 뒤의 상태 전이가 통째로 사라진다 — 실측(2026-09-16) 증상은 크래시가 아니라 **멈춤**이었다: 시작 버튼을 눌러도 instruction 시트가 영원히 닫히지 않고, 화면은 멀쩡해 보이며 콘솔에도 아무것도 남지 않는다. 모든 쓰기는 `src/lib/safe-storage.ts` 하나를 지나며 실패를 삼키고, 저장 실패는 **저하된 모드**(이번 방문만 유효, 이어서 하기 불가)이지 기능 실패가 아니다. `tests/unit/safe-storage-discipline.test.ts`가 `src` 전체를 훑어 그 한 자리 밖의 직접 쓰기를 막는다.
 - 로딩 단계 진입 시 local storage에는 `derivation_in_progress` 임시 상태만 기록한다.
 - 최종 결과 관련 확정 저장은 `result_entry_committed` 이후에만 허용한다.
 - back-from-loading 및 derivation-failure 시 `result_entry_committed`, `result_persisted`는 발생하지 않았어야 한다.
@@ -1134,6 +1147,25 @@ result derivation 전환 구간에서 아래 상태를 구분해서 관리해야
 cleanup은 해당 variant 범위에만 영향을 준다.
 
 > **구체적인 cleanup 대상 항목 목록 (storage key, store 구조)은 별도 구현/설계 문서에서 정의한다.**
+
+### 8.4 Local Run History (목록까지만)
+
+**Rule**: 이 기기에 회차 이력을 남기고 `/{locale}/history`가 그것을 목록으로 렌더한다. 종전 §1.2가 이것을 non-goal로 두었으나 2026-09-16(step 3 §9)에 목록 범위로 구현했다.
+
+- 이력은 **variant로 나뉘지 않는 단일 키**(`test:runHistory`)에 배열로 저장한다. 목록이 여러 variant를 시간순으로 한 줄에 세우므로, variant별로 흩어 두면 읽을 때 훑을 목록 자체가 없다.
+- 한 항목은 `{variantId, startedAtMs, completedAtMs}`다. **회차가 시작될 때 항목이 생기고**(`completedAtMs: null`), 제출 시 그 항목이 완료로 바뀐다. 끝난 것만 적으면 중단한 회차는 관찰 불가능해진다 — 중단은 적히지 않은 일이기 때문이다.
+- **중단 여부는 저장하지 않고 읽을 때 판정한다.** `completedAtMs === null`인 항목은, 같은 `startedAtMs`를 가진 활성 회차가 살아 있으면 `in-progress`이고 아니면 `abandoned`다. 저장해 두면 30분 안에 돌아와 끝낸 회차가 영구히 중단으로 남는다.
+- 판정에 쓰는 활성 회차 조회는 **아무것도 지우지 않아야 한다**. 목록을 한 번 그리는 일이 다른 variant의 저장소를 정리하면 안 된다(`peekActiveRun` / `getActiveRun` 분리).
+- 최신순으로 정렬하며 **최대 50개**를 보관한다. 이 수는 `history.body` 문구가 사용자에게 말하는 수와 같아야 한다.
+- 이력은 §8.3 cleanup set의 대상이 **아니다**. 휘발은 한 회차의 작업 데이터를 지우는 것이고, 이력은 그 회차가 있었다는 사실이다. 깨진 항목은 목록 전체가 아니라 그 항목만 버린다.
+- **이번 범위에서 하지 않는 것**: 항목 탭 동작, 항목별 URL 스킴, 삭제/전체 삭제 UI. 연결할 화면이 완성되기 전에는 행에 링크·버튼·`>` 어포던스를 붙이지 않는다 — 누를 수 없는 것이 눌릴 것처럼 보이면 화면이 거짓말을 한다(명세 §2-7, 사용자 확정 2026-09-14).
+- 빈 상태는 다음 행동(테스트 둘러보기 → 랜딩)을 갖는다. 본문에 디버그 문자열을 두지 않는다.
+
+**Verification**:
+1. Automated: 회차 시작 시 항목이 생기고 제출 시 완료로 바뀌는 것을 검증한다.
+2. Automated: 활성 회차가 살아 있는 미완료 항목이 `in-progress`로, 그렇지 않은 것이 `abandoned`로 읽히는 것을 검증한다.
+3. Automated: 보관 상한이 문구가 말하는 수와 같고, 깨진 항목 하나가 목록 전체를 버리지 않는 것을 검증한다.
+4. Automated: 끝낸 회차가 목록에 테스트 이름·시각과 함께 나타나고, 행에 링크/버튼이 `0건`이며, 빈 상태에 다음 행동이 있고 디버그 문자열이 없는 것을 검증한다 (`assertion:HS-01`).
 
 ---
 

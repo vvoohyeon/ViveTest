@@ -50,7 +50,16 @@ export function SkipToContentLink() {
         // 로고보다 4px 위로 떠 있었다(실측: 링크 중심 28 대 띠 중심 32).
         'focus:not-sr-only focus:fixed focus:left-[var(--shell-gutter)] focus:top-2.5 md:focus:top-3.5 focus:z-[1200]',
         'focus:inline-flex focus:h-9 focus:items-center focus:rounded-[var(--radius-md)]',
-        'focus:bg-[var(--accent)] focus:px-4 focus:text-[var(--accent-fg)]',
+        // **`--accent` + `--accent-fg` 가 아니다.** 명세 §2-13 은 그 둘을 이름으로 적었지만,
+        // 그 조합은 라벨이 제 바탕 위에서 **1.89:1(light) · 1.40:1(dark)** 이다 — 비텍스트
+        // 기준 3:1 에도 못 미치고 라벨이 필요로 하는 4.5:1 과는 멀다. `--accent-fg` 는
+        // *연한 sage 위에 얹는* 어두운 잉크이지 accent 자신 위의 잉크가 아니다.
+        //
+        // 제 라벨 아래 깔린 **면**은 `--accent-solid` 를 읽고 잉크는 `--fg-on-accent` 다 —
+        // D-12 가 제출 CTA 에서 이미 같은 판정을 내렸고, 설계 시스템이 D-19 로 등재했다.
+        // 실측 **5.09:1(light) · 7.21:1(dark)** 로 계획서 §0 의 첫 불변식(전 표면 5.08:1)을
+        // 넘는다. 읽히지 않는 접근성 컨트롤은 그 중에서도 가장 나쁜 자리다.
+        'focus:bg-[var(--accent-solid)] focus:px-4 focus:text-[var(--fg-on-accent)]',
         'focus:[font:var(--button)]',
         focusRingClassName
       ].join(' ')}

@@ -544,6 +544,15 @@ test.describe('Canonical accessibility smoke', () => {
       await expectPageToBeAxeClean(page);
     }
 
+    // 열린 층을 두고 다음 주소로 가지 않는다. 오버레이 층은 열릴 때 history 항목을 하나 넣고
+    // 닫힐 때 거두는데(명세 규칙 3), 그 거둑과 이동이 겹치면 브라우저가 이동을 버린다 — 실측:
+    // 레이어를 열어 둔 채 폭을 줄이고 바로 `goto` 하면 8 회 중 2~4 회 가 `ERR_ABORTED` 였다.
+    // 이 검사가 재는 것은 **열린 상태의 axe 청결함**이므로, 구간 사이에서는 닫고 항목이 거들어진
+    // 것까지 기다린다. 그 경주 자체는 `assertion:GN-07` 이 따로 재다.
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('gnb-settings-panel')).toBeHidden();
+    await page.waitForFunction(() => (window.history.state as {__viveOverlayLayer?: string} | null)?.__viveOverlayLayer === undefined);
+
     await setTouchViewport(page, {width: 390, height: 844});
     await page.goto('/en');
     await focusMobileMenuByKeyboard(page);
@@ -810,7 +819,15 @@ test.describe('Canonical accessibility smoke', () => {
         )
         .catch(() => {});
     }
-    await expect(page.getByTestId('test-result-panel')).toBeVisible();
+    // 제출 뒤의 결과 표면은 이제 **주소**다 — 인계 패널은 그 이동의 중간 상태이고, axe 가 볼
+    // 것은 도착한 화면이다(명세 §2-6).
+    await expect(page).toHaveURL(/\/en\/result\/egtt\/E[MF]\?/u);
+    await expect(page.getByTestId('result-screen')).toBeVisible();
+    // **원소가 보이는 것은 문서가 정착한 것이 아니다.** 소프트 내비게이션에서 Next 는 본문을
+    // 먼저 커밋하고 `<head>` 의 메타데이터를 그 뒤에 붙인다 — 실측(5 회 중 1 회) 그 창에서
+    // `document.title` 이 빈 문자열이었고, 문서 전체를 보는 axe 는 거기서 `document-title` 을
+    // 포함해 43 건을 보고했다. 문서를 재는 검사에는 문서의 장벽이 따로 필요하다.
+    await expect.poll(() => page.title()).not.toBe('');
     await expectPageToBeAxeClean(page);
   });
   test('@smoke assertion:TT-01 every visible touch target meets --tap-min and WCAG 2.5.8 spacing', async ({
@@ -921,11 +938,40 @@ test.describe('Canonical accessibility smoke', () => {
       const shownBox = await skipLink.boundingBox();
       expect(shownBox?.height ?? 0, `${size.width}px: 포커스 후에도 보이지 않는다`).toBeGreaterThan(20);
 
-      // ⑷ 목적지는 `<main>` 이고 도착하면 포커스가 거기 있다.
+      // ⑷ **라벨이 제 바탕 위에서 읽힌다.** 종전에는 이 검사가 기하·탭 순서·도착·링을 보면서
+      // 라벨 자신의 대비만 보지 않았고, 그 틈으로 `--accent` + `--accent-fg`(**1.89:1 light ·
+      // 1.40:1 dark**)가 나갔다 — 접근성 컨트롤이 읽히지 않는 것보다 나쁜 자리는 없다. 색을
+      // 철자로 단언하지 않고 **계산된 값에서 비율을 재서** 조건으로 묻는다(L21): 어느 토큰을
+      // 쓰든 라벨이 4.5:1 을 넘으면 통과다.
+      const labelContrast = await skipLink.evaluate((element) => {
+        const parse = (value: string): [number, number, number] => {
+          const match = value.match(/[\d.]+/gu)?.map(Number) ?? [0, 0, 0];
+          return [match[0] ?? 0, match[1] ?? 0, match[2] ?? 0];
+        };
+        const luminance = ([r, g, b]: [number, number, number]) => {
+          const channel = (raw: number) => {
+            const c = raw / 255;
+            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+          };
+          return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+        };
+        const style = window.getComputedStyle(element);
+        const ink = luminance(parse(style.color));
+        const ground = luminance(parse(style.backgroundColor));
+        const hi = Math.max(ink, ground);
+        const lo = Math.min(ink, ground);
+        return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100;
+      });
+      expect(
+        labelContrast,
+        `${size.width}px: skip link 의 라벨이 제 바탕 위에서 ${labelContrast}:1 이다 — 4.5:1 을 넘어야 한다`
+      ).toBeGreaterThanOrEqual(4.5);
+
+      // ⑸ 목적지는 `<main>` 이고 도착하면 포커스가 거기 있다.
       await page.keyboard.press('Enter');
       await expect(page.locator('main')).toBeFocused();
 
-      // ⑸ 도착이 **제품 링**으로 보인다. 종전에는 브라우저 기본값(`auto 1px rgb(0, 95, 204)`)이
+      // ⑹ 도착이 **제품 링**으로 보인다. 종전에는 브라우저 기본값(`auto 1px rgb(0, 95, 204)`)이
       // 그려졌고, 그 파란색은 두 테마 어디에도 없다. 링이 그려지는 경로는 이것 하나뿐이므로
       // — 마우스 클릭은 `main` 에 포커스를 주지 않는다(실측 2026-09-16) — 여기가 유일한 증인이다.
       //

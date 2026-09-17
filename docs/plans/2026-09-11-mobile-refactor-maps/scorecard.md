@@ -619,7 +619,7 @@
 | `mobile-dead-geometry-measurement` | **동결 `phase` 는 필요하고 스냅샷 **값**은 아니다.** `data-baseline-top`/`-bottom`/`-height` 는 읽는 곳이 0 — step 3 에서 제거. 동결 자체는 접힘 구간 억제이므로 **보존** |
 | 제목 연속성 관련 행 | **보존 확정.** 측정: 확장 1 회당 layout 22~23 회 · 1× 23.9ms · 4× 74.9ms · 6× 115.5ms. 결정 2 이후 hover 가능 기기에만 존재하므로 6× 는 대상이 아니다 |
 | `theme-transition-2500ms` 클러스터(4행) | **교체 확정** — `design.md:373` 의 상한 260ms 어휘 안으로. 계약이 없으므로 `decision-register.md` 등재가 의무다 |
-| `rotation-discards-expanded-card` | **결정 2 로 부수적으로 해소된다.** 원인은 가로에서 폰이 폭 844 라 `tier=tablet` 이 되는 것이고, 입력 축으로 옮기면 터치 생명주기가 유지된다. **E2E 로 고정한다** |
+| `rotation-discards-expanded-card` | **BQ-44 가 처분했다 — 이 행의 원인 기술은 틀렸다.** 원인은 축이 아니라 ⑴ 폭 변경 강제 닫기(`use-grid-geometry-controller.ts`)와 ⑵ 시트 언마운트가 부른 `history.back()` 의 뒤늦은 `popstate` 둘이었고, 입력 축 이동은 관계가 없었다. 강제 닫기를 자기 이유(얼어 있는 row baseline)가 닿는 자리로 좁혀 양방향 보존을 구현했다. 회귀는 `assertion:TT-03`·`assertion:TT-06` |
 | `test-error-reflects-unvalidated-query-into-h1` | **성립하되 XSS 가 아니다** — React 가 이스케이프한다(실측: `<img src=x>` → `&lt;img src=x&gt;`). registry 멤버십 확인으로 닫는다 |
 | `back-gesture-closes-nothing` | **바텀시트가 history 항목을 만들면서 해소된다**(step 3 §1-1) |
 | 모바일 뒤로가기 220ms | **동작은 계약(`req-landing.md:244`)이고 값은 아니다.** 값을 유지하되 `decision-register.md` 에 R 로 등재한다 |

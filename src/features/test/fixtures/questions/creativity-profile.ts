@@ -1,5 +1,10 @@
 import type {QuestionSourceRow} from './types';
 
+// 이 은행의 자리표시자는 **의도된 것**이다 — 이 variant 는 진입이 닫혀 있어(랜딩 카드가
+// 확장되지 않고 미리보기 문항도 렌더되지 않는다) 화면에 한 글자도 나오지 않는다.
+// 여는 커밋에서 `tests/unit/reachable-question-copy.test.ts` 가 이것을 붉힌다 — 그것이 문구를
+// 채울 시점이고, 그전에 미리 채울 이유가 없다.
+
 export const creativityProfileQuestions: ReadonlyArray<QuestionSourceRow> = [
   {
     seq: '1',

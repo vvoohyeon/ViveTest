@@ -25,17 +25,13 @@ import type {LandingCard} from '@/features/variant-registry';
 export type {LandingCardVisualState} from '@/features/landing/model/interaction-selectors';
 export type LandingCardInteractionMode = 'hover' | 'tap';
 export type LandingCardViewportTier = 'mobile' | 'tablet' | 'desktop';
+/**
+ * 폰의 확장 위상. 이름은 계약 표면(`data-mobile-phase`)이라 유지하되, 값을 만드는 것은 이제
+ * 바텀시트다(`mobile-lifecycle.ts`). transient 셸 모드와 스냅샷 뷰가 여기 있었으나 둘 다
+ * in-flow 확장에만 있던 사정이라 시트와 함께 사라졌다 — 시트는 형제를 밀지 않으므로 되돌릴
+ * 좌표가 없고, 모션 전용 표면을 따로 띄울 이유도 없다.
+ */
 export type LandingCardMobilePhase = 'NORMAL' | 'OPENING' | 'OPEN' | 'CLOSING';
-export type LandingCardMobileTransientMode = 'NONE' | 'OPENING' | 'CLOSING';
-
-export interface LandingMobileSnapshotView {
-  cardHeightPx: number;
-  anchorTopPx: number;
-  cardLeftPx: number;
-  cardWidthPx: number;
-  titleTopPx: number;
-  restoreReady: boolean;
-}
 
 export interface LandingCardSpacingContract {
   baseGapPx: number;
@@ -65,12 +61,9 @@ export interface LandingGridCardProps {
   interactionMode?: LandingCardInteractionMode;
   viewportTier?: LandingCardViewportTier;
   mobilePhase?: LandingCardMobilePhase;
-  mobileTransientMode?: LandingCardMobileTransientMode;
-  mobileRestoreReady?: boolean;
   desktopMotionRole?: LandingCardDesktopMotionRole;
   desktopShellPhase?: LandingCardDesktopShellPhase;
   reducedMotion?: boolean;
-  mobileSnapshot?: LandingMobileSnapshotView | null;
   desktopTransformOriginX?: '0%' | '50%' | '100%';
   spacing?: LandingCardSpacingContract;
   expandedRestingFloorPx?: number;
@@ -91,7 +84,8 @@ export interface LandingGridCardProps {
   onMouseLeave?: MouseEventHandler<HTMLElement>;
   onExpandedBodyKeyDown?: KeyboardEventHandler<HTMLElement>;
   onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
-  onMobileClose?: MouseEventHandler<HTMLButtonElement>;
+  /** 제자리 오버레이의 숨은 닫기(마지막 탭 스톱). 폰 시트의 닫기는 시트가 갖는다. */
+  onOverlayClose?: () => void;
 }
 
 export function getDefaultCardCopy(): LandingCardCopy {

@@ -70,7 +70,7 @@
 - `subtitle -> tags` 기본/보정 간격 정책 변경 시 Section 6.7, 14.2를 동기화한다.
 - underfilled 마지막 row 정렬/예외 정책 변경 시 Section 6.2, 14.2를 동기화한다.
 - Desktop hover-out collapse 경계/유예 정책 변경 시 Section 8.2, 14.2를 동기화한다.
-- Mobile Expanded 내부 title baseline 정책 변경 시 Section 8.5, 14.2를 동기화한다.
+- 폰 확장 시트의 제목·닫기 경로·복귀 정책 변경 시 Section 8.5, 14.2를 동기화한다.
 - 전환 종료 이벤트(`complete|fail|cancel`) 시점/상호배타/필수필드 변경 시 Section 8.6, 12.1, 12.2, 13.3, 13.6, 14.2를 동기화한다.
 - fail/cancel rollback cleanup set 변경 시 Section 13.3, 13.6, 14.2를 동기화한다.
 - missing-slot(tags empty) 정책 변경 시 Section 6.7, 13.1, 14.2를 동기화한다.
@@ -206,14 +206,15 @@
 - Desktop/Tablet 마지막 row가 underfilled(카드 수가 목표 컬럼 수 미만)인 경우에도 row 컬럼 폭은 목표 컬럼 규칙을 유지해야 하며, 카드는 row 시작측 정렬을 유지해야 한다.
 - Desktop/Tablet underfilled 마지막 row의 잔여 영역은 위 빈 track/빈 카드 공간 금지 규칙의 허용 예외로 간주한다. 단, 잔여 영역을 해소하기 위한 카드 폭 확장(좌우 채움)은 금지한다.
 - Mobile: 1열, vertical gap `14~16px`
-- Expanded 활성 중 viewport/gridInlineSize 변경으로 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤 1회만 재계산한다.
+- Expanded 활성 중 viewport/gridInlineSize 변경으로 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤 1회만 재계산한다. **이 규칙은 얼어 있는 baseline 이 실제로 있는 전이에만 적용한다** — 즉 다 열 레이아웃(Desktop/Tablet)에서 다 열 레이아웃으로 넘어갈 때다. 폰의 확장은 흐름 밖의 시트라 row baseline 을 얼리지 않으므로, 폰이 한쪽에 있는 전이(회전)에서는 강제 종료하지 않고 확장을 유지한 채 형태만 바꾼다(BQ-44, §8.5).
 
 **Verification**:
 1. Manual: threshold 근처 폭에서 컬럼 전환을 확인한다.
 2. Automated: viewport parameterized E2E로 컬럼 수를 검증한다.
 3. Automated: Desktop Narrow/Medium/Wide에서 Row 1/Row 2+ 컬럼 규칙이 정확히 적용되는지 검증한다.
 4. Automated: hero/main 경계에서 강제 줄바꿈·빈 track·빈 카드 공간 `0건`을 검증한다.
-5. Automated: Expanded 활성 중 폭 변경 시 강제 종료→Normal settled→배치 재계산 순서가 보장되는지 검증한다.
+5. Automated: 다 열 레이아웃 사이의 폭 변경에서 Expanded 활성 시 강제 종료→Normal settled→배치 재계산 순서가 보장되는지 검증한다(`assertion:TT-06`).
+5-a. Automated: 폰 회전(세로↔가로) 양방향에서 확장이 유지되고 형태만 시트↔제자리 오버레이로 바뀌는지 검증한다(`assertion:TT-03`).
 6. Automated: Desktop/Tablet underfilled 마지막 row에서 카드 폭 확장(좌우 채움) `0건`과 시작측 정렬 유지 여부를 검증한다.
 
 ### 6.3 Hero & Visual Baseline
@@ -223,13 +224,16 @@
 **Rule**: GNB는 컨텍스트별 고정 동작을 가지며, 열기/닫기/포커스/스크롤 잠금 규칙을 준수해야 한다.
 - 공통: sticky top `0`, z-index `>=1000`, Desktop/Tablet 높이 `64`, Mobile 높이 `56`.
 - 공통: 배경은 불투명 또는 반투명+blur를 사용한다.
+- 공통: GNB 컨트롤은 **보이는 껍데기 36px · 히트 영역 44px**로 갈라진다(`Menu` · `Back` · 데스크톱 설정 pill · 드로어 헤더 닫기). 히트 영역은 원소 상자 자체의 크기여야 하며 가상 원소로 넓히지 않는다 — 그렇게 하면 타깃 크기를 재는 검사가 실제와 다른 값을 읽는다.
 - 공통: `scrollY > 4px`에서 얕은 shadow를 적용하고, shadow가 없으면 `1px divider`를 적용한다.
 - Desktop Landing: 좌측 CI(home), 메뉴(테스트 이력/블로그), 우측 설정 트리거(햄버거 금지).
 - Desktop Blog/History: Landing과 동일한 메뉴/설정 구조를 사용하되 현재 route context에 맞는 Back 없는 일반 GNB로 동작한다.
 - Desktop Test: 좌측 Back, 중앙 Timer만 제공하며 설정·언어·테마·History/Blog 링크를 노출하지 않는다.
 - Desktop 설정 레이어: 기본 열기 방식은 hover(`>=1024`), 포인터 감지 불가 환경에서는 focus/click fallback 허용.
-- Desktop 설정 레이어 닫기: `Esc`, outside click, focus out. Tab/Shift+Tab 기반 focus out 닫힘은 즉시 적용한다.
+- Desktop 설정 레이어 닫기: `Esc`, outside click, focus out, 그리고 **시스템 뒤로가기**. Tab/Shift+Tab 기반 focus out 닫힘은 즉시 적용한다. 뒤로가기로 닫는 동안 페이지를 떠나지 않는다 — 오버레이 층이 전부 같은 규칙을 쓴다.
 - Desktop 설정 레이어: 트리거와 레이어 사이 hover gap을 금지한다.
+- Desktop 설정 트리거: 테두리도 배경도 굵은 글씨도 없는 pill 이며, 현재 언어의 **전체 이름**과 1px 구분선·현재 테마 글리프를 담는다. 코드 약어를 쓰지 않는다.
+- Desktop 설정 레이어: 레이어의 우측 상단 모서리가 트리거 pill 의 우측 상단 모서리와 일치하고, 레이어는 pill 을 **덮으며** 아래·왼쪽으로 펼쳐진다. 선택 값에 따라 좌우 위치가 바뀌지 않는다.
 - Desktop 설정 레이어: hovered-out 방지용 닫힘 유예 `100~180ms`는 hover 경로에만 허용한다.
 - Desktop 설정 레이어: 트리거와 레이어 사이 실효 hover gap은 `0px`여야 한다.
 - Desktop 설정 레이어: focus out 닫힘 허용 지연은 `<=1 frame`으로 고정한다.
@@ -244,15 +248,20 @@
 - Mobile Landing/Blog/History: 위 입력이 스크롤 제스처로 판정되면 닫힘 시작을 취소해야 한다.
 - Mobile Landing/Blog/History: 닫힘 transition 진행 중 추가 닫힘 입력은 무시해야 한다.
 - Mobile Landing/Blog/History: 닫힘 완료 후 포커스는 햄버거 트리거로 복귀해야 한다.
-- Mobile Landing: 최하단 설정 컨트롤은 언어/테마 2개만 허용한다.
-- Mobile Test: Back + Timer만 제공하며 instruction/question/result 전 상태에서 동일 구성을 유지한다.
+- Mobile 드로어 순서: 위에서 아래로 **헤더(보이는 닫기, 우측) → 설정 블록 → 여백 → 이동 블록(최하단)**이다. 엄지가 닿는 자리를 이동이 갖고, 자주 바꾸지 않는 설정이 위로 간다.
+- Mobile 드로어 설정 블록: `Settings` 라벨 + 테마 컨트롤 한 행 + 언어 칩 12 개 + 우측 정렬 얇은 `Privacy preferences` 링크. 패널은 `100dvh` 를 쓰고 `100vh` 를 쓰지 않는다.
+- Mobile 드로어: `aria-modal` 이 사실이도록 포커스를 패널 안에 가둔다. 순회는 패널의 문서 순서를 따르고 마지막에서 처음으로 돌아온다. 패널이 햄버거를 덮으므로 헤더에 보이는 닫기를 둔다.
+- Mobile 드로어: 시스템 뒤로가기로 닫힌다. 닫는 동안 페이지를 떠나지 않는다.
+- Mobile Test: Back + 화면 이름 + Timer 를 제공하며 instruction/question 전 상태에서 동일 구성을 유지한다. 화면 이름은 **바 전체 폭 기준으로 중앙 정렬**하고 양쪽 컨트롤을 절대 위치로 얹는다 — 둘 사이에서 가운데 정렬하면 12 locale 에서 컨트롤 폭이 달라 제목이 밀린다. 접힐 길이는 한 줄로 자른다.
 - Mobile Test: 햄버거, 설정 레이어, 언어/테마 컨트롤을 노출하지 않는다.
 - Mobile Test Back: 우선 `history.back`, 불가 시 `/{locale}`로 fallback.
-- Mobile Blog: Back + 햄버거를 사용하고 최하단 설정 컨트롤 규칙은 Landing과 동일하게 적용한다.
+- Mobile Blog: Back + 햄버거를 사용하고 드로어 순서·설정 블록 규칙은 Landing과 동일하게 적용한다.
 - History: Blog와 동일한 GNB 컨텍스트를 사용한다(Desktop/Mobile 공통).
 - Landing keyboard entry: desktop/tablet에서 첫 `Tab`은 첫 enterable landing card로 이동하고, 첫 card에서 `Shift+Tab`은 마지막 visible GNB control로 복귀한다. Blog/History/Test context는 이 landing 전용 focus transfer를 사용하지 않고 native GNB focus order를 유지한다.
-- 언어 변경 위치: Desktop은 설정 레이어 내부만, Mobile은 햄버거 최하단 컨트롤만 허용한다.
-- 테마 상태: 최초는 system-follow, 수동 변경 이후 `light|dark`를 localStorage에 고정 저장한다.
+- 언어 변경 위치: Desktop은 설정 레이어 내부만, Mobile은 드로어 설정 블록 내부만 허용한다. 칩 12 개는 각자 `lang` 을 달고 묶음은 접근 가능한 이름(`Language`)을 갖는다.
+- 테마 상태: 최초는 system-follow, 수동 변경 이후 `light|dark`를 localStorage에 고정 저장한다. **`System` 으로 돌아갈 수 있다** — 그때 저장된 값을 지우고 다시 OS 를 따른다.
+- 테마 컨트롤: `System` 텍스트 버튼 · dark 스와치 · light 스와치 셋이며 순서는 고정이다(해석된 테마에 따라 재배열하지 않는다). 묶음은 `radiogroup` 이고 선택은 `aria-checked` 가 말한다.
+- 테마 마크는 둘이다: 명시 선택은 고른 스와치에 **단일 sage 링** 하나, `System` 선택은 `System` 칩에 선택 표시 + 해석된 쪽 스와치에 **배지 점**이다. 적용 중인 쪽을 `disabled` 로 만들지 않으며, 배지 점은 접근 가능한 이름에 텍스트 대안을 함께 갖는다.
 
 **Verification**:
 1. Automated: Playwright에서 Desktop hover open/fallback open, Esc/outside/focus out close를 검증한다.
@@ -290,7 +299,8 @@
 - Desktop/Tablet Expanded title의 나머지 텍스트는 첫 줄 아래에서만 reveal/collapse 되어야 하며, 첫 줄 continuity를 깨는 재래핑을 금지한다.
 - Mobile title: Normal/OPENING/OPEN/CLOSING 전 상태에서 전체 title을 표시해야 하며 ellipsis를 적용하면 안 된다.
 - Desktop/Tablet Landing Normal subtitle: 최대 2줄까지만 표시하며, overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
-- Mobile Landing Normal subtitle: 전체 텍스트를 표시하고 clamp/ellipsis를 적용하면 안 된다.
+- Mobile Landing Normal subtitle: Desktop/Tablet과 같은 **최대 2줄** clamp를 적용하고 overflow 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다. 종전 조항은 모바일에만 clamp를 금지했고 그 비대칭 하나가 390px 세로 예산의 가장 큰 단일 항목이었다(실측 `en` 여덟 장 자연 줄 수 `1·3·2·1·2·9·3·4` → 11줄 × 24px).
+- 잘린 부제의 전문에 도달하는 경로는 카드 타입마다 다르고, 그 비대칭은 의도된 것이다. blog는 상세 화면이 부제 전문을 clamp 없이 렌더한다. test는 Expanded에서 부제를 렌더하지 않으므로(아래 조항) 2줄 밖의 텍스트에 도달할 경로가 **없다** — test 카드 부제의 3줄째부터는 보조 정보이지 도달 대상이 아니다.
 - Normal subtitle overflow 처리 결과는 동일 카드의 형제 슬롯 기하(썸네일/태그 포함)의 inline-size를 변경하면 안 된다.
 - Normal tags 영역은 1줄 슬롯과 nowrap을 유지한다. 가시 태그는 원본 좌→우 순서의 단일 prefix여야 하며 재배열/교체를 금지한다.
 - BQ-32: 마지막 가시 태그만 scoped border-box `--tag-min-width:56px`까지 말줄임할 수 있다. 자연 너비가 56px 이하인 짧은 태그는 전체 표시 또는 숨김만 허용하고, 다음 tail의 필수 폭이 부족하면 suffix를 우측부터 숨긴다.
@@ -367,7 +377,7 @@
 - snapshot 해제는 Expanded 종료 직후 1회만 허용한다.
 - baseline 재측정은 레이아웃 안정 구간에서만 허용한다.
 - Expanded 활성/ handoff 정리/instant 종료 처리 중 baseline 재측정을 금지한다.
-- Expanded 활성 중 layout 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤에만 baseline/배치를 재측정할 수 있다.
+- Expanded 활성 중 layout 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤에만 baseline/배치를 재측정할 수 있다. **이 선행조건의 적용 범위는 §6.2 가 정의한 그대로다** — 얼어 있는 row baseline 이 실제로 있는 전이, 즉 다 열 레이아웃 사이다(BQ-44). 여기서 범위를 다시 적지 않는다.
 - handoff(row A→B)에서 row A snapshot은 row B settled 직후에만 해제할 수 있다.
 
 5) Visibility & Readability Safety
@@ -384,7 +394,7 @@
 8. Automated: Expanded/handoff 활성 중 same-row non-target row track size 변화 `0px` 및 top/bottom/outer height 오차 `0px`를 검증한다.
 9. Automated: Expanded 종료 직후 same-row non-target 카드 높이 잔류 변화 `0px`(row 1/row 2+)를 검증한다.
 10. Automated: baseline 상태 전이가 `BASELINE_READY -> BASELINE_FROZEN -> BASELINE_READY` 순서를 위반하지 않는지 검증한다.
-11. Automated: Expanded 활성 중 폭 변경 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다.
+11. Automated: 다 열 레이아웃 사이의 폭 변경에서 Expanded 활성 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다. 폰이 한쪽에 있는 전이는 얼린 baseline 이 없으므로 이 선행조건의 대상이 아니다(BQ-44).
 12. Automated: handoff(row A→B)에서 row A snapshot 해제가 row B settled 이후에만 발생하는지, Expanded 전환 중 dual-visibility `0건`을 검증한다.
 13. Automated: 반복 handoff/open-close(최소 100회) 후 same-row non-target 누적 높이 오차 `0px`를 검증한다.
 14. Automated: font-ready/후속 font completion과 resize down/up 이후 settled compensation이 재계산되고 equality guard가 반복 state churn을 방지하는지 검증한다.
@@ -392,7 +402,7 @@
 
 ### 6.8 Normal Thumbnail & Expanded Slot Semantics
 **Rule**: Normal 썸네일 규격과 Expanded 타입별 슬롯 의미론은 아래 규칙으로 고정한다.
-- Normal thumbnail: width `100%`, ratio `16 / 6`, `object-fit: cover`(왜곡 금지). **BQ-22 가 옮긴 값이다** — 그 change set 이 구현·`grid-smoke` ratio assertion·SVG 를 모두 `16 / 6` 으로 바꾸면서 이 줄만 `6:1` 로 남았고, 두 계약을 비교하는 장치가 없어 열다섯 wave 동안 아무도 보지 못했다. 제품(`landing-grid-card.tsx:216` `aspect-[16/6]`)·`design.md` §6.2·E2E assertion·`ds/colors_and_type.css`(`--thumb-ratio`)가 전부 `16 / 6` 이고 이 줄만 달랐다.
+- Normal thumbnail: width `100%`, ratio `16 / 4`, `object-fit: cover`(왜곡 금지). 자산도 같은 비율로 그린다 — 슬롯만 좁히면 `cover` 가 그림을 잘라 내므로, 열 장의 `viewBox` 를 `0 40 640 160` 으로 좁히고 잉크가 그 안에 드는 것을 단위 검사가 잰다. **종전 값 `16 / 6` 은 BQ-22 가 옮긴 값이었다** — 그 change set 이 구현·`grid-smoke` ratio assertion·SVG 를 모두 `16 / 6` 으로 바꾸면서 이 줄만 `6:1` 로 남았고, 두 계약을 비교하는 장치가 없어 열다섯 wave 동안 아무도 보지 못했다. 제품(`landing-grid-card.tsx:216` `aspect-[16/6]`)·`design.md` §6.2·E2E assertion·`ds/colors_and_type.css`(`--thumb-ratio`)가 전부 `16 / 6` 이고 이 줄만 달랐다.
 - Normal 상태의 슬롯 기하 계약은 subtitle overflow 처리와 독립이어야 하며, 텍스트 처리로 슬롯 간 폭 전파를 허용하지 않는다.
 - Expanded에서 제거 대상(`subtitle/thumbnail/tags`)은 시각 숨김이 아니라 미렌더링 또는 접근성 트리 비노출이어야 한다.
 - front/back title 불일치를 금지한다.
@@ -601,6 +611,24 @@
 
 모션의 값과 축약 규칙이 그 문서로 갔다. 성능 예산의 **결과** 기준(§11.1 SSR/Hydration Determinism)은 이 문서에 남는다.
 
+### 11.4 Transfer and Timing Budget
+
+**Rule**: 랜딩 첫 방문의 전송량과 시간에 **수치 예산**을 둔다. 종전에 이 절은 열세 조항이 전부 결정성·모션·reduced-motion 이었고 바이트·시간·LCP·CLS 목표가 한 줄도 없었다 — 즉 어떤 실측치도 위반할 수 있는 조항이 존재하지 않았다.
+
+- **폰트 전송**: 라틴 계열 locale 은 **200 KB**, 한국어·일본어·중국어 locale 은 **420 KB** 를 넘지 않는다. 이 예산은 subset 조각에 걸고, 업스트림 조각이 놓친 601 자를 담은 **보충 조각**(실측 61,916 B)은 그것을 쓰는 locale 에만 별도 몫으로 더한다 — 둘을 한 수로 뭉치면 어느 쪽이 자랐는지 알 수 없게 된다(BQ-47).
+- **이미지 발견**: 첫 화면의 LCP 후보 이미지는 `loading="lazy"` 로 두지 않는다. preload 스캐너가 건너뛰면 발견이 CSS 대비 **815 ms** 밀린다.
+- **테마 결정성**: 테마 부트스트랩은 프레임워크 런타임 없이도 해석돼야 한다. 별도 요청으로 실으면 첫 페인트를 막지 못한다.
+- **CLS**: 모바일 랜딩 `< 0.05`. 이 단언은 릴리스 게이트(`@gate`)에 포함한다.
+- 예산을 바꾸는 것은 실측을 동반한 결정이며, 실측 없이 상한만 올리는 변경을 금지한다.
+
+**Verification**:
+1. Automated: 12 locale × 390×844 에서 폰트 조각 전송량이 예산 안임을 검증한다(`assertion:FP-01`).
+2. Automated: preload 한 조각을 그 페이지가 실제로 쓰고, 12 locale 이 공통으로 쓰는 조각이 전부 preload 돼 있음을 검증한다(`assertion:FP-01`).
+3. Automated: 커버리지 backstop 이 지정된 locale 밖에서 당겨지지 않음을 검증한다(`assertion:FP-02`).
+4. Automated: 프레임워크 청크를 전부 차단한 상태에서 테마가 해석됨을 검증한다(`assertion:TB-01`).
+5. Automated: 첫 카드 썸네일만 eager + preload 이고 나머지는 lazy 임을 검증한다(`assertion:LCP-01`).
+6. Automated: 모바일 랜딩 CLS `< 0.05` 를 릴리스 게이트에서 검증한다.
+
 ## 12. Telemetry / Logging Contract
 
 ### 12.1 Logging Scope & V1 Event Set
@@ -676,6 +704,25 @@
 
 **Verification**:
 1. Automated: payload schema/금지필드 검사 및 fixture 최소 개수/다양성/required 누락 금지 테스트를 수행한다.
+
+### 12.7 Consent UI Contract
+
+**Rule**: 동의 UI 는 하단 배너 **하나**이며 두 얼굴을 갖지 않는다.
+
+- 배너는 제목 줄 없이 **본문 한 단락 + 버튼 둘**이다. `Allow` 는 채운 CTA, `Deny` 는 평문 텍스트 버튼이며 두 버튼의 시각 무게를 같게 만들지 않는다. 세 번째 버튼(`Preferences` 계열)을 두지 않는다 (BQ-46).
+- 본문 줄 수는 **390px 2 줄 · 320px 3 줄**을 넘지 않는다. 12 locale 전부에 적용하며 액션 행은 어느 locale 에서도 접히지 않는다.
+- 배너는 스크림을 갖지 않고 뒤에서 카탈로그가 계속 스크롤된다. 문서 흐름에 예약하는 높이는 배너 높이와 하단 gap 의 실측을 따른다(§8.4, BQ-39).
+- **재호출 경로는 셋이다** — 모바일 드로어 설정 블록의 우측 정렬 얇은 링크, 데스크톱 페이지 최하단 중앙의 같은 링크, `OPTED_OUT` 고지 행(§13.9)의 해제 링크. 셋 다 **같은 배너**를 다시 띄우며 새 화면을 만들지 않는다. 테스트 진행 중 표면에는 진입점을 두지 않는다.
+- 재호출은 배너로 **포커스를 옮긴다.** 이미 떠 있는 배너에 대한 재호출도 포커스 이동은 수행한다 — 부른 UI 를 만나지 못하면 재호출이 아니다.
+- **재호출로 뜬 배너에만 닫기 컨트롤(44×44)이 있다.** 첫 방문 배너에는 두지 않는다: 거기서는 선택이 곧 닫기이고, 닫기가 있으면 「선택하지 않음」이라는 네 번째 답이 생긴다. 닫기는 저장된 선택을 바꾸지 않는다.
+- 재호출 배너는 **이전 선택을 표시한다.** 색만으로 표시하지 않으며(WCAG 1.4.1) 보조기술에는 버튼 이름 안의 텍스트 대안으로 간다. `Allow` 는 재호출에서도 CTA 형태를 잃지 않는다.
+- 배너에서 선택이 이루어지면 재호출 상태는 함께 해제된다.
+- 재호출 진입점은 **보이는 잉크가 얇고 히트 영역이 `--tap-min`** 이다. 시각 무게를 낮추는 것이 히트 영역을 줄이는 근거가 되지 않는다(§9 터치 타깃 하한).
+
+**Verification**:
+1. Automated: 12 locale × `390px`/`320px` 에서 본문 줄 수 예산, 액션 행 접힘 `0건`, 버튼 `2개`, 제목 줄 `0건`을 검증한다.
+2. Automated: 첫 방문 배너의 닫기 컨트롤 `0건`, 재호출 배너의 닫기 컨트롤 `1개`를 검증한다.
+3. Automated: 재호출 진입점에서 배너 재표시 · 배너로의 포커스 이동 · 이전 선택 표식을 검증하고, 닫기 이후 저장된 consent 가 불변임을 함께 검증한다.
 ---
 
 ## 13. Error / Empty / Not-Found Handling
@@ -738,7 +785,7 @@
 
 **Rule**: instruction 노출·분기·CTA 규칙을 아래와 같이 고정한다.
 
-- Desktop: centered card overlay. Mobile: full-screen overlay.
+- Desktop/Tablet: centered card overlay. Mobile: **모달 바텀시트** — 카드 시트와 같은 프리미티브를 쓰되 grabber·제스처 닫기·history 항목 셋을 끈다(§8.5 시트 공통 규격). 종전의 전면 오버레이는 본문과 CTA 사이가 화면의 72% 만큼 비었고 유일한 CTA 가 상단 우측 1/4 에 있었다.
 - instruction overlay 활성 중 하위 입력 차단.
 - instructionSeen은 variant 단위로 저장한다.
 
@@ -872,6 +919,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
   - landing ingress + `OPTED_IN` + `opt_out`, landing ingress + `OPTED_OUT` + `opt_out`는 plain instruction + [Start]를 사용하며 landing ingress runtime start 규칙을 따른다.
   - 딥링크 유입 + `OPTED_IN` + `opt_out`, 딥링크 유입 + `OPTED_OUT` + `opt_out`는 plain instruction + [Start]를 사용하며 direct runtime start 규칙을 따른다.
 - `attribute` 5종 필터링은 landing-side resolver(`loadVariantRegistry()` / `resolveLandingCatalog()`)가 담당한다. Google Sheets registry 연동 이후에도 이 레이어 책임은 변경되지 않는다(ADR-F 확정, `docs/req-test-plan.md` Part 4 참조).
+- `OPTED_OUT` 카탈로그는 **숨겨진 항목 수와 해제 경로를 그리드 상단에 한 줄로 고지한다.** 숨은 개수는 상수가 아니라 실제 카탈로그 필터 결과의 차이며 12 locale 복수형을 따른다. 해제 링크는 §12.7 의 재호출 배너를 연다. 고지는 카드도 패널도 아닌 조용한 행이고 데스크톱·모바일이 같은 행을 쓴다. 이 고지 없이 카탈로그가 줄어드는 화면을 내보내지 않는다.
 
 **Verification**:
 1. Automated: Disagree All 상태에서 available 카드 `0건`, opt_out 카드 정상 노출을 검증한다.
@@ -879,6 +927,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 3. Automated: opt_out 카드 진입 경로가 §13.5 정책 매트릭스 계약을 따름을 검증한다. instruction 분기 상세 검증은 §13.5 Verification을 따른다.
 4. Automated: landing ingress + `OPTED_OUT` + `opt_out`에서 plain instruction + [Start] + landing ingress runtime start 규칙을 검증한다.
 5. Automated: 딥링크 유입 + `OPTED_OUT` + `opt_out`에서 plain instruction + [Start] + direct runtime start 규칙을 검증한다.
+6. Automated: `OPTED_OUT` 랜딩에서 고지 행이 그리드 상단에 서고, 표시된 숨은 개수가 `UNKNOWN` 카탈로그와 `OPTED_OUT` 카탈로그의 실제 카드 수 차와 같음을 검증한다. `OPTED_IN`·`UNKNOWN` 에서는 고지 행 `0건`을 함께 검증한다.
 
 ---
 
@@ -896,7 +945,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 1. SSR/Hydration: warning `0건`, typedRoutes build PASS, `useSearchParams()` Suspense 경계 위반 `0건` (Section 5, 11).
 2. Routing/i18n: single locale prefix, duplicate prefix `0건`, `proxy.ts` 단일 책임, locale-less allowlist/404 분기 PASS (Section 5, 13).
 3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, trigger-layer gap `0px`, focus out close `<=1 frame`, hover 유예 hover-only, Mobile overlay/backdrop/scroll lock, Desktop/Mobile Test의 Back+Timer-only control set, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
-4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Expanded/handoff 활성 중 grid plan freeze, 폭 변경 시 강제 종료 후 재계산, same-row 비대상 카드 top/bottom/outer height 오차 `0px`, Desktop Normal same-row bottom edge `0px`, 텍스트 overflow(특히 subtitle long-token)로 인한 카드/row inline-size 확장 `0건`, 텍스트 overflow로 인한 형제 슬롯(썸네일/태그) inline-size 변형 `0건`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, handoff는 enterable 카드(available 또는 opt_out) 기준으로만 성립, shell scale/crop PASS (Section 6, 7, 8, 9).
+4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Expanded/handoff 활성 중 grid plan freeze, **다 열 레이아웃 사이의** 폭 변경 시 강제 종료 후 재계산(범위는 §6.2 · BQ-44), same-row 비대상 카드 top/bottom/outer height 오차 `0px`, Desktop Normal same-row bottom edge `0px`, 텍스트 overflow(특히 subtitle long-token)로 인한 카드/row inline-size 확장 `0건`, 텍스트 overflow로 인한 형제 슬롯(썸네일/태그) inline-size 변형 `0건`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, handoff는 enterable 카드(available 또는 opt_out) 기준으로만 성립, shell scale/crop PASS (Section 6, 7, 8, 9).
 5. Keyboard/A11y: Desktop/Tablet Test focus 즉시 확장과 pending pointer-intent 취소, Blog non-expansion, unavailable skip, 문서 순서 탭 이동과 skip link 목적지 도달, 카드 내부 순회/no-trap, Test trigger `Enter/Space` idempotence와 A/B-only entry, higher-priority dialog 우선 `Escape`, trigger/choice `Escape` 단일 close + trigger 복귀, true focus-out destination 보존과 pure window blur 상태 보존, closing/cleanup/handoff-source 비상호작용, 12-locale Test name cycle 안정성, logical `aria-expanded`/stage `aria-hidden`, unavailable button-only name/status/disabled ownership, unnamed native tags list, expanded Test axe-clean, 카드 확장/진입 1차 트리거 시맨틱 요소(`<button>`, `<a>`) 강제 PASS (Section 7, 8, 9).
 6. Transition/Test Handshake: ingress flag 기록, landing `scoring1` pre-answer 유지, landing/direct runtime start 규칙 적용, runtime entry commit 이후 ingress consume, rollback 3케이스, canonical/runtime order와 user-facing scoring label 역전 `0건`, Blog article 식별자 전달, Blog transition의 landing ingress/card_answered `0건`, `start=1 -> terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, Mobile lifecycle atomicity(`OPENING -> OPEN -> CLOSING -> NORMAL`), single sequence 상태 전이 1회, OPENING close queue 처리, CLOSING 인터럽트 무시, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op, return scroll 복원 1회+즉시 consume PASS (Section 8, 12, 13).
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
@@ -905,8 +954,8 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 10. Normal Spacing Model: Desktop/Tablet Normal에서 `subtitle -> tags` 기본 간격 비-0 유지, 보정 불필요 카드의 `보정 간격=0` + 추가 잉여 여백 `0`, 보정 필요 카드만 추가 보정 간격 허용, empty-tags에서 chip `0개` + 슬롯 높이 유지 PASS (Section 6.7, 13.1).
 11. Row 1/Row 2+ Consistency: `보정 필요` 판정이 row index와 무관하게 동일 규칙(해당 row의 Normal 자연 높이 비교 결과)으로 적용되고, row index 기반 우회 신호 사용 `0건` PASS (Section 6.7).
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
-13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 **포인터 이동으로** 비카드 영역을 벗어날 때 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 실행 시점의 최신 경계 판정, 포인터 이동 없이 스크롤만으로 생긴 경계 변화(이탈·진입 양쪽)에서는 Expanded 유지 후 다음 포인터 이동 재판정과 뷰포트 완전 이탈 해제, 폭 변경 강제 종료 불변, handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립하며 유지 규칙보다 우선, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
-14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
+13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 **포인터 이동으로** 비카드 영역을 벗어날 때 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 실행 시점의 최신 경계 판정, 포인터 이동 없이 스크롤만으로 생긴 경계 변화(이탈·진입 양쪽)에서는 Expanded 유지 후 다음 포인터 이동 재판정과 뷰포트 완전 이탈 해제, **다 열 레이아웃 사이의** 폭 변경 강제 종료 불변(범위는 §6.2 · BQ-44), handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립하며 유지 규칙보다 우선, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
+14. Mobile Sheet Continuity and Restore: 폰 확장이 바텀시트이고 닫기 경로 다섯이 동작하며, 시트 제목이 카드 제목과 같고, 닫은 뒤 page scroll 위치와 카드 좌표가 진입 직전과 같고, 열린 동안 배경이 잠기고 그 아래 층이 `inert` 인 것 PASS (Section 8.5). 종전의 y-anchor drift · queue-close · snapshot 복귀 조항은 in-flow 확장의 것이었고 2026-09-16 에 폐지됐다.
 15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_variant`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `card_answered`가 landing phase의 `scoring1` 기록임을 유지하고, `attempt_start.question_index_1based`가 UI `Qn`이 아니라 first scoring runtime question의 canonical index로 정확히 발화하며, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
 16. Rollback Cleanup Closure: fail/cancel 케이스(사용자 취소, 목적지 타임아웃, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건`, duplicate-locale preflight no-op에서 pending/ingress/telemetry/internal signal `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
@@ -921,7 +970,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 26. **Transition Non-comp Stability**: Mobile `OPENING/OPEN/CLOSING/NORMAL` 및 Desktop opening/steady/handoff/closing/cleanup sampled frame에서 `needs_comp=false => comp_gap=0` PASS (§6.7).
 27. **BQ-32 Tag Fit**: 12 locale에서 56px tail ellipsis, short-tail full-or-hidden, suffix-only/right-first hide, resize widen reappearance, stable prefix identity, width transition당 visible-count 변경 `<=1` PASS (§6.6).
 28. **CTA / Status Priority**: Blog Desktop/Tablet rest→hover/focus와 Mobile always-visible CTA가 tag width보다 우선하고, unavailable `coming soon`은 첫 필수 prefix로 항상 DOM/AT 노출 PASS (§6.6, §9.3, §13.2).
-29. **Responsive Subtitle Matrix**: Desktop/Tablet Normal subtitle 2줄 ellipsis, Mobile full subtitle, 모든 12 locale tag-row geometry 및 Mobile lifecycle snapshot/restore PASS (§6.6, §8.5).
+29. **Responsive Subtitle Matrix**: Desktop/Tablet/Mobile Normal subtitle 2줄 ellipsis, 12 locale 전부에서 **렌더 줄 수 = min(자연 줄 수, 2)** 와 tag-row geometry PASS (§6.6). 재는 것은 넘침 여부가 아니라 줄 수다 — 넘침만 보면 12 locale이 전부 「넘치지 않음」으로 통과하면서 어느 locale이 몇 줄을 잃는지 아무것도 말하지 않는다. 종전에 이 항목이 함께 걸고 있던 Mobile lifecycle snapshot/restore 는 시트 전환으로 폐지됐다(§8.5).
 30. **BQ-30 Tag Visuals**: Test/Blog available `#ECE8DF`, unavailable status `#E6E2D8`, border `0px`, radius `5px`, inline padding `9px`, nowrap/no-dot/source casing PASS (§6.6, design.md §5.6/§6.3/§7.5).
 
 ### 14.3 Release Traceability Closure

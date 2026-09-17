@@ -46,6 +46,18 @@ describe('proxy policy', () => {
       action: 'redirect',
       pathname: '/zt/test/alpha'
     });
+
+    // 결과 주소는 **공유되라고** 있는 표면이다 — 옮겨 붙이다 접두가 떨어진 링크가 404 가 아니라
+    // 읽는 사람의 언어로 열려야 한다. 세그먼트가 둘이라 `/test/[variant]` 패턴에 걸리지 않는다.
+    expect(
+      resolveProxyDecision({
+        pathname: '/result/qmbti/INFJ',
+        acceptLanguage: 'ja,en;q=0.9'
+      })
+    ).toEqual({
+      action: 'redirect',
+      pathname: '/ja/result/qmbti/INFJ'
+    });
   });
 
   it('rewrites duplicate locale prefixes and non-app paths to the global not-found surface', () => {

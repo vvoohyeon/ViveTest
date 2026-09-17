@@ -485,15 +485,98 @@ test.describe('Phase 4 grid smoke', () => {
     expect(mainClamp).toBe('2');
   });
 
-  test('@smoke mobile full subtitle preserves tag-row geometry across all 12 locales', async ({page}) => {
+  // 재는 것은 **줄 수**이지 넘침이 아니다. 넘침만 물으면 12 locale 이 전부 「넘치지 않음」으로
+  // 통과하면서 어느 locale 이 몇 줄을 잃는지 아무것도 말하지 않는다 — clamp 를 건 뒤에는 넘침이
+  // 정의상 사라지기 때문이다. 그래서 카드마다 `렌더 줄 수 = min(자연 줄 수, 2)` 를 묻고, 스윕이
+  // 끝난 뒤 **실제로 잘린 카드를 하나 이상 봤는지**까지 묻는다. 뒤엣것이 없으면 이 검사는 clamp
+  // 가 아니라 「모든 부제가 두 줄 이하였다」를 재고 있을 수 있다.
+  // 수화 전 한 프레임의 기하다. SSR 은 태그를 전부 렌더하고 가시 개수는 JS 가 실측 뒤에 정하므로,
+  // 그 사이 blog 카드의 `Read more` 가 `ml-auto` 로 행을 밀어 **문서가 가로로 스크롤한다** — 수화가
+  // 끝나면 사라지므로 평범한 스펙은 이것을 볼 수 없다. 그래서 정적 청크를 끊어 그 프레임에 머문다.
+  //
+  // 이 창에서 그리드는 `visibility: hidden` 이라 넘치는 것이 **보이지는** 않는다. 그래도 숨은 상자는
+  // 자리를 차지하므로 남는 증상은 실재한다 — 아직 아무것도 그리지 않은 페이지가 가로로 끌린다.
+  // 200% 글자 확대(WCAG 1.4.4)는 같은 결함을 크게 만들 뿐 원인이 아니다. 실측(390px, 수화 차단):
+  // 문서 가로 스크롤이 기본 활자에서 16px · 최소 글꼴 26px 에서 92px 였다.
+  test('@smoke mobile landing does not scroll horizontally before hydration settles the tag row', async ({
+    page
+  }) => {
     await setTouchViewport(page, {width: 390, height: 844});
+    await page.route('**/_next/static/**/*.js', (route) => route.abort());
+
+    await page.goto('/en', {waitUntil: 'domcontentloaded'});
+    // 넘치던 원소 자체를 장벽으로 쓴다 — 이것이 SSR 마크업에 들어온 뒤라야 잴 것이 생긴다.
+    await expect(page.locator('[data-slot="blogReadMore"]').first()).toBeAttached();
+    await page.evaluate(() => document.documentElement.offsetHeight);
+
+    const overflow = await page.evaluate(() => {
+      const container = document.querySelector<HTMLElement>('[data-testid="landing-grid-container"]');
+      return {
+        document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        body: document.body.scrollWidth - document.body.clientWidth,
+        container: container ? container.scrollWidth - container.clientWidth : 0
+      };
+    });
+
+    expect(overflow).toEqual({document: 0, body: 0, container: 0});
+  });
+
+  test('@smoke mobile subtitle renders min(natural, 2) lines across all 12 locales and keeps tag-row geometry', async ({
+    page
+  }) => {
+    await setTouchViewport(page, {width: 390, height: 844});
+
+    const truncatedPerLocale: number[] = [];
 
     for (const locale of locales) {
       await page.goto(`/${locale}`);
+      await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-tier', 'mobile');
 
       const card = page.locator('[data-card-variant="ops-handbook"]');
       await expect(card).toHaveAttribute('data-card-viewport-tier', 'mobile');
       await expect(card).toHaveAttribute('data-natural-height', /[1-9]\d*(?:\.\d+)?/);
+
+      const lineCounts = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll<HTMLElement>('[data-card-variant]')];
+
+        if (cards.length === 0) {
+          throw new Error('Expected Mobile catalog cards.');
+        }
+
+        return cards.map((element) => {
+          const subtitle = element.querySelector<HTMLElement>('[data-slot="cardSubtitle"]');
+
+          if (!subtitle) {
+            throw new Error(`Expected a subtitle in ${element.getAttribute('data-card-variant')}.`);
+          }
+
+          const style = getComputedStyle(subtitle);
+          const lineHeight = Number.parseFloat(style.lineHeight);
+
+          return {
+            variant: element.getAttribute('data-card-variant') ?? '',
+            clamp: style.getPropertyValue('-webkit-line-clamp').trim(),
+            // clamp 된 상자에서도 `scrollHeight` 는 잘리지 않은 콘텐츠 높이를 돌려준다 —
+            // 그래서 한 번의 측정으로 자연 줄 수와 렌더 줄 수를 함께 얻는다.
+            renderedLines: Math.round(subtitle.clientHeight / lineHeight),
+            naturalLines: Math.round(subtitle.scrollHeight / lineHeight)
+          };
+        });
+      });
+
+      // 카드마다 따로 단언하지 않고 여덟 장을 한 배열로 비교한다 — 첫 장에서 멈추면 실패 메시지가
+      // 「한 장이 틀렸다」만 말하지만, 배열로 비교하면 그 locale 의 줄 수 표가 통째로 찍힌다.
+      const variants = lineCounts.map((entry) => entry.variant);
+      expect(
+        lineCounts.map((entry) => entry.renderedLines),
+        `${locale} rendered lines by card (${variants.join(', ')})`
+      ).toEqual(lineCounts.map((entry) => Math.min(entry.naturalLines, 2)));
+      expect(
+        lineCounts.map((entry) => entry.clamp),
+        `${locale} subtitle clamp by card (${variants.join(', ')})`
+      ).toEqual(lineCounts.map(() => '2'));
+
+      truncatedPerLocale.push(lineCounts.filter((entry) => entry.naturalLines > 2).length);
 
       const metrics = await card.evaluate((element) => {
         const row = element.closest<HTMLElement>('[data-testid^="landing-grid-row-"]');
@@ -512,7 +595,6 @@ test.describe('Phase 4 grid smoke', () => {
         return {
           columnCount: Number(row.getAttribute('data-columns') ?? '0'),
           cardCount: Number(row.getAttribute('data-card-count') ?? '0'),
-          lineClamp: subtitleStyle.getPropertyValue('-webkit-line-clamp').trim(),
           textOverflow: subtitleStyle.textOverflow,
           overflow: subtitleStyle.overflow,
           clientHeight: subtitle.clientHeight,
@@ -527,16 +609,20 @@ test.describe('Phase 4 grid smoke', () => {
 
       expect(metrics.columnCount).toBe(1);
       expect(metrics.cardCount).toBe(1);
-      expect(metrics.lineClamp).toBe('none');
-      expect(metrics.textOverflow).toBe('clip');
-      expect(metrics.overflow).toBe('visible');
-      expect(metrics.clientHeight).toBeGreaterThan(metrics.lineHeight * 2);
-      expect(Math.abs(metrics.scrollHeight - metrics.clientHeight)).toBeLessThanOrEqual(1);
+      expect(metrics.textOverflow).toBe('ellipsis');
+      expect(metrics.overflow).toBe('hidden');
+      expect(Math.abs(metrics.clientHeight - metrics.lineHeight * 2)).toBeLessThanOrEqual(1);
+      expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight + 1);
       expect(metrics.gap).toBeGreaterThan(0);
       expect(metrics.baseGap).toBeGreaterThan(0);
       expect(Math.abs(metrics.gap - metrics.baseGap)).toBeLessThanOrEqual(1);
       expect(metrics.compGap).toBe(0);
       expect(metrics.needsComp).toBe('false');
+    }
+
+    expect(truncatedPerLocale).toHaveLength(locales.length);
+    for (const [index, count] of truncatedPerLocale.entries()) {
+      expect(count, `${locales[index]} truncated card count`).toBeGreaterThan(0);
     }
   });
 
@@ -711,6 +797,72 @@ test.describe('Phase 4 grid smoke', () => {
     }
   });
 
+  /**
+   * 명세 §3-3 — 확장 메타 행은 **두 묶음**이다.
+   *
+   * 왼쪽은 회차에 관한 둘(`소요 · 완료`), 오른쪽은 다른 사람들에 관한 하나(`공유`)고 행의 끝에
+   * 정렬된다. 폰 시트와 제자리 오버레이가 **같은 규칙**을 쓴다 — 두 표면이 같은 컴포넌트를
+   * 쓴다는 사실은 그 자체로 계약이 아니므로 둘 다 재다.
+   */
+  test('@smoke assertion:MR-01 expanded meta row keeps the run pair left and shares right on both surfaces', async ({
+    page
+  }) => {
+    const readMetaRow = () =>
+      page.evaluate(() => {
+        const row = document.querySelector('.landing-grid-card-meta-row');
+
+        if (!(row instanceof HTMLElement)) {
+          return null;
+        }
+
+        const groups = [...row.querySelectorAll('.landing-grid-card-meta-group')];
+        const rowBox = row.getBoundingClientRect();
+        const box = (element: Element) => element.getBoundingClientRect();
+
+        return {
+          groupNames: groups.map((group) => group.getAttribute('data-meta-group')),
+          itemCounts: groups.map((group) => group.querySelectorAll('.landing-grid-card-meta-item').length),
+          runLeftGap: groups[0] ? Math.abs(box(groups[0]).left - rowBox.left) : null,
+          sharesRightGap: groups[1] ? Math.abs(rowBox.right - box(groups[1]).right) : null,
+          runRight: groups[0] ? box(groups[0]).right : 0,
+          sharesLeft: groups[1] ? box(groups[1]).left : 0,
+          separators: row.querySelectorAll('.landing-grid-card-meta-separator').length,
+          labels: [...row.querySelectorAll('.landing-grid-card-meta-label')].map(
+            (label) => label.textContent?.trim() ?? ''
+          )
+        };
+      });
+
+    const expectSplitRow = (measured: Awaited<ReturnType<typeof readMetaRow>>, surfaceLabel: string) => {
+      expect(measured, `${surfaceLabel}: 메타 행을 찾지 못했다`).not.toBeNull();
+      expect(measured?.groupNames, `${surfaceLabel}: 묶음 순서`).toEqual(['run', 'social']);
+      expect(measured?.itemCounts, `${surfaceLabel}: 묶음별 항목 수`).toEqual([2, 1]);
+      // 점은 왼쪽 묶음 안에서만 둘을 잇는다 — 종류가 다른 주장은 같은 점으로 잇지 않는다.
+      expect(measured?.separators, `${surfaceLabel}: 구분자 개수`).toBe(1);
+      expect(measured?.labels, `${surfaceLabel}: 항목 순서`).toEqual(['min', 'completed', 'shared']);
+      expect(measured?.runLeftGap ?? 99, `${surfaceLabel}: 왼쪽 묶음이 행 왼끝에 붙지 않았다`).toBeLessThanOrEqual(1);
+      expect(measured?.sharesRightGap ?? 99, `${surfaceLabel}: 공유가 행 오른끝에 붙지 않았다`).toBeLessThanOrEqual(1);
+      expect(measured?.sharesLeft ?? 0, `${surfaceLabel}: 두 묶음이 겹친다`).toBeGreaterThan(measured?.runRight ?? 0);
+    };
+
+    // ① 데스크톱 제자리 오버레이.
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+    const desktopCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await hoverDesktopExpandedCard(desktopCard);
+    await expect(desktopCard.locator('.landing-grid-card-meta-row')).toBeVisible();
+    expectSplitRow(await readMetaRow(), 'desktop overlay');
+
+    // ② 폰 시트.
+    await setTouchViewport(page, {width: 390, height: 844});
+    await page.goto('/en');
+    const phoneCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await phoneCard.getByTestId('landing-grid-card-trigger').click();
+    await expect(page.getByTestId('landing-card-sheet')).toBeVisible();
+    await expect(page.getByTestId('landing-card-sheet').locator('.landing-grid-card-meta-row')).toBeVisible();
+    expectSplitRow(await readMetaRow(), 'phone sheet');
+  });
+
   test('@smoke visual reconciliation R1 expanded sub-surfaces preserve context, choices, and duration-item emphasis', async ({
     page
   }) => {
@@ -802,7 +954,10 @@ test.describe('Phase 4 grid smoke', () => {
     expect(expandedMetrics.meta[2]?.tagName).toBe('span');
     expect(expandedMetrics.meta[2]?.fontWeight).toBe('500');
     expect(expandedMetrics.meta[2]?.color).toBe('rgb(117, 109, 102)'); // `--muted-aa`
-    expect(expandedMetrics.meta[2]?.text.toLowerCase()).toContain('completed');
+    // 순서가 `소요 · 완료` … `공유` 로 바뀜다(명세 §3-3) — 종전에는 회차에 관한 둘 사이에
+    // 공유가 끼어 있었다. 무게·잉크 계약은 같고 자리만 바뀜다.
+    expect(expandedMetrics.meta[1]?.text.toLowerCase()).toContain('completed');
+    expect(expandedMetrics.meta[2]?.text.toLowerCase()).toContain('shared');
     expect(expandedMetrics.question).toEqual({fontSize: '21px', fontWeight: '600', lineHeight: '27.3px'});
     expect(expandedMetrics.choice).toEqual({
       alignItems: 'flex-start',
@@ -846,7 +1001,9 @@ test.describe('Phase 4 grid smoke', () => {
     await card.getByTestId('landing-grid-card-trigger').click();
     await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
 
-    const expandedTitle = card.locator('[data-slot="cardTitle"]');
+    // 확장 제목은 카드 안이 아니라 **시트 안**이다(§8.5 재작성). 같은 선택자를 카드에 걸면
+    // 평소 얼굴의 제목을 집어 이 검사가 엉뚱한 것을 재게 된다.
+    const expandedTitle = page.getByTestId('landing-card-sheet').locator('[data-slot="cardTitle"]');
     await expect(expandedTitle).toHaveText(fullText);
     const expandedStyle = await expandedTitle.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -1082,26 +1239,29 @@ test.describe('Phase 4 grid smoke', () => {
         };
       });
 
+      // 활자 넷은 **모바일 열**의 값이다(BQ-48) — 데스크톱은 20px/26px · 15px/21.75px 로 남고
+      // 폰에서만 `--t-card-title` 이 `--h4` 칸(18px/1.4), `--t-card-subtitle` 이 16px/1.5 를
+      // 쓴다. 같은 파일 위쪽 데스크톱 단언과 나란히 두면 축이 있다는 사실이 두 수로 보인다.
       expect(normalMetrics).toMatchObject({
         borderRadius: '16px',
         borderTopColor: 'rgb(230, 226, 216)',
         borderTopWidth: '1px',
         triggerPaddingTop: '16px',
         triggerPaddingRight: '16px',
-        titleFontSize: '20px',
+        titleFontSize: '18px',
         titleFontWeight: '600',
-        titleLineHeight: '26px',
+        titleLineHeight: '25.2px',
         titleOverflowWrap: 'anywhere',
         titleTextOverflow: 'clip',
         titleWebkitLineClamp: 'none',
         titleWordBreak: 'keep-all',
-        subtitleFontSize: '15px',
+        subtitleFontSize: '16px',
         subtitleFontWeight: '400',
-        subtitleLineHeight: '21.75px',
-        subtitleOverflow: 'visible',
+        subtitleLineHeight: '24px',
+        subtitleOverflow: 'hidden',
         subtitleOverflowWrap: 'anywhere',
-        subtitleTextOverflow: 'clip',
-        subtitleWebkitLineClamp: 'none',
+        subtitleTextOverflow: 'ellipsis',
+        subtitleWebkitLineClamp: '2',
         subtitleWordBreak: 'keep-all',
         baseGapAttr: '8',
         baseGapVar: '8px',
@@ -1194,7 +1354,7 @@ test.describe('Phase 4 grid smoke', () => {
     }
   });
 
-  test('@smoke assertion:W12-mobile all locales keep full mobile text and contained rows', async ({
+  test('@smoke assertion:W12-mobile all locales keep the full mobile title, a two-line subtitle, and contained rows', async ({
     page
   }) => {
     test.setTimeout(120_000);
@@ -1252,7 +1412,7 @@ test.describe('Phase 4 grid smoke', () => {
           });
 
           expect(textMetrics.titleClamp).toBe('none');
-          expect(textMetrics.subtitleClamp).toBe('none');
+          expect(textMetrics.subtitleClamp).toBe('2');
           expect(textMetrics.titleScrollDelta).toBeLessThanOrEqual(1);
           expect(textMetrics.subtitleScrollDelta).toBeLessThanOrEqual(1);
           expect(textMetrics.titleLeft).toBeGreaterThanOrEqual(textMetrics.cardLeft);
@@ -1809,8 +1969,9 @@ test.describe('Phase 4 grid smoke', () => {
     const thumbnailRatio = await emptyTagsCard
       .locator('[data-slot="cardThumbnail"]')
       .evaluate((element) => element.clientWidth / Math.max(1, element.clientHeight));
-    expect(thumbnailRatio).toBeGreaterThan(2.4);
-    expect(thumbnailRatio).toBeLessThan(2.9);
+    // 16 / 4 = 4.0. 폭은 카드마다 다르고 높이는 그 폭에서 유도되므로 반올림 여유만 남긴다.
+    expect(thumbnailRatio).toBeGreaterThan(3.9);
+    expect(thumbnailRatio).toBeLessThan(4.1);
 
     // D-08: every variant now ships its own drawing, so no card falls back. The second
     // assertion used to require a `data:` URI here — which was the defect itself, since
@@ -2283,7 +2444,9 @@ test.describe('Landing first paint', () => {
    * 전제를 함께 단언한다(L16). 관찰이 아무 엔트리도 못 받으면 CLS 합계는 0 이 되어 검사가
    * 조용히 초록이 되고, 재플랜이 일어나지 않았다면 결함이 날 기회 자체가 없었던 것이다.
    */
-  test('@smoke mobile landing paints its grid once — no hydration re-plan shift', async ({page}) => {
+  // 저장소에서 CLS 를 단언하는 유일한 자리다. `@gate` 가 없던 동안 이 검사는 릴리스 게이트
+  // (`--grep @gate`) 밖에 있었고, 그래서 유일한 성능 회귀망이 릴리스에서 돌지 않았다.
+  test('@gate @smoke mobile landing paints its grid once — no hydration re-plan shift', async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_IN');
     await setTouchViewport(page, {width: 390, height: 812});
     await page.addInitScript(() => {

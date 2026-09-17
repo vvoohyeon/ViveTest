@@ -7,6 +7,7 @@ import type {ThemePreference} from '@/features/gnb/types';
 import {runBlurCircleTransition} from '@/features/gnb/hooks/theme-transition';
 import {THEME_GROUND_COLOR} from '@/app/theme-ground-color';
 import {LOCAL_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
+import {readLocal, removeLocal, writeLocal} from '@/lib/safe-storage';
 
 type ResolvedTheme = Exclude<ThemePreference, 'system'>;
 
@@ -21,7 +22,12 @@ interface ApplyThemeOptions {
 interface ThemePreferenceController {
   themePreference: ThemePreference;
   resolvedTheme: ResolvedTheme;
-  applyTheme: (theme: 'light' | 'dark', options?: ApplyThemeOptions) => void;
+  /**
+   * `'system'` 도 받는다 — 명세 규칙 5 의 두 주장(고른 것 · 적용 중인 것)을 화면이 구분해
+   * 그리려면 **고른 것으로 돌아갈 길**이 있어야 한다. 종전에는 `light`/`dark` 만 받아서 한 번
+   * 명시 선택을 하면 시스템을 따르는 상태로 되돌아갈 방법이 제품에 없었다.
+   */
+  applyTheme: (preference: ThemePreference, options?: ApplyThemeOptions) => void;
 }
 
 function resolveSystemTheme(): ResolvedTheme {
@@ -37,12 +43,8 @@ function readStoredThemePreference(): ThemePreference {
     return 'system';
   }
 
-  try {
-    const stored = window.localStorage.getItem(LOCAL_STORAGE_KEYS.THEME);
-    return stored === 'light' || stored === 'dark' ? stored : 'system';
-  } catch {
-    return 'system';
-  }
+  const stored = readLocal(LOCAL_STORAGE_KEYS.THEME);
+  return stored === 'light' || stored === 'dark' ? stored : 'system';
 }
 
 function resolveTheme(preference: ThemePreference): ResolvedTheme {
@@ -80,19 +82,12 @@ function writeThemePreferenceToDom(themePreference: ThemePreference, resolvedThe
   }
 
   if (themePreference === 'system') {
-    try {
-      window.localStorage.removeItem(LOCAL_STORAGE_KEYS.THEME);
-    } catch {
-      // Ignore storage failures and keep runtime theme only.
-    }
+    removeLocal(LOCAL_STORAGE_KEYS.THEME);
     return;
   }
 
-  try {
-    window.localStorage.setItem(LOCAL_STORAGE_KEYS.THEME, themePreference);
-  } catch {
-    // Ignore storage failures and keep runtime theme only.
-  }
+  // 못 써도 그대로 간다 — 이번 방문 동안의 테마는 런타임이 들고 있다.
+  writeLocal(LOCAL_STORAGE_KEYS.THEME, themePreference);
 }
 
 export function useThemePreference(): ThemePreferenceController {
@@ -138,12 +133,16 @@ export function useThemePreference(): ThemePreferenceController {
     return undefined;
   }, [clientReady, resolvedTheme, themePreference]);
 
-  const applyTheme = useCallback((theme: 'light' | 'dark', options?: ApplyThemeOptions) => {
+  const applyTheme = useCallback((preference: ThemePreference, options?: ApplyThemeOptions) => {
     const commitThemeChange = () => {
+      // `system` 으로 돌아갈 때 실제로 그려질 테마는 OS 가 정한다 — 선호와 해석을 여기서
+      // 갈라 두지 않으면 DOM 에 `data-theme="system"` 이라는 없는 값이 적힌다.
+      const nextResolvedTheme = resolveTheme(preference);
+
       flushSync(() => {
-        setManualThemePreference(theme);
+        setManualThemePreference(preference);
       });
-      writeThemePreferenceToDom(theme, theme);
+      writeThemePreferenceToDom(preference, nextResolvedTheme);
     };
 
     void runBlurCircleTransition({

@@ -158,7 +158,20 @@
   /* Foreground / text */
   --fg1: var(--warm-900);
   --fg2: var(--warm-700);
-  --fg3: var(--warm-600);
+  /* Role 3 is the caption / meta / context-label ink — `--warm-600` by position on
+     the ramp, and 4.23:1 on the card, which is below AA for normal text at every
+     size this role is used at. It is not a swatch that happens to be dark enough;
+     it is published as text ink, so it takes the correction `--muted-aa` already
+     holds rather than a second hex. 5.08 on the card, 4.86 on `--canvas`, 4.50 on
+     `--surface-sunken` — the three grounds role-3 text sits on.
+
+     Fixing the role rather than its callers is deliberate. The 2026-09-07 sweep
+     (`SYNC.md`) found 418 contrast failures and 415 of them were specimens reading
+     `--fg3` / `--fg4` as caption ink; it corrected the specimens and left the role,
+     so D-20 arrived nine days later through the one utility the sweep had not
+     rendered. A correction that enumerates its callers is a list, and the next
+     caller is not on it. */
+  --fg3: var(--muted-aa);
   --fg4: var(--warm-500);
   --fg-disabled: var(--warm-400);
   --fg-on-accent: #ffffff;
@@ -257,7 +270,10 @@
   --label:   500 14px/1.4  var(--font-sans);
   --caption: 400 13px/1.45 var(--font-sans);
   --overline:600 12px/1.4  var(--font-sans);
-  --button:  600 15px/1    var(--font-sans);
+  /* 행간 `1` 은 이 폰트에서 라벨을 자른다. `head.unitsPerEm = 2048` 에 `hhea.ascender
+     1950` · `descender -494` 이고 `USE_TYPO_METRICS` 가 켜져 있어 글리프 content area 가
+     1.1934em 이다 — 15px 에서 2.90px 이 모자란다. 뷰포트와 무관한 결함이라 기준값을 고친다. */
+  --button:  600 15px/1.2  var(--font-sans);
   --code:    400 14px/1.55 var(--font-mono);
 
   /* Tracking helpers */
@@ -479,7 +495,7 @@
   --choice-pad: 12px 14px;   /* expanded answer choice                        */
   --tag-pad:    4px 9px;     /* tag chip                                      */
   --tag-min-width: 56px;     /* last visible tag's border-box floor           */
-  --thumb-ratio: 16 / 6;     /* thumbnail aspect                              */
+  --thumb-ratio: 16 / 4;     /* thumbnail aspect                              */
 
   /* Realized grid gutters (BQ-37). The 20px tablet step is catalog-specific. */
   --grid-gutter-mobile:  15px;
@@ -495,6 +511,81 @@
   --t-choice:            400 15px/1.45 var(--font-sans);
   --t-tag:               500 13px/1.35 var(--font-sans);
   --t-eyebrow:           400 14px/1.4  var(--font-sans);
+}
+
+/* ============================================================================
+   TYPE — mobile column
+
+   The ladder above is the desktop column and stays the canonical one. Until now
+   it was the *only* one: **no type token had a viewport axis**, so a scale built
+   for 1280px shipped unchanged to 390px. Measured on the product (2026-09-16,
+   390x844): of 47 visible text elements, **35 (74%) render below 16px**, and 23
+   of those are 13px.
+
+   Two things move, in opposite directions, and that is the point.
+
+   - **Headings come down.** 30px is a desktop headline; at 390px it eats the
+     first screen. `--h1` takes `--h2`'s step and `--h3` takes `--h4`'s — both
+     already on this ladder, so nothing new is invented.
+   - **Small body goes up.** `--body-sm`, `--t-choice` and `--t-card-subtitle`
+     carry most of the product's prose, and at 14-15px they are the reason for
+     the 74%.
+
+   **The 13px group is deliberately not here.** `--caption`, `--overline`,
+   `--label` and `--t-tag` are secondary information; raising them collides with
+   the density work, and their sizes are judged together with their contrast.
+
+   `--body` does not move: 16px at 390px measures 50 characters per line on the
+   358px main column, inside the 45-75 convention.
+   ============================================================================ */
+@media (max-width: 767px) {
+  :root {
+    --h1: 700 24px/1.25 var(--font-sans);
+    --h3: 600 18px/1.4  var(--font-sans);
+    --body-sm: 400 15px/1.55 var(--font-sans);
+
+    --t-card-title:        600 18px/1.4  var(--font-sans);
+    --t-card-subtitle:     400 16px/1.5  var(--font-sans);
+    --t-expanded-question: 600 20px/1.35 var(--font-sans);
+    --t-choice:            400 16px/1.5  var(--font-sans);
+  }
+}
+
+/* ---- The same column, asked for explicitly [D-21] --------------------------
+
+   A specimen draws the phone as a **box inside a desktop-width card** — 390px of
+   content on a 1260px page — so the query above never fires and the card shows
+   the desktop step while claiming to show the phone. Measured 2026-09-16:
+   `surface-landing-head` rendered its title at 30px where the product at 390px
+   renders 24px, and `comp-notice` its row at 14px against 15px.
+
+   This bundle already answered this question twice, for the grid gutter
+   (`.vt-grid--tablet`) and for the text clamps (`.vt-title--clamp1`), and the
+   answer both times was the same: **inside a specimen the tier is an explicit
+   choice, not a measured width.** A container query is not an alternative here —
+   these tokens key on the viewport, and a container query would only move the
+   guess from one box to another.
+
+   So the phone column is a modifier you ask for, and a boxed phone asks for it.
+   Nothing changes on a real phone: the query above and this class carry the same
+   values, so both fire and agree.
+
+   THIS BLOCK IS A COPY, AND A COPY IS ONLY SAFE WHEN SOMETHING HOLDS IT. CSS
+   cannot share one declaration list between a media query and a class, and the
+   alternative — routing both through `--h1-mobile`-style indirection — would put
+   that indirection into the product's own token layer to serve a specimen. So the
+   copy stays and `tests/unit/design-tokens-dark-parity.test.ts` requires the two
+   blocks to be identical, name and value. Change one and the gate stops.
+   ---------------------------------------------------------------------------- */
+.vt-phone {
+  --h1: 700 24px/1.25 var(--font-sans);
+  --h3: 600 18px/1.4  var(--font-sans);
+  --body-sm: 400 15px/1.55 var(--font-sans);
+
+  --t-card-title:        600 18px/1.4  var(--font-sans);
+  --t-card-subtitle:     400 16px/1.5  var(--font-sans);
+  --t-expanded-question: 600 20px/1.35 var(--font-sans);
+  --t-choice:            400 16px/1.5  var(--font-sans);
 }
 
 /* ============================================================================
@@ -536,14 +627,14 @@
   --surface-strong:  var(--warm-700);
 
   /* -- foreground: mirrors the light ladder's ROLES, not its indices ------
-     light  fg1 900 / fg2 700 / fg3 600 / fg4 500  ->  17.3 / 8.7 / 4.2 / 2.4 on the card
+     light  fg1 900 / fg2 700 / fg3 aa  / fg4 500  ->  17.3 / 8.7 / 5.1 / 2.4 on the card
      dark   fg1  50 / fg2 200 / fg3 400 / fg4 600  ->  16.6 / 13.4 / 7.8 / 4.1 on the card
      Dark runs more generous in the middle on purpose: the same nominal ratio
      reads dimmer on a dark ground, and the light half of the ramp has eight
      steps to spend where the dark half has five. */
   --fg1: var(--warm-50);
   --fg2: var(--warm-200);
-  --fg3: var(--warm-400);
+  --fg3: var(--muted-aa);              /* = --warm-400 in dark; see the light note */
   --fg4: var(--warm-600);
   --fg-disabled: var(--warm-700);
   --fg-on-accent: var(--warm-950);          /* 7.21 on --sage-400 */
@@ -665,14 +756,14 @@
     --surface-strong:  var(--warm-700);
 
     /* -- foreground: mirrors the light ladder's ROLES, not its indices ------
-       light  fg1 900 / fg2 700 / fg3 600 / fg4 500  ->  17.3 / 8.7 / 4.2 / 2.4 on the card
+       light  fg1 900 / fg2 700 / fg3 aa  / fg4 500  ->  17.3 / 8.7 / 5.1 / 2.4 on the card
        dark   fg1  50 / fg2 200 / fg3 400 / fg4 600  ->  16.6 / 13.4 / 7.8 / 4.1 on the card
        Dark runs more generous in the middle on purpose: the same nominal ratio
        reads dimmer on a dark ground, and the light half of the ramp has eight
        steps to spend where the dark half has five. */
     --fg1: var(--warm-50);
     --fg2: var(--warm-200);
-    --fg3: var(--warm-400);
+    --fg3: var(--muted-aa);            /* = --warm-400 in dark; see the light note */
     --fg4: var(--warm-600);
     --fg-disabled: var(--warm-700);
     --fg-on-accent: var(--warm-950);          /* 7.21 on --sage-400 */

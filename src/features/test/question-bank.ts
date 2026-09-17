@@ -10,8 +10,10 @@ import type {LocalizedText, TestPreviewPayload} from '@/features/variant-registr
  *
  * A/B → domain token 변환은 이 레이어의 책임이 아니다.
  *   - scoring projection (A→poleA, B→poleB): src/features/test/response-projection.ts 담당
- *   - qualifier projection (A→values[0], B→values[1]): 동일
- *   - 위 파일은 Phase 4/7에서 구현될 예정이며 현재 stub 상태
+ *   - qualifier 응답은 **변환 대상이 아니다** — 오버레이가 `QualifierFieldSpec.values`를 그대로
+ *     토큰으로 쓰므로 런타임에 이미 토큰으로 저장돼 있다(실측 2026-09-16). 종전 이 주석이 적어
+ *     두었던 `A→values[0]` 사상은 제품이 필요로 한 적이 없다
+ *   - 위 파일은 2026-09-16(step 3 §8)에 구현됐다
  *
  * 참조: Phase 1 domain token 모델 (req-test-plan.md §Phase 1 완료 요약)
  *   computeScoreStats() / buildTypeSegment()는 pole label 또는 qualifier token을

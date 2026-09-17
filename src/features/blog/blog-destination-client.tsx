@@ -40,9 +40,14 @@ const blogArticleListClassName = 'blog-article-list grid gap-3';
 const blogArticleItemsClassName = 'm-0 grid list-none gap-2 p-0';
 // 목록 행은 카탈로그의 선택 행과 같은 처리를 받는다 — 어딘가로 데려가는 행이라는 점이 같다.
 const blogArticleListItemClassName =
-  'blog-article-list-item rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] [transition-property:border-color,background-color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)]';
+  'blog-article-list-item rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] [transition-property:border-color,background-color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] active:border-[var(--accent)] active:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)]';
 const blogArticleLinkClassName =
   'blog-article-link grid gap-1 px-3.5 py-3 [color:inherit] no-underline hover:no-underline focus-visible:no-underline focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:2px]';
+// ds-literal: partial-role --body-sm — 15px 고정이다. `--body-sm` 은 데스크톱 14px ·
+// 모바일 15px 로 뷰포트 축을 갖고(BQ-48) 이 제목은 그 **모바일 단계와만** 크기가 겹친다.
+// 데스크톱에서는 토큰보다 1px 크고, 무게 600 · 행간 1.45 도 토큰의 400/1.55 와 다르다.
+// 축을 따르지 않는 것이 의도다 — 목록 행의 제목은 두 폭에서 같은 크기로 선다.
+// (처음 이 자리를 `off-ladder` 로 적었다가 가드가 거짓임을 잡았다: 15px 단계는 존재한다.)
 const blogArticleLinkTitleClassName =
   'text-[15px] font-semibold leading-[1.45] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 // 잉크가 `--muted-aa` 가 아니라 `--ink-body` 인 이유: 선택된 행의 바닥은 흰 면이 아니라

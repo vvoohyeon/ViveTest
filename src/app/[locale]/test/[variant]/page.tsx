@@ -30,8 +30,13 @@ export default async function QuestionPage({
     notFound();
   }
 
+  // **404 로 떨어뜨리지 않는다.** `[locale]` 안에서 해결되는 404 는 이 앱에서 `<body>` 가 빈
+  // Next 오류 문서(`html#__next_error__`)로 나간다 — 상태 코드는 404 인데 스크립트를 돌리기
+  // 전에는 아무 글자도 없다(실측 2026-09-16). 그리고 `req-test.md` §6.1 은 애초에 invalid
+  // variant 를 404 가 아니라 **에러 복구 페이지**로 보내라고 정해 두었다. 같은 파일 아래 두
+  // 분기와 형제 라우트(blog 상세)가 이미 그렇게 한다.
   if (!/^[a-z0-9-]+$/u.test(variant)) {
-    notFound();
+    redirect(buildTestErrorRedirectPath(locale, variant));
   }
 
   await getTranslations({locale, namespace: 'test'});
@@ -42,7 +47,7 @@ export default async function QuestionPage({
   const card = resolveLandingTestEntryCardByVariant(locale, variant);
 
   if (!card) {
-    notFound();
+    redirect(buildTestErrorRedirectPath(locale, variant));
   }
 
   const validation = getLazyValidatedVariant(variant);
@@ -56,6 +61,7 @@ export default async function QuestionPage({
       context="test"
       currentRoute={RouteBuilder.question(variant)}
       showDefaultConsentBanner={false}
+      screenTitle={card.title}
     >
       <TestQuestionClient key={`${locale}:${variant}`} locale={locale} card={card} />
     </PageShell>

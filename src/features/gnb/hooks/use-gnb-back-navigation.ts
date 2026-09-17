@@ -8,6 +8,7 @@ import {
   shouldUseHistoryBack
 } from '@/features/gnb/behavior';
 import {SESSION_STORAGE_KEYS} from '@/features/landing/storage/storage-keys';
+import {readSession, writeSession} from '@/lib/safe-storage';
 import type {LocalizedRoutePath} from '@/i18n/localized-path';
 
 type AppRouter = ReturnType<typeof useRouter>;
@@ -84,16 +85,12 @@ export function useGnbBackNavigation({
       return;
     }
 
-    try {
-      const currentStoredPath = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.CURRENT_PATH);
-      if (currentStoredPath && currentStoredPath !== pathname) {
-        window.sessionStorage.setItem(SESSION_STORAGE_KEYS.PREVIOUS_PATH, currentStoredPath);
-      }
-      window.sessionStorage.setItem(SESSION_STORAGE_KEYS.CURRENT_PATH, pathname);
-      previousInternalPathRef.current = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.PREVIOUS_PATH);
-    } catch {
-      previousInternalPathRef.current = null;
+    const currentStoredPath = readSession(SESSION_STORAGE_KEYS.CURRENT_PATH);
+    if (currentStoredPath && currentStoredPath !== pathname) {
+      writeSession(SESSION_STORAGE_KEYS.PREVIOUS_PATH, currentStoredPath);
     }
+    writeSession(SESSION_STORAGE_KEYS.CURRENT_PATH, pathname);
+    previousInternalPathRef.current = readSession(SESSION_STORAGE_KEYS.PREVIOUS_PATH);
   }, [pathname]);
 
   return {

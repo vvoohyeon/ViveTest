@@ -37,6 +37,9 @@ export async function generateMetadata({params}: {params: Promise<{locale: strin
 
   return {
     description,
+    // 루트 manifest 는 한 벌이라 어느 언어에서 들어왔든 영어 설명을 보여 준다. locale 사본을
+    // 가리켜 「홈 화면에 추가」가 그 언어로 뜨게 한다 — 문장은 위 `description` 과 같은 것이다.
+    manifest: `/${locale}/manifest.webmanifest`,
     openGraph: {
       type: 'website',
       siteName: 'ViveTest',

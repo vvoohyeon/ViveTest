@@ -54,14 +54,12 @@ function renderTargets({
   const fixture = mountGnbFixture();
   fixture.settingsPanel.hidden = !settingsOpen;
   fixture.mobilePanel.hidden = mobileMenuState === 'closed';
-  const mobileMenuTriggerRef = {current: fixture.mobileMenuTrigger};
   const {result} = renderHook(() =>
     useGnbKeyboardTargets({
       settingsPanelId: fixture.settingsPanel.id,
       mobileMenuPanelId: fixture.mobilePanel.id,
       settingsOpen,
-      mobileMenuState,
-      mobileMenuTriggerRef
+      mobileMenuState
     })
   );
 
@@ -100,8 +98,7 @@ describe('useGnbKeyboardTargets', () => {
         settingsPanelId: fixture.settingsPanel.id,
         mobileMenuPanelId: fixture.mobilePanel.id,
         settingsOpen: false,
-        mobileMenuState: 'closed',
-        mobileMenuTriggerRef: {current: fixture.mobileMenuTrigger}
+        mobileMenuState: 'closed'
       })
     );
 
@@ -122,8 +119,7 @@ describe('useGnbKeyboardTargets', () => {
         settingsPanelId: fixture.settingsPanel.id,
         mobileMenuPanelId: fixture.mobilePanel.id,
         settingsOpen: false,
-        mobileMenuState: 'closed',
-        mobileMenuTriggerRef: {current: fixture.mobileMenuTrigger}
+        mobileMenuState: 'closed'
       })
     );
 
@@ -134,7 +130,7 @@ describe('useGnbKeyboardTargets', () => {
     ]);
   });
 
-  it('mobile menu open returns mobile menu trigger followed by panel links and enabled controls', () => {
+  it('mobile menu open closes traversal inside the panel — the covered trigger is not a tab stop', () => {
     const fixture = mountGnbFixture();
     fixture.desktop.hidden = true;
     fixture.mobile.hidden = false;
@@ -144,13 +140,13 @@ describe('useGnbKeyboardTargets', () => {
         settingsPanelId: fixture.settingsPanel.id,
         mobileMenuPanelId: fixture.mobilePanel.id,
         settingsOpen: false,
-        mobileMenuState: 'open',
-        mobileMenuTriggerRef: {current: fixture.mobileMenuTrigger}
+        mobileMenuState: 'open'
       })
     );
 
+    // 패널은 바 위층이라 햄버거를 덮는다 — 보이지 않는 컨트롤을 순회에 남기지 않는다.
+    // 닫기는 이제 패널 헤더 안에 보이는 것으로 있다(명세 §2-4).
     expect(result.current.getOrderedKeyboardTargets().map((element) => element.textContent)).toEqual([
-      'Menu',
       'Home',
       'Mobile History',
       'Light'
@@ -166,8 +162,7 @@ describe('useGnbKeyboardTargets', () => {
         settingsPanelId: fixture.settingsPanel.id,
         mobileMenuPanelId: fixture.mobilePanel.id,
         settingsOpen: false,
-        mobileMenuState: 'closed',
-        mobileMenuTriggerRef: {current: fixture.mobileMenuTrigger}
+        mobileMenuState: 'closed'
       })
     );
 
@@ -186,8 +181,7 @@ describe('useGnbKeyboardTargets', () => {
         settingsPanelId: fixture.settingsPanel.id,
         mobileMenuPanelId: fixture.mobilePanel.id,
         settingsOpen: true,
-        mobileMenuState: 'closed',
-        mobileMenuTriggerRef: {current: fixture.mobileMenuTrigger}
+        mobileMenuState: 'closed'
       })
     );
 
@@ -212,11 +206,12 @@ describe('useGnbKeyboardTargets', () => {
         settingsPanelId: fixture.settingsPanel.id,
         mobileMenuPanelId: fixture.mobilePanel.id,
         settingsOpen: true,
-        mobileMenuState: 'open',
-        mobileMenuTriggerRef: {current: fixture.mobileMenuTrigger}
+        mobileMenuState: 'open'
       })
     );
 
-    expect(result.current.getOrderedKeyboardTargets().map((element) => element.textContent)).toEqual(['Menu']);
+    // 드로어가 열렸다고 말하면서 패널이 그려지지 않았으면 순회할 것이 없다 — 빈 목록을
+    // 돌려 Tab 을 브라우저에게 돌려준다. 빈 목록 안에 가두는 것보다 안전하다.
+    expect(result.current.getOrderedKeyboardTargets()).toEqual([]);
   });
 });

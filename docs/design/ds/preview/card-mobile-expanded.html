@@ -1,93 +1,78 @@
 <!DOCTYPE html>
-<!-- @dsCard group="Catalog" name="Mobile expanded sheet" subtitle="The realized OPEN state, and the four things design.md §7.8 asks for that it does not do" viewport="1040x1310" -->
+<!-- @dsCard group="Catalog" name="Mobile expanded — the model that was replaced" subtitle="The full-bleed in-flow expansion step 3 §1 deleted, recorded as it stood, and where its surface went" viewport="1040x820" -->
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../app-components.css">
 <link rel="stylesheet" href="../catalog-components.css">
 <style>
   body { margin: 0; }
   .vive { padding: 26px 32px; background: var(--canvas); display: grid; gap: 16px; justify-items: start; }
-  .lede { font: var(--caption); color: var(--fg2); max-width: 760px; }
-  .lede b { color: var(--fg1); font-weight: 600; }
-  .row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
-  .col { display: grid; gap: 8px; align-content: start; }
-  /* Annotation frame: the 390px viewport, with the scrim and the sheet stacked
-     inside it the way the product stacks them. Nothing here is card system. */
-  .phone { position: relative; width: 390px; height: 620px; overflow: hidden; outline: 1px dashed var(--border-strong); background: var(--canvas); }
-  .gnb { position: relative; z-index: 30; height: 57px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--surface-soft); border-bottom: 1px solid var(--hairline); font: var(--label); color: var(--fg1); }
-  .beneath { padding: 16px; display: grid; gap: 15px; }
-  .ghost { height: 96px; border-radius: var(--radius-lg); background: var(--canvas-elevated); border: 1px solid var(--hairline); }
-  .sheet-anchor { position: absolute; left: 0; right: 0; top: 232px; z-index: 20; }
-  .cap { font: var(--caption); color: var(--muted-aa); max-width: 390px; }
-  .cap b { color: var(--fg2); font-weight: 600; }
-  .no { font: var(--caption); color: var(--muted-aa); max-width: 760px; }
-  .no b { color: var(--fg1); font-weight: 600; }
-  .note { font: var(--caption); color: var(--fg2); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 760px; }
-  .note b { color: var(--fg1); }
-  table { border-collapse: collapse; font: var(--caption); }
-  th { text-align: left; font-weight: 600; color: var(--fg2); padding: 0 14px 6px 0; border-bottom: 1px solid var(--border); }
+  .lede { font: var(--caption); color: var(--ink-body); max-width: 860px; }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .note { font: var(--caption); color: var(--ink-body); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); max-width: 860px; }
+  .note b { color: var(--ink); }
+  table { border-collapse: collapse; font: var(--caption); max-width: 860px; }
+  th { text-align: left; font-weight: 600; color: var(--ink-body); padding: 0 14px 6px 0; border-bottom: 1px solid var(--border); }
   td { padding: 6px 14px 6px 0; border-bottom: 1px solid var(--border); color: var(--muted-aa); vertical-align: top; }
-  td.k { color: var(--fg2); max-width: 240px; }
-  td:nth-child(2) { max-width: 250px; }
-  td.v { text-align: center; font-weight: 600; }
-  .yes { color: var(--accent-fg); }
-  .gap { color: var(--danger-fg); }
+  td.k { color: var(--ink-body); white-space: nowrap; }
+  pre { margin: 0; font: var(--caption); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink-body); white-space: pre-wrap; }
 </style></head>
-<body class="vive">
+<body>
+<div class="vive">
 
-  <p class="lede"><b>On mobile the expanded card stops being a card.</b> It spans the whole viewport, drops every corner radius, and moves its padding inside so a sticky header can sit flush against its top edge — <span class="t-code">design.md</span> §7.8: "it reads as chrome, not a floating card." Every specimen before this one showed a rounded floating surface, which is the desktop shape and the opposite of this rule.</p>
+  <p class="lede"><b>This card no longer has a component to render, and that is what it now records.</b> Until step 3 §1 the phone's expanded card was a full-bleed, in-flow expansion: it spanned the viewport, dropped every corner radius, moved its padding inside so a sticky header could sit flush against the top edge, and closed through an X or a backdrop tap and nothing else. Five rules in <span class="t-code">catalog-components.css</span> carried it, and that block said in its own comment that step 3 §1 would delete it. §1 landed, so they are gone — measured 2026-09-16, the product renders <span class="t-code">mobileTransientShell</span> zero times.</p>
 
-  <div class="row">
-    <div class="col">
-      <div class="phone">
-        <div class="gnb"><span>ViveTest</span><span>Menu</span></div>
-        <div class="beneath"><div class="ghost"></div><div class="ghost"></div></div>
-        <div class="vt-scrim" aria-hidden="true" style="z-index: 10"></div>
-        <div class="sheet-anchor">
-          <div class="vt-expanded vt-expanded--mobile">
-            <div class="vt-expanded__body">
-              <div class="vt-mobile-header">
-                <p class="vt-mobile-header__title">10m MBTI test</p>
-                <button class="vt-mobile-close" type="button" aria-label="Close expanded card">×</button>
-              </div>
-              <div class="vt-expanded__group">
-                <p class="vt-question">At parties, what do you notice first?</p>
-                <ul class="vt-choices">
-                  <li><button class="vt-choice" type="button"><span class="vt-choice__text">The room</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
-                  <li><button class="vt-choice" type="button"><span class="vt-choice__text">One person</span><span class="vt-choice__arrow" aria-hidden="true">→</span></button></li>
-                </ul>
-                <p class="vt-meta"><span><span class="vt-meta__lead">3 min</span></span><span class="vt-meta__sep" aria-hidden="true">·</span><span>2,184 shared</span><span class="vt-meta__sep" aria-hidden="true">·</span><span>15,236 completed</span></p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <span class="cap"><b>The realized <span class="t-code">OPEN</span> state.</b> Sheet at 390px with radius 0, sticky header, scrim behind at <span class="t-code">z-index 10</span> against the sheet's 20 and the GNB's 1100. The dashed edge and the two ghost cards are annotation.</span>
-    </div>
+  <p class="lede"><b>The surface did not disappear; it changed shape.</b> 규칙 3 — 형태는 공간이 정한다 — gives one column a bottom sheet and many columns the in-place overlay. What replaced this is <span class="t-code">.vt-sheet</span> in <span class="t-code">app-components.css</span>, drawn by <b>comp-sheet.html</b>, and the card sheet and the instruction sheet share that one primitive. The reason the change was worth making is the plural close: a control, the backdrop, a swipe, <span class="t-code">Escape</span> and the system back gesture all reach a sheet, and an in-flow expansion reaches none of them.</p>
 
-    <div class="col">
-      <table>
-        <thead><tr><th><span class="t-code">design.md</span> §7.8 asks for</th><th>Product</th><th></th></tr></thead>
-        <tbody>
-          <tr><td class="k">Full viewport width, no side margin</td><td>390px, left 0</td><td class="v yes">✓</td></tr>
-          <tr><td class="k">No left/right card radius</td><td><span class="t-code">border-radius: 0px</span></td><td class="v yes">✓</td></tr>
-          <tr><td class="k">A scrim dims the grid beneath</td><td>fixed, inset 0, behind</td><td class="v yes">✓</td></tr>
-          <tr><td class="k">Visible close button, top right</td><td>sticky, header right end</td><td class="v yes">✓</td></tr>
-          <tr><td class="k"><b>Top edge flush to the GNB bottom</b></td><td>GNB bottom 57, sheet top 338.59 — a <b>281.59px</b> gap; the sheet stays where the card sat in the grid</td><td class="v gap">✗</td></tr>
-          <tr><td class="k"><b>A <span class="t-code">--sage</span> bottom edge anchors it</b></td><td>no border anywhere in the chain</td><td class="v gap">✗</td></tr>
-          <tr><td class="k">§4.10 — close button at least 44 × 44</td><td><b>40 × 40</b></td><td class="v gap">✗</td></tr>
-          <tr><td class="k">§4.10 — choices at least 44 × 44</td><td>47.75 tall</td><td class="v yes">✓</td></tr>
-        </tbody>
-      </table>
-      <span class="cap">Measured on the running product at 390 × 844, 2026-09-07. The specimen above draws its sheet flush for lack of a grid to sit in; the <b>281.59px</b> row is the honest version of where it actually appears.</span>
-    </div>
-  </div>
+  <p class="note"><b>Why the declarations are printed here rather than applied.</b> Re-adding them so this card could draw the old model would put a deleted model back into the system's stylesheet, where the next screen built from it could pick the rules up by name. The same reasoning <span class="t-code">catalog-drift.html</span> uses for printing literal hex applies: when the subject of a card is something the system no longer says, the card quotes it instead of speaking it.</p>
 
-  <p class="note"><b>Wave 13 — "Mobile expanded shape/position" — was never implemented, and <span class="t-code">BQ-38</span> superseded it.</b> So the three gaps above are not defects to fix; they are the difference between a finished shape nobody built and a realized transient-shell implementation that works. Decision <b>C</b> freezes the catalog's patterns, so this card records the gap and does not design it closed. The design pass gets both columns.<br><b>The 40px close button is the one that is not merely unfinished</b> — <span class="t-code">design.md</span> §4.10 names the close button among the controls that must be at least 44 × 44, so it is an accessibility gap against the foundations rather than an unbuilt wave. Raising it is a runtime change and belongs to the surface work.</p>
+  <table>
+    <tr><th>Rule</th><th>What it declared</th><th>Why it is gone</th></tr>
+    <tr>
+      <td class="k">.vt-expanded--mobile</td>
+      <td><pre>width: 100%;
+border-radius: 0;
+box-shadow: none;
+background: var(--canvas-elevated);</pre></td>
+      <td>The sheet is <span class="t-code">position: fixed</span> at the bottom with <span class="t-code">24px 24px 0 0</span> corners and <span class="t-code">--shadow-overlay</span>. Full-bleed at radius 0 was the in-flow model's shape, not a narrower version of the card.</td>
+    </tr>
+    <tr>
+      <td class="k">.vt-expanded--mobile .vt-expanded__body</td>
+      <td><pre>padding: 0 var(--card-pad) var(--card-pad);
+gap: 0;</pre></td>
+      <td>The sheet's body is its own scroll container with <span class="t-code">overscroll-behavior: contain</span> and the shell gutter on the sides; the floor belongs to the sheet.</td>
+    </tr>
+    <tr>
+      <td class="k">.vt-mobile-header</td>
+      <td><pre>position: sticky; top: 0; z-index: 4;
+padding: var(--card-pad) 0 14px;
+background: var(--canvas-elevated);</pre></td>
+      <td>A sticky header inside a scrolling page needed an opaque ground to hide what passed under it. The sheet's header does not scroll at all — it is a fixed row above a scrolling body.</td>
+    </tr>
+    <tr>
+      <td class="k">.vt-mobile-header__title</td>
+      <td><pre>font: var(--t-context-label);
+color: var(--muted-aa);</pre></td>
+      <td>Went with the header.</td>
+    </tr>
+    <tr>
+      <td class="k">.vt-mobile-close</td>
+      <td><pre>min-width: 40px;
+min-height: 40px;
+border: 1px solid var(--hairline);
+border-radius: 50%;</pre></td>
+      <td><b>40 × 40 against the 44 the spec requires by name</b> — this block recorded the gap rather than correcting it, because correcting it was a runtime change. The sheet's close is <span class="t-code">.vt-pill--square</span> at <span class="t-code">--tap-min</span>, so the gap closed with the model.</td>
+    </tr>
+    <tr>
+      <td class="k">.vt-scrim (second copy)</td>
+      <td><pre>position: absolute; inset: 0;
+z-index: 0;
+transition: opacity var(--dur-base) ease;</pre></td>
+      <td><b>A duplicate of the name <span class="t-code">app-components.css</span> already defined</b>, and specimens load this sheet last — so every card drawing a scrim, including the sheet cards, was taking <span class="t-code">z-index</span> and easing from a rule written for the deleted model. One name, one definition.</td>
+    </tr>
+  </table>
 
-  <p class="no"><b>Reading the source alone gets the radius wrong.</b> <span class="t-code">landing-grid-card-mobile-transient-shell</span> carries <span class="t-code">rounded-[var(--landing-card-radius)]</span>, which suggests a 16px radius — but that class is the <span class="t-code">OPENING</span> / <span class="t-code">CLOSING</span> shell, anchored at the card's own left and width. The steady <span class="t-code">OPEN</span> state is a different element and is full-bleed at radius 0. The running product is what settled it.</p>
+  <p class="lede"><b>One number in the old block was a measurement, and it is the one worth keeping.</b> The layer order it recorded — GNB 1100 over expanded 20 over backdrop 10 — is why a modal could be abandoned through the GNB while it was open. The sheet fixes it by living in a portal at <span class="t-code">z-index: 1200</span>: measured 2026-09-16, <span class="t-code">elementFromPoint</span> at the centre of the GNB band returns the scrim while a sheet is open, which is 규칙 1 stated as a fact rather than as an intention.</p>
 
-  <p class="no"><b>Behaviour, from <span class="t-code">req-landing.md</span> §8.5.</b> Lifecycle is one-way: <span class="t-code">OPENING → OPEN → CLOSING → NORMAL</span>, and a tap that started OPENING may not reverse into CLOSING in the same sequence. The X is a single icon at the header's right end, visible from the start of OPENING until just before CLOSING ends and inert during CLOSING. <b>Closing is the X or a backdrop tap, and nothing else</b> — §7.8 declines to authorize swipe-down. The active card's top y-anchor must not drift during either transition. Layer order is GNB > expanded > backdrop > other cards, and the backdrop never covers the expanded card.</p>
-
-  <p class="no"><b>Never:</b> a side radius, a floating margin, a shadow reading as elevation, a second close path, or type scaled by the desktop shell factor — mobile has no shell scale, and the question is 21px on screen rather than 21 × 1.04.</p>
-
+</div>
 </body></html>

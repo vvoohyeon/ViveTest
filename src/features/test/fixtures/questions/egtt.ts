@@ -31,10 +31,10 @@ export const egttQuestions: ReadonlyArray<QuestionSourceRow> = [
   },
   {
     seq: '3',
-    question: {en: 'Q_placeholder_egtt_3', kr: 'Q_placeholder_egtt_3'},
+    question: {en: 'When I meet someone new, I tend to notice', kr: '처음 보는 사람을 만나면 나는'},
     poleA: 'E',
     poleB: 'T',
-    answerA: {en: 'Option A', kr: '옵션 A'},
-    answerB: {en: 'Option B', kr: '옵션 B'}
+    answerA: {en: 'how they look and carry themselves.', kr: '입고 꾸민 모습이 먼저 눈에 들어와'},
+    answerB: {en: 'what they say and how they say it.', kr: '무슨 말을 어떻게 하는지가 먼저 들려'}
   }
 ];
