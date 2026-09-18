@@ -92,6 +92,7 @@
     "crashTitle": "Layar ini gagal digambar",
     "crashBody": "Ada yang gagal saat menggambar halaman ini. Mencoba lagi biasanya berhasil.",
     "retry": "Coba lagi",
+    "pickUpLabel": "Mulai salah satu dari ini",
     "backToLanding": "Kembali ke beranda"
   },
   "consent": {

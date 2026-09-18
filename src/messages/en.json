@@ -92,6 +92,7 @@
     "crashTitle": "This screen did not render",
     "crashBody": "Something broke while drawing this page. Trying again usually works.",
     "retry": "Try again",
+    "pickUpLabel": "Start one of these",
     "backToLanding": "Return home"
   },
   "consent": {

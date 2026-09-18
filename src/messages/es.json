@@ -92,6 +92,7 @@
     "crashTitle": "Esta pantalla no se pudo dibujar",
     "crashBody": "Algo falló al dibujar esta página. Volver a intentarlo suele funcionar.",
     "retry": "Reintentar",
+    "pickUpLabel": "Empieza por uno de estos",
     "backToLanding": "Volver al inicio"
   },
   "consent": {

@@ -52,7 +52,8 @@ export function RecoverySurface({
   title,
   body,
   actions,
-  mark = <RecoveryAlertMark />
+  mark = <RecoveryAlertMark />,
+  children
 }: {
   testId: string;
   title: string;
@@ -60,6 +61,11 @@ export function RecoverySurface({
   /** 앞으로 가는 경로를 **최소 하나** 둔다(명세 §2-8). 막다른 곳에 막다른 화면을 두지 않는다. */
   actions: ReactNode;
   mark?: ReactNode;
+  /**
+   * 행동 아래에 붙는 것. 이 파일은 여전히 **모양만** 알고, 무엇이 붙는지는 부르는 쪽이 정한다 —
+   * 지금은 `/test/error` 의 복구 카드 하나뿐이고 나머지 세 표면은 넘기지 않는다.
+   */
+  children?: ReactNode;
 }) {
   return (
     <main className={recoveryMainClassName}>
@@ -71,6 +77,7 @@ export function RecoverySurface({
           <h1 className={recoveryTitleClassName}>{title}</h1>
           <p className={recoveryBodyClassName}>{body}</p>
           <div className={recoveryActionsClassName}>{actions}</div>
+          {children}
         </div>
       </section>
     </main>

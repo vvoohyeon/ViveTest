@@ -92,6 +92,7 @@
     "crashTitle": "화면을 그리지 못했습니다",
     "crashBody": "이 페이지를 그리는 중에 문제가 생겼습니다. 다시 시도하면 대개 해결됩니다.",
     "retry": "다시 시도",
+    "pickUpLabel": "이 중에서 시작하기",
     "backToLanding": "랜딩으로 돌아가기"
   },
   "consent": {

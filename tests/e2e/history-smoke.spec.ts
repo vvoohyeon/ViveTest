@@ -1,8 +1,7 @@
-import {expect, test, type Page} from '@playwright/test';
+import {expect, test} from '@playwright/test';
 
-import {TEST_RUN_HISTORY_KEY} from '../../src/features/test/storage/test-storage-keys';
 import {seedTelemetryConsent} from './helpers/consent';
-import {completeRunFromLanding} from './helpers/test-run';
+import {completeRunFromLanding, seedRunHistory} from './helpers/test-run';
 
 /**
  * 이 기기의 회차 목록 — 명세 §2-7, **목록까지만**.
@@ -12,18 +11,6 @@ import {completeRunFromLanding} from './helpers/test-run';
  * 다음 행동이 있고 디버그 문자열이 없다. ⑶ **행은 누를 수 없다** — 탭 동작과 URL 스킴은 다음
  * phase 이고, 연결할 곳이 없는 동안 어포던스를 붙이면 화면이 거짓말을 한다.
  */
-
-async function seedRunHistory(
-  page: Page,
-  entries: ReadonlyArray<{variantId: string; startedAtMs: number; completedAtMs: number | null}>
-): Promise<void> {
-  await page.addInitScript(
-    ([key, payload]) => {
-      window.localStorage.setItem(key, payload);
-    },
-    [TEST_RUN_HISTORY_KEY, JSON.stringify(entries)] as const
-  );
-}
 
 test.describe('Run history', () => {
   test('@smoke assertion:HS-01 the empty state offers the next action and carries no debug string', async ({page}) => {

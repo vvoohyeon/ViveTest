@@ -92,6 +92,7 @@
     "crashTitle": "页面未能呈现",
     "crashBody": "绘制此页面时出了问题。重试通常可以解决。",
     "retry": "重试",
+    "pickUpLabel": "从这些开始",
     "backToLanding": "返回首页"
   },
   "consent": {

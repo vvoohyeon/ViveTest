@@ -92,6 +92,7 @@
     "crashTitle": "Cet écran n'a pas pu s'afficher",
     "crashBody": "Quelque chose a échoué pendant l'affichage. Réessayer suffit en général.",
     "retry": "Réessayer",
+    "pickUpLabel": "Commencer par l'un de ceux-ci",
     "backToLanding": "Retour à l'accueil"
   },
   "consent": {

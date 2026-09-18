@@ -1,6 +1,9 @@
 import {expect, test, type Page} from '@playwright/test';
 
+import {resolveLandingCatalog} from '../../src/features/variant-registry';
+
 import {seedTelemetryConsent} from './helpers/consent';
+import {seedRunHistory} from './helpers/test-run';
 
 /**
  * 막다른 곳에서 앞으로 가는 길 — 명세 §2-8 · `req-test.md` §6.1.
@@ -86,5 +89,102 @@ test.describe('Recovery surfaces', () => {
     expect(response?.status()).toBe(404);
     await expect(page.getByTestId('global-not-found')).toBeVisible();
     expect((await page.evaluate(() => document.body.innerText)).trim().length).toBeGreaterThan(20);
+  });
+});
+
+/**
+ * 복구 카드 — `req-test.md` §6.1 「Phase 4 확장 계약」의 자동 검증 다섯 중 화면 쪽.
+ *
+ * 순수 판정(제외·상한·순서)은 `tests/unit/test-recovery-cards.test.ts` 가 렌더 없이 잰다. 여기서
+ * 재는 것은 **저장소를 읽은 뒤 실제로 몇 장이 서는가**와, 전체 완료에서 랜딩 CTA 가 남는가다.
+ *
+ * 기대 목록을 이 파일에 손으로 적지 않는다 — 카탈로그가 바뀌면 그 목록이 조용히 거짓이 된다.
+ * 대신 카탈로그를 **참고 데이터로** 읽어 seed 를 만들고, 화면에는 계약이 말하는 **성질**을
+ * 묻는다: 두 장인가 · 완료한 것이 빠졌는가 · 순서가 선언 순서인가 · 전부 완료면 0 장인가.
+ */
+test.describe('Test error recovery cards', () => {
+  /**
+   * 카탈로그 선언 순서의 진입 가능한 테스트 variant.
+   *
+   * **`isEnterableCard` 를 쓰지 않는다.** 제품이 그 술어로 고르는데 기대값도 같은 술어로 만들면,
+   * 술어가 틀려도 양쪽이 같이 틀려 이 검사는 초록으로 남는다 — 실제로 처음에는
+   * `attribute === 'available'` 로 적어 `opt_out` 카드를 떨어뜨리고 있었고, 그때 기대값도 같은
+   * 식이었으면 아무 검사도 붉지 않았을 것이다. 그래서 여기서는 **금지된 것을 뺀다**는 계약의
+   * 말로 적는다 — 출시 예정(`unavailable`)은 아무 데도 보내지 않으므로 복구 카드가 될 수 없다.
+   */
+  const ENTERABLE_TEST_VARIANTS = resolveLandingCatalog('en')
+    .filter((card) => card.type === 'test' && card.availability !== 'unavailable')
+    .map((card) => card.variant);
+
+  async function seedCompletedRuns(page: Page, variantIds: readonly string[]): Promise<void> {
+    await seedRunHistory(
+      page,
+      variantIds.map((variantId, index) => ({
+        variantId,
+        startedAtMs: 1_000 + index,
+        completedAtMs: 2_000 + index
+      }))
+    );
+  }
+
+  const cardHrefs = (page: Page) =>
+    page.getByTestId('test-error-recovery-card').evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute('href') ?? '')
+    );
+
+  test('@smoke assertion:RC-01 a fresh device gets two cards, in catalog declaration order', async ({page}) => {
+    expect(ENTERABLE_TEST_VARIANTS.length, '진입 가능한 테스트가 셋 미만이면 이 검사가 공허하다').toBeGreaterThan(2);
+
+    await page.goto('/en/test/error?variant=nope');
+
+    await expect(page.getByTestId('test-error-recovery-cards')).toBeVisible();
+    await expect(page.getByTestId('test-error-recovery-card')).toHaveCount(2);
+    expect(await cardHrefs(page)).toEqual(
+      ENTERABLE_TEST_VARIANTS.slice(0, 2).map((variantId) => `/en/test/${variantId}`)
+    );
+  });
+
+  test('@smoke assertion:RC-01 completed tests drop out and the next ones move up', async ({page}) => {
+    await seedCompletedRuns(page, [ENTERABLE_TEST_VARIANTS[0]]);
+    await page.goto('/en/test/error?variant=nope');
+
+    await expect(page.getByTestId('test-error-recovery-card')).toHaveCount(2);
+    expect(await cardHrefs(page)).toEqual(
+      ENTERABLE_TEST_VARIANTS.slice(1, 3).map((variantId) => `/en/test/${variantId}`)
+    );
+  });
+
+  test('@smoke assertion:RC-01 one remaining test shows exactly one card', async ({page}) => {
+    await seedCompletedRuns(page, ENTERABLE_TEST_VARIANTS.slice(0, -1));
+    await page.goto('/en/test/error?variant=nope');
+
+    await expect(page.getByTestId('test-error-recovery-card')).toHaveCount(1);
+    expect(await cardHrefs(page)).toEqual([`/en/test/${ENTERABLE_TEST_VARIANTS.at(-1)}`]);
+  });
+
+  test('@smoke assertion:RC-01 with everything completed the section disappears and the landing CTA remains', async ({
+    page
+  }) => {
+    await seedCompletedRuns(page, ENTERABLE_TEST_VARIANTS);
+    await page.goto('/en/test/error?variant=nope');
+
+    await expect(page.getByTestId('test-error-recovery')).toBeVisible();
+    await expect(page.getByTestId('test-error-recovery-cards')).toHaveCount(0);
+    // 계약 엣지 2 — 카드가 0 개여도 앞으로 가는 경로는 남는다(§2-8).
+    await expect(page.getByTestId('test-error-recovery').getByRole('link')).toHaveCount(1);
+    await expect(page.getByTestId('test-error-recovery').getByRole('link')).toHaveAttribute('href', '/en');
+  });
+
+  test('@smoke assertion:RC-01 an in-progress run is not treated as completed — it is what a recovery card is for', async ({
+    page
+  }) => {
+    await seedRunHistory(page, [
+      {variantId: ENTERABLE_TEST_VARIANTS[0], startedAtMs: 1_000, completedAtMs: null}
+    ]);
+    await page.goto('/en/test/error?variant=nope');
+
+    expect(await cardHrefs(page)).toEqual(
+      ENTERABLE_TEST_VARIANTS.slice(0, 2).map((variantId) => `/en/test/${variantId}`)
+    );
   });
 });

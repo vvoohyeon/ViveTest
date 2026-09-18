@@ -92,6 +92,7 @@
     "crashTitle": "頁面未能呈現",
     "crashBody": "繪製此頁面時出了問題。重試通常可以解決。",
     "retry": "重試",
+    "pickUpLabel": "從這些開始",
     "backToLanding": "返回首頁"
   },
   "consent": {

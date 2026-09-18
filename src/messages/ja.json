@@ -92,6 +92,7 @@
     "crashTitle": "画面を描画できませんでした",
     "crashBody": "このページの描画中に問題が起きました。もう一度試すとたいてい解決します。",
     "retry": "もう一度試す",
+    "pickUpLabel": "ここから始める",
     "backToLanding": "ホームへ戻る"
   },
   "consent": {

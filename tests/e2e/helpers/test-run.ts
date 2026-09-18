@@ -1,5 +1,6 @@
 import {expect, type Page} from '@playwright/test';
 
+import {TEST_RUN_HISTORY_KEY} from '../../../src/features/test/storage/test-storage-keys';
 import {seedTelemetryConsent} from './consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT} from './landing-fixture';
 
@@ -44,4 +45,22 @@ export async function completeRunFromLanding(page: Page): Promise<void> {
 
   await expect(submit).toBeEnabled();
   await submit.click();
+}
+
+/**
+ * 회차 이력을 심는다 — 제품의 길로 회차를 끝내는 대신 **상태만** 만들 때 쓴다.
+ *
+ * 두 스펙이 쓴다(회차 이력 목록 · 복구 카드). 사본을 두면 저장 모양이 바뀌는 날 한쪽만 고쳐지고,
+ * 그 한쪽은 여전히 초록이라 어긋난 것이 보이지 않는다.
+ */
+export async function seedRunHistory(
+  page: Page,
+  entries: ReadonlyArray<{variantId: string; startedAtMs: number; completedAtMs: number | null}>
+): Promise<void> {
+  await page.addInitScript(
+    ([key, payload]) => {
+      window.localStorage.setItem(key, payload);
+    },
+    [TEST_RUN_HISTORY_KEY, JSON.stringify(entries)] as const
+  );
 }

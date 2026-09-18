@@ -92,6 +92,7 @@
     "crashTitle": "Esta tela não foi desenhada",
     "crashBody": "Algo falhou ao desenhar esta página. Tentar de novo costuma resolver.",
     "retry": "Tentar de novo",
+    "pickUpLabel": "Comece por um destes",
     "backToLanding": "Voltar ao início"
   },
   "consent": {

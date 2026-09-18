@@ -92,6 +92,7 @@
     "crashTitle": "Dieser Bildschirm wurde nicht gezeichnet",
     "crashBody": "Beim Aufbau dieser Seite ging etwas schief. Ein zweiter Versuch hilft meistens.",
     "retry": "Erneut versuchen",
+    "pickUpLabel": "Mit einem davon starten",
     "backToLanding": "Zur Startseite"
   },
   "consent": {

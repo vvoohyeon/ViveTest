@@ -270,3 +270,11 @@ BQ-48 이 타이포에 모바일 열을 주면서 **모바일 폭의 baseline �
 **한 케이스가 두 가지를 동시에 잡는다.** `OPTED_OUT` 은 고지 행을 띄우는 동시에 카탈로그를 **거른다** — 실측(en, light, mobile): 고지 행 「6 tests need analytics consent. · Change consent」가 `--surface-muted` 위에 서고 그리드는 카드 **둘**로 줄어든다. 네 조합 전부에서 두 가지가 함께 찍혔다.
 
 **기존 176 장은 한 장도 다시 찍지 않았다.** `qa:visual:full` 대신 `--grep "landing-consent-opted-out" --update-snapshots` 로 새 케이스만 썼다 — 바꾼 것이 없는 장을 다시 찍으면 기계 잡음이 baseline 에 들어간다. `git status` 로 확인: 추가 8, 수정 0.
+
+## 2026-09-19 재생성 — 복구 카드가 `test-error` 네 장을 움직인다
+
+**넷만 다시 찍었다.** `req-test.md` §6.1 Phase 4 확장의 복구 카드가 `/{locale}/test/error` 에 두 장을 더하므로 그 표면의 baseline 이 낡았다 — `test-error` × en·kr × light·dark × mobile, 정확히 **4 장**이다. 전량 smoke 에서 붉은 장이 그 넷뿐이었고, **그것이 이 변경이 이 화면 안에서 끝났다는 증거다**: GNB·랜딩·문항·히스토리·결과의 baseline 은 하나도 움직이지 않았다.
+
+**피사체가 달라진 것이 아니라 길어졌다.** 마크·제목·본문·랜딩 CTA 는 그대로이고 그 아래로 카드 두 장이 붙는다. 단위 8·9 가 「다른 화면」으로 표시했던 장들과 달리 눈으로 한 장씩 볼 필요는 없다 — 다만 재생성 전후를 나란히 놓은 시트를 사용자에게 보였다(§4 가 면제한 것은 실행이지 설명이 아니다).
+
+**`qa:visual:full` 을 쓰지 않았다.** 그 명령은 `theme-matrix-smoke.spec.ts` 전체를 다시 찍으므로 바뀐 것이 없는 180 장에 기계 잡음이 들어간다. `--grep "test-error" --update-snapshots` 로 넷만 썼고 `git status` 로 확인했다 — 수정 4, 추가 0.
