@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import type {MouseEvent} from 'react';
 
-import type {AppLocale} from '@/config/site';
+import {resolveHtmlLang, type AppLocale} from '@/config/site';
 import type {LandingCardCopy} from '@/features/landing/grid/landing-card-contract';
 import {
   joinClassNames,
@@ -36,16 +36,38 @@ type LandingTestCard = Extract<LandingCard, {type: 'test'}>;
 // bottom spacer). 'flow' keeps the shared mobile expanded/transient grid layout untouched.
 export type ExpandedBodyLayoutMode = 'flow' | 'desktop-overlay-floor';
 
-const metaValueFormatter = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 0
-});
+/**
+ * meta 숫자는 **읽는 사람의 언어**로 쓴다.
+ *
+ * 종전에는 `Intl.NumberFormat('en-US')` 한 벌이 모듈 상단에 상수로 서 있었고, 그래서 12 locale
+ * 전부가 미국식 구분자를 받았다. 구분자 하나가 `15,236` 을 `15.236` 으로 만들고 그 둘은 천
+ * 단위와 소수점이라 **다른 수로 읽힌다** — 독일어·스페인어 독자에게는 15 로 보인다.
+ *
+ * 태그는 `resolveHtmlLang` 이 준다. 제품 locale 코드 `kr` · `zs` · `zt` 는 BCP 47 이 아니라
+ * `Intl` 이 모르는 저장소 고유 코드이고, 그대로 넘기면 조용히 시스템 기본 locale 로 떨어진다.
+ *
+ * 포맷터는 태그로 캐시한다 — 생성이 싸지 않고, 확장 카드 하나가 이 함수를 세 번 부른다.
+ */
+const metaValueFormatters = new Map<string, Intl.NumberFormat>();
 
-function formatMetaValue(value: number): string {
+function resolveMetaValueFormatter(locale: AppLocale): Intl.NumberFormat {
+  const tag = resolveHtmlLang(locale);
+  const cached = metaValueFormatters.get(tag);
+  if (cached) {
+    return cached;
+  }
+
+  const formatter = new Intl.NumberFormat(tag, {maximumFractionDigits: 0});
+  metaValueFormatters.set(tag, formatter);
+  return formatter;
+}
+
+export function formatMetaValue(value: number, locale: AppLocale): string {
   if (!Number.isFinite(value)) {
     return '0';
   }
 
-  return metaValueFormatter.format(Math.max(0, Math.trunc(value)));
+  return resolveMetaValueFormatter(locale).format(Math.max(0, Math.trunc(value)));
 }
 
 export interface ExpandedCardBodyProps {
@@ -96,9 +118,14 @@ function ExpandedTestAnswerChoice({
   );
 }
 
+/**
+ * `value` 는 **이미 형식이 입혀진 문자열**이다. 숫자를 그대로 들고 다니면 그것을 그리는 말단
+ * 컴포넌트까지 `locale` 을 끌고 가야 하고, 그러면 형식 판단이 화면 어휘 안으로 들어간다.
+ * 포맷은 `locale` 을 이미 아는 자리에서 한 번만 한다.
+ */
 interface ExpandedMetaEntry {
   label: string;
-  value: number;
+  value: string;
 }
 
 // Quiet data row (design §6.10): inline "value label" items separated by decorative dots,
@@ -110,7 +137,7 @@ function ExpandedMetaItem({entry, lead}: {entry: ExpandedMetaEntry; lead: boolea
   const valueClassName = lead ? LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME : LANDING_GRID_CARD_META_VALUE_CLASSNAME;
   const content = (
     <>
-      <span className={valueClassName}>{formatMetaValue(entry.value)}</span>
+      <span className={valueClassName}>{entry.value}</span>
       <span className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{entry.label}</span>
     </>
   );
@@ -199,10 +226,10 @@ function ExpandedTestBody({card, locale, copy, interactive, layoutMode, onAnswer
     <ExpandedMetaRow
       interactive={interactive}
       leading={[
-        {label: copy.metaEstimated, value: card.test.meta.durationM},
-        {label: copy.metaAttempts, value: card.test.meta.engagedC}
+        {label: copy.metaEstimated, value: formatMetaValue(card.test.meta.durationM, locale)},
+        {label: copy.metaAttempts, value: formatMetaValue(card.test.meta.engagedC, locale)}
       ]}
-      trailing={{label: copy.metaShares, value: card.test.meta.sharedC}}
+      trailing={{label: copy.metaShares, value: formatMetaValue(card.test.meta.sharedC, locale)}}
     />
   );
 

@@ -20,6 +20,21 @@ function read(relative: string): string {
   return readFileSync(path.join(process.cwd(), relative), 'utf8');
 }
 
+/** 주석을 걷은 원문 — `<html` 이 JSX 인지 설명인지 가른다(설명에도 그 글자가 나온다). */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//gu, '').replace(/^\s*\/\/.*$/gmu, '');
+}
+
+function rendersOwnDocument(source: string): boolean {
+  return /<html[\s>]/u.test(stripComments(source));
+}
+
+function walkAppSources(): string[] {
+  return readdirSync(APP_ROOT, {recursive: true, withFileTypes: true})
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.tsx'))
+    .map((entry) => path.relative(process.cwd(), path.join(entry.parentPath, entry.name)));
+}
+
 describe('error boundary coverage', () => {
   it('keeps a boundary inside the locale segment and one outside it', () => {
     // 안쪽은 번역되고 테마가 살아 있다. 바깥쪽은 루트 레이아웃까지 무너졌을 때의 마지막 그물이다.
@@ -41,13 +56,28 @@ describe('error boundary coverage', () => {
     }
   });
 
-  it('makes the outer boundary carry its own stylesheet', () => {
-    // 루트 레이아웃을 거치지 않는 문서는 스타일시트를 **스스로** 실어야 한다. `global-not-found`
-    // 가 같은 자리에서 그것을 놓쳐 모든 Tailwind 클래스가 한 번도 적용되지 않은 적이 있다(L12).
-    for (const relative of ['src/app/global-error.tsx', 'src/app/global-not-found.tsx']) {
+  it('makes every self-rendered document carry its own stylesheet and theme bootstrap', () => {
+    // 제 `<html>` 을 그리는 문서는 루트 레이아웃을 거치지 않으므로 **레이아웃이 주던 것을 스스로
+    // 실어야 한다.** 스타일시트가 그 하나이고(`global-not-found` 가 그것을 놓쳐 모든 Tailwind
+    // 클래스가 한 번도 적용되지 않은 적이 있다 — L12), 테마 부트스트랩이 나머지 하나다.
+    //
+    // **파일 이름을 세지 않는다.** 종전에는 둘을 손으로 적었고, 그래서 같은 자리에 세 번째 문서가
+    // 생겨도 그 목록은 조용히 통과했다(L30). `src/app` 을 전수로 훑어 **제 문서를 그리는 것**을
+    // 찾고 그 전부에 같은 질문을 묻는다.
+    const selfRenderedDocuments = walkAppSources().filter((relative) => rendersOwnDocument(read(relative)));
+
+    expect(selfRenderedDocuments.length, '제 문서를 그리는 파일을 하나도 못 찾았다 — 수집기가 죽었다').toBeGreaterThan(2);
+
+    for (const relative of selfRenderedDocuments) {
       const source = read(relative);
-      expect(/<html/u.test(source), `${relative} 는 제 문서를 그린다`).toBe(true);
-      expect(/import '\.\/globals\.css'/u.test(source), `${relative} 는 스타일시트를 스스로 싣는다`).toBe(true);
+      expect(/import '\.\/globals\.css'/u.test(source), `${relative} 가 스타일시트를 스스로 싣지 않는다`).toBe(true);
+      // 부트스트랩이 없으면 다크 사용자가 라이트 화면을 본다 — 이 문서들은 오류·404 라
+      // 하필 가장 당황스러운 순간에 그렇게 된다. 실측(2026-09-19): 부트스트랩 없는
+      // `global-not-found` 는 light·dark 스크린샷 해시가 **같았다**.
+      expect(
+        /THEME_BOOTSTRAP_SOURCE/u.test(source),
+        `${relative} 가 테마 부트스트랩을 싣지 않는다 — 다크 사용자가 라이트 화면을 본다`
+      ).toBe(true);
     }
   });
 

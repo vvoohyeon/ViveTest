@@ -456,3 +456,41 @@ test.describe('Reachable 404 surfaces render without scripts', () => {
     });
   }
 });
+
+/**
+ * 제 문서를 그리는 표면도 테마를 안다 — 점수표 `global-404-has-no-theme`.
+ *
+ * `global-not-found` 는 루트 레이아웃을 거치지 않으므로 레이아웃이 주던 것을 스스로 실어야
+ * 한다. 스타일시트는 이미 싣고 있었고(L12), **테마 부트스트랩이 빠져 있었다** — 그래서 다크
+ * 사용자가 잘못된 주소를 열면 화면 전체가 라이트였다. 실측으로도 확인됐다: 부트스트랩이 없을
+ * 때 이 문서의 light·dark 전체 스크린샷 해시가 **같았다**(2026-09-19).
+ *
+ * 여기서 재는 것은 **해석된 테마가 문서에 실제로 적용됐는가**다. `data-theme` 속성 하나만 보면
+ * 부트스트랩이 돌기 전 서버 기본값과 구분되지 않으므로, 지면 색까지 함께 본다.
+ */
+test.describe('Self-rendered documents resolve the theme', () => {
+  test('@smoke assertion:NF-02 the global 404 follows the OS theme instead of always painting light', async ({
+    page
+  }) => {
+    await page.emulateMedia({colorScheme: 'dark'});
+    expect((await page.goto('/foo'))?.status()).toBe(404);
+    await expect(page.getByTestId('global-not-found')).toBeVisible();
+
+    const dark = await page.evaluate(() => ({
+      theme: document.documentElement.dataset.theme,
+      ground: getComputedStyle(document.body).backgroundColor
+    }));
+    expect(dark.theme, 'OS 다크에서 문서가 다크로 해석되지 않는다').toBe('dark');
+
+    await page.emulateMedia({colorScheme: 'light'});
+    expect((await page.goto('/foo'))?.status()).toBe(404);
+    const light = await page.evaluate(() => ({
+      theme: document.documentElement.dataset.theme,
+      ground: getComputedStyle(document.body).backgroundColor
+    }));
+    expect(light.theme).toBe('light');
+
+    // 속성만 보면 부트스트랩이 돌기 전 서버 기본값과 구분되지 않는다 — 실제로 칠해진 면을 본다.
+    expect(dark.ground, '다크와 라이트의 지면이 같다 — 테마가 화면에 닿지 않았다').not.toBe(light.ground);
+  });
+});

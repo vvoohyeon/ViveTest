@@ -195,11 +195,27 @@ export function InstructionOverlay({
       <h2 id={titleId} className={testTitleClassName}>
         {qualifierStep.item.questionText}
       </h2>
-      <div className="grid gap-2">
+      {/*
+        선택 상태를 보조기술에 **노출한다**. 종전에는 `data-selected` 하나뿐이었고 그것은 CSS 와
+        E2E 만 읽는다 — 스크린리더 사용자는 무엇을 골랐는지 들을 수 없었다.
+
+        **채점 문항의 규칙을 여기 가져오지 않는다.** `req-test.md` §4.3 은 「이전 응답」 표식에
+        `aria-checked`·`aria-pressed` 를 금하는데, 그 근거는 그 화면에서 **선택이 곧 진행이라
+        선택된 상태로 머무는 문항이 존재할 수 없다**는 것이다. qualifier step 은 반대다 — 고른
+        뒤 [Continue] 를 누를 때까지 머무르므로, 노출할 것이 표식이 아니라 선택 자체다.
+
+        구조는 GNB 테마 컨트롤과 같다. 「둘 중 하나」를 보조기술에 전하는 구조는 `radiogroup` 이
+        유일하고, 이름은 다이얼로그가 이미 가리키는 질문 제목을 그대로 쓴다(§3.6). roving
+        tabindex 는 걸지 않는다 — 이 묶음은 포커스 트랩 안의 주 컨트롤이고, 로빙을 걸면 고른 쪽
+        하나만 탭으로 닿는다(GNB 가 같은 이유로 같은 판단을 했다).
+      */}
+      <div className="grid gap-2" role="radiogroup" aria-labelledby={titleId}>
         {qualifierStep.item.choices.map((choice) => (
           <button
             key={choice.token}
             type="button"
+            role="radio"
+            aria-checked={qualifierStep.selectedToken === choice.token}
             className={testAnswerChoiceClassName}
             data-selected={qualifierStep.selectedToken === choice.token ? 'true' : 'false'}
             data-testid={`test-qualifier-choice-${choice.token.toLowerCase()}`}

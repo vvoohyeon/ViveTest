@@ -368,3 +368,64 @@ test.describe('qualifier overlay — 폰의 모달 바텀시트', () => {
     await expect(page.getByTestId('test-question-panel')).toBeVisible();
   });
 });
+
+/**
+ * qualifier 선택은 **보조기술에도 보인다** — 점수표 `answer-choice-selection-not-exposed`.
+ *
+ * 종전에는 선택 상태가 `data-selected` 하나뿐이었고, 그것은 CSS 와 E2E 만 읽는다. 스크린리더
+ * 사용자는 무엇을 골랐는지 들을 수 없었고, 고른 것을 다시 눌러 확인할 수도 없었다.
+ *
+ * **채점 문항의 규칙을 여기 가져오지 않는다.** `req-test.md` §4.3 은 「이전 응답」 표식에
+ * `aria-checked`·`aria-pressed` 를 금하는데, 그 이유는 그 화면에서는 **선택이 곧 진행이라
+ * 선택된 상태로 머무는 문항이 존재할 수 없기** 때문이다. qualifier step 은 반대다 — 고른 뒤
+ * [Continue] 를 누를 때까지 머무르므로 여기서 노출해야 하는 것은 표식이 아니라 **선택**이다.
+ *
+ * 구조는 GNB 테마 컨트롤과 같은 것을 쓴다(`radiogroup` + `radio`). 「둘 중 하나」라는 사실을
+ * 보조기술에 전하는 구조가 그것 하나이고, 저장소에 이미 그 선례가 있다.
+ */
+test.describe('qualifier overlay — selection reaches the accessibility tree', () => {
+  test('@smoke assertion:QA-01 the choices are a radiogroup named by the question', async ({page}) => {
+    await openEgttInstruction(page);
+    await advanceToQualifierStep(page);
+
+    const group = page.getByTestId('test-qualifier-step').getByRole('radiogroup');
+    await expect(group).toHaveCount(1);
+    // 이름은 질문이다 — 다이얼로그의 `aria-labelledby` 와 같은 제목을 가리킨다(§3.6).
+    await expect(group).toHaveAccessibleName(EGTT_QUALIFIER_QUESTION);
+    await expect(group.getByRole('radio')).toHaveCount(2);
+  });
+
+  test('@smoke assertion:QA-01 aria-checked follows the choice, and switching moves it', async ({page}) => {
+    await openEgttInstruction(page);
+    await advanceToQualifierStep(page);
+
+    const male = page.getByTestId('test-qualifier-choice-m');
+    const female = page.getByTestId('test-qualifier-choice-f');
+
+    // 아직 고르지 않았다 — 둘 다 `false` 이고 「이름 없는 상태」가 아니다.
+    await expect(male).toHaveAttribute('aria-checked', 'false');
+    await expect(female).toHaveAttribute('aria-checked', 'false');
+
+    await male.click();
+    await expect(male).toHaveAttribute('aria-checked', 'true');
+    await expect(female).toHaveAttribute('aria-checked', 'false');
+
+    await female.click();
+    await expect(male).toHaveAttribute('aria-checked', 'false');
+    await expect(female).toHaveAttribute('aria-checked', 'true');
+  });
+
+  test('@smoke assertion:QA-01 both choices stay reachable by Tab — the selected one is not removed from the order', async ({
+    page
+  }) => {
+    await openEgttInstruction(page);
+    await advanceToQualifierStep(page);
+    await page.getByTestId('test-qualifier-choice-m').click();
+
+    // roving tabindex 를 걸지 않는 것은 의도다(GNB 테마 컨트롤과 같은 판단) — 이 묶음은
+    // 포커스 트랩 안의 주 컨트롤이고, 로빙을 걸면 고른 쪽 하나만 탭으로 닿는다.
+    for (const testId of ['test-qualifier-choice-m', 'test-qualifier-choice-f']) {
+      await expect(page.getByTestId(testId)).not.toHaveAttribute('tabindex', '-1');
+    }
+  });
+});
