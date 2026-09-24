@@ -92,6 +92,9 @@ function resolveInteractionCard(
   return cardByVariant.get(variant) ?? null;
 }
 
+/** 목록 밖 카드의 바인딩 — 답할 카드가 없으므로 아무 일도 하지 않는다. */
+function ignoreAnswerChoice(): void {}
+
 function isModifiedBlogActivation(event: ReactMouseEvent<HTMLElement>): boolean {
   return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
 }
@@ -411,20 +414,28 @@ export function useLandingInteractionController({
     ]
   );
 
-  const handleAnswerChoiceSelect = useCallback(
-    (choice: 'A' | 'B', event: ReactMouseEvent<HTMLButtonElement>) => {
-      const card = resolveInteractionCard(event.currentTarget, cardByVariant);
-      if (!card || card.type !== 'test') {
-        return;
-      }
+  // 답의 카드는 바인딩이 안다 — DOM 조상에서 되찾지 않는다. 폰 시트는 `document.body` 포털에
+  // 그려져 답 버튼에 카드 조상이 없고, 조상 탐색은 거기서 빈손으로 끝나 진입이 시작되지 않았다.
+  // 카드별 핸들러를 한 번에 만들어 두는 것은 바인딩의 함수 정체성을 렌더 사이에 유지하려는 것이다.
+  const answerChoiceHandlerByVariant = useMemo(
+    () =>
+      new Map(
+        cards.map((card) => [
+          card.variant,
+          (choice: 'A' | 'B', event: ReactMouseEvent<HTMLButtonElement>) => {
+            if (card.type !== 'test') {
+              return;
+            }
 
-      const shouldBeginTransition = onAnswerChoiceSelect?.(card, choice) !== false;
-      if (shouldBeginTransition) {
-        beginTransition(card.variant);
-      }
-      event.preventDefault();
-    },
-    [beginTransition, cardByVariant, onAnswerChoiceSelect]
+            const shouldBeginTransition = onAnswerChoiceSelect?.(card, choice) !== false;
+            if (shouldBeginTransition) {
+              beginTransition(card.variant);
+            }
+            event.preventDefault();
+          }
+        ])
+      ),
+    [beginTransition, cards, onAnswerChoiceSelect]
   );
 
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
@@ -491,7 +502,7 @@ export function useLandingInteractionController({
       onMouseEnter: hoverHandlers.onMouseEnter,
       onMouseLeave: hoverHandlers.onMouseLeave,
       onExpandedBodyKeyDown: keyboardHandlers.onExpandedBodyKeyDown,
-      onAnswerChoiceSelect: handleAnswerChoiceSelect,
+      onAnswerChoiceSelect: answerChoiceHandlerByVariant.get(card.variant) ?? ignoreAnswerChoice,
       onOverlayClose: collapseDesktopOverlayStable
     };
   };

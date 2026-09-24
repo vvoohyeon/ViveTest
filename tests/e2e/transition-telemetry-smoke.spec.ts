@@ -767,6 +767,51 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(Math.abs(headerTopAfter - headerTopBefore)).toBeLessThanOrEqual(1);
   });
 
+  // 폰에서 테스트에 들어가는 유일한 길이 시트의 A/B 다. 위 검사들은 시트를 열고 닫기만 하고,
+  // 진입을 누르는 검사는 전부 1280·1440 이었다 — 그래서 포털로 옮겨진 답 버튼이 카드를 찾지
+  // 못해 아무 일도 하지 않는 결함이 붉어지지 않았다.
+  test('@smoke assertion:B6-transition-ingress mobile sheet answer enters the test and records card_answered', async ({
+    page
+  }) => {
+    const events: Array<Record<string, unknown>> = [];
+
+    await installTransitionSignalCollector(page);
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, 'OPTED_IN');
+    }, TELEMETRY_CONSENT_STORAGE_KEY);
+    await page.route('**/api/telemetry', async (route) => {
+      const payload = route.request().postDataJSON();
+      if (payload && typeof payload === 'object') {
+        events.push(payload as Record<string, unknown>);
+      }
+      await route.fulfill({status: 204, body: ''});
+    });
+
+    await setTouchViewport(page, {width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+    await card.getByTestId('landing-grid-card-trigger').click();
+    const sheet = page.getByTestId('landing-card-sheet');
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+
+    await sheet.locator('[data-slot="answerChoiceA"]').click();
+
+    await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
+    await expect
+      .poll(async () => (await readTransitionSignals(page)).filter((signal) => signal.signal === 'transition_complete').length)
+      .toBe(1);
+    await expect.poll(() => events.filter((event) => event.event_type === 'card_answered').length).toBe(1);
+
+    const cardAnswered = events.find((event) => event.event_type === 'card_answered');
+    expect(cardAnswered?.source_variant).toBe(PRIMARY_AVAILABLE_TEST_VARIANT);
+    expect(cardAnswered?.target_route).toBe(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
+    expect(cardAnswered?.landing_ingress_flag).toBe(true);
+    expect((await readTransitionSignals(page)).filter((signal) => signal.signal === 'transition_start')).toHaveLength(1);
+  });
+
   test('@smoke mobile blog tap navigates directly without entering the expanded lifecycle', async ({
     page
   }) => {

@@ -714,6 +714,31 @@ describe('landing interaction controller handlers', () => {
     expect(onAnswerChoiceSelect.mock.calls[0]?.[1]).toBe('A');
   });
 
+  // 폰 시트는 `document.body` 포털에 그려진다 — 답 버튼에 카드 조상이 없다. 카드를 DOM 조상에서
+  // 되찾던 핸들러는 그 자리에서 빈손으로 끝나 진입이 시작되지 않았다. 카드는 바인딩이 안다.
+  it('starts the answer entry from a portal-rendered choice that has no card ancestor', () => {
+    const {testCard, blogCard} = selectFixtureCards();
+    const shell = mountShell([testCard, blogCard]);
+    const portalChoice = document.createElement('button');
+    portalChoice.dataset.slot = 'answerChoiceA';
+    document.body.append(portalChoice);
+    const onAnswerChoiceSelect = vi.fn<NonNullable<ControllerHookProps['onAnswerChoiceSelect']>>();
+    const {result} = renderController({
+      cards: [testCard, blogCard],
+      viewportWidth: 390,
+      viewportTier: 'mobile',
+      shellRef: {current: shell},
+      onAnswerChoiceSelect
+    });
+
+    act(() => {
+      result.current.resolveCardInteractionBindings(testCard).onAnswerChoiceSelect('A', createMouseEvent(portalChoice));
+    });
+
+    expect(onAnswerChoiceSelect).toHaveBeenCalledWith(testCard, 'A');
+    expect(result.current.interactionState.pageState).toBe('TRANSITIONING');
+  });
+
   it('passes the latest blog card object to whole-card activation callbacks after cards rerender', () => {
     const {testCard, blogCard} = selectFixtureCards();
     const updatedBlogCard: LandingCard = {
